@@ -1,0 +1,108 @@
+export const UERJ_UNIT_OPTIONS = [
+  {selected: false, text: 'ART - Instituto De Artes', value: '200900000'},
+  {
+    selected: false,
+    text: 'CAP - Inst. De Aplicação Fernando Rodrigues Da Silveira',
+    value: '200800000',
+  },
+  {selected: false, text: 'DIR - Faculdade De Direito', value: '230100000'},
+  {selected: false, text: 'EDU - Faculdade De Educação', value: '200100000'},
+  {selected: false, text: 'ENF - Faculdade De Enfermagem', value: '220300000'},
+  {
+    selected: false,
+    text: 'ESDI - Escola Superior De Desenho Industrial',
+    value: '210600000',
+  },
+  {
+    selected: false,
+    text: 'FAF - Faculdade De Administração E Finanças',
+    value: '230200000',
+  },
+  {
+    selected: false,
+    text: 'FAOC - Faculdade De Oceanografia',
+    value: '211100000',
+  },
+  {selected: false, text: 'FAT - Faculdade De Tecnologia', value: '210900000'},
+  {
+    selected: false,
+    text: 'FCE - Faculdade De Ciências Econômicas',
+    value: '230300000',
+  },
+  {
+    selected: false,
+    text: 'FCM - Faculdade De Ciências Médicas',
+    value: '220100000',
+  },
+  {
+    selected: false,
+    text: 'FCS - Faculdade De Comunicação Social',
+    value: '200500000',
+  },
+  {
+    selected: false,
+    text: 'FEBF - Faculdade De Educação Da Baixada Fluminense',
+    value: '200700000',
+  },
+  {selected: false, text: 'FEN - Faculdade De Engenharia', value: '210100000'},
+  {
+    selected: false,
+    text: 'FFP - Faculdade De Formação De Professores De S. Gonçalo',
+    value: '200600000',
+  },
+  {selected: false, text: 'FGEL - Faculdade De Geologia', value: '210700000'},
+  {selected: false, text: 'FIS - Instituto De Física', value: '210400000'},
+  {
+    selected: false,
+    text: 'FSS - Faculdade De Serviço Social',
+    value: '230400000',
+  },
+  {selected: false, text: 'GEO - Instituto De Geociencias', value: '210500000'},
+  {
+    selected: false,
+    text: 'IBRAG - Instituto De Biologia Roberto Alcântara Gomes',
+    value: '220400000',
+  },
+  {
+    selected: false,
+    text: 'ICS - Instituto De Ciências Sociais',
+    value: '230600000',
+  },
+  {
+    selected: false,
+    text: 'IEFD - Instituto De Educacao Fisica E Desportos',
+    value: '200300000',
+  },
+  {
+    selected: false,
+    text: 'IESP - Instituto De Estudos Sociais E Políticos',
+    value: '230700000',
+  },
+  {
+    selected: false,
+    text: 'IFCH - Instituto De Filosofia E Ciências Humanas',
+    value: '230500000',
+  },
+  {
+    selected: false,
+    text: 'IFHT - Inst Multidisc. De Formação Humana Com Tecnologias',
+    value: '201000000',
+  },
+  {selected: false, text: 'IGEOG - Instituto De Geografia', value: '211000000'},
+  {selected: false, text: 'ILE - Instituto De Letras', value: '200200000'},
+  {
+    selected: false,
+    text: 'IME - Instituto De Matemática E Estatística',
+    value: '210200000',
+  },
+  {
+    selected: false,
+    text: 'IMS - Instituto De Medicina Social',
+    value: '220500000',
+  },
+  {selected: false, text: 'IPRJ - Instituto Politécnico', value: '210800000'},
+  {selected: false, text: 'NUT - Instituto De Nutrição', value: '220600000'},
+  {selected: false, text: 'ODO - Faculdade De Odontologia', value: '220200000'},
+  {selected: false, text: 'PSI - Instituto De Psicologia', value: '200400000'},
+  {selected: false, text: 'QUI - Instituto De Química', value: '210300000'},
+];
