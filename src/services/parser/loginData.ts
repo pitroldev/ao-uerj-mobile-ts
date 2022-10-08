@@ -4,7 +4,7 @@ export default function parseLoginInfo(data: string) {
   const info = {
     periodo: '',
     nome: '',
-    fail_reason: null,
+    fail_reason: '',
   };
 
   const $ = cheerio.load(data);
@@ -17,7 +17,7 @@ export default function parseLoginInfo(data: string) {
     }
   });
 
-  $('br+ table font').text((index, text) => {
+  $('br+ table font').text((index: number, text: string) => {
     if (index === 0) {
       info.fail_reason = text.trim();
     }

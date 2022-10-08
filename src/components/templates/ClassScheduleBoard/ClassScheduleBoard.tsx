@@ -135,4 +135,9 @@ const ClassScheduleBoard = ({data}: Props) => {
   );
 };
 
-export default ClassScheduleBoard;
+export default React.memo(ClassScheduleBoard, (prev, next) => {
+  if (JSON.stringify(prev) === JSON.stringify(next)) {
+    return true;
+  }
+  return false;
+});

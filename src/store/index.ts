@@ -17,6 +17,7 @@ import classSchedulesByUnit from '@reducers/classSchedulesByUnit';
 import subjectsAttended from '@reducers/subjectsAttended';
 import subjectClassesSearch from '@reducers/subjectClassesSearch';
 import attendedClasses from '@reducers/attendedClasses';
+import classGrades from '@reducers/classGrades';
 
 export function makeStore() {
   const reducers = combineReducers({
@@ -29,6 +30,7 @@ export function makeStore() {
     subjectsAttended,
     subjectClassesSearch,
     attendedClasses,
+    classGrades,
   });
 
   const persistConfig = {

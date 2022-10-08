@@ -5,8 +5,9 @@ import {getSubjectsToTake} from '@services/UerjApi';
 import isExpired from '@root/utils/isExpired';
 
 export async function fetchSubjectsToTake() {
-  const {subjectsAttended} = store.getState();
-  if (!isExpired(subjectsAttended?.lastUpdatedAt, 12)) {
+  const {subjectsToTake} = store.getState();
+  const isEmpty = subjectsToTake.data.length === 0;
+  if (!isExpired(subjectsToTake?.lastUpdatedAt, 12) && !isEmpty) {
     return;
   }
 

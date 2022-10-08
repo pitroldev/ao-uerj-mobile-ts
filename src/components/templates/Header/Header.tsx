@@ -25,7 +25,6 @@ const Header = ({navigationState}: Props) => {
     setRouteName(currentRoute ?? periodo ?? '');
   }, [navigationState]);
 
-  console.log({password, routeName});
   const isSignedIn = Boolean(password) && currentRoute !== 'Login';
   const isDrawerOpen = navigationState?.history?.some(
     (it: any) => it.type === 'drawer',

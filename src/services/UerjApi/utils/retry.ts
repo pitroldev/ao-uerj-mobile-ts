@@ -1,9 +1,10 @@
 export const MAX_RETRIES = 3;
 
-export const NOT_RETRY_ERRORS = [
-  'NOT_LOGGED_IN',
+export const NOT_RETRY_ERRORS = ['NOT_LOGGED_IN', 'POSSIBLY_BLOCKED'];
+
+export const SESSION_TIMED_OUT_ERRORS = [
   'REQ_ID_NOT_FOUND',
-  'POSSIBLY_BLOCKED',
+  'SUBJECT_REQ_ID_NOT_FOUND',
 ];
 
 export async function retry<T>(

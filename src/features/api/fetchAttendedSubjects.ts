@@ -6,7 +6,8 @@ import isExpired from '@root/utils/isExpired';
 
 export async function fetchAttendedSubjects() {
   const {subjectsAttended} = store.getState();
-  if (!isExpired(subjectsAttended?.lastUpdatedAt, 12)) {
+  const isEmpty = subjectsAttended.data.length === 0;
+  if (!isExpired(subjectsAttended?.lastUpdatedAt, 12) && !isEmpty) {
     return;
   }
 
