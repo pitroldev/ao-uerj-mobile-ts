@@ -1,7 +1,7 @@
 import api from '@services/UerjApi';
 import {getRequisitionID} from '@services/UerjApi/utils/getRequisitionID';
 
-import ridProvisorio from '@services/parser/ridProvisorio';
+import {parsePartialRID} from '@services/parser';
 
 export const fetchPartialRID = async () => {
   const url = '/requisicaoaluno/requisicao.php';
@@ -22,7 +22,7 @@ export const fetchPartialRID = async () => {
 export const getPartialRID = async () => {
   const data = await fetchPartialRID();
 
-  const rid = ridProvisorio(data);
+  const rid = parsePartialRID(data);
 
   return rid;
 };
