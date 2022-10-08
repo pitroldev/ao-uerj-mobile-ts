@@ -5,7 +5,7 @@ import parseAttendedSubjects from './parseAttendedSubjects';
 import parseUniversalSubjects from './parseUniversalSubjects';
 import parseClassesScheduleByUnit from './parseClassesScheduleByUnit';
 import parseClassGrades from './classGrades';
-import ridProvisorio from './ridProvisorio';
+import parsePartialRID from './partialRID';
 import parseSubjectClassesSchedule from './parseSubjectClassesSchedule';
 import * as minorParser from './minorParser';
 
@@ -17,7 +17,7 @@ export {
   parseUniversalSubjects,
   parseClassesScheduleByUnit,
   parseClassGrades,
-  ridProvisorio,
+  parsePartialRID,
   parseSubjectClassesSchedule,
 };
 
@@ -29,7 +29,7 @@ export default {
   parseUniversalSubjects,
   parseClassesScheduleByUnit,
   parseClassGrades,
-  ridProvisorio,
+  parsePartialRID,
   parseSubjectClassesSchedule,
   ...minorParser,
 };

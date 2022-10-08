@@ -7,17 +7,17 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 import useUerjFetch from '@hooks/useUerjFetch';
 import useRefresh from '@hooks/useRefresh';
-import {SUBJECT_TYPE} from '@root/utils/constants/subjectDictionary';
-import {normalizeText} from '@root/utils/normalize';
-import parser from '@root/services/parser';
+import {SUBJECT_TYPE} from '@utils/constants/subjectDictionary';
+import {normalizeText} from '@utils/normalize';
+import parser from '@services/parser';
 
 import {CurriculumSubject} from '@root/types/curriculumSubject';
 
 import {fetchCurriculumSubjects} from '@features/api/fetchCurriculumSubjects';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
-import * as reducer from '@root/reducers/curriculumSubjects';
-import * as subjectDetailReducer from '@root/reducers/subjectClassesSearch';
+import * as reducer from '@reducers/curriculumSubjects';
+import * as subjectDetailReducer from '@reducers/subjectClassesSearch';
 
 import Spinner from '@atoms/Spinner';
 import StyledPicker from '@atoms/Picker';

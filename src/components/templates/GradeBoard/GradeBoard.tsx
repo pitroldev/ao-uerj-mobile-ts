@@ -2,6 +2,8 @@ import React from 'react';
 
 import {ClassGrade} from '@root/types/classGrades';
 
+import {numberToColor} from '@utils/numberToColor';
+
 import Text from '@atoms/Text';
 import {
   Container,
@@ -15,23 +17,6 @@ import {
 type Props = {
   data: ClassGrade[];
 };
-
-function numberToColor(grade: unknown, base = 10) {
-  if (typeof grade !== 'number') {
-    return 'CANCELED';
-  }
-
-  const percent = grade / base;
-
-  if (percent >= 0.8) {
-    return 'GOOD';
-  }
-  if (percent >= 0.6) {
-    return 'BAD';
-  }
-
-  return 'CRITICAL';
-}
 
 const GradeBoard = ({data}: Props) => {
   function disciplinaBox(subject: ClassGrade) {
