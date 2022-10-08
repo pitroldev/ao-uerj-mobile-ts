@@ -8,7 +8,7 @@ export default async function parseLoginReqId(data: string) {
   const $ = cheerio.load(data);
   $('input[name ="requisicao"]')
     .eq(0)
-    .each((index: string, node) => {
+    .each((index: string, node: any) => {
       const {value} = node.attribs;
       reqID = value;
     });

@@ -17,6 +17,8 @@ import {
 const PASS_RECOVERY_URL =
   'https://www.alunoonline.uerj.br/requisicaoaluno/requisicao.php?controle=Login&requisicao=LoginSolicitarSenha';
 
+// TODO: Juntar parser+reducer+type+api na pasta features
+
 const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

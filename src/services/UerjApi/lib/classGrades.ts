@@ -1,5 +1,5 @@
 import api from '@services/UerjApi';
-import notasParciais from '@services/parser/notasParciais';
+import {parseClassGrades} from '@services/parser';
 
 export const fetchClassGrades = async () => {
   const url = '/notasdoperiododoaluno/notasparciais.php';
@@ -12,6 +12,6 @@ export const fetchClassGrades = async () => {
 export const getClassGrades = async () => {
   const data = await fetchClassGrades();
 
-  const grades = notasParciais(data);
+  const grades = parseClassGrades(data);
   return grades;
 };

@@ -135,9 +135,7 @@ export function parseSubjectName(text, isClean = false) {
   try {
     const cleanedText = isClean
       ? text
-      : text
-          .replace(parseSubjectID(text), '')
-          .replace(/-(?=\w)/g, ' - ');
+      : text.replace(parseSubjectID(text), '').replace(/-(?=\w)/g, ' - ');
     // const regex1 = /\b[-,a-zA-ZA-\u00ff �/.]+\b/g;
     const regex = /[-,a-zA-Z\u00C0-\u00FF �/.]+\b/g;
     const preParsed = regex.exec(cleanedText)[0].trim();

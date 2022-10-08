@@ -5,8 +5,9 @@ import {getCurriculumSubjects} from '@services/UerjApi';
 import isExpired from '@root/utils/isExpired';
 
 export async function fetchCurriculumSubjects() {
-  const {subjectsAttended} = store.getState();
-  if (!isExpired(subjectsAttended?.lastUpdatedAt, 12)) {
+  const {curriculumSubjects} = store.getState();
+  const isEmpty = curriculumSubjects.data.length === 0;
+  if (!isExpired(curriculumSubjects?.lastUpdatedAt, 12) && !isEmpty) {
     return;
   }
 

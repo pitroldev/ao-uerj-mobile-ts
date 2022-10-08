@@ -14,7 +14,7 @@ export default async function parseSubjectInfoReqId(data: string) {
   const $ = cheerio.load(data);
   $('td:nth-child(3) a')
     .eq(0)
-    .each((index, node) => {
+    .each((index: number, node: any) => {
       const cleanedReqID = node.attribs.onclick.replace(/[\s']+/gi, '');
       const execReqID = cleanedReqID.match(regex);
       const parsedReqID = execReqID.length && execReqID[0];
@@ -23,7 +23,7 @@ export default async function parseSubjectInfoReqId(data: string) {
 
   $('.LINKNAOSUB')
     .eq(0)
-    .each((index, node) => {
+    .each((index: number, node: any) => {
       const cleanedReqID = node.attribs.onclick.replace(/[\s']+/gi, '');
       const execReqID = cleanedReqID.match(regex);
       const parsedReqID = execReqID.length && execReqID[0];
