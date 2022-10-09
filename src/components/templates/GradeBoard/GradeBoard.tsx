@@ -19,8 +19,8 @@ type Props = {
 };
 
 const GradeBoard = ({data}: Props) => {
-  function disciplinaBox(subject: ClassGrade) {
-    const {grades, id, name} = subject;
+  function renderItem(item: ClassGrade) {
+    const {grades, id, name} = item;
 
     const hasTests =
       typeof grades.p1 === 'number' ||
@@ -97,7 +97,7 @@ const GradeBoard = ({data}: Props) => {
     );
   }
 
-  return <Container>{data?.map(disciplinaBox)}</Container>;
+  return <Container>{data?.map(renderItem)}</Container>;
 };
 
 export default React.memo(GradeBoard, (prev, next) => {

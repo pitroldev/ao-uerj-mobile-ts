@@ -1,4 +1,5 @@
 import React from 'react';
+import {TouchableOpacity} from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
 import {window} from '@utils/constants/info';
 
@@ -18,8 +19,9 @@ import {
 
 type Props = {
   data: AttendedClassesSchedule[];
+  onSubjectPress: (item?: AttendedClassesSchedule) => void;
 };
-const ClassScheduleBoard = ({data}: Props) => {
+const ClassScheduleBoard = ({data, onSubjectPress}: Props) => {
   if (!data || data.length === 0) {
     return null;
   }
@@ -49,33 +51,37 @@ const ClassScheduleBoard = ({data}: Props) => {
 
     const boxColor = getBoxColor(start_time_in_minutes);
     return (
-      <ClassBox key={`${item.class.name}:${item.class.id}`} color={boxColor}>
-        <Row>
-          <TimeInfoColumn>
-            <Text
-              weight="500"
-              size="XS"
-              italic
-              textAlign="center"
-              alignSelf="center">
-              {startPeriod} - {endPeriod}
-            </Text>
-            <Text
-              weight="500"
-              size="XS"
-              italic
-              textAlign="center"
-              alignSelf="center">
-              {startTimeAlias} - {endTimeAlias}
-            </Text>
-          </TimeInfoColumn>
-          <SubjectInfoColumn>
-            <Text size="XS" textAlign="center" alignSelf="center">
-              {item.class.name}
-            </Text>
-          </SubjectInfoColumn>
-        </Row>
-      </ClassBox>
+      <TouchableOpacity
+        key={`${item.class.name}:${item.class.id}`}
+        onPress={() => onSubjectPress(item)}>
+        <ClassBox color={boxColor}>
+          <Row>
+            <TimeInfoColumn>
+              <Text
+                weight="500"
+                size="XS"
+                italic
+                textAlign="center"
+                alignSelf="center">
+                {startPeriod} - {endPeriod}
+              </Text>
+              <Text
+                weight="500"
+                size="XS"
+                italic
+                textAlign="center"
+                alignSelf="center">
+                {startTimeAlias} - {endTimeAlias}
+              </Text>
+            </TimeInfoColumn>
+            <SubjectInfoColumn>
+              <Text size="XS" textAlign="center" alignSelf="center">
+                {item.class.name}
+              </Text>
+            </SubjectInfoColumn>
+          </Row>
+        </ClassBox>
+      </TouchableOpacity>
     );
   };
 
