@@ -36,7 +36,7 @@ const RIDBoard = ({data}: Props) => {
     navigation.navigate('Pesquisa de Disciplinas');
   }
 
-  function renderDisciplinas(item: PartialRID) {
+  function renderItem(item: PartialRID) {
     const {id, classNumber, name, available, requested, position} = item;
 
     return (
@@ -83,7 +83,7 @@ const RIDBoard = ({data}: Props) => {
       <Text italic size="SM" marginLeft="12px">
         Última atualização em {updatedAt.trim()}
       </Text>
-      {subjects?.map(renderDisciplinas)}
+      {subjects?.map(renderItem)}
       <Text />
     </Container>
   );

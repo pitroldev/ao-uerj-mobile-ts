@@ -1,5 +1,6 @@
 import React, {forwardRef} from 'react';
 import {TouchableOpacity} from 'react-native-gesture-handler';
+import {DefaultTheme} from 'styled-components/native';
 
 import Text from '@atoms/Text';
 
@@ -21,7 +22,7 @@ type CustomProps = {
   description?: string;
   bottomLeftInfo?: string;
   bottomRightInfo?: string;
-  boxColor?: string;
+  color?: keyof DefaultTheme['COLORS'];
   boldOptions?: BoldOptions;
 };
 
@@ -35,7 +36,7 @@ const SubjectBox = forwardRef((props: Props, ref: any) => {
     description,
     bottomLeftInfo,
     bottomRightInfo,
-    boxColor,
+    color,
     boldOptions,
   } = props;
 
@@ -48,7 +49,7 @@ const SubjectBox = forwardRef((props: Props, ref: any) => {
   const showBottom = showBottomLeft || showBottomRight;
 
   return (
-    <Container color={boxColor} ref={ref} {...props}>
+    <Container color={color} ref={ref} {...props}>
       {showTop && (
         <TopRow>
           {showTopLeft && (

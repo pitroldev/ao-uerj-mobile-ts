@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 
 import {useAppSelector} from '@root/store';
 import * as infoReducer from '@reducers/userInfo';
@@ -16,12 +16,15 @@ import Spinner from '@atoms/Spinner';
 import ClassScheduleBoard from '@templates/ClassScheduleBoard';
 import GradeBoard from '@templates/GradeBoard';
 import RIDBoard from '@templates/RIDBoard';
+import AttendedClassesBoard from '@templates/AttendedClassesBoard';
 
 import {MainContainer, ScrollContainer, Row, Column} from './Home.styles';
 
 type PartialRidData = Awaited<ReturnType<typeof fetchPartialRID>>;
 
 const HomePage = () => {
+  const [attendedModalVisibility, setAttendedModalVisibility] = useState(false);
+
   const {loading: loadingSchedule} = useUerjFetch(fetchAttendedClassesSchedule);
   const {loading: loadingGrades} = useUerjFetch(fetchClassGrades);
   const {loading: loadingRID, data: partialRID} =
@@ -55,8 +58,16 @@ const HomePage = () => {
       </Row>
       <ScrollContainer>
         {isClassGradesAvailable && <GradeBoard data={classGrades} />}
-        <ClassScheduleBoard data={currentSchedule} />
+        <ClassScheduleBoard
+          data={currentSchedule}
+          onSubjectPress={() => setAttendedModalVisibility(true)}
+        />
         {partialRID && <RIDBoard data={partialRID} />}
+        <AttendedClassesBoard
+          isVisible={attendedModalVisibility}
+          setVisibility={setAttendedModalVisibility}
+          data={currentSchedule}
+        />
       </ScrollContainer>
     </MainContainer>
   );
