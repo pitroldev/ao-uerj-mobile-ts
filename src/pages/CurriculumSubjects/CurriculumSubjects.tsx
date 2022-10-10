@@ -11,13 +11,12 @@ import {SUBJECT_TYPE} from '@utils/constants/subjectDictionary';
 import {normalizeText} from '@utils/normalize';
 import parser from '@services/parser';
 
-import {CurriculumSubject} from '@root/types/curriculumSubject';
-
-import {fetchCurriculumSubjects} from '@features/api/fetchCurriculumSubjects';
+import {CurriculumSubject} from '@features/CurriculumSubjects/types';
+import {fetchCurriculumSubjects} from '@features/CurriculumSubjects/fetchCurriculumSubjects';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
-import * as reducer from '@reducers/curriculumSubjects';
-import * as subjectDetailReducer from '@reducers/subjectClassesSearch';
+import * as reducer from '@features/CurriculumSubjects/reducer';
+import * as subjectDetailReducer from '@root/features/SubjectClassesSchedule/reducer';
 
 import Spinner from '@atoms/Spinner';
 import StyledPicker from '@atoms/Picker';

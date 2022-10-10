@@ -1,4 +1,4 @@
-import {SubjectToTake} from '@root/types/subjectsToTake';
+import {SubjectToTake} from '@root/features/SubjectsToTake/types';
 
 export const exampleToTake: SubjectToTake[] = [
   {

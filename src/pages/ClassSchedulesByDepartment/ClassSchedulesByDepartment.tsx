@@ -8,14 +8,14 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import useUerjFetch from '@hooks/useUerjFetch';
 import useRefresh from '@hooks/useRefresh';
 import {normalizeText} from '@utils/normalize';
-import parser from '@services/parser';
+import parser from '@root/services/parser';
 
-import {SubjectToTake} from '@features/SubjectsToTake/types';
+import {SubjectByUnit} from '@features/ClassesScheduleByDepartment/types';
 
-import {fetchSubjectsToTake} from '@features/SubjectsToTake/fetchSubjectsToTake';
+import {fetchClassesScheduleByDepartment} from '@features/ClassesScheduleByDepartment/fetchClassesScheduleByDepartment';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
-import * as reducer from '@root/features/SubjectsToTake/reducer';
+import * as reducer from '@root/features/ClassesScheduleByDepartment/reducer';
 import * as subjectDetailReducer from '@root/features/SubjectClassesSchedule/reducer';
 
 import Spinner from '@atoms/Spinner';
@@ -23,14 +23,21 @@ import StyledPicker from '@atoms/Picker';
 import TextInput from '@atoms/TextInput';
 import SubjectBox from '@molecules/SubjectBox';
 
-import {Container} from './SubjectsToTake.styles';
+import {Container} from './ClassSchedulesByDepartment.styles';
 
-const SubjectsToTake = () => {
-  const [subjectType, setSubjectType] = useState('');
+const ClassesScheduleByUnit = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedOption, setSelectedOption] = useState<string | undefined>(
+    undefined,
+  );
 
-  const {data} = useAppSelector(reducer.selectSubjectsToTake);
-  const {loading, fetch} = useUerjFetch(fetchSubjectsToTake);
+  const {subjects, options} = useAppSelector(
+    reducer.selectClassSchedulesByDepartment,
+  );
+
+  const {loading, fetch} = useUerjFetch(() =>
+    fetchClassesScheduleByDepartment(selectedOption),
+  );
 
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
@@ -41,14 +48,20 @@ const SubjectsToTake = () => {
 
   useEffect(() => {
     fetch();
-  }, []);
+  }, [selectedOption]);
 
-  const handleSubjectTypeChange = (value: string) => {
-    setSubjectType(value);
-    ref.current?.scrollToOffset({animated: true, offset: 0});
+  const handleOptionChange = (value: string) => {
+    const newOptions = options.map(option => {
+      if (option.value === value) {
+        return {...option, selected: true};
+      }
+      return {...option, selected: false};
+    });
+    dispatch(reducer.setOptions(newOptions));
+    setSelectedOption(value);
   };
 
-  const handleSubjectPress = (subject: SubjectToTake) => {
+  const handleSubjectPress = (subject: SubjectByUnit) => {
     const code = parser.parseCodigo(subject.id);
     dispatch(subjectDetailReducer.appendData({code}));
     dispatch(subjectDetailReducer.select({code}));
@@ -57,49 +70,18 @@ const SubjectsToTake = () => {
 
   const renderSubjects = ({
     item: subject,
-  }: ListRenderItemInfo<SubjectToTake>) => {
+  }: ListRenderItemInfo<SubjectByUnit>) => {
     if (!subject) {
       return null;
     }
 
-    const {
-      has_prerequisites,
-      allow_conflict,
-      id,
-      minimum_credits,
-      name,
-      period,
-      branch,
-      group,
-    } = subject;
-
-    const requirementText = has_prerequisites ? 'Possui pré-requisito' : '';
-    const conflictText = allow_conflict ? '' : 'Não permite conflito';
-
-    const creditsText = minimum_credits
-      ? `Trava de ${minimum_credits} créditos`
-      : '';
-
-    const periodText = period ? `${period}º Período` : '';
-
-    const ramificationText = branch
-      ? `${periodText ? ' - ' : ''}Ramificação ${branch}`
-      : '';
-
-    const groupText = group
-      ? `${ramificationText ? ' - ' : ''}Grupo ${group}`
-      : '';
-
-    const description = `${periodText}${ramificationText}${groupText}`;
+    const {id, name} = subject;
 
     return (
       <SubjectBox
+        key={id}
         topLeftInfo={id}
-        topRightInfo={creditsText}
         name={name}
-        description={description}
-        bottomLeftInfo={requirementText}
-        bottomRightInfo={conflictText}
         boldOptions={{
           topLeft: true,
           name: true,
@@ -109,29 +91,29 @@ const SubjectsToTake = () => {
     );
   };
 
-  const filteredData = data.filter(({type, name}) => {
-    const hasSubjectType = !subjectType || type === subjectType;
+  const filteredSubjects = subjects.filter(({name}) => {
     const hasSearchQuery =
       !searchQuery || normalizeText(name).includes(normalizeText(searchQuery));
 
-    return hasSubjectType && hasSearchQuery;
+    return hasSearchQuery;
   });
 
-  const isEmpty = filteredData.length === 0;
+  const isEmpty = filteredSubjects.length === 0;
   const showList = !isEmpty;
   const showSpinner = isEmpty && loading;
+
+  const currentSelectedOption = options.find(opt => opt.selected);
 
   return (
     <Container>
       <StyledPicker
-        selectedValue={subjectType}
-        onValueChange={s => handleSubjectTypeChange(s as string)}
-        loading={loading}
-        enabled={!loading}>
-        <Picker.Item label={'Todas'} value={''} />
-        <Picker.Item label={'Disciplinas Obrigatórias'} value={'MANDATORY'} />
-        <Picker.Item label={'Eletivas Restritas'} value={'RESTRICTED'} />
-        <Picker.Item label={'Eletivas Definidas'} value={'DEFINED'} />
+        selectedValue={currentSelectedOption?.value}
+        onValueChange={s => handleOptionChange(s as string)}
+        enabled={!loading}
+        loading={loading}>
+        {options.map(({value, text}) => {
+          return <Picker.Item value={value} key={value} label={text} />;
+        })}
       </StyledPicker>
       <TextInput
         value={searchQuery}
@@ -143,10 +125,10 @@ const SubjectsToTake = () => {
       {showList && (
         <FlatList
           ref={ref}
-          data={filteredData}
+          data={filteredSubjects}
           renderItem={renderSubjects}
           showsVerticalScrollIndicator={false}
-          keyExtractor={(_, index) => index.toString()}
+          keyExtractor={item => item?.id}
           waitFor={refreshRef}
           refreshControl={
             <RefreshControl
@@ -162,4 +144,4 @@ const SubjectsToTake = () => {
   );
 };
 
-export default SubjectsToTake;
+export default ClassesScheduleByUnit;

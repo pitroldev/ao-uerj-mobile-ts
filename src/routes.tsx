@@ -9,9 +9,9 @@ import CustomDrawerNavigator from '@root/components/templates/CustomDrawerNaviga
 import SubjectsToTake from '@root/pages/SubjectsToTake';
 import CurriculumSubjects from '@root/pages/CurriculumSubjects';
 import UniversalSubjects from '@root/pages/UniversalSubjects';
-import ClassSchedulesByUnit from '@root/pages/ClassSchedulesByUnit';
-import SubjectsAttended from '@root/pages/SubjectsAttended';
-import SubjectDetail from '@root/pages/SubjectDetail';
+import ClassSchedulesByDepartment from '@root/pages/ClassSchedulesByDepartment';
+import SubjectsTaken from '@root/pages/SubjectsTaken';
+import SubjectDetails from '@root/pages/SubjectDetails';
 import Home from '@root/pages/Home';
 import Login from '@root/pages/Login';
 // import Playground from '@root/pages/Playground';
@@ -54,7 +54,7 @@ const MainRoutes = () => {
           />
           <Drawer.Screen
             name="Disciplinas Realizadas"
-            component={SubjectsAttended}
+            component={SubjectsTaken}
           />
           <Drawer.Screen
             name="Disciplinas do Currículo"
@@ -66,11 +66,11 @@ const MainRoutes = () => {
           />
           <Drawer.Screen
             name="Horário das Turmas"
-            component={ClassSchedulesByUnit}
+            component={ClassSchedulesByDepartment}
           />
           <Drawer.Screen
             name="Pesquisa de Disciplinas"
-            component={SubjectDetail}
+            component={SubjectDetails}
           />
         </>
       ) : (
