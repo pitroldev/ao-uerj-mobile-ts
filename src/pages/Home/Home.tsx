@@ -2,21 +2,21 @@ import React, {useState} from 'react';
 
 import {useAppSelector} from '@root/store';
 import * as infoReducer from '@reducers/userInfo';
-import * as attendedReducer from '@reducers/attendedClasses';
-import * as gradesReducer from '@reducers/classGrades';
+import * as attendedReducer from '@features/AttendedClassesSchedule/reducer';
+import * as gradesReducer from '@features/ClassGrades/reducer';
 
 import parser from '@services/parser';
 import useUerjFetch from '@hooks/useUerjFetch';
-import {fetchPartialRID} from '@features/api/fetchPartialRID';
-import {fetchClassGrades} from '@features/api/fetchClassGrades';
-import {fetchAttendedClassesSchedule} from '@features/api/fetchAttendedClassesSchedule';
+import {fetchPartialRID} from '@features/PartialRID/fetchPartialRID';
+import {fetchClassGrades} from '@features/ClassGrades/fetchClassGrades';
+import {fetchAttendedClassesSchedule} from '@features/AttendedClassesSchedule/fetchAttendedClassesSchedule';
 
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
-import ClassScheduleBoard from '@templates/ClassScheduleBoard';
-import GradeBoard from '@templates/GradeBoard';
-import RIDBoard from '@templates/RIDBoard';
-import AttendedClassesBoard from '@templates/AttendedClassesBoard';
+import ClassScheduleBoard from '@features/AttendedClassesSchedule/ClassScheduleBoard';
+import GradeBoard from '@features/ClassGrades/GradeBoard';
+import AttendedClassesBoard from '@features/AttendedClassesSchedule/AttendedClassesBoard';
+import RIDBoard from '@features/PartialRID/RIDBoard';
 
 import {MainContainer, ScrollContainer, Row, Column} from './Home.styles';
 

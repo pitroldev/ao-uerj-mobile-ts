@@ -10,14 +10,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import userInfo from '@reducers/userInfo';
 import apiConfig from '@reducers/apiConfig';
-import subjectsToTake from '@reducers/subjectsToTake';
-import curriculumSubjects from '@reducers/curriculumSubjects';
-import universalSubjects from '@reducers/universalSubjects';
-import classSchedulesByUnit from '@reducers/classSchedulesByUnit';
-import subjectsAttended from '@reducers/subjectsAttended';
-import subjectClassesSearch from '@reducers/subjectClassesSearch';
-import attendedClasses from '@reducers/attendedClasses';
-import classGrades from '@reducers/classGrades';
+import subjectsToTake from '@root/features/SubjectsToTake/reducer';
+import curriculumSubjects from '@root/features/CurriculumSubjects/reducer';
+import universalSubjects from '@root/features/UniversalSubjects/reducer';
+import classSchedulesByUnit from '@root/features/ClassesScheduleByDepartment/reducer';
+import subjectsAttended from '@features/SubjectsTaken/reducer';
+import subjectClassesSearch from '@root/features/SubjectClassesSchedule/reducer';
+import attendedClasses from '@features/AttendedClassesSchedule/reducer';
+import classGrades from '@features/ClassGrades/reducer';
 
 export function makeStore() {
   const reducers = combineReducers({

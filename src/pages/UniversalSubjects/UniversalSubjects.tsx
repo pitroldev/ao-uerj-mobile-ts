@@ -10,13 +10,13 @@ import useRefresh from '@hooks/useRefresh';
 import {normalizeText} from '@root/utils/normalize';
 import parser from '@root/services/parser';
 
-import {UniversalSubject} from '@root/types/universalSubject';
+import {UniversalSubject} from '@root/features/UniversalSubjects/types';
 
-import {fetchUniversalSubjects} from '@features/api/fetchUniversalSubjects';
+import {fetchUniversalSubjects} from '@root/features/UniversalSubjects/fetchUniversalSubjects';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
-import * as reducer from '@root/reducers/universalSubjects';
-import * as subjectDetailReducer from '@root/reducers/subjectClassesSearch';
+import * as reducer from '@root/features/UniversalSubjects/reducer';
+import * as subjectDetailReducer from '@root/features/SubjectClassesSchedule/reducer';
 
 import Spinner from '@atoms/Spinner';
 import StyledPicker from '@atoms/Picker';

@@ -3,9 +3,9 @@ import {Class, Schedule, Subject} from '@root/types/generator';
 import {
   Horario,
   SubjectClassesSchedule,
-} from '@root/types/subjectClassesSchedule';
+} from '@root/features/SubjectClassesSchedule/types';
 import {Prereq, SubjectInfo} from '@root/types/subjectInfo';
-import {SubjectToTake} from '@root/types/subjectsToTake';
+import {SubjectToTake} from '@root/features/SubjectsToTake/types';
 import {
   convertDayToNumber,
   convertTempoHorario,
