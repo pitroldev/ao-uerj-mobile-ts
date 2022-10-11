@@ -1,9 +1,9 @@
 import api from '@services/UerjApi';
-import {getRequisitionID} from '@services/UerjApi/utils';
+import {getRequisitionID, retry} from '@services/UerjApi/utils';
 
 import parseSubjectInfo from './parser';
 
-export const fetchSubjectInfo = async (subjectID?: string | number) => {
+export const _fetchRawSubjectInfoData = async (subjectID?: string | number) => {
   const url = '/requisicaoaluno/requisicao.php';
   const requisicao = await getRequisitionID('DadosDisciplina');
 
@@ -20,7 +20,9 @@ export const fetchSubjectInfo = async (subjectID?: string | number) => {
 };
 
 export const getSubjectInfo = async (subjectID?: string | number) => {
-  const data = await fetchSubjectInfo(subjectID);
+  const data = await retry<string>(
+    async () => await _fetchRawSubjectInfoData(subjectID),
+  );
 
   const subject = parseSubjectInfo(data);
   return subject;

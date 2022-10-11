@@ -1,6 +1,7 @@
 import store from '@root/store';
 
 import api from '@services/UerjApi';
+import {retry} from '@services/UerjApi/utils';
 
 import isExpired from '@utils/isExpired';
 
@@ -21,7 +22,7 @@ export async function fetchClassGrades() {
     return;
   }
 
-  const rawData = await _fetchRawClassGradesData();
+  const rawData = await retry<string>(_fetchRawClassGradesData);
 
   const data = parseData(rawData);
 

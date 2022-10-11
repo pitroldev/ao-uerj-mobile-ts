@@ -8,17 +8,16 @@ export const SESSION_TIMED_OUT_ERRORS = [
 ];
 
 export async function retry<T>(
-  fn: Function,
-  params: any[] = [],
+  fn: () => Promise<T>,
   count: number = MAX_RETRIES,
 ): Promise<T> {
-  return fn(...params).catch(async (err: Error) => {
+  return await fn().catch(async (err: Error) => {
     if (NOT_RETRY_ERRORS.includes(err.message)) {
       throw err;
     }
 
     if (count > 0) {
-      return await retry(fn, params, count - 1);
+      return await retry(fn, count - 1);
     }
 
     throw err;
