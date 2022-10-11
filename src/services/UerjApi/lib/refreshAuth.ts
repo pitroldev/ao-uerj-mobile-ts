@@ -8,10 +8,13 @@ export async function refreshAuth(): Promise<void> {
   store.dispatch(apiConfigReducer.clear());
 
   const {userInfo} = store.getState();
-  const data = await retry<ReturnType<typeof handleLogin>>(handleLogin, [
-    userInfo.matricula,
-    userInfo.password,
-  ]);
+  const data = await retry(
+    async () =>
+      await handleLogin(
+        userInfo.matricula as string,
+        userInfo.password as string,
+      ),
+  );
 
   const hasFailed = data.fail_reason !== null;
   if (hasFailed) {

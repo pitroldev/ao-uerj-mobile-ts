@@ -1,5 +1,5 @@
 import api from '@services/UerjApi';
-import {getRequisitionID} from '@services/UerjApi/utils';
+import {getRequisitionID, retry} from '@services/UerjApi/utils';
 
 import parseData from './parser';
 
@@ -20,7 +20,7 @@ export const _fetchRawPartialRIDData = async () => {
 };
 
 export async function fetchPartialRID() {
-  const rawData = await _fetchRawPartialRIDData();
+  const rawData = await retry<string>(_fetchRawPartialRIDData);
 
   const data = parseData(rawData);
 

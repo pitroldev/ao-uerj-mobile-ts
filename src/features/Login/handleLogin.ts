@@ -26,19 +26,20 @@ export async function handleLogin(matricula: string, senha: string) {
   await clearAllCookies();
 
   const url = '/requisicaoaluno/requisicaoacesso.php';
-  const loginPageData = await retry<ReturnType<typeof fetchLoginPage>>(
-    fetchLoginPage,
-  );
+  const loginPageData = await retry(fetchLoginPage);
   const loginReqId = await parseLoginReqId(loginPageData);
 
-  const {data: homePageData} = await api.get(url, {
-    params: {
-      controle: 'Login',
-      requisicao: loginReqId,
-      matricula,
-      senha,
-    },
-  });
+  const {data: homePageData} = await retry(
+    async () =>
+      await api.get(url, {
+        params: {
+          controle: 'Login',
+          requisicao: loginReqId,
+          matricula,
+          senha,
+        },
+      }),
+  );
 
   const info = parseLoginInfo(homePageData);
   const new_cookies = await getCookies();

@@ -7,7 +7,7 @@ import moment from 'moment';
 import {refreshAuth} from './lib/refreshAuth';
 
 const BASE_URL = 'https://www.alunoonline.uerj.br';
-const COOKIE_MAX_DURATION_IN_HOURS = 23;
+const COOKIE_MAX_DURATION_IN_HOURS = 2;
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -22,7 +22,7 @@ const api = axios.create({
   },
 });
 
-axios.interceptors.request.use(async function (config) {
+const responseErrorInterceptor = async (err: any) => {
   const {apiConfig} = store.getState();
 
   const now = moment();
@@ -30,28 +30,11 @@ axios.interceptors.request.use(async function (config) {
   const cookieTimeInHours = now.diff(cookieCreationDate, 'hours');
 
   if (cookieTimeInHours > COOKIE_MAX_DURATION_IN_HOURS) {
-    refreshAuth;
+    await refreshAuth();
   }
+  throw err;
+};
 
-  return config;
-});
-
-api.interceptors.response.use(
-  response => {
-    const params = response.config?.params;
-    const isLogin =
-      params?.controle === 'Login' || params?.requisicao === 'LoginAlunoOnline';
-
-    const isLoginPage = response.data.includes(
-      'name="controle"  value="Login"',
-    );
-    if (!isLogin && isLoginPage) {
-      throw new Error('NOT_LOGGED_IN');
-    }
-
-    return response;
-  },
-  error => error,
-);
+api.interceptors.response.use(undefined, responseErrorInterceptor);
 
 export default api;

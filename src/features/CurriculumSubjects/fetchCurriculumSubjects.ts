@@ -1,7 +1,7 @@
 import store from '@root/store';
 
 import api from '@services/UerjApi';
-import {getRequisitionID} from '@services/UerjApi/utils';
+import {getRequisitionID, retry} from '@services/UerjApi/utils';
 
 import isExpired from '@utils/isExpired';
 
@@ -32,7 +32,7 @@ export async function fetchCurriculumSubjects() {
     return;
   }
 
-  const rawData = await _fetchRawCurriculumSubjectsData();
+  const rawData = await retry<string>(_fetchRawCurriculumSubjectsData);
 
   const data = parseData(rawData);
 

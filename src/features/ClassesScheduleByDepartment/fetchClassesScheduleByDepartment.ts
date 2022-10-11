@@ -1,7 +1,7 @@
 import store from '@root/store';
 
 import api from '@services/UerjApi';
-import {getRequisitionID} from '@services/UerjApi/utils';
+import {getRequisitionID, retry} from '@services/UerjApi/utils';
 
 import parseData from './parser';
 import * as reducer from './reducer';
@@ -19,13 +19,15 @@ export const _fetchRawClassesScheduleByUnitData = async (
       idUnidadeSelecionadaHorariosTurmas: code_unid,
     },
   };
-  const {data} = await api.get(url, options);
+  const res = await api.get(url, options);
 
-  return data as string;
+  return res.data as string;
 };
 
 export async function fetchClassesScheduleByDepartment(code_unid?: string) {
-  const rawData = await _fetchRawClassesScheduleByUnitData(code_unid);
+  const rawData = await retry<string>(
+    async () => await _fetchRawClassesScheduleByUnitData(code_unid),
+  );
 
   const data = parseData(rawData);
 
