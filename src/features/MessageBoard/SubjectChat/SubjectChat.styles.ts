@@ -13,6 +13,7 @@ export const InputRow = styled.View`
   display: flex;
   flex-direction: row;
   justify-content: flex-end;
+  align-items: flex-end;
 
   max-height: 140px;
 
@@ -21,19 +22,6 @@ export const InputRow = styled.View`
   margin-bottom: 8px;
 `;
 
-export const InputContainer = styled.ScrollView`
-  padding: 4px;
-
-  border: solid 1px;
-  border-radius: 12px;
-  border-color: ${({theme}) => theme.COLORS.PRIMARY};
-  background-color: ${({theme}) => theme.COLORS.BACKGROUND};
-
-  elevation: 6;
-`;
-
 export const ScrollView = styled.ScrollView`
   padding: 8px;
 `;
-
-export const TextArea = styled.TextInput``;

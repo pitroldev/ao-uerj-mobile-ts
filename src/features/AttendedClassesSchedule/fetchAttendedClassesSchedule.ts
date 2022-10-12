@@ -34,7 +34,7 @@ export async function fetchAttendedClassesSchedule() {
     return;
   }
 
-  const rawData = await retry<string>(_fetchRawAttendedClassesScheduleData);
+  const rawData = await retry(_fetchRawAttendedClassesScheduleData);
 
   const data = parseData(rawData);
 

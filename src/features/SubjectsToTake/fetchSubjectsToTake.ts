@@ -31,7 +31,7 @@ export async function fetchSubjectsToTake(useCache = true) {
     return;
   }
 
-  const rawData = await retry<string>(_fetchRawSubjectsToTakeData);
+  const rawData = await retry(_fetchRawSubjectsToTakeData);
 
   const data = parseData(rawData);
   store.dispatch(reducer.setState(data));

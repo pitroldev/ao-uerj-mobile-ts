@@ -22,7 +22,7 @@ export async function fetchClassGrades() {
     return;
   }
 
-  const rawData = await retry<string>(_fetchRawClassGradesData);
+  const rawData = await retry(_fetchRawClassGradesData);
 
   const data = parseData(rawData);
 

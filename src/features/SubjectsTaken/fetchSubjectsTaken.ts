@@ -31,7 +31,7 @@ export async function fetchSubjectsTaken(useCache = true) {
     return;
   }
 
-  const rawData = await retry<string>(_fetchRawSubjectsTakenData);
+  const rawData = await retry(_fetchRawSubjectsTakenData);
 
   const data = parseData(rawData);
 

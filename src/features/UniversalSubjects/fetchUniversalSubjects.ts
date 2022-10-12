@@ -24,7 +24,7 @@ export const _fetchRawUniversalSubjectsData = async (cod_unid?: string) => {
 };
 
 export async function fetchUniversalSubjects(cod_unid?: string) {
-  const rawData = await retry<string>(
+  const rawData = await retry(
     async () => await _fetchRawUniversalSubjectsData(cod_unid),
   );
 

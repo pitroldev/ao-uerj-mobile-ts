@@ -20,7 +20,7 @@ export const _fetchRawPartialRIDData = async () => {
 };
 
 export async function fetchPartialRID() {
-  const rawData = await retry<string>(_fetchRawPartialRIDData);
+  const rawData = await retry(_fetchRawPartialRIDData);
 
   const data = parseData(rawData);
 
