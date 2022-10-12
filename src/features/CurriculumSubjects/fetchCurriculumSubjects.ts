@@ -32,7 +32,7 @@ export async function fetchCurriculumSubjects() {
     return;
   }
 
-  const rawData = await retry<string>(_fetchRawCurriculumSubjectsData);
+  const rawData = await retry(_fetchRawCurriculumSubjectsData);
 
   const data = parseData(rawData);
 

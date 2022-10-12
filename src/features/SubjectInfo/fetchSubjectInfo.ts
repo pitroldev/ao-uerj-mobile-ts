@@ -20,7 +20,7 @@ export const _fetchRawSubjectInfoData = async (subjectID?: string | number) => {
 };
 
 export const getSubjectInfo = async (subjectID?: string | number) => {
-  const data = await retry<string>(
+  const data = await retry(
     async () => await _fetchRawSubjectInfoData(subjectID),
   );
 

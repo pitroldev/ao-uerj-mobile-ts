@@ -14,6 +14,7 @@ type StyleProps = {
 
 export type ButtonProps = StyleProps &
   React.ComponentProps<typeof TouchableOpacity>;
+
 export const ButtonContainer = styled(TouchableOpacity)<ButtonProps>`
   display: flex;
   flex-direction: row;

@@ -24,7 +24,7 @@ export const _fetchRawSubjectClassesScheduleData = async (
 export const getSubjectClassesSchedule = async (
   subjectID?: string | number,
 ) => {
-  const data = await retry<string>(
+  const data = await retry(
     async () => await _fetchRawSubjectClassesScheduleData(subjectID),
   );
 

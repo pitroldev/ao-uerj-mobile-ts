@@ -1,4 +1,5 @@
 import React, {useState} from 'react';
+import {useTheme} from 'styled-components';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 import {useAppSelector} from '@root/store';
@@ -13,14 +14,9 @@ import useUerjFetch from '@hooks/useUerjFetch';
 
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
+import TextArea from '@atoms/TextArea';
 import RoundedButton from '@atoms/RoundedButton';
-import {
-  InputContainer,
-  Row,
-  InputRow,
-  TextArea,
-  ScrollView,
-} from './SubjectChat.styles';
+import {Row, InputRow, ScrollView} from './SubjectChat.styles';
 
 const SubjectChat = (subject: AttendedSubjectInfo) => {
   const [text, setText] = useState('');
@@ -28,8 +24,11 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
 
   const {name, periodo} = useAppSelector(infoReducer.selectUserInfo);
 
+  const {COLORS} = useTheme();
+
   const {data, error, loading, setData} = useUerjFetch<ChatMessage[]>(
     async () => await fetchMessages(subject.id, subject.class),
+    {initialData: []},
   );
 
   const handleSendMessage = async () => {
@@ -62,7 +61,7 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
     return null; //TODO Show Dummy
   }
 
-  const isEmpty = data.length === 0;
+  const isEmpty = !loading && data.length === 0;
 
   return (
     <>
@@ -80,18 +79,16 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
         ))}
       </ScrollView>
       <InputRow>
-        <InputContainer showsVerticalScrollIndicator={false}>
-          <TextArea
-            multiline
-            onChangeText={setText}
-            value={text}
-            placeholder="Digite aqui sua mensagem"
-            editable={!sending}
-            onSubmitEditing={handleSendMessage}
-          />
-        </InputContainer>
+        <TextArea
+          multiline
+          onChangeText={setText}
+          value={text}
+          placeholder="Digite aqui sua mensagem"
+          editable={!sending}
+          onSubmitEditing={handleSendMessage}
+        />
         <RoundedButton onPress={handleSendMessage} loading={sending}>
-          <Icon name={'send'} color={'#FFF'} size={25} />
+          <Icon name={'send'} color={COLORS.BACKGROUND} size={25} />
         </RoundedButton>
       </InputRow>
     </>
