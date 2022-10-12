@@ -5,7 +5,7 @@ import {FlatList} from 'react-native-gesture-handler';
 import {useNavigation} from '@react-navigation/native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
-import useUerjFetch from '@hooks/useUerjFetch';
+import useApiFetch from '@hooks/useApiFetch';
 import useRefresh from '@hooks/useRefresh';
 import {normalizeText} from '@utils/normalize';
 import parser from '@root/services/parser';
@@ -35,7 +35,7 @@ const ClassesScheduleByUnit = () => {
     reducer.selectClassSchedulesByDepartment,
   );
 
-  const {loading, fetch} = useUerjFetch(() =>
+  const {loading, fetch} = useApiFetch(() =>
     fetchClassesScheduleByDepartment(selectedOption),
   );
 

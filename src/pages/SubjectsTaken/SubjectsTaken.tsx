@@ -4,7 +4,7 @@ import {useNavigation} from '@react-navigation/native';
 import {Picker} from '@react-native-picker/picker';
 import {FlatList} from 'react-native-gesture-handler';
 
-import useUerjFetch from '@hooks/useUerjFetch';
+import useApiFetch from '@hooks/useApiFetch';
 import useRefresh from '@hooks/useRefresh';
 import parser from '@services/parser';
 
@@ -30,7 +30,7 @@ const SubjectsAttended = () => {
   const {data} = useAppSelector(reducer.selectSubjectsAttended);
   const periodList = getPeriodList(data);
 
-  const {loading, fetch} = useUerjFetch(fetchSubjectsTaken);
+  const {loading, fetch} = useApiFetch(fetchSubjectsTaken);
 
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
