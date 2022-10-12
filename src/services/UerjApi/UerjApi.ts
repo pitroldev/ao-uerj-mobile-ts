@@ -34,6 +34,7 @@ const responseErrorInterceptor = async (err: any) => {
   }
 
   if (cookieTimeInHours > COOKIE_MAX_DURATION_IN_HOURS) {
+    console.log('COOKIE IS EXPIRED');
     await refreshAuth();
   }
   throw err;

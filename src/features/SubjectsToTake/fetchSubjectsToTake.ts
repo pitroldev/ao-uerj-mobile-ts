@@ -24,10 +24,10 @@ export const _fetchRawSubjectsToTakeData = async () => {
   return data as string;
 };
 
-export async function fetchSubjectsToTake() {
+export async function fetchSubjectsToTake(useCache = true) {
   const {subjectsToTake} = store.getState();
   const isEmpty = subjectsToTake.data.length === 0;
-  if (!isExpired(subjectsToTake?.lastUpdatedAt, 12) && !isEmpty) {
+  if (useCache && !isExpired(subjectsToTake?.lastUpdatedAt, 12) && !isEmpty) {
     return;
   }
 

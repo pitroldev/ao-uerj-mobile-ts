@@ -1,23 +1,25 @@
 import store from '@root/store';
 import * as apiConfigReducer from '@reducers/apiConfig';
 
-import {handleLogin} from '../../../features/Login/handleLogin';
+import {handleLogin} from '@features/Login/handleLogin';
 import {retry} from '@services/UerjApi/utils';
 
 export async function refreshAuth(): Promise<void> {
-  store.dispatch(apiConfigReducer.clear());
-
+  console.log('REFRESHING AUTH');
   const {userInfo} = store.getState();
-  const data = await retry(
-    async () =>
-      await handleLogin(
-        userInfo.matricula as string,
-        userInfo.password as string,
-      ),
-  );
+  const data = await retry(async () => {
+    console.log('HANDLE LOGIN');
+
+    return await handleLogin(
+      userInfo.matricula as string,
+      userInfo.password as string,
+    );
+  });
 
   const hasFailed = data.fail_reason !== null;
   if (hasFailed) {
+    console.log('LOGIN FAILED', data?.fail_reason);
+    store.dispatch(apiConfigReducer.clear());
     throw new Error('LOGIN_FAILED');
   }
 }

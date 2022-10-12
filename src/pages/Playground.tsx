@@ -14,55 +14,66 @@ import {
 } from '../utils/converter';
 import Text from '../components/atoms/Text';
 import {MainContainer as ScrollView} from './Home/Home.styles';
-import {
-  getAttendedSubjects,
-  getSubjectClassesSchedule,
-  getSubjectInfo,
-  getSubjectsToTake,
-} from '../services/UerjApi';
+
+import {fetchSubjectsTaken} from '@features/SubjectsTaken/fetchSubjectsTaken';
+import {getSubjectInfo} from '@features/SubjectInfo/fetchSubjectInfo';
+import {getSubjectClassesSchedule} from '@features/SubjectClassesSchedule/fetchSubjectClassesSchedule';
+import {fetchSubjectsToTake} from '@features/SubjectsToTake/fetchSubjectsToTake';
+import {refreshAuth} from '@services/UerjApi';
+import {SubjectToTake} from '@features/SubjectsToTake/types';
 
 const Playground = () => {
   const [loading, setLoading] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('');
 
   const extractData = async () => {
-    setLoading(true);
-    const subjects: any[] = [];
-    const classes: any[] = [];
-    const data = await getSubjectsToTake();
-    const attendedSubjects = await getAttendedSubjects();
-    let counter = 0;
+    try {
+      setLoading(true);
+      console.log('Extraindo dados...');
+      const subjects: any[] = [];
+      const classes: any[] = [];
 
-    for await (const s of data) {
-      console.log('Calling INFO:', s.id);
-      const info = await getSubjectInfo(parseCodigo(s.id)).catch(
-        async () => await getSubjectInfo(parseCodigo(s.id)),
-      );
+      console.log('Extraindo a cursar');
+      const data = (await fetchSubjectsToTake(false)) as SubjectToTake[];
 
-      console.log('Calling Classes:', s.id);
-      const subject = parseSubjectToGeneratorFormat(s, info);
-      subjects.push(subject);
+      console.log('Extraindo disciplinas cursadas');
+      const attendedSubjects = await fetchSubjectsTaken(false);
+      let counter = 0;
 
-      const class_ = await getSubjectClassesSchedule(parseCodigo(s.id)).catch(
-        async () => await getSubjectClassesSchedule(parseCodigo(s.id)),
-      );
+      for await (const s of data) {
+        console.log('Calling INFO:', s.id);
+        const info = await getSubjectInfo(parseCodigo(s.id)).catch(
+          async () => await getSubjectInfo(parseCodigo(s.id)),
+        );
 
-      const parsedClasse = class_.map(c =>
-        parseClassToGeneratorFormat(c, info),
-      );
+        console.log('Calling Classes:', s.id);
+        const subject = parseSubjectToGeneratorFormat(s, info);
+        subjects.push(subject);
 
-      classes.push(parsedClasse);
-      counter++;
-      const percent = (counter / data.length) * 100;
-      console.log(`>> ${Math.round(percent)}% Success:`, s.id);
+        const class_ = await getSubjectClassesSchedule(parseCodigo(s.id)).catch(
+          async () => await getSubjectClassesSchedule(parseCodigo(s.id)),
+        );
+
+        const parsedClasse = class_.map(c =>
+          parseClassToGeneratorFormat(c, info),
+        );
+
+        classes.push(parsedClasse);
+        counter++;
+        const percent = (counter / data.length) * 100;
+        console.log(`>> ${Math.round(percent)}% Success:`, s.id);
+      }
+      const res = await axios.post('http://192.168.1.7:3001/save', {
+        subjects,
+        attendedSubjects,
+        classes,
+      });
+      console.log(res.data);
+    } catch (err) {
+      console.log('erro:', err);
+    } finally {
+      setLoading(false);
     }
-    const res = await axios.post('http://192.168.1.7:3001/save', {
-      subjects,
-      attendedSubjects,
-      classes,
-    });
-    setLoading(false);
-    console.log(res.data);
   };
 
   return (
@@ -97,7 +108,7 @@ const Playground = () => {
           name: true,
         }}
       />
-      <StyledButton>Login</StyledButton>
+      <StyledButton onPress={() => refreshAuth()}>Login</StyledButton>
       <StyledButton loading>Loading</StyledButton>
       <StyledButton disabled>Desabilitado</StyledButton>
       <StyledButton

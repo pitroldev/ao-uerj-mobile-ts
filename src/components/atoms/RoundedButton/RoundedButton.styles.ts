@@ -7,9 +7,6 @@ type StyleProps = {
   size?: 'small' | 'large';
   disabled?: boolean;
   loading?: boolean;
-  fullWidth?: boolean;
-  width?: number;
-  height?: number;
 };
 
 export type ButtonProps = StyleProps &
@@ -23,23 +20,10 @@ export const ButtonContainer = styled(TouchableOpacity)<ButtonProps>`
     variant === 'secondary' ? theme.COLORS.SECONDARY : theme.COLORS.PRIMARY};
 
   margin: 5px;
-  border-radius: ${({size}) => (size === 'small' ? '5px' : '8px')};
+  border-radius: ${({size}) => (size === 'small' ? '15px' : '25px')};
   padding: ${({size}) => (size === 'small' ? '5px' : '8px')};
-  ${({fullWidth, width, size}) => {
-    if (fullWidth) {
-      return 'width: 100%;';
-      // return 'width: 100%;';
-    }
-    if (width) {
-      return `width: ${width}px;`;
-    }
-
-    return `width: ${size === 'small' ? '150px' : '300px'};`;
-  }}
-  ${({height, size}) =>
-    height
-      ? `height: ${height}px;`
-      : `height: ${size === 'small' ? '30px' : '50px'};`}
+  width: ${({size}) => (size === 'small' ? '30px' : '50px')};
+  height: ${({size}) => (size === 'small' ? '30px' : '50px')};
 
   ${({disabled, theme}) =>
     disabled &&
@@ -47,21 +31,7 @@ export const ButtonContainer = styled(TouchableOpacity)<ButtonProps>`
     background-color: ${theme.COLORS.DISABLED};
     `}
 
-    elevation: 4;
-`;
-
-export const ButtonText = styled.Text<StyleProps>`
-  color: ${({theme}) => theme.COLORS.TEXT_SECONDARY};
-  font-family: ${({theme}) => theme.FONTS.REGULAR};
-  font-size: ${({size, theme}) =>
-    size === 'small' ? theme.FONT_SIZE.XS : theme.FONT_SIZE.MD};
-  font-weight: ${({variant}) => (variant === 'secondary' ? 'normal' : 'bold')};
-  text-align: center;
-  ${({disabled, theme}) =>
-    disabled &&
-    `
-    color: ${theme.COLORS.TEXT_PRIMARY};
-    `}
+  elevation: 4;
 `;
 
 export const Spinner = styled.ActivityIndicator.attrs(props => ({
