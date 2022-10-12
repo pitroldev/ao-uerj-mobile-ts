@@ -32,22 +32,6 @@ export const InputContainer = styled.ScrollView`
   elevation: 6;
 `;
 
-export const Button = styled.TouchableOpacity`
-  align-self: flex-end;
-  align-items: center;
-  justify-content: center;
-
-  width: 50px;
-  height: 50px;
-
-  border-radius: 50px;
-  background-color: ${({theme}) => theme.COLORS.PRIMARY};
-
-  margin-left: 10px;
-
-  elevation: 6;
-`;
-
 export const ScrollView = styled.ScrollView`
   padding: 8px;
 `;

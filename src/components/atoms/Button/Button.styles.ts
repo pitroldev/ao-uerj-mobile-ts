@@ -46,6 +46,8 @@ export const ButtonContainer = styled(TouchableOpacity)<ButtonProps>`
     `
     background-color: ${theme.COLORS.DISABLED};
     `}
+
+    elevation: 4;
 `;
 
 export const ButtonText = styled.Text<StyleProps>`

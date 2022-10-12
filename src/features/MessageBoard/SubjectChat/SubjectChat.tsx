@@ -13,12 +13,12 @@ import useUerjFetch from '@hooks/useUerjFetch';
 
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
+import RoundedButton from '@atoms/RoundedButton';
 import {
   InputContainer,
   Row,
   InputRow,
   TextArea,
-  Button,
   ScrollView,
 } from './SubjectChat.styles';
 
@@ -62,9 +62,7 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
     return null; //TODO Show Dummy
   }
 
-  if (data.length === 0) {
-    return null; //TODO Show Dummy
-  }
+  const isEmpty = data.length === 0;
 
   return (
     <>
@@ -76,6 +74,7 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
       </Row>
       <ScrollView>
         {loading && <Spinner loading size="large" />}
+        {isEmpty && <Text>INSERIR DUMMY</Text>}
         {data.map(props => (
           <ChatBubble {...props} key={props._id} />
         ))}
@@ -91,13 +90,9 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
             onSubmitEditing={handleSendMessage}
           />
         </InputContainer>
-        <Button onPress={handleSendMessage}>
-          {sending ? (
-            <Spinner color="#fff" />
-          ) : (
-            <Icon name={'send'} color={'#FFF'} size={25} />
-          )}
-        </Button>
+        <RoundedButton onPress={handleSendMessage} loading={sending}>
+          <Icon name={'send'} color={'#FFF'} size={25} />
+        </RoundedButton>
       </InputRow>
     </>
   );
