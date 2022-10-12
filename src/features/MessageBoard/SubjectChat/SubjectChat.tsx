@@ -10,7 +10,7 @@ import {ChatMessage} from '@features/MessageBoard/types';
 import ChatBubble from '@features/MessageBoard/ChatBubble';
 import {AttendedSubjectInfo} from '@features/AttendedClassesSchedule/types';
 
-import useUerjFetch from '@hooks/useUerjFetch';
+import useApiFetch from '@hooks/useApiFetch';
 
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
@@ -26,7 +26,7 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
 
   const {COLORS} = useTheme();
 
-  const {data, error, loading, setData} = useUerjFetch<ChatMessage[]>(
+  const {data, error, loading, setData} = useApiFetch<ChatMessage[]>(
     async () => await fetchMessages(subject.id, subject.class),
     {initialData: []},
   );

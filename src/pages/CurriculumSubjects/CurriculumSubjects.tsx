@@ -5,7 +5,7 @@ import {Picker} from '@react-native-picker/picker';
 import {FlatList} from 'react-native-gesture-handler';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
-import useUerjFetch from '@hooks/useUerjFetch';
+import useApiFetch from '@hooks/useApiFetch';
 import useRefresh from '@hooks/useRefresh';
 import {SUBJECT_TYPE} from '@utils/constants/subjectDictionary';
 import {normalizeText} from '@utils/normalize';
@@ -29,7 +29,7 @@ const CurriculumSubjects = () => {
   const [subjectType, setSubjectType] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const {loading, fetch} = useUerjFetch(fetchCurriculumSubjects);
+  const {loading, fetch} = useApiFetch(fetchCurriculumSubjects);
 
   const {data} = useAppSelector(reducer.selectCurriculumSubjects);
 

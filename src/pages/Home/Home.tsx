@@ -6,7 +6,7 @@ import * as attendedReducer from '@features/AttendedClassesSchedule/reducer';
 import * as gradesReducer from '@features/ClassGrades/reducer';
 
 import parser from '@services/parser';
-import useUerjFetch from '@hooks/useUerjFetch';
+import useApiFetch from '@hooks/useApiFetch';
 import {fetchPartialRID} from '@features/PartialRID/fetchPartialRID';
 import {fetchClassGrades} from '@features/ClassGrades/fetchClassGrades';
 import {fetchAttendedClassesSchedule} from '@features/AttendedClassesSchedule/fetchAttendedClassesSchedule';
@@ -25,10 +25,10 @@ type PartialRidData = Awaited<ReturnType<typeof fetchPartialRID>>;
 const HomePage = () => {
   const [attendedModalVisibility, setAttendedModalVisibility] = useState(false);
 
-  const {loading: loadingSchedule} = useUerjFetch(fetchAttendedClassesSchedule);
-  const {loading: loadingGrades} = useUerjFetch(fetchClassGrades);
+  const {loading: loadingSchedule} = useApiFetch(fetchAttendedClassesSchedule);
+  const {loading: loadingGrades} = useApiFetch(fetchClassGrades);
   const {loading: loadingRID, data: partialRID} =
-    useUerjFetch<PartialRidData>(fetchPartialRID);
+    useApiFetch<PartialRidData>(fetchPartialRID);
 
   const {periodo, name} = useAppSelector(infoReducer.selectUserInfo);
   const {data: attendedClassesData} = useAppSelector(

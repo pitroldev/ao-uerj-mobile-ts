@@ -6,7 +6,7 @@ type Options = {
 
 type CallbackType = () => Promise<any>;
 
-function useUerjFetch<T>(callback: CallbackType, options: Options = {}) {
+function useApiFetch<T>(callback: CallbackType, options: Options = {}) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<T>(options?.initialData ?? null);
   const [error, setError] = useState<unknown | Error>(null);
@@ -40,4 +40,4 @@ function useUerjFetch<T>(callback: CallbackType, options: Options = {}) {
   };
 }
 
-export default useUerjFetch;
+export default useApiFetch;

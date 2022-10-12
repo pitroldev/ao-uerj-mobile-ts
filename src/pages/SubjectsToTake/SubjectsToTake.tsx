@@ -5,7 +5,7 @@ import {FlatList} from 'react-native-gesture-handler';
 import {useNavigation} from '@react-navigation/native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
-import useUerjFetch from '@hooks/useUerjFetch';
+import useApiFetch from '@hooks/useApiFetch';
 import useRefresh from '@hooks/useRefresh';
 import {normalizeText} from '@utils/normalize';
 import parser from '@services/parser';
@@ -30,7 +30,7 @@ const SubjectsToTake = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const {data} = useAppSelector(reducer.selectSubjectsToTake);
-  const {loading, fetch} = useUerjFetch(fetchSubjectsToTake);
+  const {loading, fetch} = useApiFetch(fetchSubjectsToTake);
 
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
