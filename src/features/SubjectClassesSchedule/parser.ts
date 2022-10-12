@@ -1,13 +1,16 @@
 const cheerio = require('react-native-cheerio');
+
 import {
   parseCodigo,
   parseDocenteName,
   parseSimNaoToBoolean,
-} from '../../services/parser/minorParser';
+} from '@services/parser/minorParser';
 
 import {orderTurnosStringToArray, searchForBreakPonts} from '@utils/horarios';
-import {Horario, SubjectClassesSchedule} from './types';
+
 import {WeekDay} from '@root/types/dateStuff';
+
+import {Horario, SubjectClassesSchedule} from './types';
 
 function getHorarioArray(horarioString: string) {
   try {
@@ -62,7 +65,7 @@ export default function parseSubjectClassesSchedule(html: string) {
     const $ = cheerio.load(html);
 
     const turmasArray: SubjectClassesSchedule[] = [];
-    let turmasObj = {} as SubjectClassesSchedule;
+    let turmasObj = {} as Partial<SubjectClassesSchedule>;
     let temp: any[] = [];
     $('div td').each((index: number, item: any) => {
       $(item).text((a: number, b: any) => {
@@ -89,7 +92,7 @@ export default function parseSubjectClassesSchedule(html: string) {
           turmasObj.classNumber = parseCodigo(temp[0]);
           turmasObj.hasPreference = parseSimNaoToBoolean(temp[1]);
           turmasObj.schedule = getHorarioArray(temp[3].replace('#', '\n'));
-          turmasArray.push(turmasObj);
+          turmasArray.push(turmasObj as SubjectClassesSchedule);
           turmasObj = {};
         }
       });

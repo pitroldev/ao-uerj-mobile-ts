@@ -25,12 +25,37 @@ export const InfoBox = styled(Box).attrs({size: 'small'})`
 `;
 
 export const InlineRow = styled.View`
+  display: flex;
   flex-direction: row;
   width: 100%;
-  justify-content: space-around;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 4px;
 
   flex-wrap: wrap;
+`;
+
+export const Row = styled.View`
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+
+  justify-content: space-between;
+  margin-bottom: 5px;
+`;
+
+export const VacanciesRow = styled.View`
+  display: flex;
+  flex-direction: row;
+
+  justify-content: flex-end;
+`;
+
+export const Column = styled.View`
+  display: flex;
+  flex-direction: column;
+
+  width: 50%;
 `;
 
 export const ClassBox = styled(Box).attrs({size: 'small'})`
