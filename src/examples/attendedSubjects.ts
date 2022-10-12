@@ -1,5 +1,4 @@
 export const TO_TAKE_RAW = `
-
 <!-- saved from url=(0048)https://www.alunoonline.uerj.br/requisicaoaluno/ -->
 <html data-lt-installed="true"><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
 

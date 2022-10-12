@@ -46,7 +46,7 @@ const AttendedClassesBoard = ({isVisible, setVisibility, data}: Props) => {
     navigation.navigate('Pesquisa de Disciplinas');
   }
 
-  function renderDisciplinas(item: AttendedClassesSchedule['class']) {
+  function renderItem(item: AttendedClassesSchedule['class']) {
     const {id, name, status, uerjLocation} = item;
 
     const isCanceled = status === 'CANCELED';
@@ -67,6 +67,7 @@ const AttendedClassesBoard = ({isVisible, setVisibility, data}: Props) => {
       </TouchableOpacity>
     );
   }
+
   return (
     <Modal
       isVisible={isVisible}
@@ -81,7 +82,7 @@ const AttendedClassesBoard = ({isVisible, setVisibility, data}: Props) => {
         <Text weight="bold" alignSelf="center" marginBottom="8px">
           Disciplinas em Curso
         </Text>
-        {subjects.map(renderDisciplinas)}
+        {subjects.map(renderItem)}
       </View>
     </Modal>
   );

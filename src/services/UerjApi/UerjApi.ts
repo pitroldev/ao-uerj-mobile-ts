@@ -23,11 +23,15 @@ const api = axios.create({
 });
 
 const responseErrorInterceptor = async (err: any) => {
-  const {apiConfig} = store.getState();
+  const {apiConfig, userInfo} = store.getState();
 
   const now = moment();
   const cookieCreationDate = moment(apiConfig.createdAt);
   const cookieTimeInHours = now.diff(cookieCreationDate, 'hours');
+
+  if (!userInfo.matricula || !userInfo.password) {
+    throw new Error('NOT_LOGGED_IN');
+  }
 
   if (cookieTimeInHours > COOKIE_MAX_DURATION_IN_HOURS) {
     await refreshAuth();
