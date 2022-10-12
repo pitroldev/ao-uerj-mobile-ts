@@ -1,4 +1,4 @@
-import {Turno, WeekDay} from '../../types/dateStuff';
+import {Turno, WeekDay} from '@root/types/dateStuff';
 
 export type Horario = {
   [weekDay in WeekDay]?: Turno[][];
@@ -23,5 +23,5 @@ export interface SubjectClassesSchedule {
   hasPreference?: boolean;
   schedule?: Horario[];
   teachers?: string[];
-  vacancies?: ClassVacancies;
+  vacancies: ClassVacancies;
 }
