@@ -14,12 +14,14 @@ import SubjectsTaken from '@root/pages/SubjectsTaken';
 import SubjectDetails from '@root/pages/SubjectDetails';
 import Home from '@root/pages/Home';
 import Login from '@root/pages/Login';
+import MessageBoard from '@root/pages/MessageBoard';
 // import Playground from '@root/pages/Playground';
 
 export type RootDrawerParamList = {
   Login: undefined;
 
   Início: undefined;
+  'Mural de Mensagens': undefined;
   'Disciplinas a Cursar': undefined;
   'Disciplinas Realizadas': undefined;
   'Disciplinas do Currículo': undefined;
@@ -48,6 +50,7 @@ const MainRoutes = () => {
       {isSignedIn ? (
         <>
           <Drawer.Screen name="Início" component={Home} />
+          <Drawer.Screen name="Mural de Mensagens" component={MessageBoard} />
           <Drawer.Screen
             name="Disciplinas a Cursar"
             component={SubjectsToTake}

@@ -1,6 +1,5 @@
 import styled from 'styled-components/native';
 
-import Text from '@atoms/Text';
 import Button from '@atoms/Button';
 import SVG from '@root/assets/AO_Logo.svg';
 

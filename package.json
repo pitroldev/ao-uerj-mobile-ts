@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.17.5",
+    "@react-native-clipboard/clipboard": "^1.11.1",
     "@react-native-cookies/cookies": "^6.2.1",
     "@react-native-picker/picker": "^2.4.1",
     "@react-navigation/drawer": "^6.4.1",
@@ -29,6 +30,7 @@
     "react-native": "0.68.2",
     "react-native-cheerio": "^1.0.0-rc.4",
     "react-native-gesture-handler": "^2.4.2",
+    "react-native-hyperlink": "^0.0.22",
     "react-native-modal": "^13.0.1",
     "react-native-reanimated": "^2.8.0",
     "react-native-reanimated-carousel": "^3.0.5",
