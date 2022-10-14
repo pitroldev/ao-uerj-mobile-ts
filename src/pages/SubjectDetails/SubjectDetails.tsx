@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
 import * as userReducer from '@reducers/userInfo';
@@ -15,6 +15,8 @@ import SubjectSearch from './SubjectSearch';
 import SubjectView from './SubjectView';
 
 const SubjectDetailPage = () => {
+  const [error, setError] = useState<unknown>(null);
+
   const dispatch = useAppDispatch();
 
   const {periodo} = useAppSelector(userReducer.selectUserInfo);
@@ -58,6 +60,7 @@ const SubjectDetailPage = () => {
     skipCache = false,
   ) => {
     try {
+      setError(null);
       const code = handleSubjectCode(subjectCode);
 
       const cached = data.find(d => d.code === code);
@@ -74,12 +77,15 @@ const SubjectDetailPage = () => {
       ]);
     } catch (err) {
       console.log('handleSearch', err);
+      setError(err);
       // TODO: Disciplina não encontrada, por favor verifique se blablabla
     }
   };
 
   if (selected) {
-    return <SubjectView searchSubject={searchSubject} {...selected} />;
+    return (
+      <SubjectView searchSubject={searchSubject} {...selected} error={error} />
+    );
   }
 
   return <SubjectSearch searchSubject={handleSubjectCode} />;

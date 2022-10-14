@@ -4,12 +4,13 @@ import {FlatList} from 'react-native-gesture-handler';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 import {useAppSelector} from '@root/store';
-import * as reducer from '@root/features/SubjectClassesSchedule/reducer';
+import * as reducer from '@features/SubjectClassesSchedule/reducer';
 
 import Text from '@atoms/Text';
 import Button from '@atoms/Button';
 import TextInput from '@atoms/TextInput';
 import SubjectBox from '@molecules/SubjectBox';
+import DummyMessage from '@molecules/DummyMessage';
 
 import {Container, InlineRow} from './SubjectSearch.styles';
 
@@ -19,16 +20,13 @@ type Props = {
 
 const SubjectSearch = ({searchSubject}: Props) => {
   const [subjectCode, setSubjectCode] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const {data} = useAppSelector(reducer.selectSubjectClassesSearch);
 
   const ref = useRef<FlatList>(null);
 
   const handleSearch = async () => {
-    setLoading(true);
-    await searchSubject(subjectCode);
-    setLoading(false);
+    searchSubject(subjectCode);
   };
 
   const renderSubjects = ({item}: ListRenderItemInfo<typeof data[number]>) => {
@@ -59,14 +57,13 @@ const SubjectSearch = ({searchSubject}: Props) => {
     <Container>
       <InlineRow>
         <TextInput
-          editable={!loading}
           value={subjectCode}
           onChangeText={setSubjectCode}
           onSubmitEditing={handleSearch}
           placeholder="Exemplo: IME02-01388 ou 01388"
           icon={<FontAwesome name="search" size={15} />}
         />
-        <Button width={48} height={48} loading={loading} onPress={handleSearch}>
+        <Button width={48} height={48} onPress={handleSearch}>
           <FontAwesome name="send" size={22} />
         </Button>
       </InlineRow>
@@ -78,6 +75,12 @@ const SubjectSearch = ({searchSubject}: Props) => {
         size="LG">
         Histórico
       </Text>
+      {isEmpty && (
+        <DummyMessage
+          type="EMPTY"
+          text="Parece que você não pesquisou nenhuma disciplina ainda, use a caixa acima para realizar a suas buscas."
+        />
+      )}
       <FlatList
         ref={ref}
         data={reverseData}

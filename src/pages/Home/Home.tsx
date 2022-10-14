@@ -2,33 +2,57 @@ import React, {useState} from 'react';
 
 import {useAppSelector} from '@root/store';
 import * as infoReducer from '@reducers/userInfo';
-import * as attendedReducer from '@features/AttendedClassesSchedule/reducer';
-import * as gradesReducer from '@features/ClassGrades/reducer';
 
 import parser from '@services/parser';
 import useApiFetch from '@hooks/useApiFetch';
-import {fetchPartialRID} from '@root/features/PartialRID/core';
-import {fetchClassGrades} from '@root/features/ClassGrades/core';
-import {fetchAttendedClassesSchedule} from '@root/features/AttendedClassesSchedule/core';
 
-import Text from '@atoms/Text';
-import Spinner from '@atoms/Spinner';
+import {fetchPartialRID} from '@features/PartialRID/core';
+import {fetchClassGrades} from '@features/ClassGrades/core';
+import {fetchAttendedClassesSchedule} from '@features/AttendedClassesSchedule/core';
+
+import * as gradesReducer from '@features/ClassGrades/reducer';
+import * as attendedReducer from '@features/AttendedClassesSchedule/reducer';
+
 import ClassScheduleBoard from '@features/AttendedClassesSchedule/ClassScheduleBoard';
 import GradeBoard from '@features/ClassGrades/GradeBoard';
 import AttendedClassesBoard from '@features/AttendedClassesSchedule/AttendedClassesBoard';
 import RIDBoard from '@features/PartialRID/RIDBoard';
 
+import Text from '@atoms/Text';
+import Spinner from '@atoms/Spinner';
+import DummyMessage from '@molecules/DummyMessage';
+
 import {MainContainer, ScrollContainer, Row, Column} from './Home.styles';
+
+type ErrorControl = {
+  key: string;
+  label: string;
+  callback: () => any;
+};
 
 type PartialRidData = Awaited<ReturnType<typeof fetchPartialRID>>;
 
 const HomePage = () => {
   const [attendedModalVisibility, setAttendedModalVisibility] = useState(false);
 
-  const {loading: loadingSchedule} = useApiFetch(fetchAttendedClassesSchedule);
-  const {loading: loadingGrades} = useApiFetch(fetchClassGrades);
-  const {loading: loadingRID, data: partialRID} =
-    useApiFetch<PartialRidData>(fetchPartialRID);
+  const {
+    loading: loadingSchedule,
+    error: scheduleError,
+    fetch: scheduleRefresh,
+  } = useApiFetch(fetchAttendedClassesSchedule);
+
+  const {
+    loading: loadingGrades,
+    error: gradesError,
+    fetch: gradesRefresh,
+  } = useApiFetch(fetchClassGrades);
+
+  const {
+    loading: loadingRID,
+    data: partialRID,
+    error: ridError,
+    fetch: ridRefresh,
+  } = useApiFetch<PartialRidData>(fetchPartialRID);
 
   const {periodo, name} = useAppSelector(infoReducer.selectUserInfo);
   const {data: attendedClassesData} = useAppSelector(
@@ -43,6 +67,50 @@ const HomePage = () => {
   const parsedName = parser.parseName(name, false);
 
   const isLoading = loadingSchedule || loadingGrades || loadingRID;
+
+  const isScheduleAvailable = currentSchedule?.length > 0;
+  const isPartialRidAvailable = partialRID?.subjects?.length > 0;
+
+  const hasSomethingAvailable =
+    isClassGradesAvailable || isPartialRidAvailable || isScheduleAvailable;
+
+  const errors: ErrorControl[] = [];
+
+  const isScheduleWithError = scheduleError && !isScheduleAvailable;
+  if (isScheduleWithError) {
+    errors.push({
+      key: 'SCHEDULE',
+      label: 'Grade de Horários',
+      callback: scheduleRefresh,
+    });
+  }
+
+  const isGradesWithError = gradesError && !isClassGradesAvailable;
+  if (isGradesWithError) {
+    errors.push({
+      key: 'SCHEDULE',
+      label: 'Quadro de notas',
+      callback: gradesRefresh,
+    });
+  }
+
+  const isRIDWithError = ridError && !isPartialRidAvailable;
+  if (isRIDWithError && !isScheduleAvailable) {
+    errors.push({
+      key: 'RID',
+      label: 'RID Parcial',
+      callback: ridRefresh,
+    });
+  }
+
+  const hasAnyError = errors.length > 0;
+  const errorText = `Ops, parece que houve um erro nos seguintes componentes: ${errors
+    .map(e => e.label)
+    .join(', ')}. Toque aqui para tentar novamente.`;
+
+  const errorsCallback = async () =>
+    await Promise.all(errors.map(e => e.callback()));
+
   return (
     <MainContainer>
       <Row>
@@ -56,18 +124,33 @@ const HomePage = () => {
         </Column>
         {isLoading && <Spinner loading size="large" />}
       </Row>
+      {!hasSomethingAvailable && !isLoading && (
+        <DummyMessage
+          type="EMPTY"
+          text="Parece que o período não se iniciou ainda."
+        />
+      )}
       <ScrollContainer>
         {isClassGradesAvailable && <GradeBoard data={classGrades} />}
         <ClassScheduleBoard
           data={currentSchedule}
           onSubjectPress={() => setAttendedModalVisibility(true)}
         />
-        {partialRID && <RIDBoard data={partialRID} />}
+        {!isScheduleAvailable && isPartialRidAvailable && (
+          <RIDBoard data={partialRID} />
+        )}
         <AttendedClassesBoard
           isVisible={attendedModalVisibility}
           setVisibility={setAttendedModalVisibility}
           data={currentSchedule}
         />
+        {hasAnyError && !isLoading && (
+          <DummyMessage
+            type="ERROR"
+            text={errorText}
+            onPress={errorsCallback}
+          />
+        )}
       </ScrollContainer>
     </MainContainer>
   );

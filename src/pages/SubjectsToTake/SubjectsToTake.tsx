@@ -10,18 +10,19 @@ import useRefresh from '@hooks/useRefresh';
 import {normalizeText} from '@utils/normalize';
 import parser from '@services/parser';
 
-import {SubjectToTake} from '@features/SubjectsToTake/types';
-
-import {fetchSubjectsToTake} from '@root/features/SubjectsToTake/core';
-
 import {useAppDispatch, useAppSelector} from '@root/store';
+
+import {SubjectToTake} from '@features/SubjectsToTake/types';
+import {fetchSubjectsToTake} from '@features/SubjectsToTake/core';
+
 import * as reducer from '@root/features/SubjectsToTake/reducer';
-import * as subjectDetailReducer from '@root/features/SubjectClassesSchedule/reducer';
+import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
 
 import Spinner from '@atoms/Spinner';
 import StyledPicker from '@atoms/Picker';
 import TextInput from '@atoms/TextInput';
 import SubjectBox from '@molecules/SubjectBox';
+import DummyMessage from '@molecules/DummyMessage';
 
 import {Container} from './SubjectsToTake.styles';
 
@@ -30,7 +31,7 @@ const SubjectsToTake = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const {data} = useAppSelector(reducer.selectSubjectsToTake);
-  const {loading, fetch} = useApiFetch(fetchSubjectsToTake);
+  const {loading, fetch, error} = useApiFetch(fetchSubjectsToTake);
 
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
@@ -139,6 +140,19 @@ const SubjectsToTake = () => {
         placeholder="Pesquise pelo nome da disciplina"
         icon={<FontAwesome name="search" size={15} />}
       />
+      {!loading && error && (
+        <DummyMessage
+          type="ERROR"
+          onPress={fetch}
+          text="Ops, ocorreu um erro ao buscar as disciplinas. Toque aqui para tentar novamente."
+        />
+      )}
+      {!loading && isEmpty && (
+        <DummyMessage
+          type="EMPTY"
+          text="Parece que não há disciplinas a cursar nessa categoria."
+        />
+      )}
       {showSpinner && <Spinner size={40} />}
       {showList && (
         <FlatList

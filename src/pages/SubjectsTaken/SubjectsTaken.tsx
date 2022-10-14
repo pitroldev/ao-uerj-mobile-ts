@@ -7,22 +7,23 @@ import {FlatList} from 'react-native-gesture-handler';
 import useApiFetch from '@hooks/useApiFetch';
 import useRefresh from '@hooks/useRefresh';
 import parser from '@services/parser';
-
-import {SubjectsTaken} from '@features/SubjectsTaken/types';
-
-import {fetchSubjectsTaken} from '@root/features/SubjectsTaken/core';
+import {SUBJECT_TYPE, SUBJECT_STATUS} from '@utils/constants/subjectDictionary';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
+
 import * as reducer from '@features/SubjectsTaken/reducer';
-import * as subjectDetailReducer from '@root/features/SubjectClassesSchedule/reducer';
+import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
+
+import {SubjectsTaken} from '@features/SubjectsTaken/types';
+import {fetchSubjectsTaken} from '@features/SubjectsTaken/core';
+import {getPeriodList} from '@features/SubjectsTaken/getPeriodList';
 
 import Spinner from '@atoms/Spinner';
 import StyledPicker from '@atoms/Picker';
 import SubjectBox from '@molecules/SubjectBox';
+import DummyMessage from '@molecules/DummyMessage';
 
 import {Container} from './SubjectsTaken.styles';
-import {SUBJECT_TYPE, SUBJECT_STATUS} from '@utils/constants/subjectDictionary';
-import {getPeriodList} from '@features/SubjectsTaken/getPeriodList';
 
 const SubjectsAttended = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('');
@@ -30,7 +31,7 @@ const SubjectsAttended = () => {
   const {data} = useAppSelector(reducer.selectSubjectsAttended);
   const periodList = getPeriodList(data);
 
-  const {loading, fetch} = useApiFetch(fetchSubjectsTaken);
+  const {loading, fetch, error} = useApiFetch(fetchSubjectsTaken);
 
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
@@ -121,6 +122,19 @@ const SubjectsAttended = () => {
         ))}
       </StyledPicker>
       {showSpinner && <Spinner size={40} />}
+      {!loading && error && (
+        <DummyMessage
+          type="ERROR"
+          onPress={fetch}
+          text="Ops, ocorreu um erro ao buscar as disciplinas. Toque aqui para tentar novamente."
+        />
+      )}
+      {!loading && isEmpty && (
+        <DummyMessage
+          type="EMPTY"
+          text="Parece que não há disciplinas cursadas no período selecionado."
+        />
+      )}
       {showList && (
         <FlatList
           ref={ref}

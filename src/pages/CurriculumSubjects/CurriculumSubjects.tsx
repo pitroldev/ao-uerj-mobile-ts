@@ -11,17 +11,19 @@ import {SUBJECT_TYPE} from '@utils/constants/subjectDictionary';
 import {normalizeText} from '@utils/normalize';
 import parser from '@services/parser';
 
-import {CurriculumSubject} from '@features/CurriculumSubjects/types';
-import {fetchCurriculumSubjects} from '@root/features/CurriculumSubjects/core';
-
 import {useAppDispatch, useAppSelector} from '@root/store';
+
 import * as reducer from '@features/CurriculumSubjects/reducer';
-import * as subjectDetailReducer from '@root/features/SubjectClassesSchedule/reducer';
+import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
+
+import {CurriculumSubject} from '@features/CurriculumSubjects/types';
+import {fetchCurriculumSubjects} from '@features/CurriculumSubjects/core';
 
 import Spinner from '@atoms/Spinner';
 import StyledPicker from '@atoms/Picker';
 import TextInput from '@atoms/TextInput';
 import SubjectBox from '@molecules/SubjectBox';
+import DummyMessage from '@molecules/DummyMessage';
 
 import {Container} from './CurriculumSubjects.styles';
 
@@ -29,7 +31,7 @@ const CurriculumSubjects = () => {
   const [subjectType, setSubjectType] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const {loading, fetch} = useApiFetch(fetchCurriculumSubjects);
+  const {loading, fetch, error} = useApiFetch(fetchCurriculumSubjects);
 
   const {data} = useAppSelector(reducer.selectCurriculumSubjects);
 
@@ -123,6 +125,13 @@ const CurriculumSubjects = () => {
         icon={<FontAwesome name="search" size={15} />}
       />
       {showSpinner && <Spinner size={40} />}
+      {!loading && error && (
+        <DummyMessage
+          type="ERROR"
+          onPress={fetch}
+          text="Ops, ocorreu um erro ao buscar as disciplinas. Toque aqui para tentar novamente."
+        />
+      )}
       {showList && (
         <FlatList
           ref={ref}

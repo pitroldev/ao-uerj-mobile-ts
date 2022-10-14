@@ -10,18 +10,18 @@ import useRefresh from '@hooks/useRefresh';
 import {normalizeText} from '@utils/normalize';
 import parser from '@root/services/parser';
 
-import {SubjectByUnit} from '@features/ClassesScheduleByDepartment/types';
-
-import {fetchClassesScheduleByDepartment} from '@root/features/ClassesScheduleByDepartment/core';
-
 import {useAppDispatch, useAppSelector} from '@root/store';
-import * as reducer from '@root/features/ClassesScheduleByDepartment/reducer';
-import * as subjectDetailReducer from '@root/features/SubjectClassesSchedule/reducer';
+import * as reducer from '@features/ClassesScheduleByDepartment/reducer';
+import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
+
+import {SubjectByUnit} from '@features/ClassesScheduleByDepartment/types';
+import {fetchClassesScheduleByDepartment} from '@features/ClassesScheduleByDepartment/core';
 
 import Spinner from '@atoms/Spinner';
 import StyledPicker from '@atoms/Picker';
 import TextInput from '@atoms/TextInput';
 import SubjectBox from '@molecules/SubjectBox';
+import DummyMessage from '@molecules/DummyMessage';
 
 import {Container} from './ClassSchedulesByDepartment.styles';
 
@@ -35,7 +35,7 @@ const ClassesScheduleByUnit = () => {
     reducer.selectClassSchedulesByDepartment,
   );
 
-  const {loading, fetch} = useApiFetch(() =>
+  const {loading, fetch, error} = useApiFetch(() =>
     fetchClassesScheduleByDepartment(selectedOption),
   );
 
@@ -122,6 +122,19 @@ const ClassesScheduleByUnit = () => {
         icon={<FontAwesome name="search" size={15} />}
       />
       {showSpinner && <Spinner size={40} />}
+      {!loading && error && (
+        <DummyMessage
+          type="ERROR"
+          onPress={fetch}
+          text="Ops, ocorreu um erro ao buscar as disciplinas. Toque aqui para tentar novamente."
+        />
+      )}
+      {!loading && isEmpty && (
+        <DummyMessage
+          type="EMPTY"
+          text="Parece que não há disciplinas no departamento selecionado."
+        />
+      )}
       {showList && (
         <FlatList
           ref={ref}

@@ -69,8 +69,9 @@ export const VacancieBox = styled(Box).attrs({size: 'small'})`
 `;
 
 export const ScheduleBox = styled(Box).attrs({size: 'small'})`
-  margin: 5px;
+  margin: 5px auto;
   margin-top: 8px;
+
   display: flex;
   align-items: center;
   justify-content: center;
