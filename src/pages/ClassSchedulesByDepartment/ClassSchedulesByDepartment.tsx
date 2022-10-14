@@ -12,7 +12,7 @@ import parser from '@root/services/parser';
 
 import {SubjectByUnit} from '@features/ClassesScheduleByDepartment/types';
 
-import {fetchClassesScheduleByDepartment} from '@features/ClassesScheduleByDepartment/fetchClassesScheduleByDepartment';
+import {fetchClassesScheduleByDepartment} from '@root/features/ClassesScheduleByDepartment/core';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
 import * as reducer from '@root/features/ClassesScheduleByDepartment/reducer';

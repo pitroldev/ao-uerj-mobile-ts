@@ -12,7 +12,7 @@ import parser from '@services/parser';
 
 import {SubjectToTake} from '@features/SubjectsToTake/types';
 
-import {fetchSubjectsToTake} from '@features/SubjectsToTake/fetchSubjectsToTake';
+import {fetchSubjectsToTake} from '@root/features/SubjectsToTake/core';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
 import * as reducer from '@root/features/SubjectsToTake/reducer';

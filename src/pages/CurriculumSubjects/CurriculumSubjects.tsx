@@ -12,7 +12,7 @@ import {normalizeText} from '@utils/normalize';
 import parser from '@services/parser';
 
 import {CurriculumSubject} from '@features/CurriculumSubjects/types';
-import {fetchCurriculumSubjects} from '@features/CurriculumSubjects/fetchCurriculumSubjects';
+import {fetchCurriculumSubjects} from '@root/features/CurriculumSubjects/core';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
 import * as reducer from '@features/CurriculumSubjects/reducer';
