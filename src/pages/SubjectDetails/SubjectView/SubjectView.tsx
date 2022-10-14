@@ -11,6 +11,7 @@ import {SubjectData} from '@root/features/SubjectClassesSchedule/reducer';
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
 import SubjectBox from '@molecules/SubjectBox';
+import DummyMessage from '@molecules/DummyMessage';
 import {ScrollView} from '@templates/CustomDrawerNavigator/CustomDrawerNavigator.styles';
 import {Container, TransparentButton, InfoBox} from './SubjectView.styles';
 
@@ -21,9 +22,10 @@ type Props = {
   code: number;
   classes?: SubjectClassesSchedule[];
   subject?: SubjectData['subject'];
+  error?: unknown;
 };
 
-const SubjectView = ({searchSubject, code, classes, subject}: Props) => {
+const SubjectView = ({searchSubject, code, classes, subject, error}: Props) => {
   const [loading, setLoading] = useState(false);
 
   const dispatch = useAppDispatch();
@@ -115,7 +117,6 @@ const SubjectView = ({searchSubject, code, classes, subject}: Props) => {
           </>
         )}
 
-        {loading && <Spinner size="large" />}
         {classes && (
           <>
             <Text size="MD" weight="600" marginLeft="4px" marginTop="4px">
@@ -135,6 +136,17 @@ const SubjectView = ({searchSubject, code, classes, subject}: Props) => {
             )}
           </>
         )}
+
+        {loading && <Spinner size="large" />}
+
+        {!loading && error && (
+          <DummyMessage
+            type="ERROR"
+            text="Ops, ocorreu um erro ao buscar as informações da disciplina. Toque aqui para tentar novamente."
+            onPress={() => getSubject(code)}
+          />
+        )}
+
         <TransparentButton onPress={handleSyllabusPress}>
           <Text
             size="MD"

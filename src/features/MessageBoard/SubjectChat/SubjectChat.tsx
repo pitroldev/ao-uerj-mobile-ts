@@ -16,6 +16,8 @@ import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
 import TextArea from '@atoms/TextArea';
 import RoundedButton from '@atoms/RoundedButton';
+import DummyMessage from '@molecules/DummyMessage';
+
 import {Row, InputRow, ScrollView} from './SubjectChat.styles';
 
 const SubjectChat = (subject: AttendedSubjectInfo) => {
@@ -58,7 +60,13 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
   };
 
   if (error || !data) {
-    return null; //TODO Show Dummy
+    return (
+      <DummyMessage
+        type="ERROR"
+        text="Ops, parece que houve um erro ao buscar as mensagens da turma. Toque aqui para tentar novamente."
+        onPress={fetch}
+      />
+    );
   }
 
   const isEmpty = !loading && data.length === 0;
@@ -73,7 +81,12 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
       </Row>
       <ScrollView>
         {loading && <Spinner loading size="large" />}
-        {isEmpty && <Text>INSERIR DUMMY</Text>}
+        {isEmpty && (
+          <DummyMessage
+            type="INFO"
+            text="Este espaço foi criado para alunos compartilharem informações importantes da turma de forma segura, como por exemplo: grupos, links, materiais, datas de prova etc."
+          />
+        )}
         {data.map(props => (
           <ChatBubble {...props} key={props._id} />
         ))}

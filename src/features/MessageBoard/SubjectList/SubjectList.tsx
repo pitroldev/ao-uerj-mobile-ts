@@ -9,6 +9,7 @@ import * as classesReducer from '@features/AttendedClassesSchedule/reducer';
 
 import SubjectBox from '@molecules/SubjectBox';
 import {Container} from './SubjectList.styles';
+import DummyMessage from '@root/components/molecules/DummyMessage';
 
 type Props = {
   onSubjectPress: (item: AttendedSubjectInfo) => void;
@@ -43,7 +44,12 @@ const SubjectList = ({onSubjectPress}: Props) => {
   );
 
   if (subjects.length === 0) {
-    return null; //TODO Show Dummy
+    return (
+      <DummyMessage
+        type="EMPTY"
+        text="Parece que você não está inscrito em nenhuma disciplina no momento."
+      />
+    );
   }
 
   return <Container>{subjects.map(renderItem)}</Container>;

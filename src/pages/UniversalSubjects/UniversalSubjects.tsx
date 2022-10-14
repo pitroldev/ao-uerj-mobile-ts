@@ -7,21 +7,21 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 import useApiFetch from '@hooks/useApiFetch';
 import useRefresh from '@hooks/useRefresh';
-import {normalizeText} from '@root/utils/normalize';
-import parser from '@root/services/parser';
-
-import {UniversalSubject} from '@root/features/UniversalSubjects/types';
-
-import {fetchUniversalSubjects} from '@root/features/UniversalSubjects/core';
+import {normalizeText} from '@utils/normalize';
+import parser from '@services/parser';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
-import * as reducer from '@root/features/UniversalSubjects/reducer';
-import * as subjectDetailReducer from '@root/features/SubjectClassesSchedule/reducer';
+import * as reducer from '@features/UniversalSubjects/reducer';
+import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
+
+import {UniversalSubject} from '@features/UniversalSubjects/types';
+import {fetchUniversalSubjects} from '@features/UniversalSubjects/core';
 
 import Spinner from '@atoms/Spinner';
 import StyledPicker from '@atoms/Picker';
 import TextInput from '@atoms/TextInput';
 import SubjectBox from '@molecules/SubjectBox';
+import DummyMessage from '@molecules/DummyMessage';
 
 import {Container} from './UniversalSubjects.styles';
 
@@ -34,7 +34,7 @@ const UniversalSubjects = () => {
 
   const {subjects, options} = useAppSelector(reducer.selectUniversalSubjects);
 
-  const {loading, fetch} = useApiFetch(() =>
+  const {loading, fetch, error} = useApiFetch(() =>
     fetchUniversalSubjects(selectedOption),
   );
 
@@ -134,6 +134,19 @@ const UniversalSubjects = () => {
         icon={<FontAwesome name="search" size={15} />}
       />
       {showSpinner && <Spinner size={40} />}
+      {!loading && error && (
+        <DummyMessage
+          type="ERROR"
+          onPress={fetch}
+          text="Ops, ocorreu um erro ao buscar as disciplinas. Toque aqui para tentar novamente."
+        />
+      )}
+      {!loading && isEmpty && (
+        <DummyMessage
+          type="EMPTY"
+          text="Parece que não há disciplinas no departamento selecionado."
+        />
+      )}
       {showList && (
         <FlatList
           ref={ref}
