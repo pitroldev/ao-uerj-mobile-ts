@@ -10,7 +10,7 @@ import parser from '@services/parser';
 
 import {SubjectsTaken} from '@features/SubjectsTaken/types';
 
-import {fetchSubjectsTaken} from '@features/SubjectsTaken/fetchSubjectsTaken';
+import {fetchSubjectsTaken} from '@root/features/SubjectsTaken/core';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
 import * as reducer from '@features/SubjectsTaken/reducer';

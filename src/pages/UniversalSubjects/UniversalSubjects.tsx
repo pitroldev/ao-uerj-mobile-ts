@@ -12,7 +12,7 @@ import parser from '@root/services/parser';
 
 import {UniversalSubject} from '@root/features/UniversalSubjects/types';
 
-import {fetchUniversalSubjects} from '@root/features/UniversalSubjects/fetchUniversalSubjects';
+import {fetchUniversalSubjects} from '@root/features/UniversalSubjects/core';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
 import * as reducer from '@root/features/UniversalSubjects/reducer';

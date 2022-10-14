@@ -15,10 +15,10 @@ import {
 import Text from '../components/atoms/Text';
 import {MainContainer as ScrollView} from './Home/Home.styles';
 
-import {fetchSubjectsTaken} from '@features/SubjectsTaken/fetchSubjectsTaken';
-import {getSubjectInfo} from '@features/SubjectInfo/fetchSubjectInfo';
-import {getSubjectClassesSchedule} from '@features/SubjectClassesSchedule/fetchSubjectClassesSchedule';
-import {fetchSubjectsToTake} from '@features/SubjectsToTake/fetchSubjectsToTake';
+import {fetchSubjectsTaken} from '@root/features/SubjectsTaken/core';
+import {getSubjectInfo} from '@root/features/SubjectInfo/core';
+import {getSubjectClassesSchedule} from '@root/features/SubjectClassesSchedule/core';
+import {fetchSubjectsToTake} from '@root/features/SubjectsToTake/core';
 import {refreshAuth} from '@services/UerjApi';
 import {SubjectToTake} from '@features/SubjectsToTake/types';
 

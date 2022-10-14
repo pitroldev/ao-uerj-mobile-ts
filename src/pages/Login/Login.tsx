@@ -2,7 +2,7 @@ import React, {useState, useRef} from 'react';
 import {Linking} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
-import {handleLogin} from '@services/UerjApi';
+import {handleLogin} from '@features/Login/core';
 
 import Text from '@atoms/Text';
 import TextInput from '@atoms/TextInput';

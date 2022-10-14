@@ -7,9 +7,9 @@ import * as gradesReducer from '@features/ClassGrades/reducer';
 
 import parser from '@services/parser';
 import useApiFetch from '@hooks/useApiFetch';
-import {fetchPartialRID} from '@features/PartialRID/fetchPartialRID';
-import {fetchClassGrades} from '@features/ClassGrades/fetchClassGrades';
-import {fetchAttendedClassesSchedule} from '@features/AttendedClassesSchedule/fetchAttendedClassesSchedule';
+import {fetchPartialRID} from '@root/features/PartialRID/core';
+import {fetchClassGrades} from '@root/features/ClassGrades/core';
+import {fetchAttendedClassesSchedule} from '@root/features/AttendedClassesSchedule/core';
 
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';

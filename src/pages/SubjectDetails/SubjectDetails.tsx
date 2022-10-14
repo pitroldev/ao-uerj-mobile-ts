@@ -8,8 +8,8 @@ import {SubjectClassesSchedule} from '@root/features/SubjectClassesSchedule/type
 import {SubjectInfo} from '@features/SubjectInfo/types';
 
 import parser from '@services/parser';
-import {getSubjectClassesSchedule} from '@root/features/SubjectClassesSchedule/fetchSubjectClassesSchedule';
-import {getSubjectInfo} from '@root/features/SubjectInfo/fetchSubjectInfo';
+import {getSubjectClassesSchedule} from '@root/features/SubjectClassesSchedule/core';
+import {getSubjectInfo} from '@root/features/SubjectInfo/core';
 
 import SubjectSearch from './SubjectSearch';
 import SubjectView from './SubjectView';
