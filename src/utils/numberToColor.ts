@@ -1,9 +1,10 @@
-export function numberToColor(grade: unknown, base = 10) {
-  if (typeof grade !== 'number') {
+export function numberToColor(current: unknown, base = 10, inverse = false) {
+  if (typeof current !== 'number') {
     return 'CANCELED';
   }
 
-  const percent = grade / base;
+  const target = inverse ? base - current : current;
+  const percent = target / base;
 
   if (percent >= 0.8) {
     return 'GOOD';
