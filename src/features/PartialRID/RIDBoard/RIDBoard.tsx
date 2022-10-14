@@ -37,10 +37,16 @@ const RIDBoard = ({data}: Props) => {
   }
 
   function renderItem(item: PartialRID) {
-    const {id, classNumber, name, available, requested, position} = item;
+    const {id, classNumber, name, available, requested, position, status} =
+      item;
 
+    const hasWarning = position === 0;
+    const vacanciesColor = numberToColor(requested, available, true);
+    const positionColor = hasWarning
+      ? 'DISABLED'
+      : numberToColor(position, available, true);
     return (
-      <Button onPress={() => handleOnPress(item)}>
+      <Button onPress={() => handleOnPress(item)} key={id}>
         <SubjectBox key={id}>
           <Row>
             <Text weight="500" size="XS" alignSelf="center">
@@ -53,7 +59,7 @@ const RIDBoard = ({data}: Props) => {
           <Text size="SM">{name}</Text>
 
           <Row>
-            <MiniBox color={numberToColor(requested, available)}>
+            <MiniBox color={vacanciesColor}>
               <Text weight="500" size="XS" alignSelf="center">
                 Solicitadas/Oferecidas
               </Text>
@@ -61,7 +67,7 @@ const RIDBoard = ({data}: Props) => {
                 {requested}/{available}
               </Text>
             </MiniBox>
-            <MiniBox color={numberToColor(position, available)}>
+            <MiniBox color={positionColor}>
               <Text weight="500" size="XS" alignSelf="center">
                 Sua Posição
               </Text>
@@ -70,6 +76,16 @@ const RIDBoard = ({data}: Props) => {
               </Text>
             </MiniBox>
           </Row>
+          {hasWarning && (
+            <Text
+              weight="bold"
+              size={'XXS'}
+              alignSelf="center"
+              marginTop="10px"
+              color={'ERROR'}>
+              {status}
+            </Text>
+          )}
         </SubjectBox>
       </Button>
     );

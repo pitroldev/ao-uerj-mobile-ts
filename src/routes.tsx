@@ -15,7 +15,7 @@ import SubjectDetails from '@root/pages/SubjectDetails';
 import Home from '@root/pages/Home';
 import Login from '@root/pages/Login';
 import MessageBoard from '@root/pages/MessageBoard';
-import Playground from '@root/pages/Playground';
+// import Playground from '@root/pages/Playground';
 
 export type RootDrawerParamList = {
   Login: undefined;
@@ -50,7 +50,7 @@ const MainRoutes = () => {
       }}>
       {isSignedIn ? (
         <>
-          <Drawer.Screen name="Playground" component={Playground} />
+          {/* <Drawer.Screen name="Playground" component={Playground} /> */}
           <Drawer.Screen name="Início" component={Home} />
           <Drawer.Screen name="Mural de Mensagens" component={MessageBoard} />
           <Drawer.Screen
