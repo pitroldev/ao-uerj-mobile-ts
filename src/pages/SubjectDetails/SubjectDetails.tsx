@@ -1,8 +1,9 @@
 import React, {useState} from 'react';
+import Toast from 'react-native-toast-message';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
 import * as userReducer from '@reducers/userInfo';
-import * as subjectReducer from '@root/features/SubjectClassesSchedule/reducer';
+import * as subjectReducer from '@features/SubjectClassesSchedule/reducer';
 
 import {SubjectClassesSchedule} from '@root/features/SubjectClassesSchedule/types';
 import {SubjectInfo} from '@features/SubjectInfo/types';
@@ -15,6 +16,7 @@ import SubjectSearch from './SubjectSearch';
 import SubjectView from './SubjectView';
 
 const SubjectDetailPage = () => {
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown>(null);
 
   const dispatch = useAppDispatch();
@@ -25,7 +27,8 @@ const SubjectDetailPage = () => {
   );
 
   const handleSubjectInfo = (subject: SubjectInfo, code: number) => {
-    if (!subject || subject.id === 'UERJ00-00000') {
+    if (!subject || !subject.id || subject.id === 'UERJ00-00000') {
+      dispatch(subjectReducer.clearSelected());
       throw new Error('SUBJECT_NOT_FOUND');
     }
 
@@ -60,6 +63,7 @@ const SubjectDetailPage = () => {
     skipCache = false,
   ) => {
     try {
+      setLoading(true);
       setError(null);
       const code = handleSubjectCode(subjectCode);
 
@@ -76,15 +80,25 @@ const SubjectDetailPage = () => {
         ),
       ]);
     } catch (err) {
-      console.log('handleSearch', err);
       setError(err);
-      // TODO: Disciplina não encontrada, por favor verifique se blablabla
+      Toast.show({
+        type: 'error',
+        text1: 'Não foi possível encontrar esta disciplina',
+        text2: 'Certifique-se de que escreveu o código corretamente.',
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   if (selected) {
     return (
-      <SubjectView searchSubject={searchSubject} {...selected} error={error} />
+      <SubjectView
+        searchSubject={searchSubject}
+        {...selected}
+        error={error}
+        loading={loading}
+      />
     );
   }
 

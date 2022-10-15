@@ -1,5 +1,6 @@
 import React, {useState} from 'react';
 import {useTheme} from 'styled-components';
+import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 import {useAppSelector} from '@root/store';
@@ -52,8 +53,12 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
       setData(c => [newMessage, ...c]);
       setText('');
     } catch (err) {
-      console.log('sendMessage', err);
-      // TODO Error notification
+      Toast.show({
+        type: 'error',
+        text1: 'Ops, ocorreu um erro :(',
+        text2:
+          'Não foi possível enviar a sua mensagem, tente novamente mais tarde.',
+      });
     } finally {
       setSending(false);
     }

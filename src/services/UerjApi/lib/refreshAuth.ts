@@ -16,7 +16,8 @@ export async function refreshAuth(): Promise<void> {
     );
   });
 
-  const hasFailed = typeof data.fail_reason === 'string';
+  const hasFailed =
+    typeof data.fail_reason === 'string' && data.fail_reason.trim().length > 0;
   if (hasFailed) {
     console.log('LOGIN FAILED', {data});
     store.dispatch(apiConfigReducer.clear());

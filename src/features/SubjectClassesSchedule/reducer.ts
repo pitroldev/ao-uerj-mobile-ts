@@ -83,7 +83,7 @@ const slice = createSlice({
       }
     },
     clearSelected: state => {
-      Object.assign(state, {selected: initialState.selected});
+      state.selected = initialState.selected;
     },
   },
 });
