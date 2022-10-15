@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect} from 'react';
 import {Linking} from 'react-native';
 
 import {useAppDispatch} from '@root/store';
@@ -20,14 +20,20 @@ import renderClassBox from './renderClassBox';
 type Props = {
   searchSubject: (s: string | number) => Promise<void>;
   code: number;
+  loading: boolean;
   classes?: SubjectClassesSchedule[];
   subject?: SubjectData['subject'];
   error?: unknown;
 };
 
-const SubjectView = ({searchSubject, code, classes, subject, error}: Props) => {
-  const [loading, setLoading] = useState(false);
-
+const SubjectView = ({
+  searchSubject,
+  code,
+  classes,
+  subject,
+  error,
+  loading,
+}: Props) => {
   const dispatch = useAppDispatch();
 
   useBackHandler(() => dispatch(reducer.clearSelected()));
@@ -38,9 +44,7 @@ const SubjectView = ({searchSubject, code, classes, subject, error}: Props) => {
     if (hasData && sameCode) {
       return;
     }
-    setLoading(true);
     await searchSubject(subjectCode);
-    setLoading(false);
   };
 
   useEffect(() => {

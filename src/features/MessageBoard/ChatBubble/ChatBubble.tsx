@@ -1,6 +1,7 @@
 import React from 'react';
 import {Linking} from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
+import Toast from 'react-native-toast-message';
 
 import parser from '@services/parser';
 
@@ -19,6 +20,11 @@ const ChatBubble = (item: ChatMessage) => {
 
   const copyToClipboard = () => {
     Clipboard.setString(message);
+    Toast.show({
+      type: 'success',
+      text1: 'Copiado com sucesso!',
+      text2: 'O texto foi copiado para a área de trasnferência',
+    });
   };
 
   return (

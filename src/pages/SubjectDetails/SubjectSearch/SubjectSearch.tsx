@@ -2,6 +2,7 @@ import React, {useState, useRef} from 'react';
 import {ListRenderItemInfo} from 'react-native';
 import {FlatList} from 'react-native-gesture-handler';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import Toast from 'react-native-toast-message';
 
 import {useAppSelector} from '@root/store';
 import * as reducer from '@features/SubjectClassesSchedule/reducer';
@@ -26,7 +27,15 @@ const SubjectSearch = ({searchSubject}: Props) => {
   const ref = useRef<FlatList>(null);
 
   const handleSearch = async () => {
-    searchSubject(subjectCode);
+    try {
+      searchSubject(subjectCode);
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: 'Parece que esse código não é válido :(',
+        text2: 'Certifique-se de que escreveu o código corretamente.',
+      });
+    }
   };
 
   const renderSubjects = ({item}: ListRenderItemInfo<typeof data[number]>) => {
