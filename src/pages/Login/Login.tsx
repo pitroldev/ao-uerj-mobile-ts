@@ -30,8 +30,13 @@ const LoginPage = () => {
     try {
       setLoading(true);
       const {fail_reason} = await handleLogin(matricula, password);
+
+      if (!fail_reason) {
+        navigation.navigate('Início');
+        return;
+      }
+
       setError(fail_reason ?? '');
-      navigation.navigate('Início');
     } catch (err) {
       setError('Erro desconecido: ' + (err as unknown as Error)?.message);
       setLoading(false);
