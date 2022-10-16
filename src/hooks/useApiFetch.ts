@@ -16,10 +16,10 @@ function useApiFetch<T>(callback: CallbackType, options: Options = {}) {
   const fetch = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await callback();
       setData(response);
     } catch (err) {
-      console.log(callback.name, err);
       setError(err);
     } finally {
       setLoading(false);
