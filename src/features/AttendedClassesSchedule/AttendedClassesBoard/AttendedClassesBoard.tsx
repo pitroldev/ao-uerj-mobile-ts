@@ -38,7 +38,7 @@ const AttendedClassesBoard = ({isVisible, setVisibility, data}: Props) => {
   }, [] as AttendedClassesSchedule['class'][]);
 
   function handleOnPress(item: AttendedClassesSchedule['class']) {
-    const code = parser.parseCodigo(item.id);
+    const code = parser.parseSubjectCode(item.id);
 
     setVisibility(false);
     dispatch(subjectDetailReducer.appendData({code}));

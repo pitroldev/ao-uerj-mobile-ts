@@ -30,7 +30,7 @@ const RIDBoard = ({data}: Props) => {
   }
 
   function handleOnPress(item: PartialRID) {
-    const code = parser.parseCodigo(item.id);
+    const code = parser.parseSubjectCode(item.id);
     dispatch(subjectDetailReducer.appendData({code}));
     dispatch(subjectDetailReducer.select({code}));
     navigation.navigate('Pesquisa de Disciplinas');

@@ -1,8 +1,8 @@
 const cheerio = require('react-native-cheerio');
 
 import {
-  parseCodigo,
-  parseDocenteName,
+  parseSubjectCode,
+  parseTeacherName,
   parseSimNaoToBoolean,
 } from '@services/parser/minorParser';
 
@@ -89,7 +89,7 @@ export default function parseSubjectClassesSchedule(html: string) {
               }
             });
 
-          turmasObj.classNumber = parseCodigo(temp[0]);
+          turmasObj.classNumber = parseSubjectCode(temp[0]);
           turmasObj.hasPreference = parseSimNaoToBoolean(temp[1]);
           turmasObj.schedule = getHorarioArray(temp[3].replace('#', '\n'));
           turmasArray.push(turmasObj as SubjectClassesSchedule);
@@ -104,7 +104,7 @@ export default function parseSubjectClassesSchedule(html: string) {
       childHtml.children.map(
         (docenteChildren: any, index: number) =>
           index % 2 === 0 &&
-          docentes.push(parseDocenteName(docenteChildren.data)),
+          docentes.push(parseTeacherName(docenteChildren.data)),
       );
       turmasArray[hindex].teachers = docentes;
     });
