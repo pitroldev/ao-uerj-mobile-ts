@@ -1,9 +1,9 @@
 import React from 'react';
 import {TouchableOpacity} from 'react-native-gesture-handler';
-import styled from 'styled-components/native';
+import styled, {DefaultTheme} from 'styled-components/native';
 
 type StyleProps = {
-  variant?: 'primary' | 'secondary';
+  variant?: keyof DefaultTheme['COLORS'];
   size?: 'small' | 'large';
   disabled?: boolean;
   loading?: boolean;
@@ -16,8 +16,7 @@ export const ButtonContainer = styled(TouchableOpacity)<ButtonProps>`
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  background-color: ${({variant, theme}) =>
-    variant === 'secondary' ? theme.COLORS.SECONDARY : theme.COLORS.PRIMARY};
+  background-color: ${({variant, theme}) => theme.COLORS[variant ?? 'PRIMARY']};
 
   margin: 5px;
   border-radius: ${({size}) => (size === 'small' ? '15px' : '25px')};

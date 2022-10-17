@@ -7,7 +7,7 @@ export const navigationRef =
   createRef<NavigationContainerRef<RootDrawerParamList>>();
 export const isReadyRef = createRef<boolean>();
 
-export function navigate(name: any, params: any) {
+export function navigate(name: any, params?: any) {
   if (isReadyRef.current && navigationRef.current) {
     navigationRef.current.navigate(name, params);
   }

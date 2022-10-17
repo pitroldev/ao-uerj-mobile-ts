@@ -15,6 +15,7 @@ import SubjectDetails from '@root/pages/SubjectDetails';
 import Home from '@root/pages/Home';
 import Login from '@root/pages/Login';
 import MessageBoard from '@root/pages/MessageBoard';
+import About from '@root/pages/About';
 // import Playground from '@root/pages/Playground';
 
 export type RootDrawerParamList = {
@@ -29,6 +30,7 @@ export type RootDrawerParamList = {
   'Disciplinas Universais': undefined;
   'Horário das Turmas': undefined;
   'Pesquisa de Disciplinas': undefined;
+  Sobre: undefined;
 };
 
 const Drawer = createDrawerNavigator<RootDrawerParamList>();
@@ -77,6 +79,7 @@ const MainRoutes = () => {
             name="Pesquisa de Disciplinas"
             component={SubjectDetails}
           />
+          <Drawer.Screen name="Sobre" component={About} />
         </>
       ) : (
         <>

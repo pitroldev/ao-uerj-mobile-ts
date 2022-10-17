@@ -50,7 +50,9 @@ const Playground = () => {
         const subject = parseSubjectToGeneratorFormat(s, info);
         subjects.push(subject);
 
-        const class_ = await getSubjectClassesSchedule(parseSubjectCode(s.id)).catch(
+        const class_ = await getSubjectClassesSchedule(
+          parseSubjectCode(s.id),
+        ).catch(
           async () => await getSubjectClassesSchedule(parseSubjectCode(s.id)),
         );
 
@@ -112,17 +114,17 @@ const Playground = () => {
       <StyledButton loading>Loading</StyledButton>
       <StyledButton disabled>Desabilitado</StyledButton>
       <StyledButton
-        variant="secondary"
+        variant="SECONDARY"
         size="small"
         onPress={async () => {
           await extractData();
         }}>
         Extrair dados
       </StyledButton>
-      <StyledButton variant="secondary" size="small" loading>
+      <StyledButton variant="SECONDARY" size="small" loading>
         Loading
       </StyledButton>
-      <StyledButton variant="secondary" size="small" disabled>
+      <StyledButton variant="SECONDARY" size="small" disabled>
         Desabilitado
       </StyledButton>
     </ScrollView>
