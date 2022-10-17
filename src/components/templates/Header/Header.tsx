@@ -56,7 +56,7 @@ const Header = ({navigationState}: Props) => {
           {title}
         </Text>
       </Button>
-      <AOButton onPress={() => {}}>
+      <AOButton onPress={() => RootNavigation.navigate('Sobre')}>
         <LogoAO width={10} />
       </AOButton>
     </Container>
