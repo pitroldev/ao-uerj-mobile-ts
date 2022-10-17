@@ -49,7 +49,7 @@ const SubjectDetailPage = () => {
   };
 
   const handleSubjectCode = (subjectCode: string | number) => {
-    const code = parser.parseCodigo(subjectCode);
+    const code = parser.parseSubjectCode(subjectCode);
     if (typeof code !== 'number') {
       throw new Error('INVALID_SUBJECT_CODE');
     }

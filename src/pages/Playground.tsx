@@ -7,7 +7,7 @@ import StyledButton from '@atoms/Button';
 import StyledPicker from '@atoms/Picker';
 import TextInputWithIcon from '@atoms/TextInput';
 import SubjectBox from '@molecules/SubjectBox';
-import {parseCodigo} from '../services/parser/minorParser';
+import {parseSubjectCode} from '../services/parser/minorParser';
 import {
   parseClassToGeneratorFormat,
   parseSubjectToGeneratorFormat,
@@ -42,16 +42,16 @@ const Playground = () => {
 
       for await (const s of data) {
         console.log('Calling INFO:', s.id);
-        const info = await getSubjectInfo(parseCodigo(s.id)).catch(
-          async () => await getSubjectInfo(parseCodigo(s.id)),
+        const info = await getSubjectInfo(parseSubjectCode(s.id)).catch(
+          async () => await getSubjectInfo(parseSubjectCode(s.id)),
         );
 
         console.log('Calling Classes:', s.id);
         const subject = parseSubjectToGeneratorFormat(s, info);
         subjects.push(subject);
 
-        const class_ = await getSubjectClassesSchedule(parseCodigo(s.id)).catch(
-          async () => await getSubjectClassesSchedule(parseCodigo(s.id)),
+        const class_ = await getSubjectClassesSchedule(parseSubjectCode(s.id)).catch(
+          async () => await getSubjectClassesSchedule(parseSubjectCode(s.id)),
         );
 
         const parsedClasse = class_.map(c =>

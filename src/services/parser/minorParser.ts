@@ -1,27 +1,31 @@
-export function parseSubjectID(text) {
+export function parseSubjectID(text: string) {
   try {
     const regex = /\w+-[0-9]+/g;
-    const codigo = regex.exec(text)[0];
+    const [codigo] = regex.exec(text) ?? [text];
     return codigo;
   } catch (e) {
     return text;
   }
 }
 
-export function parseCodigo(text) {
+export function parseSubjectCode(text: string) {
   try {
     const regex = /\b[0-9]+/g;
-    const codigo = regex.exec(text)[0];
+    const [codigo] = regex.exec(text) ?? [text];
     return parseInt(codigo, 10);
   } catch (e) {
     return text;
   }
 }
 
-export function parseSimNaoToBoolean(text) {
+export function parseSimNaoToBoolean(text: string) {
   try {
     const regex = /(NÃO|SIM)/gi;
-    const resposta = regex.exec(text)[0].toUpperCase();
+    const [match] = regex.exec(text) ?? [text];
+    if (!match) {
+      throw new Error();
+    }
+    const resposta = match.toUpperCase();
     if (resposta.charAt(0) === 'S') {
       return true;
     }
@@ -31,32 +35,7 @@ export function parseSimNaoToBoolean(text) {
   }
 }
 
-export function parseHorarios(horarios) {
-  try {
-    const horariosObj = {};
-    const tempos = [];
-    const regex = /[\D]{3}\b/g;
-
-    const parsed = horarios.split(regex);
-
-    parsed.map(item => {
-      const parsedTempo = item.trim();
-      parsedTempo && tempos.push(parsedTempo.split(/\s/g));
-    });
-
-    const diasDaSemana = horarios.match(regex);
-    diasDaSemana.map((dia, index) => {
-      horariosObj[dia] = tempos[index];
-      horariosObj[dia] = horariosObj[dia].sort();
-    });
-
-    return horariosObj;
-  } catch (e) {
-    return horarios;
-  }
-}
-
-export function parseName(name, NomeCompleto = true) {
+export function parseName(name: string, NomeCompleto = true) {
   try {
     let splitStr = name.trim().toLowerCase().split(' ');
     for (let i = 0; i < splitStr.length; i++) {
@@ -82,7 +61,7 @@ export function parseName(name, NomeCompleto = true) {
   }
 }
 
-export function parseUnidadeAcademica(unidadeName) {
+export function parseUnidadeAcademica(unidadeName: string) {
   try {
     const [sigla, nome] = unidadeName.trim().split(' - ');
 
@@ -94,9 +73,9 @@ export function parseUnidadeAcademica(unidadeName) {
   }
 }
 
-export function parseDocenteName(nome) {
+export function parseTeacherName(name: string) {
   try {
-    let splitStr = nome.toLowerCase().replace(' , ', ', ').split(' ');
+    let splitStr = name.toLowerCase().replace(' , ', ', ').split(' ');
     for (let i = 0; i < splitStr.length; i++) {
       splitStr[i] =
         splitStr[i].charAt(0).toUpperCase() + splitStr[i].substring(1);
@@ -127,18 +106,18 @@ export function parseDocenteName(nome) {
 
     return cleanedString.join(' ');
   } catch (e) {
-    return nome;
+    return name;
   }
 }
 
-export function parseSubjectName(text, isClean = false) {
+export function parseSubjectName(text: string, isClean = false) {
   try {
     const cleanedText = isClean
       ? text
       : text.replace(parseSubjectID(text), '').replace(/-(?=\w)/g, ' - ');
-    // const regex1 = /\b[-,a-zA-ZA-\u00ff �/.]+\b/g;
     const regex = /[-,a-zA-Z\u00C0-\u00FF �/.]+\b/g;
-    const preParsed = regex.exec(cleanedText)[0].trim();
+    const [match] = regex.exec(cleanedText) ?? [text];
+    const preParsed = match.trim();
 
     const romans = [
       'I',
@@ -162,7 +141,7 @@ export function parseSubjectName(text, isClean = false) {
       'IX',
       'XX',
     ];
-    const splittedText = parseDocenteName(preParsed).split(/\s/g);
+    const splittedText = parseTeacherName(preParsed).split(/\s/g);
     splittedText.map((item, index) => {
       romans.find(romanNumber => {
         if (romanNumber === item.toUpperCase()) {
@@ -178,7 +157,7 @@ export function parseSubjectName(text, isClean = false) {
   }
 }
 
-export function parseNumber(strNumber) {
+export function parseNumber(strNumber: string) {
   try {
     if (!strNumber) {
       return '-';
@@ -190,36 +169,7 @@ export function parseNumber(strNumber) {
   }
 }
 
-export function getColor(stringNumber) {
-  try {
-    let num = parseFloat(stringNumber, 10);
-
-    if (num < 0) {
-      throw new Error('Invalid Number');
-    }
-
-    if (num > 1) {
-      return '#FFA6A6';
-    }
-
-    if (isNaN(num)) {
-      return '#ddd';
-    }
-
-    const diff = num * 45;
-
-    const red = 210 + diff;
-    const green = 250 - diff;
-
-    const color = 'rgb(' + red + ', ' + green + ', 213)';
-
-    return color;
-  } catch (e) {
-    return '#aaa';
-  }
-}
-
-export function parseSubjectType(text) {
+export function parseSubjectType(text: string) {
   const lowerCase = text.toLowerCase();
   if (lowerCase.includes('obri')) {
     return 'MANDATORY';
@@ -236,7 +186,7 @@ export function parseSubjectType(text) {
   return text;
 }
 
-export function parseUerjNumber(possibleNumber) {
+export function parseUerjNumber(possibleNumber: string) {
   if (!possibleNumber) {
     return null;
   }

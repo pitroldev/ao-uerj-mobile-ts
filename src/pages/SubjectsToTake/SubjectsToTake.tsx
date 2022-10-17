@@ -50,7 +50,7 @@ const SubjectsToTake = () => {
   };
 
   const handleSubjectPress = (subject: SubjectToTake) => {
-    const code = parser.parseCodigo(subject.id);
+    const code = parser.parseSubjectCode(subject.id);
     dispatch(subjectDetailReducer.appendData({code}));
     dispatch(subjectDetailReducer.select({code}));
     navigation.navigate('Pesquisa de Disciplinas');
