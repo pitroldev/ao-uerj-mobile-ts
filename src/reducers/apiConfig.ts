@@ -8,11 +8,13 @@ type Dict = {[key: string]: string};
 type ApiConfig = {
   cookies: Cookies | null;
   dictionary: Dict;
+  isBlocked: boolean;
   createdAt: Date;
 };
 
 const initialState: ApiConfig = {
   cookies: null,
+  isBlocked: false,
   dictionary: {},
   createdAt: new Date(),
 };
@@ -28,13 +30,17 @@ const apiConfigSlice = createSlice({
     addDictionary: (state, action: PayloadAction<Dict>) => {
       Object.assign(state.dictionary, action.payload);
     },
+    setIsBlocked: (state, action: PayloadAction<boolean>) => {
+      Object.assign(state, {isBlocked: action.payload});
+    },
     clear: state => {
       Object.assign(state, initialState);
     },
   },
 });
 
-export const {setState, addDictionary, clear} = apiConfigSlice.actions;
+export const {setState, addDictionary, setIsBlocked, clear} =
+  apiConfigSlice.actions;
 export const selectApiConfig = (state: AppState) => state.apiConfig;
 
 export default apiConfigSlice.reducer;

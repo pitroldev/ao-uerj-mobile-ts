@@ -1,18 +1,21 @@
 import React, {useEffect} from 'react';
-import {Linking} from 'react-native';
+import {Linking, ScrollView} from 'react-native';
 
-import {useAppDispatch} from '@root/store';
-import * as reducer from '@root/features/SubjectClassesSchedule/reducer';
-import {useBackHandler} from '@root/hooks/useBackHandler';
+import {useAppDispatch, useAppSelector} from '@root/store';
+import {useBackHandler} from '@hooks/useBackHandler';
 
-import {SubjectClassesSchedule} from '@root/features/SubjectClassesSchedule/types';
-import {SubjectData} from '@root/features/SubjectClassesSchedule/reducer';
+import * as apiConfigReducer from '@reducers/apiConfig';
+import * as reducer from '@features/SubjectClassesSchedule/reducer';
+
+import {SubjectClassesSchedule} from '@features/SubjectClassesSchedule/types';
+import {SubjectData} from '@features/SubjectClassesSchedule/reducer';
 
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
 import SubjectBox from '@molecules/SubjectBox';
 import DummyMessage from '@molecules/DummyMessage';
-import {ScrollView} from '@templates/CustomDrawerNavigator/CustomDrawerNavigator.styles';
+import SmallDummyMessage from '@molecules/SmallDummyMessage';
+
 import {Container, TransparentButton, InfoBox} from './SubjectView.styles';
 
 import renderClassBox from './renderClassBox';
@@ -37,6 +40,8 @@ const SubjectView = ({
   const dispatch = useAppDispatch();
 
   useBackHandler(() => dispatch(reducer.clearSelected()));
+
+  const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
 
   const hasData = Boolean(classes && subject && code);
   const getSubject = async (subjectCode: string | number) => {
@@ -72,6 +77,12 @@ const SubjectView = ({
             <Text size="XL" weight="bold" marginLeft="4px">
               {subject?.name}
             </Text>
+            {isBlocked && (
+              <SmallDummyMessage
+                type="BLOCK"
+                text="O Aluno Online está temporariamente bloqueado."
+              />
+            )}
             <Text size="MD" weight="600" marginLeft="4px" marginTop="12px">
               Informações
             </Text>

@@ -3,7 +3,7 @@ import {useTheme} from 'styled-components';
 import Icon from 'react-native-vector-icons/AntDesign';
 
 import Text from '@atoms/Text';
-import {View} from './DummyMessage.styles';
+import {View} from './SmallDummyMessage.styles';
 
 type Props = {
   text: string;
@@ -11,7 +11,7 @@ type Props = {
   onPress?: any;
 };
 
-const DummyMessage = ({text, type, onPress}: Props) => {
+const SmallDummyMessage = ({text, type, onPress}: Props) => {
   const {COLORS} = useTheme();
 
   const icons = {
@@ -31,22 +31,22 @@ const DummyMessage = ({text, type, onPress}: Props) => {
 
   return (
     <View onPress={handleOnPress} disabled={!isEnabled}>
-      <Icon name={icons[type]} color={COLORS.DISABLED} size={45} />
+      <Icon name={icons[type]} color={COLORS.DISABLED} size={25} />
       <Text
-        size="LG"
-        marginTop="12px"
-        textAlign="center"
-        alignSelf="center"
+        size="SM"
         weight="500"
-        color="BACKGROUND_400">
+        color="BACKGROUND_400"
+        marginLeft="4px"
+        marginTop="auto"
+        marginBottom="auto">
         {text}
       </Text>
     </View>
   );
 };
 
-DummyMessage.defaultProps = {
+SmallDummyMessage.defaultProps = {
   onPress: undefined,
 };
 
-export default DummyMessage;
+export default SmallDummyMessage;

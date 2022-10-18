@@ -2,7 +2,9 @@ import React, {useState} from 'react';
 import Toast from 'react-native-toast-message';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
+
 import * as userReducer from '@reducers/userInfo';
+import * as apiConfigReducer from '@reducers/apiConfig';
 import * as subjectReducer from '@features/SubjectClassesSchedule/reducer';
 
 import {SubjectClassesSchedule} from '@root/features/SubjectClassesSchedule/types';
@@ -21,6 +23,7 @@ const SubjectDetailPage = () => {
 
   const dispatch = useAppDispatch();
 
+  const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
   const {periodo} = useAppSelector(userReducer.selectUserInfo);
   const {selected, data} = useAppSelector(
     subjectReducer.selectSubjectClassesSearch,
@@ -49,12 +52,20 @@ const SubjectDetailPage = () => {
   };
 
   const handleSubjectCode = (subjectCode: string | number) => {
-    const code = parser.parseSubjectCode(subjectCode);
+    if (isBlocked) {
+      Toast.show({
+        type: 'error',
+        text1: 'Aluno Online bloqueado',
+        text2: 'Tente novamente mais tarde.',
+      });
+      return -1;
+    }
+
+    const code = parser.parseSubjectCode(subjectCode as string);
     if (typeof code !== 'number') {
       throw new Error('INVALID_SUBJECT_CODE');
     }
 
-    dispatch(subjectReducer.select({code, periodo}));
     return code;
   };
 
@@ -72,6 +83,8 @@ const SubjectDetailPage = () => {
         dispatch(subjectReducer.select(cached));
         return;
       }
+
+      dispatch(subjectReducer.select({code, periodo}));
 
       await Promise.all([
         getSubjectInfo(code).then(res => handleSubjectInfo(res, code)),

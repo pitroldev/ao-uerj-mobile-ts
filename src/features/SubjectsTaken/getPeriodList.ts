@@ -1,6 +1,6 @@
-import {SubjectAttended} from '@root/features/SubjectsTaken/types';
+import {SubjectsTaken} from '@features/SubjectsTaken/types';
 
-function calculateCR(data: SubjectAttended[]) {
+function calculateCR(data: SubjectsTaken[]) {
   const filteredData = data.filter(v => v.grade !== null && v.credits !== null);
   const credits = filteredData.reduce(
     (acc, cur) => acc + (cur.credits ?? 0),
@@ -15,7 +15,7 @@ function calculateCR(data: SubjectAttended[]) {
   return CR;
 }
 
-function calculatePeriodWithCR(data: SubjectAttended[], periodList: string[]) {
+function calculatePeriodWithCR(data: SubjectsTaken[], periodList: string[]) {
   periodList.reverse();
 
   const options = periodList.map((period, index) => {
@@ -44,7 +44,7 @@ function calculatePeriodWithCR(data: SubjectAttended[], periodList: string[]) {
   return options;
 }
 
-export function getPeriodList(data: SubjectAttended[]) {
+export function getPeriodList(data: SubjectsTaken[]) {
   const uniqueList = [...new Set(data.map(c => c.period as string))];
 
   const sortedList = uniqueList.sort((a, b) => {
