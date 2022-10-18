@@ -28,12 +28,11 @@ export async function getRequisitionID(key: string): Promise<string> {
 
   if (!reqId) {
     if (key === 'DadosDisciplina' || key === 'HorariosTurmasDisciplina') {
-      const reqIds = await retry<ReturnType<typeof getClassInfoReqIDs>>(
-        getClassInfoReqIDs,
-      );
+      const reqIds = await retry(getClassInfoReqIDs);
       store.dispatch(apiConfigReducer.addDictionary(reqIds));
       return reqIds[key];
     }
+
     throw new Error('REQ_ID_NOT_FOUND');
   }
 

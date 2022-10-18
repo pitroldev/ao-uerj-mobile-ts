@@ -7,7 +7,7 @@ import {View} from './DummyMessage.styles';
 
 type Props = {
   text: string;
-  type: 'ERROR' | 'INFO' | 'EMPTY';
+  type: 'ERROR' | 'INFO' | 'EMPTY' | 'BLOCK';
   onPress?: any;
 };
 
@@ -18,6 +18,7 @@ const DummyMessage = ({text, type, onPress}: Props) => {
     ERROR: 'closecircleo',
     EMPTY: 'frowno',
     INFO: 'notification',
+    BLOCK: 'lock',
   };
 
   const isEnabled = typeof onPress === 'function';

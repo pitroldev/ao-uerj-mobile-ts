@@ -1,5 +1,6 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {RefreshControl, ListRenderItemInfo} from 'react-native';
+import Toast from 'react-native-toast-message';
 import {Picker} from '@react-native-picker/picker';
 import {FlatList} from 'react-native-gesture-handler';
 import {useNavigation} from '@react-navigation/native';
@@ -11,6 +12,8 @@ import {normalizeText} from '@utils/normalize';
 import parser from '@services/parser';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
+
+import * as apiConfigReducer from '@reducers/apiConfig';
 import * as reducer from '@features/UniversalSubjects/reducer';
 import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
 
@@ -22,6 +25,7 @@ import StyledPicker from '@atoms/Picker';
 import TextInput from '@atoms/TextInput';
 import SubjectBox from '@molecules/SubjectBox';
 import DummyMessage from '@molecules/DummyMessage';
+import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
 import {Container} from './UniversalSubjects.styles';
 
@@ -33,6 +37,7 @@ const UniversalSubjects = () => {
   );
 
   const {subjects, options} = useAppSelector(reducer.selectUniversalSubjects);
+  const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
 
   const {loading, fetch, error} = useApiFetch(() =>
     fetchUniversalSubjects(selectedOption),
@@ -62,7 +67,15 @@ const UniversalSubjects = () => {
   };
 
   const handleSubjectPress = (subject: UniversalSubject) => {
-    const code = parser.parseSubjectCode(subject.id);
+    if (isBlocked) {
+      Toast.show({
+        type: 'error',
+        text1: 'Aluno Online bloqueado',
+        text2: 'Tente novamente mais tarde.',
+      });
+      return;
+    }
+    const code = parser.parseSubjectCode(subject.id) as number;
     dispatch(subjectDetailReducer.appendData({code}));
     dispatch(subjectDetailReducer.select({code}));
     navigation.navigate('Pesquisa de Disciplinas');
@@ -116,6 +129,18 @@ const UniversalSubjects = () => {
 
   const currentSelectedOption = options.find(opt => opt.selected);
 
+  if (isBlocked) {
+    return (
+      <Container>
+        <DummyMessage
+          type="BLOCK"
+          text="Parece que o Aluno Online está temporariamente bloqueado. Tente novamente mais tarde."
+          onPress={fetch}
+        />
+      </Container>
+    );
+  }
+
   return (
     <Container>
       <StyledPicker
@@ -133,8 +158,15 @@ const UniversalSubjects = () => {
         placeholder="Pesquise pelo nome da disciplina"
         icon={<FontAwesome name="search" size={15} />}
       />
+      {isBlocked && showList && (
+        <SmallDummyMessage
+          type="BLOCK"
+          text="O Aluno Online está temporariamente bloqueado."
+          onPress={fetch}
+        />
+      )}
       {showSpinner && <Spinner size={40} />}
-      {!loading && error && (
+      {!loading && error && !isBlocked && (
         <DummyMessage
           type="ERROR"
           onPress={fetch}

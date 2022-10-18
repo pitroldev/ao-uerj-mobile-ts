@@ -12,6 +12,7 @@ import {fetchAttendedClassesSchedule} from '@features/AttendedClassesSchedule/co
 
 import * as gradesReducer from '@features/ClassGrades/reducer';
 import * as attendedReducer from '@features/AttendedClassesSchedule/reducer';
+import * as apiConfigReducer from '@reducers/apiConfig';
 
 import ClassScheduleBoard from '@features/AttendedClassesSchedule/ClassScheduleBoard';
 import GradeBoard from '@features/ClassGrades/GradeBoard';
@@ -21,6 +22,7 @@ import RIDBoard from '@features/PartialRID/RIDBoard';
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
 import DummyMessage from '@molecules/DummyMessage';
+import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
 import {MainContainer, ScrollContainer, Row, Column} from './Home.styles';
 
@@ -55,6 +57,7 @@ const HomePage = () => {
   } = useApiFetch<PartialRidData>(fetchPartialRID);
 
   const {periodo, name} = useAppSelector(infoReducer.selectUserInfo);
+  const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
   const {data: attendedClassesData} = useAppSelector(
     attendedReducer.selectAttendedClasses,
   );
@@ -64,7 +67,7 @@ const HomePage = () => {
 
   const currentSchedule = attendedClassesData?.[periodo as string];
 
-  const parsedName = parser.parseName(name, false);
+  const parsedName = parser.parseName(name as string, false);
 
   const isLoading = loadingSchedule || loadingGrades || loadingRID;
 
@@ -111,6 +114,28 @@ const HomePage = () => {
   const errorsCallback = async () =>
     await Promise.all(errors.map(e => e.callback()));
 
+  if (isBlocked && !hasSomethingAvailable) {
+    return (
+      <MainContainer>
+        <Row>
+          <Column>
+            <Text weight="300" size="MD">
+              Olá,
+            </Text>
+            <Text weight="bold" size="LG">
+              {parsedName}
+            </Text>
+          </Column>
+        </Row>
+        <DummyMessage
+          type="BLOCK"
+          text="Parece que o Aluno Online está temporariamente bloqueado. Tente novamente mais tarde."
+          onPress={errorsCallback}
+        />
+      </MainContainer>
+    );
+  }
+
   return (
     <MainContainer>
       <Row>
@@ -124,6 +149,13 @@ const HomePage = () => {
         </Column>
         {isLoading && <Spinner loading size="large" />}
       </Row>
+      {isBlocked && (
+        <SmallDummyMessage
+          type="BLOCK"
+          text="O Aluno Online está temporariamente bloqueado."
+          onPress={errorsCallback}
+        />
+      )}
       {!hasSomethingAvailable && !isLoading && (
         <DummyMessage
           type="EMPTY"

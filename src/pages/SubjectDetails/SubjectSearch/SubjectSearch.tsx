@@ -5,6 +5,8 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Toast from 'react-native-toast-message';
 
 import {useAppSelector} from '@root/store';
+
+import * as apiConfigReducer from '@reducers/apiConfig';
 import * as reducer from '@features/SubjectClassesSchedule/reducer';
 
 import Text from '@atoms/Text';
@@ -12,6 +14,7 @@ import Button from '@atoms/Button';
 import TextInput from '@atoms/TextInput';
 import SubjectBox from '@molecules/SubjectBox';
 import DummyMessage from '@molecules/DummyMessage';
+import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
 import {Container, InlineRow} from './SubjectSearch.styles';
 
@@ -23,6 +26,7 @@ const SubjectSearch = ({searchSubject}: Props) => {
   const [subjectCode, setSubjectCode] = useState('');
 
   const {data} = useAppSelector(reducer.selectSubjectClassesSearch);
+  const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
 
   const ref = useRef<FlatList>(null);
 
@@ -84,6 +88,13 @@ const SubjectSearch = ({searchSubject}: Props) => {
         size="LG">
         Histórico
       </Text>
+      {isBlocked && (
+        <SmallDummyMessage
+          type="BLOCK"
+          text="O Aluno Online está temporariamente bloqueado."
+          onPress={fetch}
+        />
+      )}
       {isEmpty && (
         <DummyMessage
           type="EMPTY"
