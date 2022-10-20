@@ -3,10 +3,10 @@ import {TouchableOpacity} from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
 import {window} from '@utils/constants/info';
 
-import {TIME_VALUES} from '@root/utils/constants/time';
-import {AttendedClassesSchedule} from '@root/features/AttendedClassesSchedule/types';
+import {TIME_VALUES} from '@utils/constants/time';
+import {AttendedClassesSchedule} from '@features/AttendedClassesSchedule/types';
 
-import Text from '@root/components/atoms/Text';
+import Text from '@atoms/Text';
 
 import {
   TimeInfoColumn,
@@ -21,12 +21,18 @@ type Props = {
   data: AttendedClassesSchedule[];
   onSubjectPress: (item?: AttendedClassesSchedule) => void;
 };
+
 const ClassScheduleBoard = ({data, onSubjectPress}: Props) => {
   if (!data || data.length === 0) {
     return null;
   }
 
-  const weekDays = [...new Set(data.map(c => c.dayAlias))];
+  const weekDays = [] as {number: number; name: string}[];
+  data.forEach(
+    c =>
+      !weekDays.some(w => w.number === c.dayNumber) &&
+      weekDays.push({number: c.dayNumber, name: c.dayAlias}),
+  );
 
   const getBoxColor = (start: number) => {
     if (start < 740) {
@@ -103,24 +109,11 @@ const ClassScheduleBoard = ({data, onSubjectPress}: Props) => {
     );
   };
 
-  function findClosestDayIndex(day: number): number {
-    if (day > 6) {
-      return 0;
-    }
-
-    const dayIndex = data.findIndex(c => c.dayNumber === day);
-    if (dayIndex === -1) {
-      return findClosestDayIndex(day + 1);
-    }
-
-    return dayIndex;
-  }
-
   const currentDay = new Date().getDay();
-  const defaultIndex = findClosestDayIndex(currentDay);
+  const defaultIndex = weekDays.findIndex(w => w.number === currentDay) ?? 0;
 
   const qttyItemsPerWeekDay = weekDays.map(
-    day => data.filter(c => c.dayAlias === day).length,
+    w => data.filter(c => c.dayAlias === w.name).length,
   );
   const maxQttyOfItemsInAWeekDay = Math.max(...qttyItemsPerWeekDay);
   const maxPossibleHeight =
@@ -133,7 +126,7 @@ const ClassScheduleBoard = ({data, onSubjectPress}: Props) => {
         defaultIndex={defaultIndex}
         width={window.width}
         height={maxPossibleHeight}
-        data={weekDays}
+        data={weekDays.map(w => w.name)}
         scrollAnimationDuration={500}
         renderItem={({item}) => renderBoard(item)}
       />
