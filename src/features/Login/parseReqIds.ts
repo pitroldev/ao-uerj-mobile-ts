@@ -1,3 +1,6 @@
+import store from '@root/store';
+import * as apiReducer from '@reducers/apiConfig';
+
 const cheerio = require('react-native-cheerio');
 
 type Dict = {
@@ -45,6 +48,8 @@ export function getReqIds(data: string): Dict {
 
   if (failed > 20) {
     throw new Error('POSSIBLY_BLOCKED');
+  } else {
+    store.dispatch(apiReducer.setIsBlocked(false));
   }
   return dictionary;
 }
