@@ -26,6 +26,7 @@ let isRefreshing = false;
 
 export async function refreshAuth(): Promise<void> {
   try {
+    console.log(isRefreshing, refresh)
     if (isRefreshing) {
       await refresh;
       return;

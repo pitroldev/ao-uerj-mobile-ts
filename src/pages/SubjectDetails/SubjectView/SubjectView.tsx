@@ -21,7 +21,7 @@ import {Container, TransparentButton, InfoBox} from './SubjectView.styles';
 import renderClassBox from './renderClassBox';
 
 type Props = {
-  searchSubject: (s: string | number) => Promise<void>;
+  searchSubject: (s: string | number) => void;
   code: number;
   loading: boolean;
   classes?: SubjectClassesSchedule[];
@@ -49,7 +49,7 @@ const SubjectView = ({
     if (hasData && sameCode) {
       return;
     }
-    await searchSubject(subjectCode);
+    searchSubject(subjectCode);
   };
 
   useEffect(() => {

@@ -58,7 +58,7 @@ const SubjectDetailPage = () => {
         text1: 'Aluno Online bloqueado',
         text2: 'Tente novamente mais tarde.',
       });
-      return -1;
+      return
     }
 
     const code = parser.parseSubjectCode(subjectCode as string);
@@ -66,17 +66,16 @@ const SubjectDetailPage = () => {
       throw new Error('INVALID_SUBJECT_CODE');
     }
 
-    return code;
+    searchSubject(code)
   };
 
   const searchSubject = async (
-    subjectCode: string | number,
+    code: number,
     skipCache = false,
   ) => {
     try {
       setLoading(true);
       setError(null);
-      const code = handleSubjectCode(subjectCode);
 
       const cached = data.find(d => d.code === code);
       if (!skipCache && cached && cached.periodo === periodo) {
@@ -107,7 +106,7 @@ const SubjectDetailPage = () => {
   if (selected) {
     return (
       <SubjectView
-        searchSubject={searchSubject}
+        searchSubject={handleSubjectCode}
         {...selected}
         error={error}
         loading={loading}
