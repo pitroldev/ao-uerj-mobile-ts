@@ -4,13 +4,6 @@ const usePrivateApi = () => {
   const api = axios.create({baseURL: 'https://pitrol.dev/aouerj/'});
 
   return {
-    reportError: async data => {
-      try {
-        await api.post('/reportError', data);
-      } catch (err) {
-        throw new Error('REPORT_ERROR');
-      }
-    },
 
     getDocentes: async () => {
       try {
