@@ -109,8 +109,13 @@ const ClassScheduleBoard = ({data, onSubjectPress}: Props) => {
     );
   };
 
-  const currentDay = new Date().getDay();
-  const defaultIndex = weekDays.findIndex(w => w.number === currentDay) ?? 0;
+  const currentDay =  new Date().getDay();
+
+  const [closestWeekday] = weekDays
+    .map(({number}) => ({diff: Math.abs(number - currentDay), number}))
+    .sort((a, b) =>  a.diff - b.diff)
+
+  const defaultIndex = weekDays.findIndex(w => w.number === closestWeekday.number) ?? 0
 
   const qttyItemsPerWeekDay = weekDays.map(
     w => data.filter(c => c.dayAlias === w.name).length,

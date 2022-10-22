@@ -1,19 +1,18 @@
 import React from 'react';
 import Modal from 'react-native-modal';
+import {TouchableOpacity} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
-import {AttendedClassesSchedule} from '@root/features/AttendedClassesSchedule/types';
-
 import parser from '@services/parser';
-
 import {useAppDispatch} from '@root/store';
-import * as subjectDetailReducer from '@root/features/SubjectClassesSchedule/reducer';
+
+import {AttendedClassesSchedule} from '@features/AttendedClassesSchedule/types';
+import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
 
 import Text from '@atoms/Text';
 import SubjectBox from '@molecules/SubjectBox';
 
 import {View} from './AttendedClassesBoard.styles';
-import {TouchableOpacity} from 'react-native';
 
 type Props = {
   isVisible: boolean;
@@ -38,7 +37,7 @@ const AttendedClassesBoard = ({isVisible, setVisibility, data}: Props) => {
   }, [] as AttendedClassesSchedule['class'][]);
 
   function handleOnPress(item: AttendedClassesSchedule['class']) {
-    const code = parser.parseSubjectCode(item.id);
+    const code = parser.parseSubjectCode(item.id) as number;
 
     setVisibility(false);
     dispatch(subjectDetailReducer.appendData({code}));
