@@ -1,5 +1,7 @@
 import React, {useState} from 'react';
-import {Linking} from 'react-native';
+import {Linking, TouchableOpacity} from 'react-native';
+
+import ErrorReportModal from '@features/ErrorReport/ErrorReportModal';
 
 import RoundedButton from '@atoms/RoundedButton';
 import Text from '@atoms/Text';
@@ -32,6 +34,7 @@ const AboutPage = () => {
 
   return (
     <MainContainer>
+      <ErrorReportModal visible={isErrorModalOpen} setVisibility={setIsErrorModalOpen}/>
       <AOLogoContainer>
         <AOUerjLogo />
       </AOLogoContainer>
@@ -43,7 +46,16 @@ const AboutPage = () => {
         marginBottom="12px">
         Versão {version}
       </Text>
-
+      <TouchableOpacity onPress={() => setIsErrorModalOpen(true)}>
+        <Text
+          weight="bold"
+          size="XS"
+          alignSelf="center"
+          textAlign="center"
+          marginBottom="12px">
+          Reportar Problema
+        </Text>
+      </TouchableOpacity>
       <Text weight="300" size="XL" alignSelf="center" textAlign="center">
         Desenvolvido por Petro Cardoso
       </Text>
