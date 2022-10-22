@@ -1,5 +1,5 @@
 import React from 'react';
-import {TouchableOpacity} from 'react-native-gesture-handler';
+import {TouchableOpacity} from 'react-native'
 import styled, {DefaultTheme} from 'styled-components/native';
 
 type StyleProps = {
@@ -22,7 +22,6 @@ export const ButtonContainer = styled(TouchableOpacity)<ButtonProps>`
   align-items: center;
   background-color: ${({variant, theme}) => theme.COLORS[variant ?? 'PRIMARY']};
 
-  margin: 5px;
   border-radius: ${({size}) => (size === 'small' ? '5px' : '8px')};
   padding: ${({size}) => (size === 'small' ? '5px' : '8px')};
   ${({fullWidth, width, size}) => {
@@ -55,7 +54,7 @@ export const ButtonText = styled.Text<StyleProps>`
   font-family: ${({theme}) => theme.FONTS.REGULAR};
   font-size: ${({size, theme}) =>
     size === 'small' ? theme.FONT_SIZE.XS : theme.FONT_SIZE.MD};
-  font-weight: ${({variant}) => (variant === 'secondary' ? 'normal' : 'bold')};
+  font-weight: ${({variant}) => (variant === 'SECONDARY' ? 'normal' : 'bold')};
   text-align: center;
   ${({disabled, theme}) =>
     disabled &&
