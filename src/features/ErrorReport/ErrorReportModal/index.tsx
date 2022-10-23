@@ -1,1 +1,1 @@
-export {default} from './ErrorReportModal'
+export {default} from './ErrorReportModal';

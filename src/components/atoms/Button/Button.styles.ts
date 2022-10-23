@@ -1,5 +1,5 @@
 import React from 'react';
-import {TouchableOpacity} from 'react-native'
+import {TouchableOpacity} from 'react-native';
 import styled, {DefaultTheme} from 'styled-components/native';
 
 type StyleProps = {

@@ -34,7 +34,10 @@ const AboutPage = () => {
 
   return (
     <MainContainer>
-      <ErrorReportModal visible={isErrorModalOpen} setVisibility={setIsErrorModalOpen}/>
+      <ErrorReportModal
+        visible={isErrorModalOpen}
+        setVisibility={setIsErrorModalOpen}
+      />
       <AOLogoContainer>
         <AOUerjLogo />
       </AOLogoContainer>
