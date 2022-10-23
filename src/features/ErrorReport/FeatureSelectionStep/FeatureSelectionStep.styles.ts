@@ -1,4 +1,4 @@
-import styled from "styled-components/native"
+import styled from 'styled-components/native';
 import Button from '@atoms/Button';
 
 export const Container = styled.View`
@@ -10,4 +10,4 @@ export const Container = styled.View`
 
 export const NextBtn = styled(Button)`
   margin-top: 12px;
-`
+`;

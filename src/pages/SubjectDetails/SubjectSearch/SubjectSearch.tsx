@@ -76,7 +76,11 @@ const SubjectSearch = ({searchSubject}: Props) => {
           placeholder="Exemplo: IME02-01388 ou 01388"
           icon={<FontAwesome name="search" size={15} />}
         />
-        <Button width={48} height={48} onPress={handleSearch} disabled={!subjectCode}>
+        <Button
+          width={48}
+          height={48}
+          onPress={handleSearch}
+          disabled={!subjectCode}>
           <FontAwesome name="send" size={22} />
         </Button>
       </InlineRow>

@@ -1,18 +1,18 @@
-import { AxiosError } from 'axios';
+import {AxiosError} from 'axios';
 
-import { _fetchRawAttendedClassesScheduleData } from "@features/AttendedClassesSchedule/core";
-import { _fetchRawClassGradesData } from "@features/ClassGrades/core";
-import { _fetchRawCurriculumSubjectsData } from "@features/CurriculumSubjects/core";
-import { _fetchRawPartialRIDData } from "@features/PartialRID/core";
-import { _fetchRawSubjectClassesScheduleData } from "@features/SubjectClassesSchedule/core";
-import { _fetchRawSubjectInfoData } from "@features/SubjectInfo/core";
-import { _fetchRawSubjectsTakenData } from "@features/SubjectsTaken/core";
-import { _fetchRawSubjectsToTakeData } from "@features/SubjectsToTake/core";
-import { _fetchRawUniversalSubjectsData } from "@features/UniversalSubjects/core";
+import {_fetchRawAttendedClassesScheduleData} from '@features/AttendedClassesSchedule/core';
+import {_fetchRawClassGradesData} from '@features/ClassGrades/core';
+import {_fetchRawCurriculumSubjectsData} from '@features/CurriculumSubjects/core';
+import {_fetchRawPartialRIDData} from '@features/PartialRID/core';
+import {_fetchRawSubjectClassesScheduleData} from '@features/SubjectClassesSchedule/core';
+import {_fetchRawSubjectInfoData} from '@features/SubjectInfo/core';
+import {_fetchRawSubjectsTakenData} from '@features/SubjectsTaken/core';
+import {_fetchRawSubjectsToTakeData} from '@features/SubjectsToTake/core';
+import {_fetchRawUniversalSubjectsData} from '@features/UniversalSubjects/core';
 
 import api from '@services/PrivateApi';
 
-import { ErrorReportBody, ErrorFeature } from './types';
+import {ErrorReportBody, ErrorFeature} from './types';
 
 export const PRIVATE_ROUTES = [
   {
@@ -54,17 +54,19 @@ export const PRIVATE_ROUTES = [
   {
     name: 'Informações de uma disciplina específica',
     callbacks: [_fetchRawSubjectInfoData, _fetchRawSubjectClassesScheduleData],
-  }
-]
+  },
+];
 
-export async function executeErrorCallbacks(callbacks: ErrorFeature['callbacks']) {
+export async function executeErrorCallbacks(
+  callbacks: ErrorFeature['callbacks'],
+) {
   return await Promise.all(
-    callbacks.map(async fn =>
-      await fn().catch((err: AxiosError) => err.toString())
-      )
-    )
+    callbacks.map(
+      async fn => await fn().catch((err: AxiosError) => err.toString()),
+    ),
+  );
 }
 
 export async function sendErrorReport(body: ErrorReportBody) {
-    return await api.post('/reportError', body);
+  return await api.post('/reportError', body);
 }
