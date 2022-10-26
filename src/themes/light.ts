@@ -45,8 +45,8 @@ export const FONTS = {
 export const FONT_SIZE = {
   XXS: '10px',
   XS: '12px',
-  SM: '14px',
-  MD: '16px',
+  SM: '13px',
+  MD: '15px',
   LG: '18px',
   XL: '20px',
   XXL: '24px',

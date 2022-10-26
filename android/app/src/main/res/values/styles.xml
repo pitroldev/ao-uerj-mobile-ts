@@ -3,10 +3,21 @@
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
         <!-- Customize your theme here. -->
+        <item name="android:forceDarkAllowed">false</item>
         <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
         <item name="android:windowBackground">@color/primary</item>
         <item name="android:statusBarColor">@color/primary</item>
         <item name="android:textColor">@color/text_primary</item>
+        <item name="android:spinnerItemStyle">@style/SpinnerItem</item>
+        <item name="android:spinnerDropDownItemStyle">@style/SpinnerDropDownItem</item>
     </style>
 
+    <style name="SpinnerItem" parent="Theme.AppCompat.DayNight.NoActionBar">
+      <item name="android:textAlignment">gravity</item>
+      <item name="android:gravity">start</item>
+    </style>
+    <style name="SpinnerDropDownItem" parent="Theme.AppCompat.DayNight.NoActionBar">
+      <item name="android:textColor">#fff</item>
+      <item name="android:background">#333</item>
+    </style>
 </resources>

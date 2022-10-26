@@ -80,6 +80,7 @@ const TeacherView = (props: Docente) => {
             topRightInfo={`Turma ${c.classNumber}`}
             bottomLeftInfo={c.location ?? null}
             onPress={() => handleSubjectPress(c)}
+            boldOptions={{name: true}}
           />
         ))}
       </ScrollView>

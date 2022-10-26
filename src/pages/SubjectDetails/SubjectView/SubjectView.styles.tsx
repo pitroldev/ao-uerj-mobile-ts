@@ -47,15 +47,14 @@ export const Row = styled.View`
 export const VacanciesRow = styled.View`
   display: flex;
   flex-direction: row;
-
+  flex: 1;
   justify-content: flex-end;
 `;
 
 export const Column = styled.View`
   display: flex;
   flex-direction: column;
-
-  width: 50%;
+  flex: 1;
 `;
 
 export const ClassBox = styled(Box).attrs({size: 'small'})`
@@ -63,7 +62,7 @@ export const ClassBox = styled(Box).attrs({size: 'small'})`
 `;
 
 export const VacancieBox = styled(Box).attrs({size: 'small'})`
-  margin: 5px;
+  margin: 0px 4px;
   align-items: center;
   justify-content: center;
 `;
