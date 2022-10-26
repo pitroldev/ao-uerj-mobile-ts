@@ -16,6 +16,7 @@ import Home from '@root/pages/Home';
 import Login from '@root/pages/Login';
 import MessageBoard from '@root/pages/MessageBoard';
 import About from '@root/pages/About';
+import TeacherSearch from '@root/pages/TeacherSearch';
 // import Playground from '@root/pages/Playground';
 
 export type RootDrawerParamList = {
@@ -30,6 +31,7 @@ export type RootDrawerParamList = {
   'Disciplinas Universais': undefined;
   'Horário das Turmas': undefined;
   'Pesquisa de Disciplinas': undefined;
+  'Pesquisa de Professores': undefined;
   Sobre: undefined;
 };
 
@@ -78,6 +80,10 @@ const MainRoutes = () => {
           <Drawer.Screen
             name="Pesquisa de Disciplinas"
             component={SubjectDetails}
+          />
+          <Drawer.Screen
+            name="Pesquisa de Professores"
+            component={TeacherSearch}
           />
           <Drawer.Screen name="Sobre" component={About} />
         </>
