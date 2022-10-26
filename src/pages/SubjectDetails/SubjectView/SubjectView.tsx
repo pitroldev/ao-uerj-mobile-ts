@@ -111,8 +111,6 @@ const SubjectView = ({
                     onPress={() => getSubject(req.id)}
                     boldOptions={{
                       topLeft: true,
-                      topRight: true,
-                      name: true,
                     }}
                   />
                 );

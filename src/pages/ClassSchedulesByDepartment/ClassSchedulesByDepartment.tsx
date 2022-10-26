@@ -1,7 +1,6 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {RefreshControl, ListRenderItemInfo} from 'react-native';
 import Toast from 'react-native-toast-message';
-import {Picker} from '@react-native-picker/picker';
 import {FlatList} from 'react-native-gesture-handler';
 import {useNavigation} from '@react-navigation/native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
@@ -28,6 +27,7 @@ import DummyMessage from '@molecules/DummyMessage';
 import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
 import {Container} from './ClassSchedulesByDepartment.styles';
+import {Picker} from '@react-native-picker/picker';
 
 const ClassesScheduleByUnit = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -136,9 +136,9 @@ const ClassesScheduleByUnit = () => {
         onValueChange={s => handleOptionChange(s as string)}
         enabled={!loading}
         loading={loading}>
-        {options.map(({value, text}) => {
-          return <Picker.Item value={value} key={value} label={text} />;
-        })}
+        {options.map(({value, text}) => (
+          <Picker.Item value={value} key={value} label={text} />
+        ))}
       </StyledPicker>
       <TextInput
         value={searchQuery}

@@ -55,7 +55,7 @@ export default function renderClassBox(c: SubjectClassesSchedule) {
             color={
               getVacancieHealth(
                 c.vacancies?.uerj.requestedTaken as number,
-                c.vacancies?.uerj.available as number,
+                c.vacancies?.uerj.requestedAvailable as number,
               ).status
             }>
             <Text size="XS" weight="bold" alignSelf="center">

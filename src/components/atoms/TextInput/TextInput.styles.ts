@@ -16,10 +16,13 @@ export const InputContainer = styled.View`
   border-top-right-radius: 0;
 `;
 
-export const Input = styled.TextInput`
+export const Input = styled.TextInput.attrs(({theme}) => ({
+  placeholderTextColor: theme.COLORS.BACKGROUND_400,
+}))`
   flex: 1;
   margin-left: 5px;
   font-family: ${({theme}) => theme.FONTS.REGULAR};
+  color: ${({theme}) => theme.COLORS.TEXT_PRIMARY};
 `;
 
 export const IconContainer = styled.View`

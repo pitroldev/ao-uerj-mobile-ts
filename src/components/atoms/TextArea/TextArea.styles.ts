@@ -25,7 +25,9 @@ export const Container = styled.ScrollView`
   elevation: 4;
 `;
 
-export const TextArea = styled.TextInput<TextAreaProps>`
+export const TextArea = styled.TextInput.attrs(({theme}) => ({
+  placeholderTextColor: theme.COLORS.BACKGROUND_400,
+}))<TextAreaProps>`
   width: 100%;
 
   font-size: ${({size, theme}) =>
