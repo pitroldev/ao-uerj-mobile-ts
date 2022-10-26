@@ -25,7 +25,6 @@ const Header = ({navigationState}: Props) => {
     setRouteName(currentRoute ?? periodo ?? '');
   }, [navigationState]);
 
-  console.log({password, currentRoute});
   const isSignedIn =
     Boolean(password) && currentRoute !== 'Login' && Boolean(currentRoute);
 

@@ -1,0 +1,10 @@
+{
+  "output": "CHANGELOG.md",
+  "template": "changelog-template.hbs",
+  "unreleased": true,
+  "commitLimit": false,
+  "releaseSummary": true,
+  "hideEmptyReleases": false,
+  "ignoreCommit": "Merge pull request #",
+  "handlebarsSetup": "setup.js"
+}
