@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "AOUerjMobileTs.app"
-               BlueprintName = "AOUerjMobileTs"
-               ReferencedContainer = "container:AOUerjMobileTs.xcodeproj">
+               BuildableName = "aouerjmobile.app"
+               BlueprintName = "aouerjmobile"
+               ReferencedContainer = "container:aouerjmobile.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "AOUerjMobileTsTests.xctest"
-               BlueprintName = "AOUerjMobileTsTests"
-               ReferencedContainer = "container:AOUerjMobileTs.xcodeproj">
+               BuildableName = "aouerjmobileTests.xctest"
+               BlueprintName = "aouerjmobileTests"
+               ReferencedContainer = "container:aouerjmobile.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "AOUerjMobileTs.app"
-            BlueprintName = "AOUerjMobileTs"
-            ReferencedContainer = "container:AOUerjMobileTs.xcodeproj">
+            BuildableName = "aouerjmobile.app"
+            BlueprintName = "aouerjmobile"
+            ReferencedContainer = "container:aouerjmobile.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "AOUerjMobileTs.app"
-            BlueprintName = "AOUerjMobileTs"
-            ReferencedContainer = "container:AOUerjMobileTs.xcodeproj">
+            BuildableName = "aouerjmobile.app"
+            BlueprintName = "aouerjmobile"
+            ReferencedContainer = "container:aouerjmobile.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
