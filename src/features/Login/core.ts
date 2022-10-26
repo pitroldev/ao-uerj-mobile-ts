@@ -44,6 +44,10 @@ export async function handleLogin(matricula: string, senha: string) {
   const info = parseLoginInfo(homePageData);
   const new_cookies = await getCookies();
 
+  if (info.fail_reason) {
+    return info;
+  }
+
   store.dispatch(
     userInfoReducer.setState({
       name: info.nome,

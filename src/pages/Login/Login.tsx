@@ -37,6 +37,7 @@ const LoginPage = () => {
       }
 
       setError(fail_reason ?? '');
+      setLoading(false);
     } catch (err) {
       setError('Erro desconecido: ' + (err as unknown as Error)?.message);
       setLoading(false);
