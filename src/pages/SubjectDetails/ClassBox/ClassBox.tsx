@@ -1,10 +1,6 @@
 import React from 'react';
 
 import {getVacancieHealth} from '@utils/health/vacancies';
-import {getAliasPeriod} from '@utils/health/time';
-import {TIME_DICTIONARY} from '@utils/constants/time';
-
-import {Turno, WeekDay} from '@root/types/dateStuff';
 
 import {
   Horario,
@@ -13,24 +9,25 @@ import {
 
 import Text from '@atoms/Text';
 
+import ScheduleBox from '../ScheduleBox';
+
 import {
   InlineRow,
-  ClassBox,
+  Container,
   VacancieBox,
   VacanciesRow,
-  ScheduleBox,
   Column,
   Row,
-} from './SubjectView.styles';
+} from './ClassBox.styles';
 
-export default function renderClassBox(c: SubjectClassesSchedule) {
+const ClassBox = (c: SubjectClassesSchedule) => {
   const hasMultipleTeachers = (c?.teachers as string[])?.length > 1;
 
   const teachers: string[] = c.teachers ?? [];
   const schedule: Horario[] = c.schedule ?? [];
 
   return (
-    <ClassBox key={c.classNumber}>
+    <Container key={c.classNumber}>
       <InlineRow>
         <Text size="XS" weight="bold" marginRight="auto">
           Turma {c.classNumber}
@@ -85,32 +82,12 @@ export default function renderClassBox(c: SubjectClassesSchedule) {
       </Row>
 
       <InlineRow>
-        {schedule.map(obj => {
-          const day = Object.keys(obj)[0] as WeekDay;
-          const turnos = obj[day] ?? ([[]] as Turno[][]);
-          const turno = turnos[0] ?? ([] as Turno[]);
-          const startAlias = turno[0] ?? '??';
-          const endAlias = turno[turno.length - 1] ?? '??';
-
-          const startTime = TIME_DICTIONARY[startAlias][0];
-          const endTime = TIME_DICTIONARY[startAlias][1];
-
-          const period = getAliasPeriod(startAlias);
-          return (
-            <ScheduleBox key={day} color={period}>
-              <Text size="XS" weight="bold" alignSelf="center">
-                {day}
-              </Text>
-              <Text size="XS" italic weight="400" alignSelf="center">
-                {startAlias + ' - ' + endAlias}
-              </Text>
-              <Text size="XS" weight="500" alignSelf="center">
-                {startTime + ' - ' + endTime}
-              </Text>
-            </ScheduleBox>
-          );
-        })}
+        {schedule.map((props, index) => (
+          <ScheduleBox {...props} key={index.toString()} />
+        ))}
       </InlineRow>
-    </ClassBox>
+    </Container>
   );
-}
+};
+
+export default ClassBox;
