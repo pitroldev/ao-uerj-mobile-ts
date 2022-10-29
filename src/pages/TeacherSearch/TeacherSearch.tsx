@@ -89,7 +89,7 @@ const TeacherSearch = () => {
         icon={<FontAwesome name="search" size={15} />}
       />
       {loading && <Spinner loading size="large" />}
-      {!loading && isEmpty && (
+      {!loading && !error && isEmpty && (
         <SmallDummyMessage text="Nenhum professor encontrado" type="EMPTY" />
       )}
       <FlatList

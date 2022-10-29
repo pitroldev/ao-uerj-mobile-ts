@@ -148,7 +148,7 @@ const SubjectsAttended = () => {
           text="Ops, ocorreu um erro ao buscar as disciplinas. Toque aqui para tentar novamente."
         />
       )}
-      {!loading && isEmpty && (
+      {!loading && !error && isEmpty && (
         <DummyMessage
           type="EMPTY"
           text="Parece que não há disciplinas cursadas no período selecionado."
