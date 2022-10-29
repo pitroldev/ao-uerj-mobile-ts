@@ -156,7 +156,7 @@ const HomePage = () => {
           onPress={errorsCallback}
         />
       )}
-      {!hasSomethingAvailable && !isLoading && (
+      {!hasSomethingAvailable && !hasAnyError && !isLoading && (
         <DummyMessage
           type="EMPTY"
           text="Parece que o período não se iniciou ainda."

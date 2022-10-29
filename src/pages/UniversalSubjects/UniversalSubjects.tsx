@@ -117,7 +117,7 @@ const UniversalSubjects = () => {
 
   const filteredSubjects = subjects.filter(({type, name}) => {
     const hasSubjectType = !subjectType || type === subjectType;
-    const hasSearchQuery =
+    const hasSearchQuery: boolean =
       !searchQuery || normalizeText(name).includes(normalizeText(searchQuery));
 
     return hasSubjectType && hasSearchQuery;
@@ -173,7 +173,7 @@ const UniversalSubjects = () => {
           text="Ops, ocorreu um erro ao buscar as disciplinas. Toque aqui para tentar novamente."
         />
       )}
-      {!loading && isEmpty && (
+      {!loading && !error && isEmpty && (
         <DummyMessage
           type="EMPTY"
           text="Parece que não há disciplinas no departamento selecionado."
