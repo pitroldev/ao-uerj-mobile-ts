@@ -1,6 +1,6 @@
 
 
-## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.0...HEAD)
+## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.1...HEAD)
 
 ### New Features
 
@@ -11,6 +11,24 @@
 ### Performance
 
 ### Other Changes
+
+
+## [v1.0.1](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.0...v1.0.1)
+
+### New Features
+
+### Fixes
+
+- :lipstick: fix: Correção de estilos e horários não sendo mostrados de forma correta na visualização de disciplinas [`b531e72`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/b531e722b6bb42c599d7edb3d3b12105eb7870ea)
+- :adhesive_bandage: fix: Mensagem de EMPTY sendo mostrada junto a mensagem de ERROR [`b26476f`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/b26476f9429750ccb2dd308a1b0fcfc1eb5bf9a3)
+
+### Styles
+
+### Performance
+
+### Other Changes
+
+- :children_crossing: chore: Fixando orientação em Portrait [`c3bd200`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/c3bd200a8bbef70ebdae82e6fa7df8880cd5a566)
 
 
 ## [v1.0.0]()
