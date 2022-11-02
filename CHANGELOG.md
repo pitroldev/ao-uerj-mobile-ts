@@ -1,10 +1,25 @@
 
 
-## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.1...HEAD)
+## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.2...HEAD)
 
 ### New Features
 
 ### Fixes
+
+### Styles
+
+### Performance
+
+### Other Changes
+
+
+## [v1.0.2](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.1...v1.0.2)
+
+### New Features
+
+### Fixes
+
+- :bug: fix: react-native-screens crash [`be8269c`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/be8269c9555661bd066fdae9b3644d7c156bb0e6)
 
 ### Styles
 
