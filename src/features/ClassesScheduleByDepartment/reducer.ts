@@ -1,8 +1,7 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
 
 import {AppState} from '@root/store';
-import {DepartmentOptions} from '@root/types/department';
-import {SubjectByUnit} from '@root/types/subjectByUnit';
+import {DepartmentOptions, SubjectByUnit} from './types';
 
 type State = {
   subjects: SubjectByUnit[];

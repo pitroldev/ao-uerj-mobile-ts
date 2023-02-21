@@ -3,24 +3,24 @@ import React, {useState} from 'react';
 import {Picker} from '@react-native-picker/picker';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
+import {refreshAuth} from '@services/UerjApi';
+import {parseSubjectCode} from '@services/parser/minorParser';
+import {
+  parseClassToGeneratorFormat,
+  parseSubjectToGeneratorFormat,
+} from '@utils/converter';
+
+import {fetchSubjectsTaken} from '@features/SubjectsTaken/core';
+import {getSubjectInfo} from '@features/SubjectInfo/core';
+import {getSubjectClassesSchedule} from '@features/SubjectClassesSchedule/core';
+import {fetchSubjectsToTake} from '@features/SubjectsToTake/core';
+
+import Text from '@atoms/Text';
 import StyledButton from '@atoms/Button';
 import StyledPicker from '@atoms/Picker';
 import TextInputWithIcon from '@atoms/TextInput';
 import SubjectBox from '@molecules/SubjectBox';
-import {parseSubjectCode} from '../services/parser/minorParser';
-import {
-  parseClassToGeneratorFormat,
-  parseSubjectToGeneratorFormat,
-} from '../utils/converter';
-import Text from '../components/atoms/Text';
 import {MainContainer as ScrollView} from './Home/Home.styles';
-
-import {fetchSubjectsTaken} from '@root/features/SubjectsTaken/core';
-import {getSubjectInfo} from '@root/features/SubjectInfo/core';
-import {getSubjectClassesSchedule} from '@root/features/SubjectClassesSchedule/core';
-import {fetchSubjectsToTake} from '@root/features/SubjectsToTake/core';
-import {refreshAuth} from '@services/UerjApi';
-import {SubjectToTake} from '@features/SubjectsToTake/types';
 
 const Playground = () => {
   const [loading, setLoading] = useState(false);
@@ -34,10 +34,10 @@ const Playground = () => {
       const classes: any[] = [];
 
       console.log('Extraindo a cursar');
-      const data = (await fetchSubjectsToTake(false)) as SubjectToTake[];
+      const data = await fetchSubjectsToTake();
 
       console.log('Extraindo disciplinas cursadas');
-      const attendedSubjects = await fetchSubjectsTaken(false);
+      const attendedSubjects = await fetchSubjectsTaken();
       let counter = 0;
 
       for await (const s of data) {

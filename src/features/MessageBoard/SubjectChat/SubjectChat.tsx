@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import {useTheme} from 'styled-components';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import {useQuery, useMutation} from 'react-query';
 
 import {useAppSelector} from '@root/store';
 import * as infoReducer from '@reducers/userInfo';
@@ -10,8 +11,6 @@ import {fetchMessages, postMessage} from '@features/MessageBoard/core';
 import {ChatMessage} from '@features/MessageBoard/types';
 import ChatBubble from '@features/MessageBoard/ChatBubble';
 import {AttendedSubjectInfo} from '@features/AttendedClassesSchedule/types';
-
-import useApiFetch from '@hooks/useApiFetch';
 
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
@@ -23,45 +22,51 @@ import {Row, InputRow, ScrollView} from './SubjectChat.styles';
 
 const SubjectChat = (subject: AttendedSubjectInfo) => {
   const [text, setText] = useState('');
-  const [sending, setSending] = useState(false);
 
   const {name, periodo} = useAppSelector(infoReducer.selectUserInfo);
 
   const {COLORS} = useTheme();
 
-  const {data, error, loading, setData} = useApiFetch<ChatMessage[]>(
-    async () => await fetchMessages(subject.id, subject.class),
-    {initialData: []},
-  );
+  const {
+    data,
+    error,
+    isFetching: loading,
+    refetch,
+  } = useQuery({
+    queryKey: ['private-class-messages', periodo, subject],
+    queryFn: () => fetchMessages(subject.id, subject.class),
+    initialData: [] as ChatMessage[],
+  });
 
-  const handleSendMessage = async () => {
-    try {
-      if (!text.trim()) {
-        return;
-      }
-
-      setSending(true);
-
-      const newMessage = await postMessage({
-        fullName: name,
-        disciplina: subject.id,
-        turma: subject.class,
-        periodo,
-        message: text.trim(),
-      });
-
-      setData(c => [newMessage, ...c]);
+  const {mutate, isLoading: sending} = useMutation({
+    mutationFn: postMessage,
+    onSuccess: (newMessage: ChatMessage) => {
       setText('');
-    } catch (err) {
+      data?.unshift(newMessage);
+      refetch();
+    },
+    onError: () => {
       Toast.show({
         type: 'error',
         text1: 'Ops, ocorreu um erro :(',
         text2:
           'Não foi possível enviar a sua mensagem, tente novamente mais tarde.',
       });
-    } finally {
-      setSending(false);
+    },
+  });
+
+  const handleSendMessage = async () => {
+    if (!text.trim()) {
+      return;
     }
+
+    mutate({
+      fullName: name,
+      disciplina: subject.id,
+      turma: subject.class,
+      periodo,
+      message: text.trim(),
+    });
   };
 
   if (error || !data) {

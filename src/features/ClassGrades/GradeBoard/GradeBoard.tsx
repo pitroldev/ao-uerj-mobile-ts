@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {ClassGrade} from '@root/features/ClassGrades/types';
+import {ClassGrade} from '@features/ClassGrades/types';
 
 import {numberToColor} from '@utils/numberToColor';
 

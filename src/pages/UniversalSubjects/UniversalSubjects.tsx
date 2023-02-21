@@ -1,18 +1,18 @@
-import React, {useState, useEffect, useRef} from 'react';
-import {RefreshControl, ListRenderItemInfo} from 'react-native';
+import React, {useState, useRef} from 'react';
+import {ListRenderItemInfo} from 'react-native';
 import Toast from 'react-native-toast-message';
 import {Picker} from '@react-native-picker/picker';
 import {FlatList} from 'react-native-gesture-handler';
 import {useNavigation} from '@react-navigation/native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import {useQuery} from 'react-query';
 
-import useApiFetch from '@hooks/useApiFetch';
-import useRefresh from '@hooks/useRefresh';
 import {normalizeText} from '@utils/normalize';
 import parser from '@services/parser';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
 
+import * as infoReducer from '@reducers/userInfo';
 import * as apiConfigReducer from '@reducers/apiConfig';
 import * as reducer from '@features/UniversalSubjects/reducer';
 import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
@@ -29,31 +29,32 @@ import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
 import {Container} from './UniversalSubjects.styles';
 
+const HOUR_IN_MS = 1000 * 60 * 60;
+
 const UniversalSubjects = () => {
-  const [subjectType, setSubjectType] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOption, setSelectedOption] = useState<string | undefined>(
     undefined,
   );
 
-  const {subjects, options} = useAppSelector(reducer.selectUniversalSubjects);
   const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
+  const {subjects, options} = useAppSelector(reducer.selectUniversalSubjects);
+  const {periodo, matricula} = useAppSelector(infoReducer.selectUserInfo);
 
-  const {loading, fetch, error} = useApiFetch(() =>
-    fetchUniversalSubjects(selectedOption),
-  );
+  const {
+    isFetching: loading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['universal-subjects', periodo, matricula, selectedOption],
+    queryFn: () => fetchUniversalSubjects(selectedOption),
+    staleTime: 24 * HOUR_IN_MS,
+  });
 
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
-  const {refreshing, toggleRefresh} = useRefresh(fetch);
 
   const ref = useRef<FlatList>(null);
-  const refreshRef = useRef<RefreshControl>(null);
-
-  useEffect(() => {
-    setSubjectType('');
-    fetch();
-  }, [selectedOption]);
 
   const handleOptionChange = (value: string) => {
     const newOptions = options.map(option => {
@@ -115,12 +116,11 @@ const UniversalSubjects = () => {
     );
   };
 
-  const filteredSubjects = subjects.filter(({type, name}) => {
-    const hasSubjectType = !subjectType || type === subjectType;
+  const filteredSubjects = subjects.filter(({name}) => {
     const hasSearchQuery: boolean =
       !searchQuery || normalizeText(name).includes(normalizeText(searchQuery));
 
-    return hasSubjectType && hasSearchQuery;
+    return hasSearchQuery;
   });
 
   const isEmpty = filteredSubjects.length === 0;
@@ -135,7 +135,7 @@ const UniversalSubjects = () => {
         <DummyMessage
           type="BLOCK"
           text="Parece que o Aluno Online está temporariamente bloqueado. Tente novamente mais tarde."
-          onPress={fetch}
+          onPress={refetch}
         />
       </Container>
     );
@@ -162,14 +162,14 @@ const UniversalSubjects = () => {
         <SmallDummyMessage
           type="BLOCK"
           text="O Aluno Online está temporariamente bloqueado."
-          onPress={fetch}
+          onPress={refetch}
         />
       )}
       {showSpinner && <Spinner size={40} />}
       {!loading && error && !isBlocked && (
         <DummyMessage
           type="ERROR"
-          onPress={fetch}
+          onPress={refetch}
           text="Ops, ocorreu um erro ao buscar as disciplinas. Toque aqui para tentar novamente."
         />
       )}
@@ -186,15 +186,6 @@ const UniversalSubjects = () => {
           renderItem={renderSubjects}
           showsVerticalScrollIndicator={false}
           keyExtractor={item => item?.id}
-          waitFor={refreshRef}
-          refreshControl={
-            <RefreshControl
-              enabled
-              onRefresh={toggleRefresh}
-              refreshing={refreshing}
-              ref={refreshRef}
-            />
-          }
         />
       )}
     </Container>

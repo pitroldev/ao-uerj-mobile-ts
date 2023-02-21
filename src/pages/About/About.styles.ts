@@ -1,8 +1,8 @@
 import styled from 'styled-components/native';
 import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome';
 
-import CardapioSVG from '@root/assets/CardapioMobile_Logo.svg';
-import AOUerjSVG from '@root/assets/AO_Logo.svg';
+import CardapioSVG from '@assets/CardapioMobile_Logo.svg';
+import AOUerjSVG from '@assets/AO_Logo.svg';
 
 export const MainContainer = styled.ScrollView`
   display: flex;

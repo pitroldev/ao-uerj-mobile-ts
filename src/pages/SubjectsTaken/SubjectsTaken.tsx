@@ -1,17 +1,17 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {RefreshControl, ListRenderItemInfo} from 'react-native';
+import {ListRenderItemInfo} from 'react-native';
 import Toast from 'react-native-toast-message';
 import {useNavigation} from '@react-navigation/native';
 import {Picker} from '@react-native-picker/picker';
 import {FlatList} from 'react-native-gesture-handler';
+import {useQuery} from 'react-query';
 
-import useApiFetch from '@hooks/useApiFetch';
-import useRefresh from '@hooks/useRefresh';
 import parser from '@services/parser';
 import {SUBJECT_TYPE, SUBJECT_STATUS} from '@utils/constants/subjectDictionary';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
 
+import * as infoReducer from '@reducers/userInfo';
 import * as apiConfigReducer from '@reducers/apiConfig';
 import * as reducer from '@features/SubjectsTaken/reducer';
 import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
@@ -28,25 +28,34 @@ import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
 import {Container} from './SubjectsTaken.styles';
 
+const HOUR_IN_MS = 1000 * 60 * 60;
+
 const SubjectsAttended = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('');
 
   const {data} = useAppSelector(reducer.selectSubjectsAttended);
   const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
-  const periodList = getPeriodList(data);
+  const {periodo, matricula} = useAppSelector(infoReducer.selectUserInfo);
 
-  const {loading, fetch, error} = useApiFetch(fetchSubjectsTaken);
+  const periodList = getPeriodList(data);
 
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
-  const {refreshing, toggleRefresh} = useRefresh(fetch);
 
   const ref = useRef<FlatList>(null);
-  const refreshRef = useRef<RefreshControl>(null);
 
-  useEffect(() => {
-    fetch();
-  }, []);
+  const {
+    isFetching: loading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['subjects-taken', periodo, matricula],
+    queryFn: fetchSubjectsTaken,
+    staleTime: 24 * HOUR_IN_MS,
+    onSuccess: d => {
+      dispatch(reducer.setState(d));
+    },
+  });
 
   useEffect(() => {
     setSelectedPeriod(periodList?.length ? periodList[0]?.value : '');
@@ -137,14 +146,14 @@ const SubjectsAttended = () => {
         <SmallDummyMessage
           type="BLOCK"
           text="O Aluno Online está temporariamente bloqueado."
-          onPress={fetch}
+          onPress={refetch}
         />
       )}
       {showSpinner && <Spinner size={40} />}
       {!loading && error && !isBlocked && (
         <DummyMessage
           type="ERROR"
-          onPress={fetch}
+          onPress={refetch}
           text="Ops, ocorreu um erro ao buscar as disciplinas. Toque aqui para tentar novamente."
         />
       )}
@@ -161,15 +170,6 @@ const SubjectsAttended = () => {
           renderItem={renderSubjects}
           showsVerticalScrollIndicator={false}
           keyExtractor={(_, index) => index.toString()}
-          waitFor={refreshRef}
-          refreshControl={
-            <RefreshControl
-              enabled
-              onRefresh={toggleRefresh}
-              refreshing={refreshing}
-              ref={refreshRef}
-            />
-          }
         />
       )}
     </Container>

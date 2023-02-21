@@ -1,10 +1,10 @@
 import React from 'react';
 import {useNavigation} from '@react-navigation/native';
 
-import * as subjectDetailReducer from '@root/features/SubjectClassesSchedule/reducer';
-
 import {useAppDispatch} from '@root/store';
-import {PartialRID} from '@root/features/PartialRID/types';
+
+import {PartialRID} from '@features/PartialRID/types';
+import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
 
 import parser from '@services/parser';
 import {numberToColor} from '@utils/numberToColor';
@@ -30,7 +30,7 @@ const RIDBoard = ({data}: Props) => {
   }
 
   function handleOnPress(item: PartialRID) {
-    const code = parser.parseSubjectCode(item.id);
+    const code = parser.parseSubjectCode(item.id) as number;
     dispatch(subjectDetailReducer.appendData({code}));
     dispatch(subjectDetailReducer.select({code}));
     navigation.navigate('Pesquisa de Disciplinas');

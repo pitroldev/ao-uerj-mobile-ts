@@ -1,29 +1,19 @@
 import React, {useState} from 'react';
-import {BackHandler} from 'react-native';
-import {useFocusEffect} from '@react-navigation/native';
+
+import {useBackHandler} from '@hooks/useBackHandler';
 
 import {AttendedSubjectInfo} from '@features/AttendedClassesSchedule/types';
 import SubjectList from '@features/MessageBoard/SubjectList';
+import SubjectChat from '@features/MessageBoard/SubjectChat';
 
 import Text from '@atoms/Text';
 
 import {MainContainer} from './MessageBoard.styles';
-import SubjectChat from '@root/features/MessageBoard/SubjectChat';
 
 const MessageBoard = () => {
   const [subject, setSubject] = useState<AttendedSubjectInfo | null>(null);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      const onBackPress = () => {
-        setSubject(null);
-        return true;
-      };
-      BackHandler.addEventListener('hardwareBackPress', onBackPress);
-      return () =>
-        BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-    }, []),
-  );
+  useBackHandler(() => setSubject(null));
 
   if (subject) {
     return (

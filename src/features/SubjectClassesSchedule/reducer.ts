@@ -3,7 +3,7 @@ import {createSlice, PayloadAction} from '@reduxjs/toolkit';
 import {AppState} from '@root/store';
 
 import {SubjectInfo} from '@features/SubjectInfo/types';
-import {SubjectClassesSchedule} from '@root/features/SubjectClassesSchedule/types';
+import {SubjectClassesSchedule} from '@features/SubjectClassesSchedule/types';
 
 type ClassesPayload = {
   id: string;

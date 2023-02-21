@@ -8,8 +8,9 @@ import {AttendedSubjectInfo} from '@features/AttendedClassesSchedule/types';
 import * as classesReducer from '@features/AttendedClassesSchedule/reducer';
 
 import SubjectBox from '@molecules/SubjectBox';
+import DummyMessage from '@molecules/DummyMessage';
+
 import {Container} from './SubjectList.styles';
-import DummyMessage from '@root/components/molecules/DummyMessage';
 
 type Props = {
   onSubjectPress: (item: AttendedSubjectInfo) => void;

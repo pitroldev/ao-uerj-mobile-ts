@@ -1,16 +1,18 @@
 import {Turno} from '@root/types/dateStuff';
 import {Class, Schedule, Subject} from '@root/types/generator';
+
+import {Prereq, SubjectInfo} from '@features/SubjectInfo/types';
 import {
   Horario,
   SubjectClassesSchedule,
-} from '@root/features/SubjectClassesSchedule/types';
-import {Prereq, SubjectInfo} from '@root/types/subjectInfo';
-import {SubjectToTake} from '@root/features/SubjectsToTake/types';
+} from '@features/SubjectClassesSchedule/types';
+import {SubjectToTake} from '@features/SubjectsToTake/types';
+
 import {
   convertDayToNumber,
   convertTempoHorario,
   strToMinutes,
-} from '../horarios';
+} from '@utils/horarios';
 
 export function parsePrereq(arr_prereq: Prereq[][]): string[] {
   const codes: string[] = [];

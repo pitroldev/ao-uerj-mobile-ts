@@ -1,19 +1,19 @@
-import React, {useState, useEffect, useRef} from 'react';
-import {RefreshControl, ListRenderItemInfo} from 'react-native';
+import React, {useState, useRef} from 'react';
+import {ListRenderItemInfo} from 'react-native';
 import Toast from 'react-native-toast-message';
 import {useNavigation} from '@react-navigation/native';
 import {Picker} from '@react-native-picker/picker';
 import {FlatList} from 'react-native-gesture-handler';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import {useQuery} from 'react-query';
 
-import useApiFetch from '@hooks/useApiFetch';
-import useRefresh from '@hooks/useRefresh';
 import {SUBJECT_TYPE} from '@utils/constants/subjectDictionary';
 import {normalizeText} from '@utils/normalize';
 import parser from '@services/parser';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
 
+import * as infoReducer from '@reducers/userInfo';
 import * as apiConfigReducer from '@reducers/apiConfig';
 import * as reducer from '@features/CurriculumSubjects/reducer';
 import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
@@ -30,25 +30,33 @@ import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
 import {Container} from './CurriculumSubjects.styles';
 
+const HOUR_IN_MS = 1000 * 60 * 60;
+
 const CurriculumSubjects = () => {
   const [subjectType, setSubjectType] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const {loading, fetch, error} = useApiFetch(fetchCurriculumSubjects);
-
   const {data} = useAppSelector(reducer.selectCurriculumSubjects);
   const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
+  const {periodo, matricula} = useAppSelector(infoReducer.selectUserInfo);
 
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
-  const {refreshing, toggleRefresh} = useRefresh(fetch);
 
   const ref = useRef<FlatList>(null);
-  const refreshRef = useRef<RefreshControl>(null);
 
-  useEffect(() => {
-    fetch();
-  }, []);
+  const {
+    isFetching: loading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['curriculum-subjects', periodo, matricula],
+    queryFn: fetchCurriculumSubjects,
+    staleTime: 24 * HOUR_IN_MS,
+    onSuccess: d => {
+      dispatch(reducer.setState(d));
+    },
+  });
 
   const handleSubjectTypeChange = (value: string) => {
     setSubjectType(value);
@@ -124,7 +132,7 @@ const CurriculumSubjects = () => {
         <DummyMessage
           type="BLOCK"
           text="Parece que o Aluno Online está temporariamente bloqueado. Tente novamente mais tarde."
-          onPress={fetch}
+          onPress={refetch}
         />
       </Container>
     );
@@ -152,14 +160,14 @@ const CurriculumSubjects = () => {
         <SmallDummyMessage
           type="BLOCK"
           text="O Aluno Online está temporariamente bloqueado."
-          onPress={fetch}
+          onPress={refetch}
         />
       )}
       {showSpinner && <Spinner size={40} />}
       {!loading && error && !isBlocked && (
         <DummyMessage
           type="ERROR"
-          onPress={fetch}
+          onPress={refetch}
           text="Ops, ocorreu um erro ao buscar as disciplinas. Toque aqui para tentar novamente."
         />
       )}
@@ -170,15 +178,6 @@ const CurriculumSubjects = () => {
           renderItem={renderSubjects}
           showsVerticalScrollIndicator={false}
           keyExtractor={(_, index) => index.toString()}
-          waitFor={refreshRef}
-          refreshControl={
-            <RefreshControl
-              enabled
-              onRefresh={toggleRefresh}
-              refreshing={refreshing}
-              ref={refreshRef}
-            />
-          }
         />
       )}
     </Container>
