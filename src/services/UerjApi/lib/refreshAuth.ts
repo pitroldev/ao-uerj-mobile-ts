@@ -1,7 +1,8 @@
 import store from '@root/store';
 import * as apiConfigReducer from '@reducers/apiConfig';
 
-import {handleLogin} from '@root/features/Login/core';
+import {handleLogin} from '@features/Login/core';
+
 import {retry} from '@services/UerjApi/utils';
 
 export async function handleRefreshAuth(): Promise<void> {

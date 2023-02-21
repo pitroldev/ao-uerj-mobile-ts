@@ -1,6 +1,6 @@
 {
   "name": "aouerjmobile",
-  "version": "v1.0.2",
+  "version": "v1.0.3",
   "private": true,
   "scripts": {
     "clean": "cd android && ./gradlew clean",
@@ -40,6 +40,7 @@
     "react-native-svg-transformer": "^1.0.0",
     "react-native-toast-message": "^2.1.5",
     "react-native-vector-icons": "^9.2.0",
+    "react-query": "^3.39.3",
     "react-redux": "^8.0.4",
     "redux-persist": "^6.0.0",
     "styled-components": "^5.3.6"

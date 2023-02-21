@@ -1,10 +1,7 @@
-import store from '@root/store';
-
 import api from '@services/UerjApi';
 import {getRequisitionID, retry} from '@services/UerjApi/utils';
 
 import parseData from './parser';
-import * as reducer from './reducer';
 
 export const _fetchRawClassesScheduleByUnitData = async (
   code_unid?: string,
@@ -30,9 +27,6 @@ export async function fetchClassesScheduleByDepartment(code_unid?: string) {
   );
 
   const data = parseData(rawData);
-
-  store.dispatch(reducer.setSubjects(data.subjects));
-  store.dispatch(reducer.setOptions(data.options));
 
   return data;
 }

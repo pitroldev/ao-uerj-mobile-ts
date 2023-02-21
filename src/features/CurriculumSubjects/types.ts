@@ -1,4 +1,4 @@
-import {SUBJECT_TYPE} from '@root/utils/constants/subjectDictionary';
+import {SUBJECT_TYPE} from '@utils/constants/subjectDictionary';
 
 export interface CurriculumSubject {
   name: string;

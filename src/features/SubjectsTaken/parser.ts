@@ -1,12 +1,9 @@
-import {SubjectAttended} from '@root/features/SubjectsTaken/types';
-import {
-  parseSubjectType,
-  parseUerjNumber,
-} from '../../services/parser/minorParser';
+import {SubjectsTaken} from '@features/SubjectsTaken/types';
+import {parseSubjectType, parseUerjNumber} from '@services/parser/minorParser';
 
 const cheerio = require('react-native-cheerio');
 
-export default function parseSubjectsTaken(html: string): SubjectAttended[] {
+export default function parseSubjectsTaken(html: string): SubjectsTaken[] {
   try {
     const $ = cheerio.load(html);
 
@@ -20,8 +17,8 @@ export default function parseSubjectsTaken(html: string): SubjectAttended[] {
       }
     });
 
-    let disciplinaObj = {} as Partial<SubjectAttended>;
-    let disciplinasArray: SubjectAttended[] = [];
+    let disciplinaObj = {} as Partial<SubjectsTaken>;
+    let disciplinasArray: SubjectsTaken[] = [];
     let counter = 0;
 
     $('div tr+ tr td .LINKNAOSUB').each((index: number, node: any) => {
@@ -81,12 +78,12 @@ export default function parseSubjectsTaken(html: string): SubjectAttended[] {
 
         if (!!disciplinaObj.name && currentPeriodo) {
           disciplinaObj.period = currentPeriodo;
-          disciplinasArray.push(disciplinaObj as SubjectAttended);
+          disciplinasArray.push(disciplinaObj as SubjectsTaken);
         }
         if (!currentPeriodo) {
           disciplinaObj.status = 'EXEMPT';
           disciplinaObj.period = 'Isento';
-          disciplinasArray.push(disciplinaObj as SubjectAttended);
+          disciplinasArray.push(disciplinaObj as SubjectsTaken);
         }
         disciplinaObj = {};
       }

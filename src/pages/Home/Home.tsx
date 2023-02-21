@@ -1,10 +1,11 @@
 import React, {useState} from 'react';
+import {useQuery} from 'react-query';
+import {useDispatch} from 'react-redux';
 
 import {useAppSelector} from '@root/store';
 import * as infoReducer from '@reducers/userInfo';
 
 import parser from '@services/parser';
-import useApiFetch from '@hooks/useApiFetch';
 
 import {fetchPartialRID} from '@features/PartialRID/core';
 import {fetchClassGrades} from '@features/ClassGrades/core';
@@ -32,38 +33,63 @@ type ErrorControl = {
   callback: () => any;
 };
 
-type PartialRidData = Awaited<ReturnType<typeof fetchPartialRID>>;
+const HOUR_IN_MS = 1000 * 60 * 60;
 
 const HomePage = () => {
   const [attendedModalVisibility, setAttendedModalVisibility] = useState(false);
 
-  const {
-    loading: loadingSchedule,
-    error: scheduleError,
-    fetch: scheduleRefresh,
-  } = useApiFetch(fetchAttendedClassesSchedule);
+  const dispatch = useDispatch();
 
-  const {
-    loading: loadingGrades,
-    error: gradesError,
-    fetch: gradesRefresh,
-  } = useApiFetch(fetchClassGrades);
-
-  const {
-    loading: loadingRID,
-    data: partialRID,
-    error: ridError,
-    fetch: ridRefresh,
-  } = useApiFetch<PartialRidData>(fetchPartialRID);
-
-  const {periodo, name} = useAppSelector(infoReducer.selectUserInfo);
   const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
+  const {periodo, name, matricula} = useAppSelector(infoReducer.selectUserInfo);
   const {data: attendedClassesData} = useAppSelector(
     attendedReducer.selectAttendedClasses,
   );
   const {data: classGrades, isClassGradesAvailable} = useAppSelector(
     gradesReducer.selectClassGrades,
   );
+
+  const {
+    isFetching: loadingSchedule,
+    error: scheduleError,
+    refetch: scheduleRefresh,
+  } = useQuery({
+    queryKey: ['attended-classes-schedule', periodo, matricula],
+    queryFn: fetchAttendedClassesSchedule,
+    staleTime: 12 * HOUR_IN_MS,
+    onSuccess: data => {
+      dispatch(
+        attendedReducer.setAttendedClasses({
+          period: periodo as string,
+          data,
+        }),
+      );
+    },
+  });
+
+  const {
+    isFetching: loadingGrades,
+    error: gradesError,
+    refetch: gradesRefresh,
+  } = useQuery({
+    queryKey: ['class-grades', periodo, matricula],
+    queryFn: fetchClassGrades,
+    staleTime: 6 * HOUR_IN_MS,
+    onSuccess: data => {
+      dispatch(gradesReducer.setClassGrades(data));
+    },
+  });
+
+  const {
+    isFetching: loadingRID,
+    data: partialRID,
+    error: ridError,
+    refetch: ridRefresh,
+  } = useQuery({
+    queryKey: ['partial-rid', periodo, matricula],
+    queryFn: fetchPartialRID,
+    staleTime: 1 * HOUR_IN_MS,
+  });
 
   const currentSchedule = attendedClassesData?.[periodo as string];
 
@@ -72,7 +98,7 @@ const HomePage = () => {
   const isLoading = loadingSchedule || loadingGrades || loadingRID;
 
   const isScheduleAvailable = currentSchedule?.length > 0;
-  const isPartialRidAvailable = partialRID?.subjects?.length > 0;
+  const isPartialRidAvailable = partialRID && partialRID?.subjects?.length > 0;
 
   const hasSomethingAvailable =
     isClassGradesAvailable || isPartialRidAvailable || isScheduleAvailable;

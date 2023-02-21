@@ -1,6 +1,6 @@
 import styled from 'styled-components/native';
 
-import SVG from '@root/assets/AO_Logo.svg';
+import SVG from '@assets/AO_Logo.svg';
 
 export const LogoAO = styled(SVG)`
   align-self: center;

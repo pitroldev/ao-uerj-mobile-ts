@@ -2,6 +2,8 @@ import store from '@root/store';
 
 import api from '@services/PrivateApi';
 
+import {ChatMessage} from './types';
+
 export async function fetchMessages(
   subjectId: string,
   classNumber: string | number,
@@ -14,7 +16,7 @@ export async function fetchMessages(
     periodo: userInfo.periodo,
   });
 
-  return data;
+  return data as ChatMessage[];
 }
 
 export async function postMessage(body: any) {

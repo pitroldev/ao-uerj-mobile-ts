@@ -1,6 +1,8 @@
 import React, {useState} from 'react';
 import {Picker} from '@react-native-picker/picker';
 
+import parser from '@services/parser';
+
 import {executeErrorCallbacks, PRIVATE_ROUTES} from '../core';
 import {ErrorReportBody, ErrorFeature} from '../types';
 
@@ -8,7 +10,6 @@ import Text from '@atoms/Text';
 import TextInput from '@atoms/TextInput';
 import StyledPicker from '@atoms/Picker';
 import {Container, NextBtn} from './FeatureSelectionStep.styles';
-import parser from '@root/services/parser';
 
 type Props = {
   nextStep: () => void;

@@ -1,5 +1,6 @@
 import styled from 'styled-components/native';
-import Box from '@root/components/atoms/Box';
+
+import Box from '@atoms/Box';
 
 export const CarouselContainer = styled.View`
   margin: 12px 0;
