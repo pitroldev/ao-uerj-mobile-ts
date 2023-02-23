@@ -1,7 +1,7 @@
 import store from '@root/store';
 
 import api from '@services/UerjApi';
-import {getRequisitionID, retry} from '@services/UerjApi/utils';
+import {getRequisitionID} from '@services/UerjApi/utils';
 
 import parseData from './parser';
 import * as reducer from './reducer';
@@ -24,9 +24,7 @@ export const _fetchRawUniversalSubjectsData = async (cod_unid?: string) => {
 };
 
 export async function fetchUniversalSubjects(cod_unid?: string) {
-  const rawData = await retry(
-    async () => await _fetchRawUniversalSubjectsData(cod_unid),
-  );
+  const rawData = await _fetchRawUniversalSubjectsData(cod_unid);
 
   const data = parseData(rawData);
 

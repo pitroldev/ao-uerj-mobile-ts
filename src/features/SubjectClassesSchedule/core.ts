@@ -1,5 +1,5 @@
 import api from '@services/UerjApi';
-import {getRequisitionID, retry} from '@services/UerjApi/utils';
+import {getRequisitionID} from '@services/UerjApi/utils';
 
 import parseSubjectClassesSchedule from './parser';
 
@@ -24,9 +24,7 @@ export const _fetchRawSubjectClassesScheduleData = async (
 export const getSubjectClassesSchedule = async (
   subjectID?: string | number,
 ) => {
-  const data = await retry(
-    async () => await _fetchRawSubjectClassesScheduleData(subjectID),
-  );
+  const data = await _fetchRawSubjectClassesScheduleData(subjectID);
 
   const schedule = parseSubjectClassesSchedule(data);
   return schedule;

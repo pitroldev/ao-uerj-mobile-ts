@@ -27,8 +27,10 @@ export async function retry<T>(
       throw err;
     }
 
-    const isSessionPossiblyExpired = err?.response?.status;
     const isFirstRetry = count === MAX_RETRIES;
+    const isSessionPossiblyExpired = SESSION_TIMED_OUT_ERRORS.includes(
+      err.message,
+    );
 
     if (isSessionPossiblyExpired && isFirstRetry) {
       await refreshAuth();

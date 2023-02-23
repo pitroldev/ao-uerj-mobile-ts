@@ -11,6 +11,7 @@ import {_fetchRawSubjectsToTakeData} from '@features/SubjectsToTake/core';
 import {_fetchRawUniversalSubjectsData} from '@features/UniversalSubjects/core';
 
 import api from '@services/PrivateApi';
+import {retry} from '@services/UerjApi/utils';
 
 import {ErrorReportBody, ErrorFeature} from './types';
 
@@ -62,7 +63,7 @@ export async function executeErrorCallbacks(
 ) {
   return await Promise.all(
     callbacks.map(
-      async fn => await fn().catch((err: AxiosError) => err.toString()),
+      async fn => await retry(fn).catch((err: AxiosError) => err.toString()),
     ),
   );
 }

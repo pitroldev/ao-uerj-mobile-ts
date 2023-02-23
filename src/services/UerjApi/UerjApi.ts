@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, {AxiosError} from 'axios';
 import iconv from 'iconv-lite';
 import {Buffer} from 'buffer';
 
@@ -22,7 +22,7 @@ const api = axios.create({
   },
 });
 
-const responseErrorInterceptor = async (err: any) => {
+const responseErrorInterceptor = async (err: AxiosError) => {
   const {apiConfig, userInfo} = store.getState();
 
   const now = moment();
@@ -33,11 +33,24 @@ const responseErrorInterceptor = async (err: any) => {
     throw new Error('NOT_LOGGED_IN');
   }
 
-  if (cookieTimeInHours > COOKIE_MAX_DURATION_IN_HOURS) {
+  const isServerError = err?.response?.status && err.response.status >= 500;
+  const originalRequest = err.config as any;
+
+  const isReachedRetryLimit =
+    !originalRequest._retries || originalRequest._retries >= 3;
+
+  const isSessionPossiblyExpired =
+    cookieTimeInHours > COOKIE_MAX_DURATION_IN_HOURS || isServerError;
+
+  if (isSessionPossiblyExpired && !isReachedRetryLimit) {
+    originalRequest._retries = (originalRequest._retries || 0) + 1;
+
     await refreshAuth();
+
+    return api(originalRequest);
   }
 
-  throw err;
+  Promise.reject(err);
 };
 
 api.interceptors.response.use(undefined, responseErrorInterceptor);
