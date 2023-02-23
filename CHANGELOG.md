@@ -1,10 +1,25 @@
 
 
-## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.4...HEAD)
+## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.5...HEAD)
 
 ### New Features
 
 ### Fixes
+
+### Styles
+
+### Performance
+
+### Other Changes
+
+
+## [v1.0.5](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.4...v1.0.5)
+
+### New Features
+
+### Fixes
+
+- :bug: fix: Página de busca de professores não estava sendo carregada [`328c276`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/328c2766b421496b1c217b68dae391b548dc439a)
 
 ### Styles
 
