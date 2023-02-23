@@ -1,6 +1,6 @@
 
 
-## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.2...HEAD)
+## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.4...HEAD)
 
 ### New Features
 
@@ -9,6 +9,23 @@
 ### Styles
 
 ### Performance
+
+### Other Changes
+
+
+## [v1.0.4](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.2...v1.0.4)
+
+### New Features
+
+### Fixes
+
+- :bug: fix: Correção da lógica de re-autenticação && lógica de retry agora é resposabilidade do react-query [`082c934`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/082c9341ffa5af5a90b339f20ae0054a99a81838)
+
+### Styles
+
+### Performance
+
+- :zap: perf: Implementação do react-query & refatoração [`2bae390`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/2bae39028b67a3497bbce90883c6102697eac5fc)
 
 ### Other Changes
 
