@@ -148,8 +148,8 @@ android {
         applicationId "com.aouerjmobile"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 3145796
-        versionName "v1.0.3"
+        versionCode 3145797
+        versionName "v1.0.4"
         setProperty("archivesBaseName", applicationId + "-" + versionName + "-" + versionCode)
         buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
 

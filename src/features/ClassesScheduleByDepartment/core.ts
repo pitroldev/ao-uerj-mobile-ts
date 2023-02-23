@@ -1,5 +1,5 @@
 import api from '@services/UerjApi';
-import {getRequisitionID, retry} from '@services/UerjApi/utils';
+import {getRequisitionID} from '@services/UerjApi/utils';
 
 import parseData from './parser';
 
@@ -22,9 +22,7 @@ export const _fetchRawClassesScheduleByUnitData = async (
 };
 
 export async function fetchClassesScheduleByDepartment(code_unid?: string) {
-  const rawData = await retry(
-    async () => await _fetchRawClassesScheduleByUnitData(code_unid),
-  );
+  const rawData = await _fetchRawClassesScheduleByUnitData(code_unid);
 
   const data = parseData(rawData);
 

@@ -1,5 +1,5 @@
 import api from '@services/UerjApi';
-import {getRequisitionID, retry} from '@services/UerjApi/utils';
+import {getRequisitionID} from '@services/UerjApi/utils';
 
 import parseData from './parser';
 
@@ -20,7 +20,7 @@ export const _fetchRawCurriculumSubjectsData = async () => {
 };
 
 export async function fetchCurriculumSubjects() {
-  const rawData = await retry(_fetchRawCurriculumSubjectsData);
+  const rawData = await _fetchRawCurriculumSubjectsData();
 
   const data = parseData(rawData);
 

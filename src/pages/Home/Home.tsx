@@ -3,7 +3,6 @@ import {useQuery} from 'react-query';
 import {useDispatch} from 'react-redux';
 
 import {useAppSelector} from '@root/store';
-import * as infoReducer from '@reducers/userInfo';
 
 import parser from '@services/parser';
 
@@ -11,14 +10,15 @@ import {fetchPartialRID} from '@features/PartialRID/core';
 import {fetchClassGrades} from '@features/ClassGrades/core';
 import {fetchAttendedClassesSchedule} from '@features/AttendedClassesSchedule/core';
 
+import * as infoReducer from '@reducers/userInfo';
+import * as apiConfigReducer from '@reducers/apiConfig';
 import * as gradesReducer from '@features/ClassGrades/reducer';
 import * as attendedReducer from '@features/AttendedClassesSchedule/reducer';
-import * as apiConfigReducer from '@reducers/apiConfig';
 
-import ClassScheduleBoard from '@features/AttendedClassesSchedule/ClassScheduleBoard';
-import GradeBoard from '@features/ClassGrades/GradeBoard';
-import AttendedClassesBoard from '@features/AttendedClassesSchedule/AttendedClassesBoard';
 import RIDBoard from '@features/PartialRID/RIDBoard';
+import GradeBoard from '@features/ClassGrades/GradeBoard';
+import ClassScheduleBoard from '@features/AttendedClassesSchedule/ClassScheduleBoard';
+import AttendedClassesBoard from '@features/AttendedClassesSchedule/AttendedClassesBoard';
 
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';

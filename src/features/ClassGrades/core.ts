@@ -1,5 +1,4 @@
 import api from '@services/UerjApi';
-import {retry} from '@services/UerjApi/utils';
 
 import parseData from './parser';
 
@@ -12,7 +11,7 @@ export const _fetchRawClassGradesData = async () => {
 };
 
 export async function fetchClassGrades() {
-  const rawData = await retry(_fetchRawClassGradesData);
+  const rawData = await _fetchRawClassGradesData();
 
   const data = parseData(rawData);
 

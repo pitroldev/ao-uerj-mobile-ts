@@ -13,12 +13,12 @@ import {
   SignInButton,
   RecoveryPassButton,
 } from './Login.styles';
+import {useMutation} from 'react-query';
 
 const PASS_RECOVERY_URL =
   'https://www.alunoonline.uerj.br/requisicaoaluno/requisicao.php?controle=Login&requisicao=LoginSolicitarSenha';
 
 const LoginPage = () => {
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [matricula, setMatricula] = useState('');
   const [password, setPassword] = useState('');
@@ -26,23 +26,17 @@ const LoginPage = () => {
   const passwordInputRef = useRef<any>(null);
   const navigation = useNavigation();
 
-  const handleSignInPress = async () => {
-    try {
-      setLoading(true);
-      const {fail_reason} = await handleLogin(matricula, password);
-
-      if (!fail_reason) {
-        navigation.navigate('Início');
+  const {isLoading: loading, mutate: handleSignInPress} = useMutation({
+    mutationFn: () => handleLogin(matricula, password),
+    onSuccess: data => {
+      if (!data.fail_reason) {
+        setError(data.fail_reason ?? '');
         return;
       }
 
-      setError(fail_reason ?? '');
-      setLoading(false);
-    } catch (err) {
-      setError('Erro desconecido: ' + (err as unknown as Error)?.message);
-      setLoading(false);
-    }
-  };
+      navigation.navigate('Início');
+    },
+  });
 
   const handleRecoveryPassPress = () => {
     Linking.openURL(PASS_RECOVERY_URL).catch((err: Error) =>
@@ -76,12 +70,12 @@ const LoginPage = () => {
           value={password}
           ref={passwordInputRef}
           onChangeText={setPassword}
-          onSubmitEditing={handleSignInPress}
+          onSubmitEditing={() => handleSignInPress()}
         />
         <SignInButton
           loading={loading}
           disabled={loading}
-          onPress={handleSignInPress}>
+          onPress={() => handleSignInPress()}>
           Entrar
         </SignInButton>
 
