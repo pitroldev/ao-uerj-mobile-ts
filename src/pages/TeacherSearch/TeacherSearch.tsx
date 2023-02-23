@@ -6,6 +6,9 @@ import {useQuery} from 'react-query';
 
 import {useBackHandler} from '@hooks/useBackHandler';
 
+import {useAppSelector} from '@root/store';
+import * as infoReducer from '@reducers/userInfo';
+
 import {
   fetchTeacherList,
   fetchTeacherDetails,
@@ -20,11 +23,11 @@ import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
 import {Container} from './TeacherSearch.styles';
 
-const HOUR_IN_MS = 1000 * 60 * 60;
-
 const TeacherSearch = () => {
   const [search, setSearch] = useState('');
   const [selectedTeacher, setSelectedTeacher] = useState('');
+
+  const {matricula} = useAppSelector(infoReducer.selectUserInfo);
 
   useBackHandler(() => {
     setSearch('');
@@ -36,16 +39,15 @@ const TeacherSearch = () => {
     isFetching: loading,
     error,
   } = useQuery({
-    queryKey: ['teacher-list'],
+    queryKey: ['teacher-list', matricula],
     queryFn: fetchTeacherList,
-    staleTime: 24 * HOUR_IN_MS,
     initialData: [],
   });
 
   const {data: teacherData, isFetching: loadingTeacher} = useQuery({
     queryKey: ['teacher-details', selectedTeacher],
     queryFn: () => fetchTeacherDetails(selectedTeacher),
-    staleTime: 24 * HOUR_IN_MS,
+    enabled: Boolean(selectedTeacher),
     onError: () => {
       setSelectedTeacher('');
       Toast.show({
