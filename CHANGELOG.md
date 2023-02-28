@@ -1,10 +1,25 @@
 
 
-## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.5...HEAD)
+## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.6...HEAD)
 
 ### New Features
 
 ### Fixes
+
+### Styles
+
+### Performance
+
+### Other Changes
+
+
+## [v1.0.6](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.5...v1.0.6)
+
+### New Features
+
+### Fixes
+
+- :bug: fix: Auth Refresh [`ffb9192`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/ffb9192aa8c1be7ad4823b87d6500fbd1b89add4)
 
 ### Styles
 
