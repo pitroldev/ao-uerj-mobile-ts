@@ -1,11 +1,12 @@
-import store from '@root/store';
-import * as apiReducer from '@reducers/apiConfig';
-
 const cheerio = require('react-native-cheerio');
 
-type Dict = {
-  [key: string]: string;
+type ReqIds = {
+  dictionary: {
+    [key: string]: string;
+  };
+  failed: number;
 };
+
 function translate(name: string) {
   const lowerName = name.toLowerCase();
   const dictionary = {
@@ -16,15 +17,15 @@ function translate(name: string) {
     'disciplinas realizadas': 'DisciplinasRealizadas',
     'notas do período': 'notas',
     'rid: resultado provisório': 'RidParcial',
-  } as Dict;
+  } as ReqIds['dictionary'];
 
   return dictionary[lowerName] || name;
 }
 
-export function getReqIds(data: string): Dict {
+export function getReqIds(data: string): ReqIds {
   const regex = /\w{20,}/gi;
 
-  const dictionary: Dict = {};
+  const dictionary: ReqIds['dictionary'] = {};
   let failed = 0;
 
   const $ = cheerio.load(data);
@@ -46,10 +47,5 @@ export function getReqIds(data: string): Dict {
     }
   });
 
-  if (failed > 20) {
-    throw new Error('POSSIBLY_BLOCKED');
-  } else {
-    store.dispatch(apiReducer.setIsBlocked(false));
-  }
-  return dictionary;
+  return {dictionary, failed};
 }
