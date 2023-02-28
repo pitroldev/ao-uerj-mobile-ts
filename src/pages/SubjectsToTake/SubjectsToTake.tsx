@@ -144,6 +144,13 @@ const SubjectsToTake = () => {
   const showList = !isEmpty;
   const showSpinner = isEmpty && loading;
 
+  const quantities = {
+    all: data.length,
+    mandatory: data.filter(({type}) => type === 'MANDATORY').length,
+    restricted: data.filter(({type}) => type === 'RESTRICTED').length,
+    defined: data.filter(({type}) => type === 'DEFINED').length,
+  };
+
   return (
     <Container>
       <StyledPicker
@@ -151,10 +158,19 @@ const SubjectsToTake = () => {
         onValueChange={s => handleSubjectTypeChange(s as string)}
         loading={loading}
         enabled={!loading}>
-        <Picker.Item label={'Todas'} value={''} />
-        <Picker.Item label={'Disciplinas Obrigatórias'} value={'MANDATORY'} />
-        <Picker.Item label={'Eletivas Restritas'} value={'RESTRICTED'} />
-        <Picker.Item label={'Eletivas Definidas'} value={'DEFINED'} />
+        <Picker.Item label={`Todas (${quantities.all})`} value={''} />
+        <Picker.Item
+          label={`Disciplinas Obrigatórias (${quantities.mandatory})`}
+          value={'MANDATORY'}
+        />
+        <Picker.Item
+          label={`Eletivas Restritas (${quantities.restricted})`}
+          value={'RESTRICTED'}
+        />
+        <Picker.Item
+          label={`Eletivas Definidas (${quantities.defined})`}
+          value={'DEFINED'}
+        />
       </StyledPicker>
       <TextInput
         value={searchQuery}
