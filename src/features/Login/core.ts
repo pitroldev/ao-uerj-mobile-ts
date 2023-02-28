@@ -42,11 +42,12 @@ export async function handleLogin(matricula: string, senha: string) {
   );
 
   const info = parseLoginInfo(homePageData);
-  const new_cookies = await getCookies();
 
   if (info.fail_reason) {
     return info;
   }
+
+  const new_cookies = await getCookies();
 
   store.dispatch(
     userInfoReducer.setState({
@@ -57,8 +58,8 @@ export async function handleLogin(matricula: string, senha: string) {
     }),
   );
 
-  const reqIds = getReqIds(homePageData);
-  const new_dictionary = {...reqIds, login: loginReqId};
+  const {dictionary, failed} = getReqIds(homePageData);
+  const new_dictionary = {...dictionary, login: loginReqId};
 
   store.dispatch(
     apiConfigReducer.setState({
@@ -66,6 +67,12 @@ export async function handleLogin(matricula: string, senha: string) {
       dictionary: new_dictionary,
     }),
   );
+
+  if (failed > 20) {
+    throw new Error('POSSIBLY_BLOCKED');
+  } else {
+    store.dispatch(apiConfigReducer.setIsBlocked(false));
+  }
 
   return info;
 }

@@ -16,6 +16,7 @@ export async function handleRefreshAuth(): Promise<void> {
 
   const hasFailed =
     typeof data.fail_reason === 'string' && data.fail_reason.trim().length > 0;
+
   if (hasFailed) {
     store.dispatch(apiConfigReducer.clear());
     throw new Error('LOGIN_FAILED');
