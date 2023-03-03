@@ -17,6 +17,7 @@ export async function fetchLoginPage(): Promise<string> {
       requisicao: 'LoginAlunoOnline',
     },
   };
+
   const {data} = await api.get(url, options);
 
   return data as string;
@@ -27,6 +28,7 @@ export async function handleLogin(matricula: string, senha: string) {
 
   const url = '/requisicaoaluno/requisicaoacesso.php';
   const loginPageData = await retry(fetchLoginPage);
+
   const loginReqId = await parseLoginReqId(loginPageData);
 
   const {data: homePageData} = await retry(

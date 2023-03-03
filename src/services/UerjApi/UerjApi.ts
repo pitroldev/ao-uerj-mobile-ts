@@ -25,6 +25,7 @@ const api = axios.create({
 });
 
 const responseErrorInterceptor = async (err: AxiosError) => {
+  console.log('responseErrorInterceptor', err.message);
   const {apiConfig, userInfo} = store.getState();
 
   const now = moment();
@@ -44,13 +45,6 @@ const responseErrorInterceptor = async (err: AxiosError) => {
     cookieTimeInHours > COOKIE_MAX_DURATION_IN_HOURS || isServerError;
 
   const isNotRetryError = NOT_RETRY_ERRORS.includes(err.message);
-  console.log({
-    retries: originalRequest._retries,
-    isSessionPossiblyExpired,
-    cookieTimeInHours,
-    cookieCreationDate,
-    isServerError,
-  });
 
   if (isSessionPossiblyExpired && !isReachedRetryLimit && !isNotRetryError) {
     originalRequest._retries = (originalRequest._retries || 0) + 1;
