@@ -17,6 +17,8 @@ import Login from '@root/pages/Login';
 import MessageBoard from '@root/pages/MessageBoard';
 import About from '@root/pages/About';
 import TeacherSearch from '@root/pages/TeacherSearch';
+import {useQuery} from 'react-query';
+import {refreshAuth} from './services/UerjApi';
 // import Playground from '@root/pages/Playground';
 
 export type RootDrawerParamList = {
@@ -38,8 +40,14 @@ export type RootDrawerParamList = {
 const Drawer = createDrawerNavigator<RootDrawerParamList>();
 
 const MainRoutes = () => {
-  const {cookies} = useAppSelector(selectApiConfig);
+  const {cookies, isBlocked} = useAppSelector(selectApiConfig);
   const isSignedIn = Boolean(cookies);
+
+  useQuery({
+    queryKey: ['refresh-auth'],
+    queryFn: refreshAuth,
+    enabled: isBlocked,
+  });
 
   const initialRoute = isSignedIn ? 'Início' : 'Login';
   return (

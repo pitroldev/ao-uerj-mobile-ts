@@ -40,8 +40,8 @@ const HomePage = () => {
 
   const dispatch = useDispatch();
 
-  const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
-  const {periodo, name, matricula} = useAppSelector(infoReducer.selectUserInfo);
+  const {isBlocked, cookies} = useAppSelector(apiConfigReducer.selectApiConfig);
+  const {periodo, name} = useAppSelector(infoReducer.selectUserInfo);
   const {data: attendedClassesData} = useAppSelector(
     attendedReducer.selectAttendedClasses,
   );
@@ -54,7 +54,7 @@ const HomePage = () => {
     error: scheduleError,
     refetch: scheduleRefresh,
   } = useQuery({
-    queryKey: ['attended-classes-schedule', periodo, matricula],
+    queryKey: ['attended-classes-schedule', cookies],
     queryFn: fetchAttendedClassesSchedule,
     staleTime: 12 * HOUR_IN_MS,
     onSuccess: data => {
@@ -72,7 +72,7 @@ const HomePage = () => {
     error: gradesError,
     refetch: gradesRefresh,
   } = useQuery({
-    queryKey: ['class-grades', periodo, matricula],
+    queryKey: ['class-grades', cookies],
     queryFn: fetchClassGrades,
     staleTime: 6 * HOUR_IN_MS,
     onSuccess: data => {
@@ -86,7 +86,7 @@ const HomePage = () => {
     error: ridError,
     refetch: ridRefresh,
   } = useQuery({
-    queryKey: ['partial-rid', periodo, matricula],
+    queryKey: ['partial-rid', cookies],
     queryFn: fetchPartialRID,
     staleTime: 1 * HOUR_IN_MS,
   });

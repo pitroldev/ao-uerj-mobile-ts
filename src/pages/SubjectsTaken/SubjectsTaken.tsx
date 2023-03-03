@@ -11,7 +11,6 @@ import {SUBJECT_TYPE, SUBJECT_STATUS} from '@utils/constants/subjectDictionary';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
 
-import * as infoReducer from '@reducers/userInfo';
 import * as apiConfigReducer from '@reducers/apiConfig';
 import * as reducer from '@features/SubjectsTaken/reducer';
 import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
@@ -34,8 +33,7 @@ const SubjectsAttended = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('');
 
   const {data} = useAppSelector(reducer.selectSubjectsAttended);
-  const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
-  const {periodo, matricula} = useAppSelector(infoReducer.selectUserInfo);
+  const {isBlocked, cookies} = useAppSelector(apiConfigReducer.selectApiConfig);
 
   const periodList = getPeriodList(data);
 
@@ -49,7 +47,7 @@ const SubjectsAttended = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['subjects-taken', periodo, matricula],
+    queryKey: ['subjects-taken', cookies],
     queryFn: fetchSubjectsTaken,
     staleTime: 24 * HOUR_IN_MS,
     onSuccess: d => {

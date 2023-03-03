@@ -3,8 +3,6 @@ import {AxiosError} from 'axios';
 import store from '@root/store';
 import * as apiConfigReducer from '@reducers/apiConfig';
 
-import {refreshAuth} from '../lib/refreshAuth';
-
 export const MAX_RETRIES = 3;
 
 export const NOT_RETRY_ERRORS = ['NOT_LOGGED_IN', 'POSSIBLY_BLOCKED'];
@@ -25,15 +23,6 @@ export async function retry<T>(
 
     if (NOT_RETRY_ERRORS.includes(err.message)) {
       throw err;
-    }
-
-    const isFirstRetry = count === MAX_RETRIES;
-    const isSessionPossiblyExpired = SESSION_TIMED_OUT_ERRORS.includes(
-      err.message,
-    );
-
-    if (isSessionPossiblyExpired && isFirstRetry) {
-      await refreshAuth();
     }
 
     if (count > 0) {

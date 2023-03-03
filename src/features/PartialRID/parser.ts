@@ -11,7 +11,10 @@ export default function parsePartialRID(html: string) {
   let ridSubject = {} as Partial<PartialRID>;
 
   if (!$('div div td').text()) {
-    throw new Error('RID_NOT_AVAILABLE');
+    return {
+      subjects,
+      updatedAt: '',
+    };
   }
 
   $('div div td').text((index: number, text: string) => {

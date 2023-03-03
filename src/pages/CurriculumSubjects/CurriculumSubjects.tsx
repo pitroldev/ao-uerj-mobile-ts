@@ -13,7 +13,6 @@ import parser from '@services/parser';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
 
-import * as infoReducer from '@reducers/userInfo';
 import * as apiConfigReducer from '@reducers/apiConfig';
 import * as reducer from '@features/CurriculumSubjects/reducer';
 import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
@@ -37,8 +36,7 @@ const CurriculumSubjects = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const {data} = useAppSelector(reducer.selectCurriculumSubjects);
-  const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
-  const {periodo, matricula} = useAppSelector(infoReducer.selectUserInfo);
+  const {isBlocked, cookies} = useAppSelector(apiConfigReducer.selectApiConfig);
 
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
@@ -50,7 +48,7 @@ const CurriculumSubjects = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['curriculum-subjects', periodo, matricula],
+    queryKey: ['curriculum-subjects', cookies],
     queryFn: fetchCurriculumSubjects,
     staleTime: 24 * HOUR_IN_MS,
     onSuccess: d => {

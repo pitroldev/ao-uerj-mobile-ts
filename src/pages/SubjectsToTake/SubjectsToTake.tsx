@@ -15,7 +15,6 @@ import {useAppDispatch, useAppSelector} from '@root/store';
 import {SubjectToTake} from '@features/SubjectsToTake/types';
 import {fetchSubjectsToTake} from '@features/SubjectsToTake/core';
 
-import * as infoReducer from '@reducers/userInfo';
 import * as apiConfigReducer from '@reducers/apiConfig';
 import * as reducer from '@features/SubjectsToTake/reducer';
 import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
@@ -36,8 +35,7 @@ const SubjectsToTake = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const {data} = useAppSelector(reducer.selectSubjectsToTake);
-  const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
-  const {periodo, matricula} = useAppSelector(infoReducer.selectUserInfo);
+  const {isBlocked, cookies} = useAppSelector(apiConfigReducer.selectApiConfig);
 
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
@@ -49,7 +47,7 @@ const SubjectsToTake = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['subjects-to-take', periodo, matricula],
+    queryKey: ['subjects-to-take', cookies],
     queryFn: fetchSubjectsToTake,
     staleTime: 24 * HOUR_IN_MS,
     onSuccess: d => {

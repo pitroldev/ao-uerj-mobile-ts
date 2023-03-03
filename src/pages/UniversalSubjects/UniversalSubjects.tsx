@@ -39,14 +39,14 @@ const UniversalSubjects = () => {
 
   const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
   const {subjects, options} = useAppSelector(reducer.selectUniversalSubjects);
-  const {periodo, matricula} = useAppSelector(infoReducer.selectUserInfo);
+  const {periodo} = useAppSelector(infoReducer.selectUserInfo);
 
   const {
     isFetching: loading,
     error,
     refetch,
   } = useQuery({
-    queryKey: ['universal-subjects', periodo, matricula, selectedOption],
+    queryKey: ['universal-subjects', periodo, selectedOption],
     queryFn: () => fetchUniversalSubjects(selectedOption),
     staleTime: 24 * HOUR_IN_MS,
   });
