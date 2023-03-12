@@ -9,9 +9,10 @@ type Props = {
   text: string;
   type: 'ERROR' | 'INFO' | 'EMPTY' | 'BLOCK';
   onPress?: any;
+  withPadding?: boolean;
 };
 
-const SmallDummyMessage = ({text, type, onPress}: Props) => {
+const SmallDummyMessage = ({text, type, onPress, withPadding}: Props) => {
   const {COLORS} = useTheme();
 
   const icons = {
@@ -30,7 +31,10 @@ const SmallDummyMessage = ({text, type, onPress}: Props) => {
   };
 
   return (
-    <View onPress={handleOnPress} disabled={!isEnabled}>
+    <View
+      onPress={handleOnPress}
+      disabled={!isEnabled}
+      withPadding={withPadding}>
       <Icon name={icons[type]} color={COLORS.DISABLED} size={25} />
       <Text
         size="SM"
@@ -47,6 +51,7 @@ const SmallDummyMessage = ({text, type, onPress}: Props) => {
 
 SmallDummyMessage.defaultProps = {
   onPress: undefined,
+  withPadding: true,
 };
 
 export default SmallDummyMessage;

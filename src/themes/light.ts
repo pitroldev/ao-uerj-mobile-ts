@@ -20,6 +20,9 @@ export const COLORS = {
   AFTERNOON: '#FFF4D5',
   NIGHT: '#D5F8FF',
 
+  BUSY: '#FFD5D5',
+  FREE: '#D5FFDC',
+
   APPROVED: '#D5FFDC',
   FAILED_BY_GRADE: '#FFD5D5',
   FAILED_BY_ATTENDANCE: '#FFD5D5',
@@ -27,6 +30,7 @@ export const COLORS = {
   EXEMPT: '#DDD',
 
   ERROR: '#FF3333',
+  SUCCESS: '#33FF33',
 };
 
 export const FONTS = {

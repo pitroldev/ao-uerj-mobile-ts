@@ -22,6 +22,9 @@ declare module 'styled-components' {
       AFTERNOON: string;
       NIGHT: string;
 
+      BUSY: string;
+      FREE: string;
+
       APPROVED: string;
       FAILED_BY_GRADE: string;
       FAILED_BY_ATTENDANCE: string;
@@ -29,6 +32,7 @@ declare module 'styled-components' {
       CANCELED: string;
 
       ERROR: string;
+      SUCCESS: string;
     };
     FONTS: {
       THIN: string;

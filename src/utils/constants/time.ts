@@ -42,6 +42,44 @@ export const TIME_DICTIONARY: TimeDictionary = {
   '??': ['??', '??'],
 };
 
+export const WEEKDAY_DICTIONARY = {
+  1: {
+    name: 'Segunda',
+    shortName: 'Seg',
+    number: 1,
+  },
+  2: {
+    name: 'Terça',
+    shortName: 'Ter',
+    number: 2,
+  },
+  3: {
+    name: 'Quarta',
+    shortName: 'Qua',
+    number: 3,
+  },
+  4: {
+    name: 'Quinta',
+    shortName: 'Qui',
+    number: 4,
+  },
+  5: {
+    name: 'Sexta',
+    shortName: 'Sex',
+    number: 5,
+  },
+  6: {
+    name: 'Sábado',
+    shortName: 'Sáb',
+    number: 6,
+  },
+  7: {
+    name: 'Domingo',
+    shortName: 'Dom',
+    number: 7,
+  },
+};
+
 export const TIME_VALUES = [
   {
     periodAlias: 'M1',

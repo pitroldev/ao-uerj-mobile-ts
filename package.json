@@ -27,6 +27,7 @@
     "iconv-lite": "^0.6.3",
     "moment": "^2.29.4",
     "react": "17.0.2",
+    "react-hook-form": "^7.43.4",
     "react-native": "0.68.2",
     "react-native-cheerio": "^1.0.0-rc.4",
     "react-native-gesture-handler": "^2.7.1",

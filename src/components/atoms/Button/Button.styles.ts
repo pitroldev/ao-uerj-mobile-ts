@@ -27,7 +27,6 @@ export const ButtonContainer = styled(TouchableOpacity)<ButtonProps>`
   ${({fullWidth, width, size}) => {
     if (fullWidth) {
       return 'width: 100%;';
-      // return 'width: 100%;';
     }
     if (width) {
       return `width: ${width}px;`;
