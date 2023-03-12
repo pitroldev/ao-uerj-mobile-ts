@@ -1,6 +1,6 @@
 import {WEEKDAY_DICTIONARY} from '@utils/constants/time';
 
-import {GeneratedClassWithSubject, RenderedSchedule} from './types';
+import {GeneratedClassWithSubject, RenderedSchedule, Schedule} from './types';
 
 export function convertToRenderedSchedule(
   generatedSchedules: GeneratedClassWithSubject[],
@@ -36,4 +36,19 @@ export function convertToRenderedSchedule(
   });
 
   return renderedSchedule;
+}
+
+export function hasScheduleConflict(
+  target: Schedule[],
+  current: Schedule[],
+): boolean {
+  return current.some(s => {
+    return target.some(t => {
+      return (
+        s.week_day === t.week_day &&
+        s.start_time_in_minutes < t.end_time_in_minutes &&
+        t.start_time_in_minutes < s.end_time_in_minutes
+      );
+    });
+  });
 }
