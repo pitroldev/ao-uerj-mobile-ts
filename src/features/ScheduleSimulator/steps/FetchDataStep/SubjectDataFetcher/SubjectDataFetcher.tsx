@@ -103,19 +103,24 @@ const SubjectDataFetcher = (subject: SubjectToTake) => {
   };
 
   const preReqs = subjectInfo?.prerequisite ?? ([] as Prereq[][]);
+  const approvedSubjects = takenSubjects.filter(
+    taken => taken.status === 'APPROVED',
+  );
+
   const hasPrerequisites = preReqs.length > 0;
 
   const isPrereqsSatified =
     !hasPrerequisites ||
     preReqs.every(prereq =>
-      takenSubjects.some(taken =>
+      approvedSubjects.some(taken =>
         prereq.some(p => parseSubjectCode(p.id) === parseSubjectCode(taken.id)),
       ),
     );
 
-  const credits = takenSubjects
-    .filter(taken => taken.status === 'APPROVED')
-    .reduce((acc, taken) => acc + (Number(taken?.credits) || 0), 0);
+  const credits = approvedSubjects.reduce(
+    (acc, taken) => acc + (Number(taken?.credits) || 0),
+    0,
+  );
 
   const isCreditsSatisfied = credits >= (subject.minimum_credits ?? 0);
 

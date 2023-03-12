@@ -70,7 +70,7 @@ const FetchDataStep = () => {
   const isSubjectDataFetched = selectedSubjects.every(subject => {
     const isCreditsSatisfied = credits >= (subject.minimum_credits ?? 0);
     if (!isCreditsSatisfied) {
-      return false;
+      return true;
     }
 
     const code = parseSubjectCode(subject.id);
