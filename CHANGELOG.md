@@ -1,10 +1,25 @@
 
 
-## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.2...HEAD)
+## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.3...HEAD)
 
 ### New Features
 
 ### Fixes
+
+### Styles
+
+### Performance
+
+### Other Changes
+
+
+## [v1.1.3](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.2...v1.1.3)
+
+### New Features
+
+### Fixes
+
+- :bug: fix: Correção da identificação de pre-requisito no SubjectDataFetcher [`2881a80`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/2881a8003c4f3d603bf1a8a53dc36aacc4faeed3)
 
 ### Styles
 
