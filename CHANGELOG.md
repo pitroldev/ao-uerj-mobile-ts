@@ -1,10 +1,25 @@
 
 
-## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.3...HEAD)
+## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.4...HEAD)
 
 ### New Features
 
 ### Fixes
+
+### Styles
+
+### Performance
+
+### Other Changes
+
+
+## [v1.1.4](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.3...v1.1.4)
+
+### New Features
+
+### Fixes
+
+- :bug: fix: Cache não permitindo nova busca a disciplina [`ff8b310`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/ff8b310f4e44398fe8dcd27b078c9babf450e9ae)
 
 ### Styles
 
