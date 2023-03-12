@@ -6,6 +6,7 @@ import {useFormContext, useWatch} from 'react-hook-form';
 import Icon from 'react-native-vector-icons/AntDesign';
 
 import {parseSubjectCode} from '@services/parser/minorParser';
+import {parseScheduleToGeneratorFormat} from '@utils/converter';
 
 import {Prereq} from '@features/SubjectInfo/types';
 import {getSubjectInfo} from '@features/SubjectInfo/core';
@@ -14,6 +15,8 @@ import {getSubjectClassesSchedule} from '@features/SubjectClassesSchedule/core';
 
 import {ScheduleCreationParams} from '@features/ScheduleSimulator/types';
 import {SubjectToTake} from '@features/SubjectsToTake/types';
+
+import {hasScheduleConflict} from '@features/ScheduleSimulator/core';
 
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
@@ -27,6 +30,7 @@ const SubjectDataFetcher = (subject: SubjectToTake) => {
   const subjects = useWatch({control, name: 'subjects'}) ?? [];
   const classes = useWatch({control, name: 'classes'}) ?? [];
   const takenSubjects = useWatch({control, name: 'takenSubjects'}) ?? [];
+  const busySchedules = useWatch({control, name: 'busy_schedules'}) ?? [];
 
   const code = parseSubjectCode(subject.id);
 
@@ -58,8 +62,21 @@ const SubjectDataFetcher = (subject: SubjectToTake) => {
         subject_id: subject.id,
       }));
 
-      setValue('classes', [...filteredClasses, ...populatedClasses]);
-      setValue('selectedClasses', [...filteredClasses, ...populatedClasses]);
+      const classesToSet = [...filteredClasses, ...populatedClasses];
+      setValue('classes', classesToSet);
+
+      const classesWithoutConflict = classesToSet.filter(c => {
+        const parsedSchedules = parseScheduleToGeneratorFormat(
+          c?.schedule ?? [],
+        );
+        const hasConflictBetweenBusySchedules = hasScheduleConflict(
+          parsedSchedules,
+          busySchedules,
+        );
+
+        return !hasConflictBetweenBusySchedules;
+      });
+      setValue('selectedClasses', classesWithoutConflict);
     },
   });
 
