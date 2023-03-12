@@ -122,7 +122,7 @@ const BusyHoursStep = () => {
               color={color}
               onPress={() => handleScheduleItemPress(weekDay, time)}
               onLongPress={() => handleLongPress(time)}
-              delayLongPress={1500}>
+              delayLongPress={500}>
               <Text size="SM" weight="500" alignSelf="center">
                 {startTimeAlias}
               </Text>
