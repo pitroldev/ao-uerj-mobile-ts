@@ -31,6 +31,8 @@ const SubjectDataFetcher = (subject: SubjectToTake) => {
   const classes = useWatch({control, name: 'classes'}) ?? [];
   const takenSubjects = useWatch({control, name: 'takenSubjects'}) ?? [];
   const busySchedules = useWatch({control, name: 'busy_schedules'}) ?? [];
+  const loadedClassesSubjectId =
+    useWatch({control, name: 'loadedClassesSubjectId'}) ?? [];
 
   const code = parseSubjectCode(subject.id);
 
@@ -77,6 +79,14 @@ const SubjectDataFetcher = (subject: SubjectToTake) => {
         return !hasConflictBetweenBusySchedules;
       });
       setValue('selectedClasses', classesWithoutConflict);
+
+      const filteredLoadedClassesSubjectId = loadedClassesSubjectId.filter(
+        s => s !== subject.id,
+      );
+      setValue('loadedClassesSubjectId', [
+        ...filteredLoadedClassesSubjectId,
+        subject.id,
+      ]);
     },
   });
 

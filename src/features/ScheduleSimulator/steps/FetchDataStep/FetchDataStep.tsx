@@ -39,6 +39,8 @@ const FetchDataStep = () => {
   const subjects = useWatch({control, name: 'subjects'}) ?? [];
   const classes = useWatch({control, name: 'classes'}) ?? [];
   const selectedSubjects = useWatch({control, name: 'selectedSubjects'}) ?? [];
+  const loadedClassesSubjectId =
+    useWatch({control, name: 'loadedClassesSubjectId'}) ?? [];
 
   const handleNextPress = handleSubmit(nextStep);
 
@@ -75,11 +77,16 @@ const FetchDataStep = () => {
     const hasSubject = subjects.some(
       s => parseSubjectCode(s.id as string) === code,
     );
+
     const subjectClasses = classes.filter(
       s => parseSubjectCode(s.subject_id as string) === code,
     );
 
-    const hasClasses = subjectClasses.length > 0;
+    const isClassLoaded = loadedClassesSubjectId.some(
+      s => parseSubjectCode(s as string) === code,
+    );
+
+    const hasClasses = subjectClasses.length > 0 || isClassLoaded;
     return hasSubject && hasClasses;
   });
 
