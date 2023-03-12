@@ -25,7 +25,7 @@ import {
   StyledFlatList,
 } from './ClassesStep.styles';
 
-const MAX_CLASSES_AMOUNT = 40;
+const MAX_CLASSES_AMOUNT = 25;
 
 const ClassesStep = () => {
   const [teacher, setTeacher] = useState('');
@@ -58,8 +58,8 @@ const ClassesStep = () => {
     return acc;
   }, [] as string[]);
 
-  const isOverMaxClasses = filteredClasses.length > MAX_CLASSES_AMOUNT;
-  const removeNumber = filteredClasses.length - MAX_CLASSES_AMOUNT;
+  const isOverMaxClasses = selectedClasses.length > MAX_CLASSES_AMOUNT;
+  const removeNumber = selectedClasses.length - MAX_CLASSES_AMOUNT;
 
   const handleClassPress = (c: SubjectClasses) => {
     const isSelected = selectedClasses.some(

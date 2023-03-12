@@ -7,9 +7,12 @@ type UserInfo = {
   periodo?: string;
   matricula?: string;
   password?: string;
+  wasPreviouslyLogged?: boolean;
 };
 
-const initialState = {} as UserInfo;
+const initialState = {
+  wasPreviouslyLogged: false,
+} as UserInfo;
 
 const slice = createSlice({
   name: 'user',
@@ -24,13 +27,17 @@ const slice = createSlice({
     setPeriodo: (state, action: PayloadAction<string>) => {
       state.periodo = action.payload;
     },
+    setFirstLogin: state => {
+      state.wasPreviouslyLogged = true;
+    },
     clear: state => {
       Object.assign(state, initialState);
     },
   },
 });
 
-export const {setName, setPeriodo, setState, clear} = slice.actions;
+export const {setName, setPeriodo, setState, setFirstLogin, clear} =
+  slice.actions;
 export const selectUserInfo = (state: AppState) => state.userInfo;
 
 export default slice.reducer;

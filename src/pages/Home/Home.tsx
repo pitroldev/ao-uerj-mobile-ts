@@ -15,6 +15,7 @@ import * as apiConfigReducer from '@reducers/apiConfig';
 import * as gradesReducer from '@features/ClassGrades/reducer';
 import * as attendedReducer from '@features/AttendedClassesSchedule/reducer';
 
+import AppInfoModal from '@features/AppInfoModal';
 import RIDBoard from '@features/PartialRID/RIDBoard';
 import GradeBoard from '@features/ClassGrades/GradeBoard';
 import ClassScheduleBoard from '@features/AttendedClassesSchedule/ClassScheduleBoard';
@@ -164,6 +165,7 @@ const HomePage = () => {
 
   return (
     <MainContainer>
+      <AppInfoModal />
       <Row>
         <Column>
           <Text weight="300" size="MD">
