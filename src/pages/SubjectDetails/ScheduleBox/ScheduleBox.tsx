@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {getAliasPeriod} from '@utils/health/time';
+import {getAliasPeriodColor} from '@utils/health/time';
 import {TIME_DICTIONARY} from '@utils/constants/time';
 
 import {Turno, WeekDay} from '@root/types/dateStuff';
@@ -21,7 +21,7 @@ const ScheduleBox = (props: Horario) => {
   const startTime = TIME_DICTIONARY[startAlias][0];
   const endTime = TIME_DICTIONARY[endAlias][1];
 
-  const period = getAliasPeriod(startAlias);
+  const period = getAliasPeriodColor(startAlias);
   return (
     <Container key={day} color={period}>
       <Text size="XS" weight="bold" alignSelf="center">

@@ -3,10 +3,14 @@ import React, {useRef, useState, useLayoutEffect} from 'react';
 import {Animated, LayoutChangeEvent} from 'react-native';
 import {DrawerContentComponentProps} from '@react-navigation/drawer';
 
+import queryClient from '@services/query-client';
+
+import {useAppDispatch, useAppSelector} from '@root/store';
 import * as apiConfigReducer from '@reducers/apiConfig';
 import * as userInfoReducer from '@reducers/userInfo';
-import {useAppDispatch, useAppSelector} from '@root/store';
+
 import {LIGHT} from '@root/themes';
+
 import {
   Container,
   Text,
@@ -63,6 +67,7 @@ const DrawerNavigator = ({state, navigation}: DrawerContentComponentProps) => {
     dispatch(apiConfigReducer.clear());
     dispatch(userInfoReducer.clear());
     navigation.toggleDrawer();
+    queryClient.clear();
   }
 
   return (

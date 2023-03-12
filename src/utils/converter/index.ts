@@ -40,7 +40,7 @@ export function parseSubjectToGeneratorFormat(
     allow_conflict: subjectInfo.conflito as boolean,
     recomended_period: subjectToTake.period as number,
     minimum_credits: subjectToTake.minimum_credits,
-    total_hours: subjectInfo.workload as number,
+    total_workload: subjectInfo.workload as number,
   };
 
   return subject;

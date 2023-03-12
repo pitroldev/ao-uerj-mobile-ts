@@ -1,8 +1,10 @@
 import React from 'react';
 import {createDrawerNavigator} from '@react-navigation/drawer';
+import {useQuery} from 'react-query';
 
 import {selectApiConfig} from '@reducers/apiConfig';
 import {useAppSelector} from '@root/store';
+import {refreshAuth} from '@services/UerjApi';
 
 import CustomDrawerNavigator from '@root/components/templates/CustomDrawerNavigator';
 
@@ -17,8 +19,7 @@ import Login from '@root/pages/Login';
 import MessageBoard from '@root/pages/MessageBoard';
 import About from '@root/pages/About';
 import TeacherSearch from '@root/pages/TeacherSearch';
-import {useQuery} from 'react-query';
-import {refreshAuth} from './services/UerjApi';
+import ScheduleSimulator from '@root/pages/ScheduleSimulator';
 // import Playground from '@root/pages/Playground';
 
 export type RootDrawerParamList = {
@@ -34,6 +35,7 @@ export type RootDrawerParamList = {
   'Horário das Turmas': undefined;
   'Pesquisa de Disciplinas': undefined;
   'Pesquisa de Professores': undefined;
+  'Gerador de Grade': undefined;
   Sobre: undefined;
 };
 
@@ -64,6 +66,10 @@ const MainRoutes = () => {
         <>
           {/* <Drawer.Screen name="Playground" component={Playground} /> */}
           <Drawer.Screen name="Início" component={Home} />
+          <Drawer.Screen
+            name="Gerador de Grade"
+            component={ScheduleSimulator}
+          />
           <Drawer.Screen name="Mural de Mensagens" component={MessageBoard} />
           <Drawer.Screen
             name="Disciplinas a Cursar"

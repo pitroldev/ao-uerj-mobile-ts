@@ -97,11 +97,11 @@ const ClassScheduleBoard = ({data, onSubjectPress}: Props) => {
     return (
       <WeekDayContainer key={weekDay}>
         <Text
-          size="XL"
+          size="LG"
           textAlign="center"
           alignSelf="center"
           weight="300"
-          marginBottom="12px">
+          marginBottom="8px">
           {weekDay}
         </Text>
         {classesInThisDay.map(renderClasses)}

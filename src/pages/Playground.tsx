@@ -21,6 +21,7 @@ import StyledPicker from '@atoms/Picker';
 import TextInputWithIcon from '@atoms/TextInput';
 import SubjectBox from '@molecules/SubjectBox';
 import {MainContainer as ScrollView} from './Home/Home.styles';
+import {retry} from '@root/services/UerjApi/utils';
 
 const Playground = () => {
   const [loading, setLoading] = useState(false);
@@ -34,26 +35,21 @@ const Playground = () => {
       const classes: any[] = [];
 
       console.log('Extraindo a cursar');
-      const data = await fetchSubjectsToTake();
+      const data = await retry(() => fetchSubjectsToTake());
 
       console.log('Extraindo disciplinas cursadas');
-      const attendedSubjects = await fetchSubjectsTaken();
+      const attendedSubjects = await retry(() => fetchSubjectsTaken());
       let counter = 0;
 
       for await (const s of data) {
         console.log('Calling INFO:', s.id);
-        const info = await getSubjectInfo(parseSubjectCode(s.id)).catch(
-          async () => await getSubjectInfo(parseSubjectCode(s.id)),
-        );
-
+        const info = await retry(() => getSubjectInfo(parseSubjectCode(s.id)));
         console.log('Calling Classes:', s.id);
         const subject = parseSubjectToGeneratorFormat(s, info);
         subjects.push(subject);
 
-        const class_ = await getSubjectClassesSchedule(
-          parseSubjectCode(s.id),
-        ).catch(
-          async () => await getSubjectClassesSchedule(parseSubjectCode(s.id)),
+        const class_ = await retry(() =>
+          getSubjectClassesSchedule(parseSubjectCode(s.id)),
         );
 
         const parsedClasse = class_.map(c =>
@@ -65,7 +61,7 @@ const Playground = () => {
         const percent = (counter / data.length) * 100;
         console.log(`>> ${Math.round(percent)}% Success:`, s.id);
       }
-      const res = await axios.post('http://192.168.1.7:3001/save', {
+      const res = await axios.post('http://192.168.1.11:3001/save', {
         subjects,
         attendedSubjects,
         classes,

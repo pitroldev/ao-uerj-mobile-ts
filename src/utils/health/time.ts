@@ -1,6 +1,8 @@
 import {DefaultTheme} from 'styled-components/native';
 
-export function getAliasPeriod(alias: string): keyof DefaultTheme['COLORS'] {
+export function getAliasPeriodColor(
+  alias: string,
+): keyof DefaultTheme['COLORS'] {
   if (alias.includes('M')) {
     return 'MORNING';
   }

@@ -25,7 +25,6 @@ const api = axios.create({
 });
 
 const responseErrorInterceptor = async (err: AxiosError) => {
-  console.log('responseErrorInterceptor', err.message);
   const {apiConfig, userInfo} = store.getState();
 
   const now = moment();

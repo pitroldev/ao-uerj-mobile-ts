@@ -6,7 +6,7 @@ export type Subject = {
   name: string;
   type: string;
   credits: number;
-  total_hours: number;
+  total_workload: number;
   prerequisites: string[];
   allow_conflict: boolean;
   recomended_period?: number;

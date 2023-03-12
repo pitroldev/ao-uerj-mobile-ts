@@ -11,7 +11,7 @@ export const WeekDayContainer = styled.View`
   width: 90%;
 
   border-radius: 12px;
-  padding: 12px 16px 4px 16px;
+  padding: 8px 12px 4px 12px;
 
   margin-left: 12px;
   margin-top: 12px;
@@ -19,10 +19,10 @@ export const WeekDayContainer = styled.View`
 `;
 
 export const ClassBox = styled(Box)`
-  margin-bottom: 12px;
-  elevation: 4;
+  margin-bottom: 8px;
+  elevation: 2;
 
-  height: 60px;
+  padding: 8px;
 `;
 
 export const Row = styled.View`
