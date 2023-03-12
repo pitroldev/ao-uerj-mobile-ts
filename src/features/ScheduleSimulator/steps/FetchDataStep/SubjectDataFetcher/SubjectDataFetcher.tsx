@@ -27,12 +27,13 @@ const SubjectDataFetcher = (subject: SubjectToTake) => {
   const {COLORS} = useTheme();
   const {control, setValue} = useFormContext<ScheduleCreationParams>();
 
-  const subjects = useWatch({control, name: 'subjects'}) ?? [];
-  const classes = useWatch({control, name: 'classes'}) ?? [];
-  const takenSubjects = useWatch({control, name: 'takenSubjects'}) ?? [];
-  const busySchedules = useWatch({control, name: 'busy_schedules'}) ?? [];
-  const loadedClassesSubjectId =
-    useWatch({control, name: 'loadedClassesSubjectId'}) ?? [];
+  const {
+    subjects,
+    classes,
+    takenSubjects,
+    busy_schedules: busySchedules,
+    loadedClassesSubjectId,
+  } = useWatch({control}) as ScheduleCreationParams;
 
   const code = parseSubjectCode(subject.id);
 
@@ -44,6 +45,7 @@ const SubjectDataFetcher = (subject: SubjectToTake) => {
   } = useQuery({
     queryKey: ['subject-info', code],
     queryFn: () => getSubjectInfo(code),
+    staleTime: 0,
     onSuccess: info => {
       const filteredSubjects = subjects.filter(s => s.id !== subject.id);
       setValue('subjects', [...filteredSubjects, info]);
@@ -57,6 +59,7 @@ const SubjectDataFetcher = (subject: SubjectToTake) => {
   } = useQuery({
     queryKey: ['subject-classes', code],
     queryFn: () => getSubjectClassesSchedule(code),
+    staleTime: 0,
     onSuccess: subjectClasses => {
       const filteredClasses = classes.filter(s => s.subject_id !== subject.id);
       const populatedClasses = subjectClasses.map(c => ({

@@ -36,11 +36,8 @@ const FetchDataStep = () => {
   const {control, handleSubmit, setValue} =
     useFormContext<ScheduleCreationParams>();
 
-  const subjects = useWatch({control, name: 'subjects'}) ?? [];
-  const classes = useWatch({control, name: 'classes'}) ?? [];
-  const selectedSubjects = useWatch({control, name: 'selectedSubjects'}) ?? [];
-  const loadedClassesSubjectId =
-    useWatch({control, name: 'loadedClassesSubjectId'}) ?? [];
+  const {subjects, classes, selectedSubjects, loadedClassesSubjectId} =
+    useWatch({control}) as ScheduleCreationParams;
 
   const handleNextPress = handleSubmit(nextStep);
 
@@ -48,7 +45,6 @@ const FetchDataStep = () => {
     isFetching: loadingSubjectsTaken,
     error: errorSubjectsTaken,
     refetch,
-    data: takenSubjects = [],
   } = useQuery({
     queryKey: ['subjects-taken', cookies],
     queryFn: fetchSubjectsTaken,
@@ -63,22 +59,19 @@ const FetchDataStep = () => {
     }
   };
 
-  const credits = takenSubjects
-    .filter(taken => taken.status === 'APPROVED')
-    .reduce((acc, taken) => acc + (Number(taken?.credits) || 0), 0);
-
   const isSubjectDataFetched = selectedSubjects.every(subject => {
-    const isCreditsSatisfied = credits >= (subject.minimum_credits ?? 0);
-    if (!isCreditsSatisfied) {
-      return true;
-    }
-
     const code = parseSubjectCode(subject.id);
     const hasSubject = subjects.some(
       s => parseSubjectCode(s.id as string) === code,
     );
 
-    const subjectClasses = classes.filter(
+    return hasSubject;
+  });
+
+  const isClassDataFetched = selectedSubjects.every(subject => {
+    const code = parseSubjectCode(subject.id);
+
+    const hasSubjectClasses = classes.some(
       s => parseSubjectCode(s.subject_id as string) === code,
     );
 
@@ -86,12 +79,13 @@ const FetchDataStep = () => {
       s => parseSubjectCode(s as string) === code,
     );
 
-    const hasClasses = subjectClasses.length > 0 || isClassLoaded;
-    return hasSubject && hasClasses;
+    return hasSubjectClasses || isClassLoaded;
   });
 
+  const isTakenSubjectsFetched = !errorSubjectsTaken && !loadingSubjectsTaken;
+
   const isAllDataFetched =
-    isSubjectDataFetched && !errorSubjectsTaken && !loadingSubjectsTaken;
+    isSubjectDataFetched && isClassDataFetched && isTakenSubjectsFetched;
 
   return (
     <Container>
