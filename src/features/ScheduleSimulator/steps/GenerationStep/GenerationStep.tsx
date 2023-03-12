@@ -101,7 +101,7 @@ const GenerationStep = () => {
 
   const hasData = data && data?.length > 0 && !error;
 
-  const isEmpty = data && data?.length === 0;
+  const isEmpty = data && data?.length === 0 && !loading;
 
   return (
     <Container>
