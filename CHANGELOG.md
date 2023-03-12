@@ -1,10 +1,28 @@
 
 
-## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.6...HEAD)
+## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.0...HEAD)
 
 ### New Features
 
 ### Fixes
+
+### Styles
+
+### Performance
+
+### Other Changes
+
+
+## [v1.1.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.6...v1.1.0)
+
+### New Features
+
+- :sparkles: add: MVP do Gerador de grades [`0b5343b`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/0b5343b58904d3aeb676ddf1721c6bfc379e7120)
+- :sparkles: add: Quantidade de disciplinas a cursar sendo mostrada [`60241f0`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/60241f0070d5928a1f79217949c8bb290bf9ed3b)
+
+### Fixes
+
+- :bug: fix: Estado isBlocked não estava atualizando após desbloqueio do site oficial [`242833e`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/242833e077ff25406399b98072fa333ec3db66d4)
 
 ### Styles
 
