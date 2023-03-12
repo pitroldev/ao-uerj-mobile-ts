@@ -1,10 +1,26 @@
 
 
-## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.1...HEAD)
+## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.2...HEAD)
 
 ### New Features
 
 ### Fixes
+
+### Styles
+
+### Performance
+
+### Other Changes
+
+
+## [v1.1.2](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.1...v1.1.2)
+
+### New Features
+
+### Fixes
+
+- :adhesive_bandage: fix: Preso na etapa de FetchDataStep caso a disciplina não tenha turmas [`243744f`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/243744fa30e887fd90432c71fe1dade9d50f65a8)
+- :adhesive_bandage: fix: Correção do bug onde é possível inserir letras no SubjectAmountStep [`9b23871`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/9b238715363e12c471e53264a94d4f34db3e2b9a)
 
 ### Styles
 
