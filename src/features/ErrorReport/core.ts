@@ -21,6 +21,10 @@ export const PRIVATE_ROUTES = [
     callbacks: [_fetchRawAttendedClassesScheduleData],
   },
   {
+    name: 'Gerador de Quadros',
+    callbacks: [],
+  },
+  {
     name: 'Quadro de Notas',
     callbacks: [_fetchRawClassGradesData],
   },
