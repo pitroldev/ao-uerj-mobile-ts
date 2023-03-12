@@ -77,10 +77,9 @@ const SubjectDetailPage = () => {
       const cached = data.find(d => d.code === code);
       if (!skipCache && cached && cached.periodo === periodo) {
         dispatch(subjectReducer.select(cached));
-        return;
+      } else {
+        dispatch(subjectReducer.select({code, periodo}));
       }
-
-      dispatch(subjectReducer.select({code, periodo}));
 
       await Promise.all([
         getSubjectInfo(code).then(res => handleSubjectInfo(res, code)),
