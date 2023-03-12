@@ -36,6 +36,7 @@ export type ScheduleCreationParams = {
   subjects: SubjectInfo[];
   classes: SubjectClasses[];
   selectedClasses: SubjectClasses[];
+  loadedClassesSubjectId: (string | number)[];
 };
 
 export type GeneratedSubject = {

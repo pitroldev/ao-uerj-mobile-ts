@@ -58,6 +58,7 @@ const ScheduleCreationPage = () => {
     subjects: [],
     classes: [],
     selectedClasses: [],
+    loadedClassesSubjectId: [],
   };
 
   const methods = useForm<ScheduleCreationParams>({
