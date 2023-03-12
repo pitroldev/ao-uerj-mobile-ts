@@ -1,6 +1,6 @@
 
 
-## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.0...HEAD)
+## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.1...HEAD)
 
 ### New Features
 
@@ -11,6 +11,25 @@
 ### Performance
 
 ### Other Changes
+
+
+## [v1.1.1](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.0...v1.1.1)
+
+### New Features
+
+- :sparkles: feat: Modal de informação [`cc693e2`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/cc693e215c25dd7996f9154a10aa12f858aa8f69)
+- :necktie: add: Gerador de Quadro ao report de erro [`113a48b`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/113a48b7fbedbe440f0400e1f8c80e0dd2bca70d)
+
+### Fixes
+
+### Styles
+
+### Performance
+
+### Other Changes
+
+- :necktie: chore: Classes conflitantes não são automaticamente selecionadas [`1f36186`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/1f361865fe564d93450560bda164dbd70c754658)
+- :truck: chore: Diminuição do tempo de hold no BusyHoursStep [`9614b76`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/9614b76c1c8b35fed5b70bab660df66d8aef215e)
 
 
 ## [v1.1.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.6...v1.1.0)
