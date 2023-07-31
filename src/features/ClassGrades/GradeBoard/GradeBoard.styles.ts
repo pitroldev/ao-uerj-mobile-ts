@@ -19,7 +19,9 @@ export const NotasRow = styled.View`
   justify-content: space-around;
 `;
 
-export const Column = styled.View``;
+export const Column = styled.View`
+  flex: 1;
+`;
 
 export const BoxContainer = styled(Box)`
   flex-direction: column;

@@ -33,7 +33,7 @@ const DummyMessage = ({text, type, onPress}: Props) => {
     <View onPress={handleOnPress} disabled={!isEnabled}>
       <Icon name={icons[type]} color={COLORS.DISABLED} size={45} />
       <Text
-        size="LG"
+        size="MD"
         marginTop="12px"
         textAlign="center"
         alignSelf="center"
