@@ -9,11 +9,13 @@ import * as reducer from './reducer';
 export const _fetchRawUniversalSubjectsData = async (cod_unid?: string) => {
   const url = '/requisicaoaluno/requisicao.php';
   const requisicao = await getRequisitionID('Disciplinas Universais');
+  const {apiConfig} = store.getState();
 
   const options = {
     params: {
       controle: 'Aluno',
       requisicao,
+      _token: apiConfig._token,
       cod_unid,
     },
   };

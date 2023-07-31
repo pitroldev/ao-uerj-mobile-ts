@@ -9,6 +9,7 @@ type ApiConfig = {
   cookies: Cookies | null;
   dictionary: Dict;
   isBlocked: boolean;
+  _token?: string;
   createdAt: Date;
 };
 
@@ -33,13 +34,16 @@ const apiConfigSlice = createSlice({
     setIsBlocked: (state, action: PayloadAction<boolean>) => {
       Object.assign(state, {isBlocked: action.payload});
     },
+    setToken: (state, action: PayloadAction<string>) => {
+      state._token = action.payload;
+    },
     clear: state => {
       Object.assign(state, initialState);
     },
   },
 });
 
-export const {setState, addDictionary, setIsBlocked, clear} =
+export const {setState, addDictionary, setIsBlocked, setToken, clear} =
   apiConfigSlice.actions;
 export const selectApiConfig = (state: AppState) => state.apiConfig;
 
