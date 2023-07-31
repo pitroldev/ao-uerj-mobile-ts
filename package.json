@@ -1,6 +1,6 @@
 {
   "name": "aouerjmobile",
-  "version": "v1.1.4",
+  "version": "v1.1.5",
   "private": true,
   "scripts": {
     "clean": "cd android && ./gradlew clean",

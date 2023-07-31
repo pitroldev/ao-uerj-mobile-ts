@@ -1,12 +1,27 @@
 
 
-## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.4...HEAD)
+## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.5...HEAD)
 
 ### New Features
 
 ### Fixes
 
 ### Styles
+
+### Performance
+
+### Other Changes
+
+
+## [v1.1.5](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.4...v1.1.5)
+
+### New Features
+
+### Fixes
+
+### Styles
+
+- :lipstick: Style: Ajustes visuais nas mensagens de erro e Notas [`15acac1`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/15acac14745d01589d96a22ef7ae29b4b8ba62bf)
 
 ### Performance
 
