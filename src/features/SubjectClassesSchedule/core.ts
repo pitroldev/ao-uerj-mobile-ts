@@ -1,3 +1,4 @@
+import store from '@root/store';
 import api from '@services/UerjApi';
 import {getRequisitionID} from '@services/UerjApi/utils';
 
@@ -8,11 +9,13 @@ export const _fetchRawSubjectClassesScheduleData = async (
 ) => {
   const url = '/requisicaoaluno/requisicao.php';
   const requisicao = await getRequisitionID('HorariosTurmasDisciplina');
+  const {apiConfig} = store.getState();
 
   const options = {
     params: {
       controle: 'Aluno',
       requisicao,
+      _token: apiConfig._token,
       'disciplinas[0]': subjectID,
     },
   };

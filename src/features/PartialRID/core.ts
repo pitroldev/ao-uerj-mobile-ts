@@ -1,3 +1,4 @@
+import store from '@root/store';
 import api from '@services/UerjApi';
 import {getRequisitionID} from '@services/UerjApi/utils';
 
@@ -6,10 +7,12 @@ import parseData from './parser';
 export const _fetchRawPartialRIDData = async () => {
   const url = '/requisicaoaluno/requisicao.php';
   const requisicao = await getRequisitionID('RidParcial');
+  const {apiConfig} = store.getState();
 
   const options = {
     params: {
       controle: 'Rid',
+      _token: apiConfig._token,
       requisicao,
     },
   };

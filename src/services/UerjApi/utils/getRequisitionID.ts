@@ -9,12 +9,16 @@ import {retry} from './retry';
 export async function getClassInfoReqIDs() {
   const url = '/requisicaoaluno/requisicao.php';
   const requisicao = await getRequisitionID('DisciplinasCursar');
+  const {apiConfig} = store.getState();
+
   const options = {
     params: {
       controle: 'Aluno',
       requisicao,
+      _token: apiConfig._token,
     },
   };
+
   const {data} = await api.get(url, options);
 
   const reqIds = await parseSubjectInfoReqId(data);

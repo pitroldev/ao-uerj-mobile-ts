@@ -1,3 +1,4 @@
+import store from '@root/store';
 import api from '@services/UerjApi';
 import {getRequisitionID} from '@services/UerjApi/utils';
 
@@ -6,11 +7,13 @@ import parseData from './parser';
 export const _fetchRawSubjectsTakenData = async () => {
   const url = '/requisicaoaluno/requisicao.php';
   const requisicao = await getRequisitionID('DisciplinasRealizadas');
+  const {apiConfig} = store.getState();
 
   const options = {
     params: {
       controle: 'Aluno',
       requisicao,
+      _token: apiConfig._token,
     },
   };
 

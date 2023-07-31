@@ -29,7 +29,7 @@ export async function handleLogin(matricula: string, senha: string) {
   const url = '/requisicaoaluno/requisicaoacesso.php';
   const loginPageData = await retry(fetchLoginPage);
 
-  const loginReqId = await parseLoginReqId(loginPageData);
+  const {loginReqId, _token} = await parseLoginReqId(loginPageData);
 
   const {data: homePageData} = await retry(
     async () =>
@@ -39,6 +39,7 @@ export async function handleLogin(matricula: string, senha: string) {
           requisicao: loginReqId,
           matricula,
           senha,
+          _token,
         },
       }),
   );
@@ -67,6 +68,7 @@ export async function handleLogin(matricula: string, senha: string) {
     apiConfigReducer.setState({
       cookies: new_cookies,
       dictionary: new_dictionary,
+      _token,
     }),
   );
 
