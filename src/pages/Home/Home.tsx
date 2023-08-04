@@ -26,7 +26,16 @@ import Spinner from '@atoms/Spinner';
 import DummyMessage from '@molecules/DummyMessage';
 import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
-import {MainContainer, ScrollContainer, Row, Column} from './Home.styles';
+import {
+  MainContainer,
+  ScrollContainer,
+  Row,
+  Column,
+  TooManyErrorsView,
+  TooManyErrorsWarning,
+  TooManyErrorsBulletItem,
+  TooManyErrorsBulletDescription,
+} from './Home.styles';
 
 type ErrorControl = {
   key: string;
@@ -134,6 +143,7 @@ const HomePage = () => {
   }
 
   const hasAnyError = errors.length > 0;
+  const hasTooManyErrors = errors.length > 2;
   const errorText = `Ops, parece que houve um erro nos seguintes componentes: ${errors
     .map(e => e.label)
     .join(', ')}. Toque aqui para tentar novamente.`;
@@ -177,6 +187,26 @@ const HomePage = () => {
         </Column>
         {isLoading && <Spinner loading size="large" />}
       </Row>
+      {hasTooManyErrors && (
+        <TooManyErrorsView>
+          <TooManyErrorsWarning>Caso o erro persista</TooManyErrorsWarning>
+          <TooManyErrorsBulletItem>
+            1. Verifique se o aplicativo está atualizado
+          </TooManyErrorsBulletItem>
+          <TooManyErrorsBulletItem>
+            2. Saia e entre novamente no aplicativo
+          </TooManyErrorsBulletItem>
+          <TooManyErrorsBulletItem>
+            3. Desinstale e instale novamente o aplicativo
+          </TooManyErrorsBulletItem>
+          <TooManyErrorsBulletDescription>
+            As vezes a UERJ atualiza o sistema e isso pode causar problemas no
+            aplicativo. Normalmente esses problemas são resolvidos em pouco
+            tempo, mas caso continue vendo essa mensagem contate-nos pela página
+            Sobre.
+          </TooManyErrorsBulletDescription>
+        </TooManyErrorsView>
+      )}
       {isBlocked && (
         <SmallDummyMessage
           type="BLOCK"
