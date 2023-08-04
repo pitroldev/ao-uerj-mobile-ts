@@ -50,9 +50,9 @@ export default function parseSubjectInfo(html: string) {
           texts.map(str => {
             res.push(str.slice(0, 3));
           });
-          infoObj.universal = parseSimNaoToBoolean(res[0]);
-          infoObj.conflito = parseSimNaoToBoolean(res[1]);
-          infoObj.preparo = parseSimNaoToBoolean(res[2]);
+          infoObj.universal = !!parseSimNaoToBoolean(res[0]);
+          infoObj.conflito = !!parseSimNaoToBoolean(res[1]);
+          infoObj.preparo = !!parseSimNaoToBoolean(res[2]);
         }
         if (index === 3) {
           const texts = text

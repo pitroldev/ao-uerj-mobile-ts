@@ -27,13 +27,13 @@ export default function parseUniversalSubjects(html: string) {
         disciplinasObj.id = parseSubjectID(text);
       }
       if ((index - 3) % 6 === 0) {
-        disciplinasObj.allow_conflict = !parseSimNaoToBoolean(text);
+        disciplinasObj.allow_conflict = !!parseSimNaoToBoolean(text);
       }
       if ((index - 4) % 6 === 0) {
         disciplinasObj.minimum_credits = parseUerjNumber(text) || 0;
       }
       if ((index - 5) % 6 === 0) {
-        disciplinasObj.has_prerequisites = parseSimNaoToBoolean(text);
+        disciplinasObj.has_prerequisites = !!parseSimNaoToBoolean(text);
         disciplinasArray.push(disciplinasObj as UniversalSubject);
       }
     });

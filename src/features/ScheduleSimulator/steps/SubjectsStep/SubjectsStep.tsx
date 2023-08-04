@@ -92,7 +92,7 @@ const SubjectsStep = () => {
     } = subject;
 
     const requirementText = has_prerequisites ? '' : 'Não possui pré-requisito';
-    const conflictText = allow_conflict ? '' : 'Não permite conflito';
+    const conflictText = allow_conflict ? 'Permite conflito' : '';
 
     const creditsText = minimum_credits
       ? `Trava de ${minimum_credits} créditos`
