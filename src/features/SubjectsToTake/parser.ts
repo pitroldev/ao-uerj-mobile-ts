@@ -47,13 +47,13 @@ export default function parseSubjectsToTake(html: string) {
           obrigatoriasObj.period = parseUerjNumber(text) || null;
         }
         if ((index - 4) % 7 === 0) {
-          obrigatoriasObj.allow_conflict = !parseSimNaoToBoolean(text);
+          obrigatoriasObj.allow_conflict = !!parseSimNaoToBoolean(text);
         }
         if ((index - 5) % 7 === 0) {
           obrigatoriasObj.minimum_credits = parseUerjNumber(text) || 0;
         }
         if ((index - 6) % 7 === 0) {
-          obrigatoriasObj.has_prerequisites = parseSimNaoToBoolean(text);
+          obrigatoriasObj.has_prerequisites = !!parseSimNaoToBoolean(text);
           obrigatoriasObj.type = 'MANDATORY';
           disciplinas.push(obrigatoriasObj as SubjectToTake);
         }
@@ -80,13 +80,13 @@ export default function parseSubjectsToTake(html: string) {
           obrigatoriasObj.period = parseUerjNumber(text) || null;
         }
         if ((index - 5) % 8 === 0) {
-          restritasObj.allow_conflict = !parseSimNaoToBoolean(text);
+          restritasObj.allow_conflict = !!parseSimNaoToBoolean(text);
         }
         if ((index - 6) % 8 === 0) {
           restritasObj.minimum_credits = parseUerjNumber(text) || 0;
         }
         if ((index - 7) % 8 === 0) {
-          restritasObj.has_prerequisites = parseSimNaoToBoolean(text);
+          restritasObj.has_prerequisites = !!parseSimNaoToBoolean(text);
           restritasObj.type = 'RESTRICTED';
           disciplinas.push(restritasObj as SubjectToTake);
         }
@@ -109,13 +109,13 @@ export default function parseSubjectsToTake(html: string) {
           definidasObj.period = parseUerjNumber(text) || null;
         }
         if ((index - 3) % 6 === 0) {
-          definidasObj.allow_conflict = !parseSimNaoToBoolean(text);
+          definidasObj.allow_conflict = !!parseSimNaoToBoolean(text);
         }
         if ((index - 4) % 6 === 0) {
           definidasObj.minimum_credits = parseUerjNumber(text) || 0;
         }
         if ((index - 5) % 6 === 0) {
-          definidasObj.has_prerequisites = parseSimNaoToBoolean(text);
+          definidasObj.has_prerequisites = !!parseSimNaoToBoolean(text);
           definidasObj.type = 'DEFINED';
           disciplinas.push(definidasObj as SubjectToTake);
         }

@@ -92,8 +92,8 @@ const UniversalSubjects = () => {
     const {has_prerequisites, allow_conflict, id, minimum_credits, name} =
       subject;
 
-    const requirementText = has_prerequisites ? 'Possui pré-requisito' : '';
-    const conflictText = allow_conflict ? '' : 'Não permite conflito';
+    const requirementText = has_prerequisites ? '' : 'Não possui pré-requisito';
+    const conflictText = allow_conflict ? 'Permite conflito' : '';
 
     const creditsText = minimum_credits
       ? `Trava de ${minimum_credits} créditos`
