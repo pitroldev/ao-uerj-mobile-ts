@@ -143,7 +143,7 @@ const HomePage = () => {
   }
 
   const hasAnyError = errors.length > 0;
-  const hasTooManyErrors = errors.length > 2;
+  const hasTooManyErrors = errors.length >= 2;
   const errorText = `Ops, parece que houve um erro nos seguintes componentes: ${errors
     .map(e => e.label)
     .join(', ')}. Toque aqui para tentar novamente.`;
