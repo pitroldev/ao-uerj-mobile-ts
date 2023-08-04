@@ -170,13 +170,15 @@ const GenerationStep = () => {
         )}
       </ContentContainer>
 
-      <ButtonsRow>
-        <TouchableOpacity onPress={handleResetPress}>
-          <Text weight="bold" color="PRIMARY">
-            Gerar outra grade
-          </Text>
-        </TouchableOpacity>
-      </ButtonsRow>
+      {hasData && (
+        <ButtonsRow>
+          <TouchableOpacity onPress={handleResetPress}>
+            <Text weight="bold" color="PRIMARY">
+              Gerar outra grade
+            </Text>
+          </TouchableOpacity>
+        </ButtonsRow>
+      )}
     </Container>
   );
 };
