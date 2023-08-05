@@ -1,6 +1,19 @@
 
 
-## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.7...HEAD)
+## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.8...HEAD)
+
+### New Features
+
+### Fixes
+
+### Styles
+
+### Performance
+
+### Other Changes
+
+
+## [v1.1.8](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.7...v1.1.8)
 
 ### New Features
 
