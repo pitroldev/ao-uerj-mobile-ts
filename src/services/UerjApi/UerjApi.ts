@@ -1,4 +1,4 @@
-import axios, {AxiosError} from 'axios';
+import axios, {AxiosError, AxiosResponse} from 'axios';
 import iconv from 'iconv-lite';
 import {Buffer} from 'buffer';
 
@@ -9,7 +9,8 @@ import {NOT_RETRY_ERRORS} from './utils';
 
 const BASE_URL = 'https://www.alunoonline.uerj.br';
 const COOKIE_MAX_DURATION_IN_HOURS = 2;
-const MAX_RETRIES = 3;
+const MAX_ERROR_RETRIES = 3;
+const MAX_SUCCESS_RETRIES = 1;
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -38,7 +39,7 @@ const responseErrorInterceptor = async (err: AxiosError) => {
   const isServerError = err?.response?.status && err.response.status >= 500;
   const originalRequest = err.config as any;
 
-  const isReachedRetryLimit = originalRequest._retries >= MAX_RETRIES;
+  const isReachedRetryLimit = originalRequest._retries >= MAX_ERROR_RETRIES;
 
   const isSessionPossiblyExpired =
     cookieTimeInHours > COOKIE_MAX_DURATION_IN_HOURS || isServerError;
@@ -46,14 +47,15 @@ const responseErrorInterceptor = async (err: AxiosError) => {
   const isNotRetryError = NOT_RETRY_ERRORS.includes(err.message);
 
   if (isSessionPossiblyExpired && !isReachedRetryLimit && !isNotRetryError) {
+    console.log('########### ERROR INTERCEPTOR (RETRYING) #############');
+
     originalRequest._retries = (originalRequest._retries || 0) + 1;
 
     await refreshAuth().catch(e => {
       const notRetry = NOT_RETRY_ERRORS.includes(e.message);
       if (notRetry) {
-        originalRequest._retries = MAX_RETRIES;
+        originalRequest._retries = MAX_ERROR_RETRIES;
       }
-      console.log('refreshAuth', e);
     });
 
     return api(originalRequest);
@@ -62,6 +64,39 @@ const responseErrorInterceptor = async (err: AxiosError) => {
   Promise.reject(err);
 };
 
-api.interceptors.response.use(undefined, responseErrorInterceptor);
+const responseSuccessInterceptor = async (res: AxiosResponse) => {
+  const dataLen = res.data?.length || 0;
+  const hasNoData = dataLen === 0 || dataLen < 100;
+
+  const originalRequest = res.config as any;
+  const isReachedRetryLimit = originalRequest._retries >= MAX_SUCCESS_RETRIES;
+
+  console.log({
+    dataLen,
+    hasNoData,
+    params: originalRequest.params,
+    url: originalRequest.url,
+  });
+  if (hasNoData && !isReachedRetryLimit) {
+    originalRequest._retries = (originalRequest._retries || 0) + 1;
+
+    console.log('########### SUCCESS INTERCEPTOR (RETRYING) #############');
+    await refreshAuth().catch(e => {
+      const notRetry = NOT_RETRY_ERRORS.includes(e.message);
+      if (notRetry) {
+        originalRequest._retries = MAX_SUCCESS_RETRIES;
+      }
+    });
+
+    return api(originalRequest);
+  }
+
+  return res;
+};
+
+api.interceptors.response.use(
+  responseSuccessInterceptor,
+  responseErrorInterceptor,
+);
 
 export default api;
