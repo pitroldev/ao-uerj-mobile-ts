@@ -71,12 +71,6 @@ const responseSuccessInterceptor = async (res: AxiosResponse) => {
   const originalRequest = res.config as any;
   const isReachedRetryLimit = originalRequest._retries >= MAX_SUCCESS_RETRIES;
 
-  console.log({
-    dataLen,
-    hasNoData,
-    params: originalRequest.params,
-    url: originalRequest.url,
-  });
   if (hasNoData && !isReachedRetryLimit) {
     originalRequest._retries = (originalRequest._retries || 0) + 1;
 
