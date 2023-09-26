@@ -46,8 +46,8 @@ function getSubjectsInfo(html: string) {
 
   const subjects: AttendedSubjectInfo[] = rawSubjects.map(rawSubject => {
     const {codeAndName, uerjLocationOrStatus} = rawSubject;
-    const id = parseSubjectID(codeAndName);
-    const name = parseSubjectName(codeAndName);
+    const id = parseSubjectID(codeAndName as string);
+    const name = parseSubjectName(codeAndName as string);
     const status = uerjLocationOrStatus?.toLowerCase().includes('cancelada')
       ? 'CANCELED'
       : 'ACTIVE';

@@ -1,6 +1,6 @@
 export const APP_INFO = [
   {
-    title: 'Gerador de Grade',
+    title: 'Gerador de Grade (beta)',
     isNew: true,
     description: 'Gere suas grades de horários de forma rápida e fácil.',
   },
