@@ -89,7 +89,7 @@ export default function parseSubjectClassesSchedule(html: string) {
               }
             });
 
-          turmasObj.classNumber = parseSubjectCode(temp[0]);
+          turmasObj.classNumber = parseSubjectCode(temp[0]) as number;
           turmasObj.hasPreference = !!parseSimNaoToBoolean(temp[1]);
           turmasObj.schedule = getHorarioArray(temp[3].replace('#', '\n'));
           turmasArray.push(turmasObj as SubjectClassesSchedule);

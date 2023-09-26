@@ -9,7 +9,7 @@ import {
 
 import Text from '@atoms/Text';
 
-import ScheduleBox from '../ScheduleBox';
+import ScheduleDayBoxes from '../ScheduleBox';
 
 import {
   InlineRow,
@@ -83,7 +83,7 @@ const ClassBox = (c: SubjectClassesSchedule) => {
 
       <InlineRow>
         {schedule.map((props, index) => (
-          <ScheduleBox {...props} key={index.toString()} />
+          <ScheduleDayBoxes {...props} key={index.toString()} />
         ))}
       </InlineRow>
     </Container>
