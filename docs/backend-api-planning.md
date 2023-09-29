@@ -7,10 +7,39 @@
   - [Listar Disciplinas em Curso](#listar-disciplinas-em-curso)
   - [Listar Notas das Disciplinas em Curso](#listar-notas-das-disciplinas-em-curso)
   - [Listar Disciplinas Realizadas](#listar-disciplinas-realizadas)
+  - [Listar RID Provisório](#listar-rid-provisório)
+  - [Listar Disciplinas do Curriculo](#listar-disciplinas-do-curriculo)
+  - [Listar Departamentos](#listar-departamentos)
+  - [Listar Disciplinas por Departamento](#listar-disciplinas-por-departamento)
+  - [Listar Detalhes de uma Disciplina](#listar-detalhes-de-uma-disciplina)
 
 ## Autenticanção
 
-A definir
+> A definir, abaixo segue um exemplo de como poderia ser feita a autenticação.
+
+
+<!-- jwt -->
+``` mermaid
+
+sequenceDiagram
+    participant Cliente
+    participant Servidor
+    participant Banco de Dados
+
+    Cliente ->> Servidor: Envia solicitação de login
+    Servidor ->> Banco de Dados: Valida as credenciais
+    Banco de Dados -->> Servidor: Envia resultado da validação
+    alt Credenciais Válidas
+        Servidor -->> Cliente: Gera e envia JWT
+        Cliente ->> Servidor: Envia solicitação segura com JWT
+        Servidor -->> Banco de Dados: Processa a solicitação
+        Banco de Dados -->> Servidor: Envia resposta
+        Servidor -->> Cliente: Envia resposta para o Usuário
+    else Credenciais Inválidas
+        Servidor -->> Cliente: Envia mensagem de erro
+    end
+
+```
 
 ## Endpoints
 
@@ -31,17 +60,19 @@ Accept: application/json
 #### Tipagem - Listar Disciplinas em Curso
 
 ``` typescript
-type AttendedSubjectInfo = {
+type AttendedSubjectClassInfo = {
   id: string;
+  department: string;
   name: string;
   class: string;
   avaLocation: string;
   uerjLocation: string;
+  teachers: string[];
   status: 'ACTIVE' | 'CANCELED';
 };
 
-type AttendedClassesSchedule = {
-  class: AttendedSubjectInfo;
+type AttendedClassSchedule = {
+  class: AttendedSubjectClassInfo;
   dayAlias: string;
   dayNumber: number;
   subject_id: string;
@@ -50,11 +81,11 @@ type AttendedClassesSchedule = {
 };
 
 type EndpointResponse = {
-  data: AttendedClassesSchedule[];
+  data: AttendedClassSchedule[];
 };
 ```
 
-### Descrição - Listar Disciplinas em Curso
+#### Descrição - Listar Disciplinas em Curso
 
 - **AttendedSubjectInfo**
 
@@ -198,7 +229,7 @@ type EndpointResponse = {
 };
 ```
 
-### Descrição - Notas das Disciplinas em Curso
+#### Descrição - Notas das Disciplinas em Curso
 
 - **Grade**
 
@@ -310,7 +341,7 @@ type EndpointResponse = {
 };
 ```
 
-### Descrição - Listar Disciplinas Realizadas
+#### Descrição - Listar Disciplinas Realizadas
 
 - **SubjectTaken**
 
@@ -439,7 +470,7 @@ type EndpointResponse = {
 };
 ```
 
-### Descrição - Listar RID Provisório
+#### Descrição - Listar RID Provisório
 
 - **SubjectClassTempRID**
 
@@ -520,7 +551,7 @@ Lista todas as disciplinas do currículo do aluno. Possui um parâmetro opcional
 Requisição sem o parâmetro `not_taken_only`, listando todas as disciplinas do currículo:
 
 ``` http
-GET {BASE_URL}/api/v1/disciplinas-do-curriculo
+GET {BASE_URL}/api/v1/disciplinas-curriculo
 
 Accept: application/json
 ```
@@ -528,7 +559,7 @@ Accept: application/json
 Requisição com o parâmetro `not_taken_only`, listando somente as disciplinas que o aluno ainda precisa cursar:
 
 ``` http
-GET {BASE_URL}/api/v1/disciplinas-do-curriculo?not_taken_only=true
+GET {BASE_URL}/api/v1/disciplinas-curriculo?not_taken_only=true
 
 Accept: application/json
 ```
@@ -560,7 +591,7 @@ type EndpointResponse = {
 };
 ```
 
-### Descrição - Listar Disciplinas do Curriculo
+#### Descrição - Listar Disciplinas do Curriculo
 
 - **SubjectInfo**
 
@@ -579,7 +610,7 @@ type EndpointResponse = {
 | `credits` | Créditos da disciplina, caso exista |
 | `workload` | Carga horária da disciplina, caso exista |
 
-### Exemplo de sucesso (JSON) - Listar Disciplinas do Curriculo
+#### Exemplo de sucesso (JSON) - Listar Disciplinas do Curriculo
 
 No exemplo abaixo existem duas disciplinas que o aluno ainda precisa cursar:
 
@@ -636,5 +667,403 @@ Status: 200 OK
       "workload": 90
     }
   ]
+}
+```
+
+### Listar Departamentos
+
+Lista todos os departamentos da UERJ.
+
+#### Requisição - Listar Departamentos
+
+``` http
+GET {BASE_URL}/api/v1/departamentos
+
+Accept: application/json
+```
+
+#### Tipagem - Listar Departamentos
+
+``` typescript
+
+type DepartmentInfo = {
+  id: string;
+  alias: string;
+  name: string;
+}
+
+type EndpointResponse = {
+  data: DepartmentInfo[];
+};
+```
+
+#### Descrição - Listar Departamentos
+
+- **DepartmentInfo**
+
+| Campo | Descrição |
+| --- | --- |
+| `id` | Identificador/código do departamento |
+| `alias` | Sigla do departamento |
+| `name` | Nome do departamento |
+
+#### Exemplo de sucesso (JSON) - Listar Departamentos
+
+No exemplo abaixo existem dois departamentos:
+
+- Faculdade de Engenharia
+- Instituto de Matemática e Estatística
+
+``` http
+Status: 200 OK
+```
+
+``` json
+{
+  "data": [
+    {
+      "id": "1",
+      "alias": "FEN",
+      "name": "Faculdade de Engenharia"
+    },
+    {
+      "id": "2",
+      "alias": "IME",
+      "name": "Instituto de Matemática e Estatística"
+    }
+  ]
+}
+```
+
+### Listar Disciplinas por Departamento
+
+Lista todas as disciplinas de um determinado departamento. Possui dois parâmetros:
+
+- `department_id`: ID do departamento da disciplina _(obrigatório)_
+- `universal_only`: Mostra somente as disciplinas universais _(opcional)_
+
+#### Requisição - Listar Disciplinas por Departamento
+
+Requisição sem o parâmetro `universal_only`, listando todas as disciplinas do departamento:
+
+``` http
+GET {BASE_URL}/api/v1/departamentos/{department_id}/disciplinas
+
+Accept: application/json
+```
+
+Requisição com o parâmetro `universal_only`, listando somente as disciplinas universais do departamento:
+
+``` http
+GET {BASE_URL}/api/v1/departamentos/{department_id}/disciplinas?universal_only=true
+
+Accept: application/json
+```
+
+#### Tipagem - Listar Disciplinas por Departamento
+
+``` typescript
+
+type SubjectInfo = {
+  id: string;
+  department: string;
+  name: string;
+  type:
+    | 'MANDATORY'
+    | 'RESTRICTED_ELECTIVE'
+    | 'DEFINED_ELECTIVE'
+    | 'UNIVERSAL';
+  branch?: string;
+  period?: number;
+  allow_conflict: boolean;
+  minimum_credits: number;
+  has_prerequisites: boolean;
+  group?: string;
+  credits?: number;
+  workload?: number;
+}
+
+type EndpointResponse = {
+  data: SubjectInfo[];
+};
+```
+
+#### Descrição - Listar Disciplinas por Departamento
+
+- **SubjectInfo**
+
+Visualizar descrição em [Tipagem - Listar Disciplinas do Curriculo](#tipagem---listar-disciplinas-do-curriculo)
+
+#### Exemplo de sucesso (JSON) - Listar Disciplinas por Departamento
+
+No exemplo abaixo são listadas todas as disciplinas do departamento de Física:
+
+- Física I
+  - Tipo: Obrigatória
+  - Créditos Mínimos: 6
+  - Período: 1
+  - Permite Conflito de Horários: Sim
+  - Possui Pré-requisitos: Não
+  - Créditos: 6
+  - Carga Horária: 90
+
+- Física II
+  - Tipo: Obrigatória
+  - Créditos Mínimos: 6
+  - Período: 2
+  - Permite Conflito de Horários: Sim
+  - Possui Pré-requisitos: Não
+  - Créditos: 6
+  - Carga Horária: 90
+
+``` http
+Status: 200 OK
+```
+
+``` json
+{
+  "data": [
+    {
+      "id": "5142",
+      "department": "FIS",
+      "name": "Física I",
+      "type": "MANDATORY",
+      "branch": "79",
+      "period": 1,
+      "allow_conflict": true,
+      "minimum_credits": 6,
+      "has_prerequisites": false,
+      "group": null,
+      "credits": 6,
+      "workload": 90
+    },
+    {
+      "id": "5143",
+      "department": "FIS",
+      "name": "Física II",
+      "type": "MANDATORY",
+      "branch": "79",
+      "period": 2,
+      "allow_conflict": true,
+      "minimum_credits": 6,
+      "has_prerequisites": false,
+      "group": null,
+      "credits": 6,
+      "workload": 90
+    }
+  ]
+}
+```
+
+### Listar Detalhes de uma Disciplina
+
+Lista os detalhes de uma disciplina, incluindo suas informações e informações sobre as turmas.
+
+#### Requisição - Listar Detalhes de uma Disciplina
+
+``` http
+GET {BASE_URL}/api/v1/disciplinas/{subject_id}
+
+Accept: application/json
+```
+
+#### Tipagem - Listar Detalhes de uma Disciplina
+
+``` typescript
+type SubjectPrerequisite = {
+  id: string;
+  name: string;
+}
+
+
+type SubjectInfo = {
+  id: string;
+  department: string;
+  name: string;
+  type:
+    | 'MANDATORY'
+    | 'RESTRICTED_ELECTIVE'
+    | 'DEFINED_ELECTIVE'
+    | 'UNIVERSAL';
+  branch?: string;
+  period?: number;
+  allow_conflict: boolean;
+  minimum_credits: number;
+  has_prerequisites: boolean;
+  group?: string;
+  credits?: number;
+  workload?: number;
+  prerequisites?: SubjectPrerequisite[];
+}
+
+type SubjectClassSchedule = {
+  dayAlias: string;
+  dayNumber: number;
+  start_time_in_minutes: number;
+  end_time_in_minutes: number;
+};
+
+type SubjectClassInfo = {
+  id: string;
+  department: string;
+  name: string;
+  class: string;
+  teachers: string[];
+  schedule: SubjectClassSchedule[];
+  vacancies: number;
+  available: number;
+  requested: number;
+};
+
+type EndpointResponse = {
+  data: {
+    subject: SubjectInfo;
+    classes: SubjectClassInfo[];
+  };
+};
+```
+
+#### Descrição - Listar Detalhes de uma Disciplina
+
+- **SubjectPrerequisite**
+
+| Campo | Descrição |
+| --- | --- |
+| `id` | Identificador/código da disciplina |
+| `name` | Nome da disciplina |
+
+- **SubjectInfo**
+
+Visualizar descrição em [Tipagem - Listar Disciplinas do Curriculo](#tipagem---listar-disciplinas-do-curriculo)
+
+No campo `prerequisites` é listado uma matriz de JSON _SubjectPrerequisite_, contendo informações sobre os pré-requisitos da disciplina. Cada linha representa um conjunto de pré-requisitos, onde o aluno precisa cursar **pelo menos uma** das disciplinas listadas na linha.
+
+- **SubjectClassSchedule**
+
+Visualizar descrição em [Tipagem - Listar Disciplinas em Curso](#tipagem---listar-disciplinas-em-curso)
+
+- **SubjectClassInfo**
+
+| Campo | Descrição |
+| --- | --- |
+| `id` | Identificador/código da disciplina |
+| `department` | Departamento da disciplina |
+| `name` | Nome da disciplina |
+| `class` | Turma da disciplina |
+| `teachers` | Lista do nome dos professores da turma |
+| `schedule` | Lista de JSON SubjectClassSchedule, contendo informações sobre o horário da disciplina |
+| `vacancies` | Número de vagas da turma |
+| `available` | Número de vagas disponíveis da turma |
+| `requested` | Número de vagas solicitadas da turma |
+
+- **EndpointResponse**
+
+| Campo | Descrição |
+| --- | --- |
+| `subject` | JSON SubjectInfo, contendo informações sobre a disciplina |
+| `classes` | Lista de JSON SubjectClassInfo, contendo informações sobre as turmas da disciplina |
+
+#### Exemplo de sucesso (JSON) - Listar Detalhes de uma Disciplina
+
+No exemplo abaixo são listados os detalhes da disciplina de Cálculo Diferencial e Integral I:
+
+- Cálculo Diferencial e Integral II
+  - Tipo: Obrigatória
+  - Créditos Mínimos: 6
+  - Período: 1
+  - Permite Conflito de Horários: Sim
+  - Possui Pré-requisitos: Não
+  - Créditos: 6
+  - Carga Horária: 90
+  - Pré-requisitos: (Cálculo Diferencial e Integral I OU Cálculo I) e Álgebra Linear I
+  - Turmas:
+    - Turma 1
+      - Professores: Carlos Alberto, João da Silva
+      - Horários:
+        - Segunda: 07:00 - 07:50 (M1)
+        - Quarta: 07:00 - 07:50 (M1)
+      - Vagas: 10
+      - Vagas Disponíveis: 10
+      - Vagas Solicitadas: 20
+    - Turma 2
+      - Professor: Thiago Rodrigues
+      - Horários:
+        - Segunda: 07:00 - 08:40 (M1~M2)
+      - Vagas: 10
+      - Vagas Disponíveis: 15
+      - Vagas Solicitadas: 20
+
+``` http
+Status: 200 OK
+```
+
+``` json
+{
+  "data": {
+    "subject": {
+      "id": "CDI2",
+      "department": "IME",
+      "name": "Cálculo Diferencial e Integral II",
+      "type": "MANDATORY",
+      "branch": "396",
+      "period": 1,
+      "allow_conflict": true,
+      "minimum_credits": 6,
+      "has_prerequisites": false,
+      "group": "A",
+      "credits": 6,
+      "workload": 90,
+      "prerequisites": [["CDI1", "CALC1"], ["ALIN1"]]
+    },
+    "classes": [
+      {
+        "id": "CDI2",
+        "department": "IME",
+        "name": "Cálculo Diferencial e Integral II",
+        "class": "1",
+        "teachers": [
+          "Carlos Alberto",
+          "João da Silva"
+        ],
+        "schedule": [
+          {
+            "dayAlias": "Segunda",
+            "dayNumber": 1,
+            "start_time_in_minutes": 420,
+            "end_time_in_minutes": 470
+          },
+          {
+            "dayAlias": "Quarta",
+            "dayNumber": 3,
+            "start_time_in_minutes": 420,
+            "end_time_in_minutes": 470
+          }
+        ],
+        "vacancies": 10,
+        "available": 10,
+        "requested": 20
+      },
+      {
+        "id": "CDI2",
+        "department": "IME",
+        "name": "Cálculo Diferencial e Integral II",
+        "class": "2",
+        "teachers": [
+          "Thiago Rodrigues"
+        ],
+        "schedule": [
+          {
+            "dayAlias": "Segunda",
+            "dayNumber": 1,
+            "start_time_in_minutes": 420,
+            "end_time_in_minutes": 530
+          }
+        ],
+        "vacancies": 10,
+        "available": 15,
+        "requested": 20
+      }
+    ]
+  }
 }
 ```
