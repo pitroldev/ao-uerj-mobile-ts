@@ -1,5 +1,10 @@
 import {SubjectsTaken} from '@features/SubjectsTaken/types';
-import {parseSubjectType, parseUerjNumber} from '@services/parser/minorParser';
+import {
+  parseSubjectID,
+  parseSubjectName,
+  parseSubjectType,
+  parseUerjNumber,
+} from '@services/parser/minorParser';
 
 const cheerio = require('react-native-cheerio');
 
@@ -40,11 +45,8 @@ export default function parseSubjectsTaken(html: string): SubjectsTaken[] {
 
       const diff = hasIsentos ? index - counter - 1 : index - counter;
       if (diff % MOD === 0) {
-        disciplinaObj.name = text.trim();
-        const disciplinaCode = disciplinaCodes.find(
-          v => v.disciplina === text.trim(),
-        );
-        disciplinaObj.id = disciplinaCode?.code as string;
+        disciplinaObj.id = parseSubjectID(text);
+        disciplinaObj.name = parseSubjectName(text);
       }
 
       if ((diff - 1) % MOD === 0) {

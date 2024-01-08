@@ -74,8 +74,7 @@ const SubjectsAttended = () => {
       return;
     }
     const code = parser.parseSubjectCode(subject.id) as number;
-    dispatch(subjectDetailReducer.appendData({code}));
-    dispatch(subjectDetailReducer.select({code}));
+    dispatch(subjectDetailReducer.setCurrent({code}));
     navigation.navigate('Pesquisa de Disciplinas');
   };
 
@@ -148,7 +147,7 @@ const SubjectsAttended = () => {
         />
       )}
       {showSpinner && <Spinner size={40} />}
-      {!loading && error && !isBlocked && (
+      {!loading && (error as Error) && !isBlocked && (
         <DummyMessage
           type="ERROR"
           onPress={refetch}

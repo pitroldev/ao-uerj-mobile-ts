@@ -7,7 +7,7 @@ import parseSubjectClassesSchedule from './parser';
 export const _fetchRawSubjectClassesScheduleData = async (
   subjectID?: string | number,
 ) => {
-  const url = '/requisicaoaluno/requisicao.php';
+  const url = '/requisicaoaluno/';
   const requisicao = await getRequisitionID('HorariosTurmasDisciplina');
   const {apiConfig} = store.getState();
 

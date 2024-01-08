@@ -23,26 +23,28 @@ function getSubjectsInfo(html: string) {
     'uerjLocationOrStatus',
   ];
 
-  $('div table:nth-child(1) tr').each((rowIndex: number, row: any) => {
-    const isHeader = rowIndex === 0;
-    const hasEnoughChildrens = row.children?.length > 5;
-    if (isHeader || !hasEnoughChildrens) {
-      return;
-    }
+  $('.divContentBoxBody div:nth-child(1) table tr').each(
+    (rowIndex: number, row: any) => {
+      const isHeader = rowIndex === 0;
+      const hasEnoughChildrens = row.children?.length > 5;
+      if (isHeader || !hasEnoughChildrens) {
+        return;
+      }
 
-    const subjectRawInfo = {};
-    $(row)
-      .find('td')
-      .each((colIndex: number, cell: any) => {
-        const cellValue = cell?.children && cell.children[0]?.data;
-        Object.assign(subjectRawInfo, {[header[colIndex]]: cellValue});
-      });
+      const subjectRawInfo = {};
+      $(row)
+        .find('td')
+        .each((colIndex: number, cell: any) => {
+          const cellValue = cell?.children && cell.children[0]?.data;
+          Object.assign(subjectRawInfo, {[header[colIndex]]: cellValue});
+        });
 
-    const hasAnyValue = Object.values(subjectRawInfo).some(Boolean);
-    if (hasAnyValue) {
-      rawSubjects.push(subjectRawInfo as RawSubjectInfo);
-    }
-  });
+      const hasAnyValue = Object.values(subjectRawInfo).some(Boolean);
+      if (hasAnyValue) {
+        rawSubjects.push(subjectRawInfo as RawSubjectInfo);
+      }
+    },
+  );
 
   const subjects: AttendedSubjectInfo[] = rawSubjects.map(rawSubject => {
     const {codeAndName, uerjLocationOrStatus} = rawSubject;
@@ -96,39 +98,51 @@ function getFragmentedSchedule(html: string) {
   const $ = cheerio.load(html);
 
   const fragmentedSchedule: ScheduleInfo[] = [];
-  $('div table:nth-child(3) tr').each((rowIndex: number, row: any) => {
-    const timeIndex = Math.ceil(rowIndex / 2) - 1;
-    const rowTime = TIME_VALUES[timeIndex];
+  let begin = false;
+  $('.divContentBoxBody div+ div table tr').each(
+    (rowIndex: number, row: any) => {
+      const hasId = row.attribs.id;
+      if (hasId) {
+        begin = true;
+      }
 
-    $(row)
-      .find('td')
-      .each((dayNumber: number, cell: any) => {
-        const dayAlias = header[dayNumber];
-        const cellValue: string = cell?.children && cell.children[0]?.data;
+      if (!begin) {
+        return;
+      }
 
-        const nonUniqueSubjectsCode =
-          cellValue?.split('\n')?.map(c => c.trim()) ?? [];
-        const subjectsCode = [...new Set(nonUniqueSubjectsCode)];
+      const timeIndex = Math.ceil(rowIndex / 2) - 1;
+      const rowTime = TIME_VALUES[timeIndex];
 
-        subjectsCode.forEach(subject_id => {
-          const currentSchedule: Partial<ScheduleInfo> = {};
+      $(row)
+        .find('td')
+        .each((dayNumber: number, cell: any) => {
+          const dayAlias = header[dayNumber];
+          const cellValue: string = cell?.children && cell.children[0]?.data;
 
-          Object.assign(currentSchedule, {
-            dayAlias,
-            dayNumber: dayNumber + 1,
-            subject_id,
-            ...rowTime,
+          const nonUniqueSubjectsCode =
+            cellValue?.split('\n')?.map(c => c.trim()) ?? [];
+          const subjectsCode = [...new Set(nonUniqueSubjectsCode)];
+
+          subjectsCode.forEach(subject_id => {
+            const currentSchedule: Partial<ScheduleInfo> = {};
+
+            Object.assign(currentSchedule, {
+              dayAlias,
+              dayNumber: dayNumber + 1,
+              subject_id,
+              ...rowTime,
+            });
+            const hasAnyValue =
+              Object.values(currentSchedule).some(Boolean) &&
+              currentSchedule.subject_id;
+
+            if (hasAnyValue) {
+              fragmentedSchedule.push(currentSchedule as ScheduleInfo);
+            }
           });
-          const hasAnyValue =
-            Object.values(currentSchedule).some(Boolean) &&
-            currentSchedule.subject_id;
-
-          if (hasAnyValue) {
-            fragmentedSchedule.push(currentSchedule as ScheduleInfo);
-          }
         });
-      });
-  });
+    },
+  );
 
   return fragmentedSchedule;
 }

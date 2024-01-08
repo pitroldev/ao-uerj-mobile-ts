@@ -6,36 +6,35 @@ import {useFormContext, useWatch} from 'react-hook-form';
 import Icon from 'react-native-vector-icons/AntDesign';
 
 import {parseSubjectCode} from '@services/parser/minorParser';
-import {parseScheduleToGeneratorFormat} from '@utils/converter';
 
 import {Prereq} from '@features/SubjectInfo/types';
 import {getSubjectInfo} from '@features/SubjectInfo/core';
 
-import {getSubjectClassesSchedule} from '@features/SubjectClassesSchedule/core';
-
 import {ScheduleCreationParams} from '@features/ScheduleSimulator/types';
-import {SubjectToTake} from '@features/SubjectsToTake/types';
-
-import {hasScheduleConflict} from '@features/ScheduleSimulator/core';
+import {CurriculumSubject} from '@features/CurriculumSubjects/types';
 
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
 
 import {Container, Row} from './SubjectDataFetcher.styles';
+import {parseScheduleToGeneratorFormat} from '@root/utils/converter';
+import {hasScheduleConflict} from '@root/features/ScheduleSimulator/core';
 
-const SubjectDataFetcher = (subject: SubjectToTake) => {
+const SubjectDataFetcher = (subject: CurriculumSubject) => {
   const {COLORS} = useTheme();
   const {control, setValue} = useFormContext<ScheduleCreationParams>();
 
   const {
     subjects,
-    classes,
+    selectedClasses,
     takenSubjects,
     busy_schedules: busySchedules,
-    loadedClassesSubjectId,
-  } = useWatch({control}) as ScheduleCreationParams;
+  } = useWatch({
+    control,
+  }) as ScheduleCreationParams;
 
   const code = parseSubjectCode(subject.id);
+  const alreadyHasSubject = subjects.some(s => s.id === subject.id);
 
   const {
     isFetching: loadingInfo,
@@ -45,32 +44,17 @@ const SubjectDataFetcher = (subject: SubjectToTake) => {
   } = useQuery({
     queryKey: ['subject-info', code],
     queryFn: () => getSubjectInfo(code),
+    enabled: !alreadyHasSubject,
     staleTime: 0,
-    onSuccess: info => {
+    onSuccess: data => {
       const filteredSubjects = subjects.filter(s => s.id !== subject.id);
-      setValue('subjects', [...filteredSubjects, info]);
-    },
-  });
+      setValue('subjects', [...filteredSubjects, {...data, id: subject.id}]);
 
-  const {
-    isFetching: loadingClasses,
-    error: errorClasses,
-    refetch: refetchClasses,
-  } = useQuery({
-    queryKey: ['subject-classes', code],
-    queryFn: () => getSubjectClassesSchedule(code),
-    staleTime: 0,
-    onSuccess: subjectClasses => {
-      const filteredClasses = classes.filter(s => s.subject_id !== subject.id);
-      const populatedClasses = subjectClasses.map(c => ({
+      const populatedClasses = data.classes.map(c => ({
         ...c,
         subject_id: subject.id,
       }));
-
-      const classesToSet = [...filteredClasses, ...populatedClasses];
-      setValue('classes', classesToSet);
-
-      const classesWithoutConflict = classesToSet.filter(c => {
+      const classesWithoutConflict = populatedClasses.filter(c => {
         const parsedSchedules = parseScheduleToGeneratorFormat(
           c?.schedule ?? [],
         );
@@ -81,14 +65,12 @@ const SubjectDataFetcher = (subject: SubjectToTake) => {
 
         return !hasConflictBetweenBusySchedules;
       });
-      setValue('selectedClasses', classesWithoutConflict);
-
-      const filteredLoadedClassesSubjectId = loadedClassesSubjectId.filter(
-        s => s !== subject.id,
+      const filteredSelectedClasses = selectedClasses.filter(
+        c => c.subject_id !== subject.id,
       );
-      setValue('loadedClassesSubjectId', [
-        ...filteredLoadedClassesSubjectId,
-        subject.id,
+      setValue('selectedClasses', [
+        ...filteredSelectedClasses,
+        ...classesWithoutConflict,
       ]);
     },
   });
@@ -96,12 +78,6 @@ const SubjectDataFetcher = (subject: SubjectToTake) => {
   const handleRefetchInfo = () => {
     if (errorInfo) {
       refetchInfo();
-    }
-  };
-
-  const handleRefetchClasses = () => {
-    if (errorClasses) {
-      refetchClasses();
     }
   };
 
@@ -114,11 +90,15 @@ const SubjectDataFetcher = (subject: SubjectToTake) => {
 
   const isPrereqsSatified =
     !hasPrerequisites ||
-    preReqs.every(prereq =>
-      approvedSubjects.some(taken =>
-        prereq.some(p => parseSubjectCode(p.id) === parseSubjectCode(taken.id)),
-      ),
-    );
+    preReqs
+      .filter(([prereq]) => !prereq?.id?.toUpperCase().includes('TRAVA'))
+      .every(prereq =>
+        approvedSubjects.some(taken =>
+          prereq.some(
+            p => parseSubjectCode(p.id) === parseSubjectCode(taken.id),
+          ),
+        ),
+      );
 
   const credits = approvedSubjects.reduce(
     (acc, taken) => acc + (Number(taken?.credits) || 0),
@@ -155,28 +135,6 @@ const SubjectDataFetcher = (subject: SubjectToTake) => {
               {notAbleReason}
             </Text>
           )}
-        </Row>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={handleRefetchClasses}>
-        <Row>
-          {loadingClasses && !errorClasses && <Spinner size={20} />}
-          {!loadingClasses && (
-            <Icon
-              name={
-                errorClasses || !isAbleToTake ? 'closecircle' : 'checkcircle'
-              }
-              color={
-                errorClasses || !isAbleToTake ? COLORS.ERROR : COLORS.SUCCESS
-              }
-              size={20}
-            />
-          )}
-          <Text weight="500" size="SM" marginLeft="8px" alignSelf="center">
-            {errorClasses && !loadingClasses
-              ? `Ocorreu um erro ao buscar turmas de ${subject.name}. Toque aqui para tentar novamente.`
-              : `Turmas: ${subject.name}`}
-          </Text>
         </Row>
       </TouchableOpacity>
     </Container>

@@ -2,11 +2,10 @@ import {createSlice, PayloadAction} from '@reduxjs/toolkit';
 
 import {AppState} from '@root/store';
 
-import {UniversalSubject, DepartmentOptions} from './types';
+import {UniversalSubject} from './types';
 
 type State = {
   subjects: UniversalSubject[];
-  options: DepartmentOptions[];
 };
 
 const initialState = {
@@ -23,18 +22,13 @@ const slice = createSlice({
         subjects: action.payload,
       });
     },
-    setOptions: (state, action: PayloadAction<DepartmentOptions[]>) => {
-      Object.assign(state, {
-        options: action.payload,
-      });
-    },
     clear: state => {
       Object.assign(state, initialState);
     },
   },
 });
 
-export const {setSubjects, setOptions, clear} = slice.actions;
+export const {setSubjects, clear} = slice.actions;
 export const selectUniversalSubjects = (state: AppState) =>
   state.universalSubjects;
 

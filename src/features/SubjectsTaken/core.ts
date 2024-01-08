@@ -5,7 +5,7 @@ import {getRequisitionID} from '@services/UerjApi/utils';
 import parseData from './parser';
 
 export const _fetchRawSubjectsTakenData = async () => {
-  const url = '/requisicaoaluno/requisicao.php';
+  const url = '/requisicaoaluno/';
   const requisicao = await getRequisitionID('DisciplinasRealizadas');
   const {apiConfig} = store.getState();
 

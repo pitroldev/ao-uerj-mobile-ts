@@ -35,11 +35,21 @@ const ClassesStep = () => {
   const {handleSubmit, setValue, control} =
     useFormContext<ScheduleCreationParams>();
 
-  const {
-    classes = [],
-    subjects = [],
-    selectedClasses = [],
-  } = useWatch({control});
+  const {subjects = [], selectedClasses = []} = useWatch({control});
+
+  const classes = subjects.reduce((acc, s) => {
+    if (!s.classes) {
+      return acc;
+    }
+
+    const classesToAdd = s.classes.map(c => ({
+      ...c,
+      subject_id: s.id,
+    })) as SubjectClasses[];
+    acc.push(...classesToAdd);
+
+    return acc;
+  }, [] as SubjectClasses[]);
 
   const handleNextPress = handleSubmit(nextStep);
 

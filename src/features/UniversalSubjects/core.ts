@@ -6,32 +6,28 @@ import {getRequisitionID} from '@services/UerjApi/utils';
 import parseData from './parser';
 import * as reducer from './reducer';
 
-export const _fetchRawUniversalSubjectsData = async (cod_unid?: string) => {
-  const url = '/requisicaoaluno/requisicao.php';
-  const requisicao = await getRequisitionID('Disciplinas Universais');
+export const _fetchRawUniversalSubjectsData = async () => {
   const {apiConfig} = store.getState();
+  const requisicao = await getRequisitionID('UniversaisCursar');
 
-  const options = {
+  const url = '/requisicaoaluno/';
+  const {data} = await api.get(url, {
     params: {
       controle: 'Aluno',
       requisicao,
       _token: apiConfig._token,
-      cod_unid,
     },
-  };
-
-  const {data} = await api.get(url, options);
+  });
 
   return data as string;
 };
 
-export async function fetchUniversalSubjects(cod_unid?: string) {
-  const rawData = await _fetchRawUniversalSubjectsData(cod_unid);
+export async function fetchUniversalSubjects() {
+  const rawData = await _fetchRawUniversalSubjectsData();
 
   const data = parseData(rawData);
 
-  store.dispatch(reducer.setSubjects(data.subjects));
-  store.dispatch(reducer.setOptions(data.options));
+  store.dispatch(reducer.setSubjects(data));
 
   return data;
 }

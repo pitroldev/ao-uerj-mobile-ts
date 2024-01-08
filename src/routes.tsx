@@ -71,10 +71,10 @@ const MainRoutes = () => {
             component={ScheduleSimulator}
           />
           <Drawer.Screen name="Mural de Mensagens" component={MessageBoard} />
-          <Drawer.Screen
+          {/* <Drawer.Screen
             name="Disciplinas a Cursar"
             component={SubjectsToTake}
-          />
+          /> */}
           <Drawer.Screen
             name="Disciplinas Realizadas"
             component={SubjectsTaken}
@@ -87,18 +87,18 @@ const MainRoutes = () => {
             name="Disciplinas Universais"
             component={UniversalSubjects}
           />
-          <Drawer.Screen
+          {/* { <Drawer.Screen
             name="Horário das Turmas"
             component={ClassSchedulesByDepartment}
-          />
+          />} */}
           <Drawer.Screen
             name="Pesquisa de Disciplinas"
             component={SubjectDetails}
           />
-          <Drawer.Screen
+          {/* <Drawer.Screen
             name="Pesquisa de Professores"
             component={TeacherSearch}
-          />
+          /> */}
           <Drawer.Screen name="Sobre" component={About} />
         </>
       ) : (

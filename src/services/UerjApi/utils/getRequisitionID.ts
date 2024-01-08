@@ -7,21 +7,20 @@ import parseSubjectInfoReqId from '@services/parser/subjectInfoReqId';
 import {retry} from './retry';
 
 export async function getClassInfoReqIDs() {
-  const url = '/requisicaoaluno/requisicao.php';
   const requisicao = await getRequisitionID('DisciplinasCursar');
   const {apiConfig} = store.getState();
 
-  const options = {
+  const url = '/requisicaoaluno/';
+  const {data} = await api.get(url, {
     params: {
       controle: 'Aluno',
       requisicao,
       _token: apiConfig._token,
     },
-  };
+  });
 
-  const {data} = await api.get(url, options);
+  const reqIds = parseSubjectInfoReqId(data);
 
-  const reqIds = await parseSubjectInfoReqId(data);
   return reqIds;
 }
 
@@ -31,10 +30,14 @@ export async function getRequisitionID(key: string): Promise<string> {
   const reqId = apiConfig.dictionary[key];
 
   if (!reqId) {
-    if (key === 'DadosDisciplina' || key === 'HorariosTurmasDisciplina') {
-      const reqIds = await retry(getClassInfoReqIDs);
-      store.dispatch(apiConfigReducer.addDictionary(reqIds));
-      return reqIds[key];
+    if (key === 'DadosDisciplina') {
+      const newReqId = await retry(getClassInfoReqIDs);
+      store.dispatch(
+        apiConfigReducer.addDictionary({
+          DadosDisciplina: newReqId,
+        }),
+      );
+      return newReqId;
     }
 
     throw new Error('REQ_ID_NOT_FOUND');

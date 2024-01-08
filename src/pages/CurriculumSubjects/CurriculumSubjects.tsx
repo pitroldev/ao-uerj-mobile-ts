@@ -27,11 +27,12 @@ import SubjectBox from '@molecules/SubjectBox';
 import DummyMessage from '@molecules/DummyMessage';
 import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
-import {Container} from './CurriculumSubjects.styles';
+import {Container, Row, View} from './CurriculumSubjects.styles';
 
 const HOUR_IN_MS = 1000 * 60 * 60;
 
 const CurriculumSubjects = () => {
+  const [subjectAlreadyTaken, setSubjectAlreadyTaken] = useState(false);
   const [subjectType, setSubjectType] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -71,8 +72,7 @@ const CurriculumSubjects = () => {
       return;
     }
     const code = parser.parseSubjectCode(subject.id) as number;
-    dispatch(subjectDetailReducer.appendData({code}));
-    dispatch(subjectDetailReducer.select({code}));
+    dispatch(subjectDetailReducer.setCurrent({code}));
     navigation.navigate('Pesquisa de Disciplinas');
   };
 
@@ -83,7 +83,8 @@ const CurriculumSubjects = () => {
       return null;
     }
 
-    const {name, id, type, credits, workload, branch, period} = subject;
+    const {name, id, type, credits, workload, branch, period, alreadyTaken} =
+      subject;
     const creditText = credits ? `${credits} créditos` : '';
     const workloadText = credits ? `${workload} horas` : '';
 
@@ -100,6 +101,7 @@ const CurriculumSubjects = () => {
         topLeftInfo={id}
         topRightInfo={SUBJECT_TYPE[type] || type}
         name={name}
+        color={alreadyTaken ? 'GOOD' : undefined}
         description={description}
         bottomLeftInfo={creditText}
         bottomRightInfo={workloadText}
@@ -112,12 +114,13 @@ const CurriculumSubjects = () => {
     );
   };
 
-  const filteredData = data.filter(({type, name}) => {
+  const filteredData = data.filter(({type, name, alreadyTaken}) => {
     const hasSubjectType = !subjectType || type === subjectType;
     const hasSearchQuery =
       !searchQuery || normalizeText(name).includes(normalizeText(searchQuery));
+    const hasSubjectAlreadyTaken = subjectAlreadyTaken === alreadyTaken;
 
-    return hasSubjectType && hasSearchQuery;
+    return hasSubjectType && hasSearchQuery && hasSubjectAlreadyTaken;
   });
 
   const isEmpty = filteredData.length === 0;
@@ -138,16 +141,34 @@ const CurriculumSubjects = () => {
 
   return (
     <Container>
-      <StyledPicker
-        selectedValue={subjectType}
-        onValueChange={s => handleSubjectTypeChange(s as string)}
-        loading={loading}
-        enabled={!loading}>
-        <Picker.Item label={'Todas'} value={''} />
-        <Picker.Item label={'Disciplinas Obrigatórias'} value={'MANDATORY'} />
-        <Picker.Item label={'Eletivas Restritas'} value={'RESTRICTED'} />
-        <Picker.Item label={'Eletivas Definidas'} value={'DEFINED'} />
-      </StyledPicker>
+      <Row>
+        <View>
+          <StyledPicker
+            selectedValue={subjectType}
+            onValueChange={s => handleSubjectTypeChange(s as string)}
+            loading={loading}
+            enabled={!loading}>
+            <Picker.Item label={'Todas as Disciplinas'} value={''} />
+            <Picker.Item
+              label={'Disciplinas Obrigatórias'}
+              value={'MANDATORY'}
+            />
+            <Picker.Item label={'Eletivas Restritas'} value={'RESTRICTED'} />
+            <Picker.Item label={'Eletivas Definidas'} value={'DEFINED'} />
+            <Picker.Item label={'Universais'} value={'UNIVERSAL'} />
+          </StyledPicker>
+        </View>
+        <View>
+          <StyledPicker
+            selectedValue={subjectAlreadyTaken}
+            onValueChange={s => setSubjectAlreadyTaken(s as boolean)}
+            loading={loading}
+            enabled={!loading}>
+            <Picker.Item label={'Não Atendidas'} value={false} />
+            <Picker.Item label={'Atendidas'} value={true} />
+          </StyledPicker>
+        </View>
+      </Row>
       <TextInput
         value={searchQuery}
         onChangeText={setSearchQuery}
@@ -162,7 +183,7 @@ const CurriculumSubjects = () => {
         />
       )}
       {showSpinner && <Spinner size={40} />}
-      {!loading && error && !isBlocked && (
+      {!loading && (error as Error) && !isBlocked && (
         <DummyMessage
           type="ERROR"
           onPress={refetch}

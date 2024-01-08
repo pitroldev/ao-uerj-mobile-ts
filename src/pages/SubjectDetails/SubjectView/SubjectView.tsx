@@ -4,11 +4,10 @@ import {Linking, ScrollView} from 'react-native';
 import {useAppDispatch, useAppSelector} from '@root/store';
 import {useBackHandler} from '@hooks/useBackHandler';
 
+import {SubjectInfo} from '@root/features/SubjectInfo/types';
+
 import * as apiConfigReducer from '@reducers/apiConfig';
 import * as reducer from '@features/SubjectClassesSchedule/reducer';
-
-import {SubjectClassesSchedule} from '@features/SubjectClassesSchedule/types';
-import {SubjectData} from '@features/SubjectClassesSchedule/reducer';
 
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
@@ -21,38 +20,35 @@ import {Container, TransparentButton, InfoBox} from './SubjectView.styles';
 
 type Props = {
   searchSubject: (s: string | number) => void;
-  code: number;
+  code: string | number;
+  subject?: SubjectInfo;
   loading: boolean;
-  classes?: SubjectClassesSchedule[];
-  subject?: SubjectData['subject'];
   error?: unknown;
 };
 
-const SubjectView = ({
-  searchSubject,
-  code,
-  classes,
-  subject,
-  error,
-  loading,
-}: Props) => {
+const SubjectView = ({searchSubject, subject, loading, code, error}: Props) => {
   const dispatch = useAppDispatch();
 
-  useBackHandler(() => dispatch(reducer.clearSelected()));
+  useBackHandler(() => dispatch(reducer.clearCurrent()));
 
   const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
 
-  const hasData = Boolean(classes && subject && code);
+  const hasData = Boolean(subject && code);
   const getSubject = async (subjectCode: string | number) => {
+    const isTrava = subjectCode.toString().toUpperCase().includes('TRAVA');
+    if (isTrava) {
+      return;
+    }
+
     const sameCode = code === subjectCode || subjectCode === subject?.id;
-    if (hasData && sameCode) {
+    if (hasData && sameCode && !error) {
       return;
     }
     searchSubject(subjectCode);
   };
 
   useEffect(() => {
-    getSubject(code);
+    getSubject(code!);
   }, [code]);
 
   const handleSyllabusPress = () => {
@@ -61,9 +57,11 @@ const SubjectView = ({
   };
 
   const hasSubject = Boolean(subject);
-  const hasClasses = classes && classes?.length > 0;
+  const hasClasses = subject?.classes && subject.classes?.length > 0;
   const hasPrerequisite =
     subject?.prerequisite && subject.prerequisite.length > 0;
+
+  const showInfo = hasSubject && !loading && !error;
 
   return (
     <Container>
@@ -99,21 +97,22 @@ const SubjectView = ({
             <Text size="MD" weight="600" marginLeft="4px" marginTop="4px">
               Requisitos Exigidos
             </Text>
-            {subject?.prerequisite?.map((reqs, index) =>
-              reqs.map(req => (
-                <SubjectBox
-                  key={req.id}
-                  topLeftInfo={req.id}
-                  topRightInfo={index + 1}
-                  name={req.name}
-                  onPress={() => getSubject(req.id)}
-                  boldOptions={{
-                    topLeft: true,
-                  }}
-                />
-              )),
-            )}
-            {!hasPrerequisite && (
+            {showInfo &&
+              subject?.prerequisite?.map((reqs, index) =>
+                reqs.map(req => (
+                  <SubjectBox
+                    key={req.id}
+                    topLeftInfo={req.id}
+                    topRightInfo={`${index + 1}`}
+                    name={req.name}
+                    onPress={() => getSubject(req.id)}
+                    boldOptions={{
+                      topLeft: true,
+                    }}
+                  />
+                )),
+              )}
+            {showInfo && !hasPrerequisite && (
               <Text
                 size="MD"
                 color="BACKGROUND_400"
@@ -127,12 +126,12 @@ const SubjectView = ({
           </>
         )}
 
-        {classes && (
+        {showInfo && subject?.classes && (
           <>
             <Text size="MD" weight="600" marginLeft="4px" marginTop="4px">
               Turmas
             </Text>
-            {classes?.map((props, index) => (
+            {subject?.classes?.map((props, index) => (
               <ClassBox {...props} key={index.toString()} />
             ))}
             {!hasClasses && (
@@ -151,7 +150,7 @@ const SubjectView = ({
 
         {loading && <Spinner size="large" />}
 
-        {!loading && error && (
+        {!loading && (error as Error) && (
           <DummyMessage
             type="ERROR"
             text="Ops, ocorreu um erro ao buscar as informações da disciplina. Toque aqui para tentar novamente."

@@ -8,6 +8,7 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import {useQuery} from 'react-query';
 
 import {normalizeText} from '@utils/normalize';
+import {UERJ_UNIT_OPTIONS} from '@root/utils/constants/unitOptions';
 import parser from '@services/parser';
 
 import {useAppDispatch, useAppSelector} from '@root/store';
@@ -33,21 +34,48 @@ const HOUR_IN_MS = 1000 * 60 * 60;
 
 const UniversalSubjects = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedOption, setSelectedOption] = useState<string | undefined>(
-    undefined,
-  );
+  const [selectedDepartment, setSelectedDepartment] = useState<
+    string | undefined
+  >(undefined);
 
-  const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
-  const {subjects, options} = useAppSelector(reducer.selectUniversalSubjects);
   const {periodo} = useAppSelector(infoReducer.selectUserInfo);
+  const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
+  const {subjects} = useAppSelector(reducer.selectUniversalSubjects);
+
+  const departmentOptions = subjects
+    .reduce(
+      (acc, subject) => {
+        const [departmentCode] = subject.id.split('-');
+        const onlyLettersDepartmentCode = departmentCode.replace(/\d/g, '');
+
+        const alreadyHasDepartment = acc.some(({value}) =>
+          value.includes(onlyLettersDepartmentCode),
+        );
+        if (alreadyHasDepartment) {
+          return acc;
+        }
+
+        const label =
+          UERJ_UNIT_OPTIONS.find(({text}) =>
+            text.includes(onlyLettersDepartmentCode),
+          )?.text || departmentCode;
+
+        return [...acc, {value: onlyLettersDepartmentCode, label}];
+      },
+      [] as {
+        value: string;
+        label: string;
+      }[],
+    )
+    .sort((a, b) => a.label.localeCompare(b.label));
 
   const {
     isFetching: loading,
     error,
     refetch,
   } = useQuery({
-    queryKey: ['universal-subjects', periodo, selectedOption],
-    queryFn: () => fetchUniversalSubjects(selectedOption),
+    queryKey: ['universal-subjects', periodo],
+    queryFn: () => fetchUniversalSubjects(),
     staleTime: 24 * HOUR_IN_MS,
   });
 
@@ -57,14 +85,7 @@ const UniversalSubjects = () => {
   const ref = useRef<FlatList>(null);
 
   const handleOptionChange = (value: string) => {
-    const newOptions = options.map(option => {
-      if (option.value === value) {
-        return {...option, selected: true};
-      }
-      return {...option, selected: false};
-    });
-    dispatch(reducer.setOptions(newOptions));
-    setSelectedOption(value);
+    setSelectedDepartment(value);
   };
 
   const handleSubjectPress = (subject: UniversalSubject) => {
@@ -77,8 +98,7 @@ const UniversalSubjects = () => {
       return;
     }
     const code = parser.parseSubjectCode(subject.id) as number;
-    dispatch(subjectDetailReducer.appendData({code}));
-    dispatch(subjectDetailReducer.select({code}));
+    dispatch(subjectDetailReducer.setCurrent({code}));
     navigation.navigate('Pesquisa de Disciplinas');
   };
 
@@ -89,24 +109,19 @@ const UniversalSubjects = () => {
       return null;
     }
 
-    const {has_prerequisites, allow_conflict, id, minimum_credits, name} =
-      subject;
+    const {workload, id, credits, name} = subject;
 
-    const requirementText = has_prerequisites ? '' : 'Não possui pré-requisito';
-    const conflictText = allow_conflict ? 'Permite conflito' : '';
-
-    const creditsText = minimum_credits
-      ? `Trava de ${minimum_credits} créditos`
-      : '';
+    const creditText = credits ? `${credits} créditos` : '';
+    const workloadText = credits ? `${workload} horas` : '';
 
     return (
       <SubjectBox
         key={id}
         topLeftInfo={id}
-        topRightInfo={creditsText}
+        topRightInfo={'Universal'}
         name={name}
-        bottomLeftInfo={requirementText}
-        bottomRightInfo={conflictText}
+        bottomLeftInfo={creditText}
+        bottomRightInfo={workloadText}
         boldOptions={{
           topLeft: true,
           name: true,
@@ -116,18 +131,18 @@ const UniversalSubjects = () => {
     );
   };
 
-  const filteredSubjects = subjects.filter(({name}) => {
+  const filteredSubjects = subjects?.filter(({name, id}) => {
+    const hasDepartmentMatch =
+      !selectedDepartment || id.includes(selectedDepartment);
     const hasSearchQuery: boolean =
       !searchQuery || normalizeText(name).includes(normalizeText(searchQuery));
 
-    return hasSearchQuery;
+    return hasSearchQuery && hasDepartmentMatch;
   });
 
-  const isEmpty = filteredSubjects.length === 0;
+  const isEmpty = filteredSubjects?.length === 0;
   const showList = !isEmpty;
   const showSpinner = isEmpty && loading;
-
-  const currentSelectedOption = options.find(opt => opt.selected);
 
   if (isBlocked) {
     return (
@@ -144,12 +159,13 @@ const UniversalSubjects = () => {
   return (
     <Container>
       <StyledPicker
-        selectedValue={currentSelectedOption?.value}
+        selectedValue={selectedDepartment}
         onValueChange={s => handleOptionChange(s as string)}
         loading={loading}
         enabled={!loading}>
-        {options.map(({value, text}) => {
-          return <Picker.Item value={value} key={value} label={text} />;
+        <Picker.Item value={undefined} label="Todos os departamentos" />
+        {departmentOptions.map(({value, label}) => {
+          return <Picker.Item value={value} key={value} label={label} />;
         })}
       </StyledPicker>
       <TextInput
@@ -166,7 +182,7 @@ const UniversalSubjects = () => {
         />
       )}
       {showSpinner && <Spinner size={40} />}
-      {!loading && error && !isBlocked && (
+      {!loading && (error as Error) && !isBlocked && (
         <DummyMessage
           type="ERROR"
           onPress={refetch}
@@ -182,7 +198,7 @@ const UniversalSubjects = () => {
       {showList && (
         <FlatList
           ref={ref}
-          data={filteredSubjects}
+          data={filteredSubjects || []}
           renderItem={renderSubjects}
           showsVerticalScrollIndicator={false}
           keyExtractor={item => item?.id}

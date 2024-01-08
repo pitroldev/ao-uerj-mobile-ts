@@ -6,7 +6,7 @@ import {
   Horario,
   SubjectClassesSchedule,
 } from '@features/SubjectClassesSchedule/types';
-import {SubjectToTake} from '@features/SubjectsToTake/types';
+import {CurriculumSubject} from '@root/features/CurriculumSubjects/types';
 
 import {
   convertDayToNumber,
@@ -28,7 +28,7 @@ export function parsePrereq(arr_prereq: Prereq[][]): string[] {
 }
 
 export function parseSubjectToGeneratorFormat(
-  subjectToTake: SubjectToTake,
+  subjectToTake: CurriculumSubject,
   subjectInfo: SubjectInfo,
 ): Subject {
   const subject: Subject = {
@@ -39,7 +39,7 @@ export function parseSubjectToGeneratorFormat(
     prerequisites: parsePrereq(subjectInfo.prerequisite as Prereq[][]),
     allow_conflict: subjectInfo.conflito as boolean,
     recomended_period: subjectToTake.period as number,
-    minimum_credits: subjectToTake.minimum_credits,
+    minimum_credits: subjectToTake.minimum_credits as number,
     total_workload: subjectInfo.workload as number,
   };
 

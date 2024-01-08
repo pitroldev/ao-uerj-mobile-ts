@@ -56,9 +56,7 @@ const ScheduleCreationPage = () => {
     selectedSubjects: [],
     takenSubjects: [],
     subjects: [],
-    classes: [],
     selectedClasses: [],
-    loadedClassesSubjectId: [],
   };
 
   const methods = useForm<ScheduleCreationParams>({

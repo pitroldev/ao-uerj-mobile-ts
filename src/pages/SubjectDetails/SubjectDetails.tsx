@@ -8,10 +8,7 @@ import * as userReducer from '@reducers/userInfo';
 import * as apiConfigReducer from '@reducers/apiConfig';
 import * as subjectReducer from '@features/SubjectClassesSchedule/reducer';
 
-import {SubjectClassesSchedule} from '@features/SubjectClassesSchedule/types';
 import {SubjectInfo} from '@features/SubjectInfo/types';
-
-import {getSubjectClassesSchedule} from '@features/SubjectClassesSchedule/core';
 import {getSubjectInfo} from '@features/SubjectInfo/core';
 
 import SubjectSearch from './SubjectSearch';
@@ -25,30 +22,17 @@ const SubjectDetailPage = () => {
 
   const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
   const {periodo} = useAppSelector(userReducer.selectUserInfo);
-  const {selected, data} = useAppSelector(
+  const {current, data} = useAppSelector(
     subjectReducer.selectSubjectClassesSearch,
   );
 
   const handleSubjectInfo = (subject: SubjectInfo, code: number) => {
     if (!subject || !subject.id || subject.id === 'UERJ00-00000') {
-      dispatch(subjectReducer.clearSelected());
+      dispatch(subjectReducer.clearCurrent());
       throw new Error('SUBJECT_NOT_FOUND');
     }
 
-    dispatch(subjectReducer.appendData({subject, periodo, code}));
-    dispatch(subjectReducer.appendToSelect({subject, periodo, code}));
-  };
-
-  const handleClassesSchedule = (
-    classes: SubjectClassesSchedule[],
-    code: number,
-  ) => {
-    if (!classes) {
-      throw new Error('CLASSES_NOT_FOUND');
-    }
-
-    dispatch(subjectReducer.appendData({classes, periodo, code}));
-    dispatch(subjectReducer.appendToSelect({classes, periodo, code}));
+    dispatch(subjectReducer.setCurrent({subject, periodo, code}));
   };
 
   const handleSubjectCode = (subjectCode: string | number) => {
@@ -76,17 +60,18 @@ const SubjectDetailPage = () => {
 
       const cached = data.find(d => d.code === code);
       if (!skipCache && cached && cached.periodo === periodo) {
-        dispatch(subjectReducer.select(cached));
+        dispatch(subjectReducer.setCurrent(cached));
       } else {
-        dispatch(subjectReducer.select({code, periodo}));
+        dispatch(
+          subjectReducer.setCurrent({
+            periodo,
+            code,
+          }),
+        );
       }
 
-      await Promise.all([
-        getSubjectInfo(code).then(res => handleSubjectInfo(res, code)),
-        getSubjectClassesSchedule(code).then(res =>
-          handleClassesSchedule(res, code),
-        ),
-      ]);
+      const subject = await getSubjectInfo(code);
+      handleSubjectInfo(subject, code);
     } catch (err) {
       setError(err);
       Toast.show({
@@ -99,13 +84,14 @@ const SubjectDetailPage = () => {
     }
   };
 
-  if (selected) {
+  if (current) {
     return (
       <SubjectView
         searchSubject={handleSubjectCode}
-        {...selected}
-        error={error}
+        subject={current?.subject}
+        code={current?.code}
         loading={loading}
+        error={error}
       />
     );
   }

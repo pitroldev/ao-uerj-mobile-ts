@@ -11,14 +11,9 @@ import parseLoginInfo from './parseLoginData';
 import {getReqIds} from './parseReqIds';
 
 export async function fetchLoginPage(): Promise<string> {
-  const url = '/requisicaoaluno/requisicao.php';
-  const options = {
-    params: {
-      requisicao: 'LoginAlunoOnline',
-    },
-  };
+  const url = '/requisicaoaluno/';
 
-  const {data} = await api.get(url, options);
+  const {data} = await api.get(url);
 
   return data as string;
 }
@@ -26,7 +21,7 @@ export async function fetchLoginPage(): Promise<string> {
 export async function handleLogin(matricula: string, senha: string) {
   await clearAllCookies();
 
-  const url = '/requisicaoaluno/requisicaoacesso.php';
+  const url = '/requisicaoaluno/';
   const loginPageData = await retry(fetchLoginPage);
 
   const {loginReqId, _token} = await parseLoginReqId(loginPageData);

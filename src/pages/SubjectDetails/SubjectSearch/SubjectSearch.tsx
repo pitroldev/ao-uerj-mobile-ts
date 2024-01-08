@@ -26,6 +26,7 @@ const SubjectSearch = ({searchSubject}: Props) => {
   const [subjectCode, setSubjectCode] = useState('');
 
   const {data} = useAppSelector(reducer.selectSubjectClassesSearch);
+
   const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
 
   const ref = useRef<FlatList>(null);
@@ -42,7 +43,9 @@ const SubjectSearch = ({searchSubject}: Props) => {
     }
   };
 
-  const renderSubjects = ({item}: ListRenderItemInfo<typeof data[number]>) => {
+  const renderSubjects = ({
+    item,
+  }: ListRenderItemInfo<(typeof data)[number]>) => {
     const {subject} = item;
 
     if (!subject) {
@@ -52,7 +55,7 @@ const SubjectSearch = ({searchSubject}: Props) => {
     return (
       <SubjectBox
         topLeftInfo={subject.id}
-        name={subject.name}
+        name={subject.name!}
         onPress={() => searchSubject(subject.id as string)}
         boldOptions={{
           topLeft: true,
@@ -63,8 +66,6 @@ const SubjectSearch = ({searchSubject}: Props) => {
   };
 
   const isEmpty = data.length === 0;
-
-  const reverseData = [...data].reverse();
 
   return (
     <Container>
@@ -107,7 +108,7 @@ const SubjectSearch = ({searchSubject}: Props) => {
       )}
       <FlatList
         ref={ref}
-        data={reverseData}
+        data={data}
         renderItem={renderSubjects}
         showsVerticalScrollIndicator={false}
         keyExtractor={(_, index) => index.toString()}
