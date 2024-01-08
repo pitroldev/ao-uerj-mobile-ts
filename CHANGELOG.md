@@ -1,6 +1,6 @@
 
 
-## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.9...HEAD)
+## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.2.0...HEAD)
 
 ### New Features
 
@@ -11,6 +11,21 @@
 ### Performance
 
 ### Other Changes
+
+
+## [v1.2.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.9...v1.2.0)
+
+### New Features
+
+### Fixes
+
+### Styles
+
+### Performance
+
+### Other Changes
+
+- :memo: docs: Possível backend para integração com o sistema oficial (SAG) [`1ac35bc`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/1ac35bc920cdcee01e0bb9b63bcd36c44ffd907a)
 
 
 ## [v1.1.9](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.8...v1.1.9)
