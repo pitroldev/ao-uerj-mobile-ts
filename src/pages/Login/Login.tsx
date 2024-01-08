@@ -15,8 +15,7 @@ import {
 } from './Login.styles';
 import {useMutation} from 'react-query';
 
-const PASS_RECOVERY_URL =
-  'https://www.alunoonline.uerj.br/requisicaoaluno/requisicao.php?controle=Login&requisicao=LoginSolicitarSenha';
+const PASS_RECOVERY_URL = 'https://www.alunoonline.uerj.br/requisicaoaluno/';
 
 const LoginPage = () => {
   const [error, setError] = useState('');

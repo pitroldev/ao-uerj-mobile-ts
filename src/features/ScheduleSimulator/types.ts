@@ -1,4 +1,4 @@
-import {SubjectToTake} from '@features/SubjectsToTake/types';
+import {CurriculumSubject} from '@features/CurriculumSubjects/types';
 import {SubjectsTaken} from '@features/SubjectsTaken/types';
 import {SubjectInfo} from '@features/SubjectInfo/types';
 import {SubjectClassesSchedule} from '@features/SubjectClassesSchedule/types';
@@ -30,13 +30,11 @@ export type ScheduleCreationParams = {
   max_subject_amount: number | null;
   busy_schedules: Schedule[];
   priority: Priority[];
-  subjectsToTake: SubjectToTake[];
-  selectedSubjects: SubjectToTake[];
+  subjectsToTake: CurriculumSubject[];
+  selectedSubjects: CurriculumSubject[];
   takenSubjects: SubjectsTaken[];
   subjects: SubjectInfo[];
-  classes: SubjectClasses[];
   selectedClasses: SubjectClasses[];
-  loadedClassesSubjectId: (string | number)[];
 };
 
 export type GeneratedSubject = {

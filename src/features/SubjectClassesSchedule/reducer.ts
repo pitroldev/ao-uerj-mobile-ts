@@ -3,30 +3,23 @@ import {createSlice, PayloadAction} from '@reduxjs/toolkit';
 import {AppState} from '@root/store';
 
 import {SubjectInfo} from '@features/SubjectInfo/types';
-import {SubjectClassesSchedule} from '@features/SubjectClassesSchedule/types';
 
-type ClassesPayload = {
-  id: string;
-  classes: SubjectClassesSchedule[];
-};
-
-export type SubjectData = {
-  code: number;
+type SubjectData = {
+  code: number | string;
   periodo?: string;
-  classes?: SubjectClassesSchedule[];
   subject?: SubjectInfo;
 };
 
 type State = {
   data: SubjectData[];
-  selected: SubjectData | null;
+  current: SubjectData | null;
 };
 
-const MAX_STORED_SUBJECTS = 15;
+const MAX_STORED_SUBJECTS = 20;
 
 const initialState = {
   data: [],
-  selected: null,
+  current: null,
 } as State;
 
 const slice = createSlice({
@@ -36,68 +29,37 @@ const slice = createSlice({
     setState: (state, action: PayloadAction<SubjectData>) => {
       Object.assign(state, {data: action.payload});
     },
-    add: (state, action: PayloadAction<SubjectData>) => {
-      const newData = [action.payload];
+    addSubject: (state, action: PayloadAction<SubjectData>) => {
+      const {data} = state;
+      const {payload} = action;
 
-      state.data.forEach(data => {
-        const alreadyHas = newData.some(
-          d => d.subject?.id === data.subject?.id,
-        );
-        if (alreadyHas) {
-          return;
-        }
-        newData.push(data);
-      });
+      const otherSubjects = data.filter(
+        subject =>
+          parseInt(subject.code as string, 10) ===
+          parseInt(payload.code as string, 10),
+      );
 
-      Object.assign(state, {data: newData.slice(0, MAX_STORED_SUBJECTS)});
+      state.data = [...otherSubjects, payload].slice(0, MAX_STORED_SUBJECTS);
     },
-    setSubject: (state, action: PayloadAction<SubjectInfo>) => {
-      state.data.forEach(data => {
-        if (data.subject?.id === action.payload.id) {
-          data.subject = action.payload;
-        }
-      });
-    },
-    setClasses: (state, action: PayloadAction<ClassesPayload>) => {
-      state.data.forEach(data => {
-        if (data.subject?.id === action.payload.id) {
-          data.classes = action.payload.classes;
-        }
-      });
-    },
-    select: (state, action: PayloadAction<SubjectData>) => {
-      state.selected = action.payload;
-    },
-    appendToSelect: (state, action: PayloadAction<Partial<SubjectData>>) => {
-      if (state.selected) {
-        Object.assign(state.selected, action.payload);
-      }
-    },
-    appendData: (state, action: PayloadAction<Partial<SubjectData>>) => {
-      const data = state.data.find(d => d.code === action.payload.code);
+    setCurrent: (state, action: PayloadAction<SubjectData>) => {
+      const {data} = state;
+      const {payload} = action;
 
-      if (data) {
-        Object.assign(data, action.payload);
-      } else {
-        state.data.push(action.payload as SubjectData);
-      }
+      const otherSubjects = data.filter(
+        subject => subject.code !== payload.code,
+      );
+
+      state.data = [payload, ...otherSubjects].slice(0, MAX_STORED_SUBJECTS);
+
+      state.current = payload;
     },
-    clearSelected: state => {
-      state.selected = initialState.selected;
+    clearCurrent: state => {
+      state.current = initialState.current;
     },
   },
 });
 
-export const {
-  add,
-  setSubject,
-  setClasses,
-  setState,
-  select,
-  clearSelected,
-  appendToSelect,
-  appendData,
-} = slice.actions;
+export const {setState, addSubject, setCurrent, clearCurrent} = slice.actions;
 export const selectSubjectClassesSearch = (state: AppState) =>
   state.subjectClassesSearch;
 

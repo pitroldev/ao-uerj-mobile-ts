@@ -7,7 +7,6 @@ import Icon from 'react-native-vector-icons/AntDesign';
 
 import {useAppSelector} from '@root/store';
 import * as apiConfigReducer from '@reducers/apiConfig';
-import {parseSubjectCode} from '@services/parser/minorParser';
 
 import {useStepsContext} from '@hooks/useSteps';
 
@@ -18,6 +17,7 @@ import Text from '@atoms/Text';
 import Button from '@atoms/Button';
 import Spinner from '@atoms/Spinner';
 
+import SubjectDataFetcher from './SubjectDataFetcher';
 import {
   Container,
   ContentContainer,
@@ -25,7 +25,6 @@ import {
   InfoRow,
   ScrollView,
 } from './FetchDataStep.styles';
-import SubjectDataFetcher from './SubjectDataFetcher';
 
 const FetchDataStep = () => {
   const {COLORS} = useTheme();
@@ -36,8 +35,9 @@ const FetchDataStep = () => {
   const {control, handleSubmit, setValue} =
     useFormContext<ScheduleCreationParams>();
 
-  const {subjects, classes, selectedSubjects, loadedClassesSubjectId} =
-    useWatch({control}) as ScheduleCreationParams;
+  const {subjects, selectedSubjects} = useWatch({
+    control,
+  }) as ScheduleCreationParams;
 
   const handleNextPress = handleSubmit(nextStep);
 
@@ -60,32 +60,13 @@ const FetchDataStep = () => {
   };
 
   const isSubjectDataFetched = selectedSubjects.every(subject => {
-    const code = parseSubjectCode(subject.id);
-    const hasSubject = subjects.some(
-      s => parseSubjectCode(s.id as string) === code,
-    );
+    const hasSubject = subjects.some(s => s.id === subject.id);
 
     return hasSubject;
   });
 
-  const isClassDataFetched = selectedSubjects.every(subject => {
-    const code = parseSubjectCode(subject.id);
-
-    const hasSubjectClasses = classes.some(
-      s => parseSubjectCode(s.subject_id as string) === code,
-    );
-
-    const isClassLoaded = loadedClassesSubjectId.some(
-      s => parseSubjectCode(s as string) === code,
-    );
-
-    return hasSubjectClasses || isClassLoaded;
-  });
-
   const isTakenSubjectsFetched = !errorSubjectsTaken && !loadingSubjectsTaken;
-
-  const isAllDataFetched =
-    isSubjectDataFetched && isClassDataFetched && isTakenSubjectsFetched;
+  const isAllDataFetched = isTakenSubjectsFetched && isSubjectDataFetched;
 
   return (
     <Container>

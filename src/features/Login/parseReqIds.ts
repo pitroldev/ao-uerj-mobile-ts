@@ -10,10 +10,12 @@ type ReqIds = {
 function translate(name: string) {
   const lowerName = name.toLowerCase();
   const dictionary = {
-    'disciplinas do curso': 'DisciplinasFormacao',
-    'disciplinas universais (a cursar)': 'UniversaisCursar',
     'turmas em curso': 'DisciplinasCurso',
-    'disciplinas a cursar': 'DisciplinasCursar',
+    'disciplinas do curso': 'DisciplinasCursar',
+    'disciplinas do currículo': 'DisciplinasCursar',
+    'disciplinas universais': 'UniversaisCursar',
+    'disciplinas universais (a cursar)': 'UniversaisCursar',
+    'requisitos realizados': 'DisciplinasRealizadas',
     'disciplinas realizadas': 'DisciplinasRealizadas',
     'notas do período': 'notas',
     'rid: resultado provisório': 'RidParcial',
@@ -29,7 +31,7 @@ export function getReqIds(data: string): ReqIds {
   let failed = 0;
 
   const $ = cheerio.load(data);
-  $('#menu_linha_item a').each((i: Number, node: any) => {
+  $('#menu_linha_item a').each((_: Number, node: any) => {
     const cleanedReqID = node.attribs.onclick.replace(/[\s']+/gi, '');
     const execReqID = cleanedReqID.match(regex);
 

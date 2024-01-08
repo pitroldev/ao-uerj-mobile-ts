@@ -5,7 +5,7 @@ import {Picker} from '@react-native-picker/picker';
 import {useFormContext, useWatch} from 'react-hook-form';
 
 import {useAppSelector} from '@root/store';
-import * as reducer from '@features/SubjectsToTake/reducer';
+import * as reducer from '@features/CurriculumSubjects/reducer';
 
 import api from '@services/ScheduleApi';
 import {useStepsContext} from '@hooks/useSteps';
@@ -46,7 +46,10 @@ const GenerationStep = () => {
   const {control} = useFormContext<ScheduleCreationParams>();
 
   const body = useWatch({control}) as ScheduleCreationParams;
-  const {data: subjectsToTake} = useAppSelector(reducer.selectSubjectsToTake);
+  const {data: curriculumSubjects} = useAppSelector(
+    reducer.selectCurriculumSubjects,
+  );
+  const subjectsToTake = curriculumSubjects.filter(s => !s.alreadyTaken);
 
   const preferences = {
     min_subject_amount: body.min_subject_amount,
@@ -89,6 +92,9 @@ const GenerationStep = () => {
 
       return res.data.data as GeneratedSchedule[];
     },
+    onSuccess: d => {
+      console.log(d);
+    },
   });
 
   const handleResetPress = () => {
@@ -113,7 +119,7 @@ const GenerationStep = () => {
         </Text>
 
         {loading && <Spinner size="large" />}
-        {error && (
+        {(error as Error) && (
           <DummyMessage
             text="Ocorreu um erro ao gerar as grades, toque aqui para tentar novamente"
             type="ERROR"
@@ -124,7 +130,8 @@ const GenerationStep = () => {
           <DummyMessage
             text="Não foi possível gerar nenhuma grade com os dados informados, clique aqui para gerar outra grade"
             type="EMPTY"
-            onPress={handleResetPress}
+            // onPress={handleResetPress}
+            onPress={refetch}
           />
         )}
 

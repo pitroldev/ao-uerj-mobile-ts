@@ -1,34 +1,27 @@
 const cheerio = require('react-native-cheerio');
 
-export default async function parseSubjectInfoReqId(data: string) {
-  let reqLibrary = {
-    HorariosTurmasDisciplina: '',
-    DadosDisciplina: '',
-  };
+export default function parseSubjectInfoReqId(data: string): string {
   if (!data) {
     throw new Error('SUBJECT_REQ_ID_NOT_FOUND');
   }
 
   const regex = /\w{20,}/gi;
 
+  let reqId: string = '';
+
   const $ = cheerio.load(data);
-  $('td:nth-child(3) a')
-    .eq(0)
-    .each((index: number, node: any) => {
-      const cleanedReqID = node.attribs.onclick.replace(/[\s']+/gi, '');
-      const execReqID = cleanedReqID.match(regex);
-      const parsedReqID = execReqID.length && execReqID[0];
-      reqLibrary.HorariosTurmasDisciplina = parsedReqID;
-    });
+  $('input[name="requisicao"]').each((_: number, node: any) => {
+    const cleanedReqID = node.attribs.value.replace(/[\s']+/gi, '');
+    const execReqID = cleanedReqID.match(regex);
 
-  $('.LINKNAOSUB')
-    .eq(0)
-    .each((index: number, node: any) => {
-      const cleanedReqID = node.attribs.onclick.replace(/[\s']+/gi, '');
-      const execReqID = cleanedReqID.match(regex);
-      const parsedReqID = execReqID.length && execReqID[0];
-      reqLibrary.DadosDisciplina = parsedReqID;
-    });
+    const isBlocked = !execReqID;
+    if (isBlocked) {
+      return;
+    }
 
-  return reqLibrary;
+    const parsedReqID = execReqID.length && execReqID[0];
+    reqId = parsedReqID;
+  });
+
+  return reqId;
 }

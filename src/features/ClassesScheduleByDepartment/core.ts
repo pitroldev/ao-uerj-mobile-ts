@@ -7,7 +7,7 @@ import parseData from './parser';
 export const _fetchRawClassesScheduleByUnitData = async (
   code_unid?: string,
 ) => {
-  const url = '/requisicaoaluno/requisicao.php';
+  const url = '/requisicaoaluno/';
   const requisicao = await getRequisitionID('Horário das Turmas');
   const {apiConfig} = store.getState();
 

@@ -5,7 +5,7 @@ import {getRequisitionID} from '@services/UerjApi/utils';
 import parseSubjectInfo from './parser';
 
 export const _fetchRawSubjectInfoData = async (subjectID?: string | number) => {
-  const url = '/requisicaoaluno/requisicao.php';
+  const url = '/requisicaoaluno/';
   const requisicao = await getRequisitionID('DadosDisciplina');
   const {apiConfig} = store.getState();
 
@@ -26,5 +26,6 @@ export const getSubjectInfo = async (subjectID?: string | number) => {
   const data = await _fetchRawSubjectInfoData(subjectID);
 
   const subject = parseSubjectInfo(data);
+
   return subject;
 };

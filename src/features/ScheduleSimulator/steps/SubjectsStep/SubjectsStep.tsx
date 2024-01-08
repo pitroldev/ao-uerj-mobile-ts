@@ -12,9 +12,9 @@ import {normalizeText} from '@utils/normalize';
 import {useAppDispatch, useAppSelector} from '@root/store';
 import * as apiConfigReducer from '@reducers/apiConfig';
 
-import {SubjectToTake} from '@features/SubjectsToTake/types';
-import {fetchSubjectsToTake} from '@features/SubjectsToTake/core';
-import * as subjectsToTakeReducer from '@features/SubjectsToTake/reducer';
+import {CurriculumSubject} from '@features/CurriculumSubjects/types';
+import {fetchCurriculumSubjects} from '@features/CurriculumSubjects/core';
+import * as curriculumSubjectsReducer from '@features/CurriculumSubjects/reducer';
 
 import {ScheduleCreationParams} from '@features/ScheduleSimulator/types';
 
@@ -41,7 +41,9 @@ const SubjectsStep = () => {
   const {nextStep, prevStep} = useStepsContext();
 
   const {cookies} = useAppSelector(apiConfigReducer.selectApiConfig);
-  const {data} = useAppSelector(subjectsToTakeReducer.selectSubjectsToTake);
+  const {data} = useAppSelector(
+    curriculumSubjectsReducer.selectCurriculumSubjects,
+  );
 
   const {handleSubmit, setValue, control} =
     useFormContext<ScheduleCreationParams>();
@@ -49,10 +51,10 @@ const SubjectsStep = () => {
   const {min_subject_amount = 3, selectedSubjects = []} = useWatch({control});
 
   const {isFetching, error, refetch} = useQuery({
-    queryKey: ['subjects-to-take', cookies],
-    queryFn: fetchSubjectsToTake,
+    queryKey: ['curriculum-subjects', cookies],
+    queryFn: fetchCurriculumSubjects,
     onSuccess: d => {
-      dispatch(subjectsToTakeReducer.setState(d));
+      dispatch(curriculumSubjectsReducer.setState(d));
     },
   });
 
@@ -60,43 +62,33 @@ const SubjectsStep = () => {
 
   const handleNextPress = handleSubmit(nextStep);
 
-  const handleSubjectPress = (subject: SubjectToTake) => {
+  const handleSubjectPress = (subject: CurriculumSubject) => {
     const isSelected = selectedSubjects.some(s => s.id === subject.id);
 
     if (isSelected) {
       setValue(
         'selectedSubjects',
-        selectedSubjects.filter(s => s.id !== subject.id) as SubjectToTake[],
+        selectedSubjects.filter(
+          s => s.id !== subject.id,
+        ) as CurriculumSubject[],
       );
       return;
     }
 
-    const newSubjects = [...selectedSubjects, subject] as SubjectToTake[];
+    const newSubjects = [...selectedSubjects, subject] as CurriculumSubject[];
     setValue('selectedSubjects', newSubjects);
   };
 
   const renderSubjects = ({
     item: subject,
-  }: ListRenderItemInfo<SubjectToTake>) => {
+  }: ListRenderItemInfo<CurriculumSubject>) => {
     const isSelected = selectedSubjects.some(s => s.id === subject.id);
 
-    const {
-      has_prerequisites,
-      allow_conflict,
-      id,
-      minimum_credits,
-      name,
-      period,
-      branch,
-      group,
-    } = subject;
+    const {id, name, period, branch, credits, workload, minimum_credits} =
+      subject;
 
-    const requirementText = has_prerequisites ? '' : 'Não possui pré-requisito';
-    const conflictText = allow_conflict ? 'Permite conflito' : '';
-
-    const creditsText = minimum_credits
-      ? `Trava de ${minimum_credits} créditos`
-      : '';
+    const creditsText = credits ? `${credits} créditos` : '';
+    const workloadText = credits ? `${workload} horas` : '';
 
     const periodText = period ? `${period}º Período` : '';
 
@@ -104,11 +96,11 @@ const SubjectsStep = () => {
       ? `${periodText ? ' - ' : ''}Ramificação ${branch}`
       : '';
 
-    const groupText = group
-      ? `${ramificationText ? ' - ' : ''}Grupo ${group}`
-      : '';
+    const description = `${periodText}${ramificationText}`;
 
-    const description = `${periodText}${ramificationText}${groupText}`;
+    const minCreditsText = minimum_credits
+      ? `Trava de ${minimum_credits} créditos`
+      : '';
 
     return (
       <SubjectBox
@@ -117,8 +109,8 @@ const SubjectsStep = () => {
         name={name}
         color={isSelected ? 'FREE' : 'BUSY'}
         description={description}
-        bottomLeftInfo={requirementText}
-        bottomRightInfo={conflictText}
+        bottomLeftInfo={minCreditsText}
+        bottomRightInfo={workloadText}
         boldOptions={{
           topLeft: true,
           name: true,
@@ -128,7 +120,11 @@ const SubjectsStep = () => {
     );
   };
 
-  const filteredData = data.filter(({type, name}) => {
+  const filteredData = data.filter(({type, name, alreadyTaken}) => {
+    if (alreadyTaken) {
+      return false;
+    }
+
     const hasSubjectType = !subjectType || type === subjectType;
     const hasSearchQuery =
       !searchQuery || normalizeText(name).includes(normalizeText(searchQuery));
@@ -168,7 +164,7 @@ const SubjectsStep = () => {
         />
 
         <StyledFlatList>
-          {!loading && error && (
+          {!loading && (error as Error) && (
             <DummyMessage
               type="ERROR"
               onPress={refetch}

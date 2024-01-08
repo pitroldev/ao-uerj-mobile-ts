@@ -10,3 +10,13 @@ export const Container = styled.View`
   border-top-left-radius: 50px;
   background-color: ${({theme}) => theme.COLORS.BACKGROUND};
 `;
+
+export const Row = styled.View`
+  flex: 1;
+  flex-direction: row;
+  min-height: 60px;
+`;
+
+export const View = styled.View`
+  flex: 1;
+`;
