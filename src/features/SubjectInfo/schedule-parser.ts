@@ -216,10 +216,6 @@ export default function parseSubjectClassesSchedule(html: string) {
     $(
       '.divContentBlock:nth-child(3) .divContentBlockBody > table > tbody > tr > td > div',
     ).each((turmaIndex: number, turmaNode: any) => {
-      if (turmaIndex !== 0) {
-        return;
-      }
-
       const turmaBasicInfo = getTurmaBasicInfo(turmaNode);
       turmasArray.push(turmaBasicInfo);
     });
