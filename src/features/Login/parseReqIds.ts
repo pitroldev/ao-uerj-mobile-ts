@@ -13,6 +13,7 @@ function translate(name: string) {
     'turmas em curso': 'DisciplinasCurso',
     'disciplinas do curso': 'DisciplinasCursar',
     'disciplinas do currículo': 'DisciplinasCursar',
+    'disciplinas do currículo/a cursar': 'DisciplinasCursar',
     'disciplinas universais': 'UniversaisCursar',
     'disciplinas universais (a cursar)': 'UniversaisCursar',
     'requisitos realizados': 'DisciplinasRealizadas',

@@ -12,7 +12,6 @@ export const Container = styled.View`
 `;
 
 export const Row = styled.View`
-  flex: 1;
   flex-direction: row;
   min-height: 60px;
 `;
