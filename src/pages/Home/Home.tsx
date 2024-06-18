@@ -84,7 +84,6 @@ const HomePage = () => {
   } = useQuery({
     queryKey: ['class-grades', cookies],
     queryFn: fetchClassGrades,
-    enabled: false,
     staleTime: 6 * HOUR_IN_MS,
     onSuccess: data => {
       dispatch(gradesReducer.setClassGrades(data));
