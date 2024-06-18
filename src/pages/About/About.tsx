@@ -12,16 +12,13 @@ import {
   Row,
   AOUerjLogo,
   AOLogoContainer,
-  CardapioMobileLogo,
 } from './About.styles';
 
 import {version} from '@/package.json';
 
 const LINKEDIN_PROFILE_URL = 'https://www.linkedin.com/in/petrocardoso/';
-const GITHUB_PROFILE_URL = 'https://github.com/pitroldev/';
+const GITHUB_REPO_URL = 'https://github.com/pitroldev/ao-uerj-mobile-ts';
 const CREATOR_EMAIL = 'mailto:contato@pitrol.dev?subject=AO UERJ';
-const CARDAPIO_MOBILE_URL =
-  'https://play.google.com/store/apps/details?id=com.cardapiomobileuerj';
 
 const AboutPage = () => {
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
@@ -66,7 +63,7 @@ const AboutPage = () => {
         <Column>
           <RoundedButton
             variant="TEXT_PRIMARY"
-            onPress={() => handleBtnPress(GITHUB_PROFILE_URL)}>
+            onPress={() => handleBtnPress(GITHUB_REPO_URL)}>
             <Icon name="github-alt" />
           </RoundedButton>
           <Text weight="bold" size="XS" alignSelf="center" textAlign="center">
@@ -94,25 +91,6 @@ const AboutPage = () => {
           </Text>
         </Column>
       </Row>
-
-      <Text
-        weight="300"
-        size="XL"
-        alignSelf="center"
-        textAlign="center"
-        marginBottom="8px">
-        Conheça também
-      </Text>
-      <Column>
-        <RoundedButton
-          variant="TERTIARY"
-          onPress={() => handleBtnPress(CARDAPIO_MOBILE_URL)}>
-          <CardapioMobileLogo />
-        </RoundedButton>
-        <Text weight="bold" size="XS" alignSelf="center" textAlign="center">
-          Cardápio UERJ Mobile
-        </Text>
-      </Column>
     </MainContainer>
   );
 };
