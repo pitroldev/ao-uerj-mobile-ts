@@ -1,6 +1,38 @@
 
 
-## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.2.0...HEAD)
+## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.2.5...HEAD)
+
+### New Features
+
+### Fixes
+
+### Styles
+
+### Performance
+
+### Other Changes
+
+
+## [v1.2.5](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.2.3...v1.2.5)
+
+### New Features
+
+- :page_facing_up: add: Licença [`d3963c6`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/d3963c6d4d1046302e79a4db5f54778c739f11a1)
+
+### Fixes
+
+- :adhesive_bandage: fix: Correção de bug, código antigo gerando falha no app [`953dfdf`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/953dfdf139ab6af73915e1b52d2bae949306d5f7)
+
+### Styles
+
+### Performance
+
+### Other Changes
+
+- :triangular_flag_on_post: chore: Habilitando novamente feature de notas do período [`5b900e2`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/5b900e206eba3a40d8adba09ea5512bca67ad930)
+
+
+## [v1.2.3](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.2.0...v1.2.3)
 
 ### New Features
 
