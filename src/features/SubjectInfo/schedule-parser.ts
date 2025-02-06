@@ -12,6 +12,11 @@ import {WeekDay} from '@root/types/dateStuff';
 
 import {Horario, SubjectClassesSchedule} from './types';
 
+const parseVacancyNumber = (text: string) => {
+  const parsedNumber = parseInt(text?.trim(), 10);
+  return isNaN(parsedNumber) ? 0 : parsedNumber || 0;
+};
+
 function parseHorarioArray(horarioString: string) {
   try {
     const regex = /\D{3}\b/g;
@@ -139,7 +144,7 @@ const getTurmaBasicInfo = (html: string) => {
     .text((i: number, text: string) => {
       const isAvailableType = i === 0;
       const isTakenType = i === 1;
-      const parsedNumber = parseInt(text.trim(), 10);
+      const parsedNumber = parseVacancyNumber(text);
 
       if (isAvailableType) {
         turmasObj.vacancies.uerj.available = parsedNumber;
@@ -155,7 +160,7 @@ const getTurmaBasicInfo = (html: string) => {
     .text((i: number, text: string) => {
       const isAvailableType = i === 0;
       const isTakenType = i === 1;
-      const parsedNumber = parseInt(text.trim(), 10);
+      const parsedNumber = parseVacancyNumber(text);
 
       if (isAvailableType) {
         turmasObj.vacancies.freshman.available = parsedNumber;
@@ -172,7 +177,7 @@ const getTurmaBasicInfo = (html: string) => {
       const isRequestedAvailableType = i === 0;
       const isRequestedTakenType = i === 1;
       const isPreferentialType = i === 2;
-      const parsedNumber = parseInt(text.trim(), 10);
+      const parsedNumber = parseVacancyNumber(text);
 
       if (isRequestedAvailableType) {
         turmasObj.vacancies.uerj.requestedAvailable = parsedNumber;
@@ -192,7 +197,7 @@ const getTurmaBasicInfo = (html: string) => {
       const isRequestedAvailableType = i === 0;
       const isRequestedTakenType = i === 1;
       const isPreferentialType = i === 2;
-      const parsedNumber = parseInt(text.trim(), 10);
+      const parsedNumber = parseVacancyNumber(text);
 
       if (isRequestedAvailableType) {
         turmasObj.vacancies.freshman.requestedAvailable = parsedNumber;
