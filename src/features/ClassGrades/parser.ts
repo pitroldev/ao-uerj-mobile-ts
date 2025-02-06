@@ -53,6 +53,7 @@ export default function parseClassGrades(html: string) {
 
     return data;
   } catch (err) {
+    console.log('parser', err);
     throw new Error('ParseError');
   }
 }

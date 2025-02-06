@@ -115,7 +115,7 @@ const HomePage = () => {
 
   const errors: ErrorControl[] = [];
 
-  const isScheduleWithError = scheduleError && !isScheduleAvailable;
+  const isScheduleWithError = Boolean(scheduleError && !isScheduleAvailable);
   if (isScheduleWithError) {
     errors.push({
       key: 'SCHEDULE',
@@ -124,7 +124,7 @@ const HomePage = () => {
     });
   }
 
-  const isGradesWithError = gradesError && !isClassGradesAvailable;
+  const isGradesWithError = Boolean(gradesError && !isClassGradesAvailable);
   if (isGradesWithError) {
     errors.push({
       key: 'SCHEDULE',
@@ -133,7 +133,7 @@ const HomePage = () => {
     });
   }
 
-  const isRIDWithError = ridError && !isPartialRidAvailable;
+  const isRIDWithError = Boolean(ridError && !isPartialRidAvailable);
   if (isRIDWithError && !isScheduleAvailable) {
     errors.push({
       key: 'RID',

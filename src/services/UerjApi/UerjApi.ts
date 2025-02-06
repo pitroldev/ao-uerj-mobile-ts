@@ -65,7 +65,7 @@ const responseErrorInterceptor = async (err: AxiosError) => {
 };
 
 const responseSuccessInterceptor = async (res: AxiosResponse) => {
-  const dataLen = res.data?.length || 0;
+  const dataLen = res?.data?.length || 0;
   const hasNoData = dataLen === 0 || dataLen < 100;
 
   const originalRequest = res.config as any;
