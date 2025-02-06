@@ -1,5 +1,12 @@
 const cheerio = require('react-native-cheerio');
 
+const PERIODO_REGEX = /(\d{4}\.\d)/;
+
+const year = new Date().getFullYear();
+const month = new Date().getMonth() + 1;
+const semester = month > 0 && month <= 6 ? '1' : '2';
+const calculatedPeriod = `${year}.${semester}`;
+
 export default function parseLoginInfo(data: string) {
   const info = {
     periodo: '',
@@ -8,12 +15,14 @@ export default function parseLoginInfo(data: string) {
   };
 
   const $ = cheerio.load(data);
-  $('font').text((index: number, text: string) => {
-    if (index === 1) {
-      info.periodo = text.replace(/\s/g, '').replace('/', '.');
-    }
-    if (index === 2) {
+  $('#divCabecalhoAplicacao font').text((index: number, text: string) => {
+    if (index === 0) {
       info.nome = text.split(' - ')[1];
+    }
+    if (index === 1) {
+      const possiblePeriodText = text.replace(/\s/g, '').replace('/', '.');
+      const isPeriod = PERIODO_REGEX.test(possiblePeriodText);
+      info.periodo = isPeriod ? possiblePeriodText : calculatedPeriod;
     }
   });
 

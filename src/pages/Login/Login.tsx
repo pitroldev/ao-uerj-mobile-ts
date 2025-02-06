@@ -25,17 +25,22 @@ const LoginPage = () => {
   const passwordInputRef = useRef<any>(null);
   const navigation = useNavigation();
 
-  const {isLoading: loading, mutate: handleSignInPress} = useMutation({
+  const {isLoading: loading, mutate: login} = useMutation({
     mutationFn: () => handleLogin(matricula, password),
     onSuccess: data => {
-      if (!data.fail_reason) {
-        setError(data.fail_reason ?? '');
+      if (data.fail_reason) {
+        setError(data.fail_reason);
         return;
       }
 
       navigation.navigate('Início');
     },
   });
+
+  const handleSignInPress = () => {
+    setError('');
+    login();
+  };
 
   const handleRecoveryPassPress = () => {
     Linking.openURL(PASS_RECOVERY_URL).catch((err: Error) =>
@@ -47,9 +52,6 @@ const LoginPage = () => {
     <LogoContainer>
       <LogoUERJ />
       <Container>
-        <Text size="XXS" alignSelf="center" textAlign="center" color="ERROR">
-          {error ?? ''}
-        </Text>
         <Text weight="500" size="SM" marginLeft="5px">
           Matrícula
         </Text>
@@ -71,6 +73,9 @@ const LoginPage = () => {
           onChangeText={setPassword}
           onSubmitEditing={() => handleSignInPress()}
         />
+        <Text size="XS" alignSelf="center" textAlign="center" color="ERROR">
+          {error ?? ''}
+        </Text>
         <SignInButton
           loading={loading}
           disabled={loading}
