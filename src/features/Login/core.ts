@@ -21,16 +21,15 @@ export async function fetchLoginPage(): Promise<string> {
 export async function handleLogin(matricula: string, senha: string) {
   await clearAllCookies();
 
-  const url = '/requisicaoaluno/';
   const loginPageData = await retry(fetchLoginPage);
 
   const {loginReqId, _token} = await parseLoginReqId(loginPageData);
 
+  const url = '/requisicaoaluno/';
   const {data: homePageData} = await retry(
     async () =>
       await api.get(url, {
         params: {
-          controle: 'Login',
           requisicao: loginReqId,
           matricula,
           senha,
@@ -41,8 +40,12 @@ export async function handleLogin(matricula: string, senha: string) {
 
   const info = parseLoginInfo(homePageData);
 
-  if (info.fail_reason) {
-    return info;
+  if (!info.nome || info.fail_reason) {
+    return {
+      fail_reason:
+        info.fail_reason ||
+        'Falha ao fazer login, por favor atualize o aplicativo e tente novamente.',
+    };
   }
 
   const new_cookies = await getCookies();
