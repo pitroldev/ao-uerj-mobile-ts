@@ -10,6 +10,11 @@ import parseLoginReqId from './parseLoginReqId';
 import parseLoginInfo from './parseLoginData';
 import {getReqIds} from './parseReqIds';
 
+async function setLoginCookie(): Promise<void> {
+  const url = '/';
+  await api.get(url);
+}
+
 export async function fetchLoginPage(): Promise<string> {
   const url = '/requisicaoaluno/';
 
@@ -21,6 +26,7 @@ export async function fetchLoginPage(): Promise<string> {
 export async function handleLogin(matricula: string, senha: string) {
   await clearAllCookies();
 
+  await setLoginCookie();
   const loginPageData = await retry(fetchLoginPage);
 
   const {loginReqId, _token} = await parseLoginReqId(loginPageData);
