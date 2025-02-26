@@ -42,7 +42,9 @@ export default function parsePartialRID(html: string) {
     }
   });
 
-  const updatedAt = $('div div:nth-child(1) b').text() as string;
+  const updatedAt = $('div div:nth-child(1) b').first().text();
+
+  console.log('updated at', updatedAt);
 
   return {
     subjects,
