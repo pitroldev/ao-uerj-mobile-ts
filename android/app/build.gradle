@@ -87,8 +87,8 @@ android {
         applicationId "com.aouerjmobile"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 3145818
-        versionName "v1.2.6"
+        versionCode 3145819
+        versionName "v1.2.7"
         setProperty("archivesBaseName", applicationId + "-" + versionName + "-" + versionCode)
 
     }
