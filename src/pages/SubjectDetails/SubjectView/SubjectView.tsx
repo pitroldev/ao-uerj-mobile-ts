@@ -16,7 +16,12 @@ import DummyMessage from '@molecules/DummyMessage';
 import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
 import ClassBox from '../ClassBox';
-import {Container, TransparentButton, InfoBox} from './SubjectView.styles';
+import {
+  Container,
+  TransparentButton,
+  InfoBox,
+  SpinnerBox,
+} from './SubjectView.styles';
 
 type Props = {
   searchSubject: (s: string | number) => void;
@@ -148,7 +153,11 @@ const SubjectView = ({searchSubject, subject, loading, code, error}: Props) => {
           </>
         )}
 
-        {loading && <Spinner size="large" />}
+        {loading && (
+          <SpinnerBox>
+            <Spinner size="large" />
+          </SpinnerBox>
+        )}
 
         {!loading && (error as Error) && (
           <DummyMessage
