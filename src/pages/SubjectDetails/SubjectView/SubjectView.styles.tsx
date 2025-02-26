@@ -75,3 +75,7 @@ export const ScheduleBox = styled(Box).attrs({size: 'small'})`
   align-items: center;
   justify-content: center;
 `;
+
+export const SpinnerBox = styled.View`
+  margin-top: 20px;
+`;
