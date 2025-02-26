@@ -7,6 +7,7 @@ type Props = {
 
 const Spinner = styled.ActivityIndicator.attrs(props => ({
   color: props.theme.COLORS.PRIMARY,
+  marginTop: 16,
 }))<Props>``;
 
 export default Spinner;
