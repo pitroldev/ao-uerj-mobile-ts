@@ -32,6 +32,8 @@ const responseErrorInterceptor = async (err: AxiosError) => {
   const cookieCreationDate = moment(apiConfig.createdAt);
   const cookieTimeInHours = now.diff(cookieCreationDate, 'hours');
 
+  console.log('[ERROR INTERCEPTOR]', err);
+
   if (!userInfo.matricula || !userInfo.password) {
     throw new Error('NOT_LOGGED_IN');
   }
@@ -47,8 +49,6 @@ const responseErrorInterceptor = async (err: AxiosError) => {
   const isNotRetryError = NOT_RETRY_ERRORS.includes(err.message);
 
   if (isSessionPossiblyExpired && !isReachedRetryLimit && !isNotRetryError) {
-    console.log('########### ERROR INTERCEPTOR (RETRYING) #############');
-
     originalRequest._retries = (originalRequest._retries || 0) + 1;
 
     await refreshAuth().catch(e => {
@@ -74,7 +74,6 @@ const responseSuccessInterceptor = async (res: AxiosResponse) => {
   if (hasNoData && !isReachedRetryLimit) {
     originalRequest._retries = (originalRequest._retries || 0) + 1;
 
-    console.log('########### SUCCESS INTERCEPTOR (RETRYING) #############');
     await refreshAuth().catch(e => {
       const notRetry = NOT_RETRY_ERRORS.includes(e.message);
       if (notRetry) {
