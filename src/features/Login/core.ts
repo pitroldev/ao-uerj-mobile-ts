@@ -13,17 +13,20 @@ import {getReqIds} from './parseReqIds';
 async function setLoginCookie(): Promise<void> {
   const url = '/';
   await api.get(url);
+  console.log('setLoginCookie');
 }
 
 export async function fetchLoginPage(): Promise<string> {
   const url = '/requisicaoaluno/';
 
   const {data} = await api.get(url);
+  console.log('fetchLoginPage');
 
   return data as string;
 }
 
 export async function handleLogin(matricula: string, senha: string) {
+  console.log('handleLogin');
   await clearAllCookies();
 
   await setLoginCookie();
@@ -32,16 +35,15 @@ export async function handleLogin(matricula: string, senha: string) {
   const {loginReqId, _token} = await parseLoginReqId(loginPageData);
 
   const url = '/requisicaoaluno/';
-  const {data: homePageData} = await retry(
-    async () =>
-      await api.get(url, {
-        params: {
-          requisicao: loginReqId,
-          matricula,
-          senha,
-          _token,
-        },
-      }),
+  const {data: homePageData} = await retry(async () =>
+    api.get(url, {
+      params: {
+        requisicao: loginReqId,
+        matricula,
+        senha,
+        _token,
+      },
+    }),
   );
 
   const info = parseLoginInfo(homePageData);

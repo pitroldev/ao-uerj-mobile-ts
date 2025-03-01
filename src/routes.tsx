@@ -20,6 +20,7 @@ import MessageBoard from '@root/pages/MessageBoard';
 import About from '@root/pages/About';
 import TeacherSearch from '@root/pages/TeacherSearch';
 import ScheduleSimulator from '@root/pages/ScheduleSimulator';
+import Loading from './pages/Loading';
 // import Playground from '@root/pages/Playground';
 
 export type RootDrawerParamList = {
@@ -37,32 +38,35 @@ export type RootDrawerParamList = {
   'Pesquisa de Professores': undefined;
   'Gerador de Grade': undefined;
   Sobre: undefined;
+
+  Loading: undefined;
 };
 
 const Drawer = createDrawerNavigator<RootDrawerParamList>();
 
 const MainRoutes = () => {
-  const {cookies, isBlocked} = useAppSelector(selectApiConfig);
-  const isSignedIn = Boolean(cookies);
+  const {cookies} = useAppSelector(selectApiConfig);
 
-  useQuery({
+  const {isLoading} = useQuery({
     queryKey: ['refresh-auth'],
     queryFn: refreshAuth,
-    enabled: isBlocked,
   });
+
+  const isSignedIn = Boolean(cookies);
 
   const initialRoute = isSignedIn ? 'Início' : 'Login';
   return (
     <Drawer.Navigator
       drawerContent={props => <CustomDrawerNavigator {...props} />}
-      initialRouteName={initialRoute}
+      initialRouteName={isLoading ? 'Loading' : initialRoute}
       screenOptions={{
         headerShown: false,
         drawerType: 'back',
         overlayColor: 'transparent',
         swipeEnabled: isSignedIn,
       }}>
-      {isSignedIn ? (
+      {isLoading && <Drawer.Screen name="Loading" component={Loading} />}
+      {!isLoading && isSignedIn && (
         <>
           {/* <Drawer.Screen name="Playground" component={Playground} /> */}
           <Drawer.Screen name="Início" component={Home} />
@@ -101,7 +105,8 @@ const MainRoutes = () => {
           /> */}
           <Drawer.Screen name="Sobre" component={About} />
         </>
-      ) : (
+      )}
+      {!isLoading && !isSignedIn && (
         <>
           <Drawer.Screen name="Login" component={Login} />
         </>
