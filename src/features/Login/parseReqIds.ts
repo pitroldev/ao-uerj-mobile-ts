@@ -17,6 +17,7 @@ function translate(name: string) {
     'disciplinas universais': 'UniversaisCursar',
     'disciplinas universais (a cursar)': 'UniversaisCursar',
     'requisitos realizados': 'DisciplinasRealizadas',
+    'requisitos cursados': 'DisciplinasRealizadas',
     'disciplinas realizadas': 'DisciplinasRealizadas',
     'notas do período': 'notas',
     'rid: resultado provisório': 'RidParcial',
