@@ -8,7 +8,7 @@
 <!-- markdownlint-enable MD033 -->
 
 [![Google Play - Download](https://img.shields.io/badge/Google%20Play-Download-3DDC84?logo=google-play&logoColor=white)](https://play.google.com/store/apps/details?id=com.aouerjmobile)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LINCESE)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
 [![React Native](https://img.shields.io/badge/React%20Native-0.72.7-61dafb)](https://reactnative.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18.2-61dafb)](https://react.dev/)
