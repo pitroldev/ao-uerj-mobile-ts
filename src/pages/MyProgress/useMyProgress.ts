@@ -2,16 +2,16 @@ import {useMemo} from 'react';
 import {useAppDispatch, useAppSelector} from '@root/store';
 import {useQuery} from 'react-query';
 
-import {selectSubjectsAttended} from '@features/SubjectsTaken/reducer';
-import {selectCurriculumSubjects} from '@features/CurriculumSubjects/reducer';
-import {selectClassGrades, setClassGrades} from '@features/ClassGrades/reducer';
-import * as subjectsTakenReducer from '@features/SubjectsTaken/reducer';
-import * as curriculumReducer from '@features/CurriculumSubjects/reducer';
+import {selectApiConfig} from '@reducers/apiConfig';
+
+import {SUBJECT_TYPE} from '@utils/constants/subjectDictionary';
+
 import {fetchSubjectsTaken} from '@features/SubjectsTaken/core';
 import {fetchCurriculumSubjects} from '@features/CurriculumSubjects/core';
-import {fetchClassGrades} from '@features/ClassGrades/core';
-import {selectApiConfig} from '@reducers/apiConfig';
-import {SUBJECT_TYPE} from '@utils/constants/subjectDictionary';
+import {selectSubjectsAttended} from '@features/SubjectsTaken/reducer';
+import * as subjectsTakenReducer from '@features/SubjectsTaken/reducer';
+import * as curriculumReducer from '@features/CurriculumSubjects/reducer';
+import {selectCurriculumSubjects} from '@features/CurriculumSubjects/reducer';
 
 type Point = {label: string; cra: number};
 
@@ -66,7 +66,6 @@ export function useMyProgress() {
   const dispatch = useAppDispatch();
   const {data: taken} = useAppSelector(selectSubjectsAttended);
   const {data: curriculum} = useAppSelector(selectCurriculumSubjects);
-  useAppSelector(selectClassGrades); // ensure slice is hydrated
   const {cookies} = useAppSelector(selectApiConfig);
 
   const HOUR_IN_MS = 1000 * 60 * 60;
@@ -84,13 +83,6 @@ export function useMyProgress() {
     queryFn: fetchCurriculumSubjects,
     staleTime: 24 * HOUR_IN_MS,
     onSuccess: d => dispatch(curriculumReducer.setState(d)),
-  });
-
-  const gradesQuery = useQuery({
-    queryKey: ['class-grades', cookies],
-    queryFn: fetchClassGrades,
-    staleTime: 24 * HOUR_IN_MS,
-    onSuccess: d => dispatch(setClassGrades(d)),
   });
 
   const {currentCRA, pointsOverTime} = useCraProgression();
@@ -176,9 +168,7 @@ export function useMyProgress() {
   }, [curriculum, taken]);
 
   const initialLoading =
-    subjectsTakenQuery.isLoading ||
-    curriculumQuery.isLoading ||
-    gradesQuery.isLoading;
+    subjectsTakenQuery.isLoading || curriculumQuery.isLoading;
   const isEmpty = taken.length === 0 && curriculum.length === 0;
 
   return {
