@@ -8,18 +8,16 @@ import {refreshAuth} from '@services/UerjApi';
 
 import CustomDrawerNavigator from '@root/components/templates/CustomDrawerNavigator';
 
-import SubjectsToTake from '@root/pages/SubjectsToTake';
 import CurriculumSubjects from '@root/pages/CurriculumSubjects';
 import UniversalSubjects from '@root/pages/UniversalSubjects';
-import ClassSchedulesByDepartment from '@root/pages/ClassSchedulesByDepartment';
 import SubjectsTaken from '@root/pages/SubjectsTaken';
 import SubjectDetails from '@root/pages/SubjectDetails';
 import Home from '@root/pages/Home';
 import Login from '@root/pages/Login';
 import MessageBoard from '@root/pages/MessageBoard';
 import About from '@root/pages/About';
-import TeacherSearch from '@root/pages/TeacherSearch';
 import ScheduleSimulator from '@root/pages/ScheduleSimulator';
+import MyProgress from '@root/pages/MyProgress';
 import Loading from './pages/Loading';
 // import Playground from '@root/pages/Playground';
 
@@ -37,12 +35,18 @@ export type RootDrawerParamList = {
   'Pesquisa de Disciplinas': undefined;
   'Pesquisa de Professores': undefined;
   'Gerador de Grade': undefined;
+  'Meu Progresso': undefined;
   Sobre: undefined;
 
   Loading: undefined;
 };
 
 const Drawer = createDrawerNavigator<RootDrawerParamList>();
+
+// Move drawerContent renderer outside of component to avoid nested component lint warning
+const renderDrawerContent = (props: any) => (
+  <CustomDrawerNavigator {...props} />
+);
 
 const MainRoutes = () => {
   const {cookies} = useAppSelector(selectApiConfig);
@@ -57,7 +61,7 @@ const MainRoutes = () => {
   const initialRoute = isSignedIn ? 'Início' : 'Login';
   return (
     <Drawer.Navigator
-      drawerContent={props => <CustomDrawerNavigator {...props} />}
+      drawerContent={renderDrawerContent}
       initialRouteName={isLoading ? 'Loading' : initialRoute}
       screenOptions={{
         headerShown: false,
@@ -70,6 +74,7 @@ const MainRoutes = () => {
         <>
           {/* <Drawer.Screen name="Playground" component={Playground} /> */}
           <Drawer.Screen name="Início" component={Home} />
+          <Drawer.Screen name="Meu Progresso" component={MyProgress} />
           <Drawer.Screen
             name="Gerador de Grade"
             component={ScheduleSimulator}
