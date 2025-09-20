@@ -40,7 +40,7 @@ export const buildWeekSvgDataUri = (
   });
 
   const sortedDays = [...weekDays].sort((a, b) => a.number - b.number);
-  const width = 1080;
+  const width = 768;
   const marginX = 40;
   const sectionSpacing = 24;
   const headerHeight = 64; // height for each day card's header area
