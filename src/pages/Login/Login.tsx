@@ -32,8 +32,6 @@ const LoginPage = () => {
         setError(data.fail_reason);
         return;
       }
-
-      navigation.navigate('Início');
     },
   });
 

@@ -5,7 +5,7 @@ import { MainContainer } from './Loading.styles';
 
 import Spinner from '@root/components/atoms/Spinner';
 
-const AboutPage = () => {
+const LoadingPage = () => {
   return (
     <MainContainer>
       <Spinner size={64} />
@@ -22,4 +22,4 @@ const AboutPage = () => {
   );
 };
 
-export default AboutPage;
+export default LoadingPage;

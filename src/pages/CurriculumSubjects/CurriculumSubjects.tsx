@@ -37,7 +37,7 @@ const CurriculumSubjects = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data } = useAppSelector(reducer.selectCurriculumSubjects);
-  const { isBlocked, cookies } = useAppSelector(
+  const { isBlocked, cookies, createdAt } = useAppSelector(
     apiConfigReducer.selectApiConfig,
   );
 
@@ -47,13 +47,15 @@ const CurriculumSubjects = () => {
   const ref = useRef<FlatList>(null);
 
   const {
-    isFetching: loading,
+    isLoading: loading,
     error,
     refetch,
   } = useQuery({
-    queryKey: ['curriculum-subjects', cookies],
+    queryKey: ['curriculum-subjects', cookies, createdAt],
     queryFn: fetchCurriculumSubjects,
     staleTime: 24 * HOUR_IN_MS,
+    enabled: Boolean(cookies),
+    retry: 0,
     onSuccess: d => {
       dispatch(reducer.setState(d));
     },

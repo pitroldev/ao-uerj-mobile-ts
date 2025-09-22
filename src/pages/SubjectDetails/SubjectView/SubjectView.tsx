@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Linking, ScrollView } from 'react-native';
 
 import { useAppDispatch, useAppSelector } from '@root/store';
@@ -57,10 +57,6 @@ const SubjectView = ({
     }
     searchSubject(subjectCode);
   };
-
-  useEffect(() => {
-    getSubject(code!);
-  }, [code]);
 
   const handleSyllabusPress = () => {
     const url = `https://www.ementario.uerj.br/ementa.php?cdg_disciplina=${code}`;

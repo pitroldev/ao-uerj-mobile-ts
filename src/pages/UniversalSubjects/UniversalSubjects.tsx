@@ -70,7 +70,7 @@ const UniversalSubjects = () => {
     .sort((a, b) => a.label.localeCompare(b.label));
 
   const {
-    isFetching: loading,
+    isLoading: loading,
     error,
     refetch,
   } = useQuery({

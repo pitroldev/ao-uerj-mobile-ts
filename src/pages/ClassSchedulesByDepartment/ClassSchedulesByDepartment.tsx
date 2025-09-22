@@ -44,13 +44,15 @@ const ClassesScheduleByUnit = () => {
   );
 
   const {
-    isFetching: loading,
+    isLoading: loading,
     error,
     refetch,
   } = useQuery({
     queryKey: ['classes-schedule-by-department', periodo, selectedOption],
     queryFn: () => fetchClassesScheduleByDepartment(selectedOption),
     staleTime: 6 * HOUR_IN_MS,
+    enabled: Boolean(selectedOption),
+    retry: 0,
     onSuccess: d => {
       dispatch(reducer.setSubjects(d.subjects));
       dispatch(reducer.setOptions(d.options));

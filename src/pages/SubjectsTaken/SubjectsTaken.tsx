@@ -36,7 +36,7 @@ const SubjectsAttended = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('');
 
   const { data } = useAppSelector(reducer.selectSubjectsAttended);
-  const { isBlocked, cookies } = useAppSelector(
+  const { isBlocked, cookies, createdAt } = useAppSelector(
     apiConfigReducer.selectApiConfig,
   );
 
@@ -48,13 +48,15 @@ const SubjectsAttended = () => {
   const ref = useRef<FlatList>(null);
 
   const {
-    isFetching: loading,
+    isLoading: loading,
     error,
     refetch,
   } = useQuery({
-    queryKey: ['subjects-taken', cookies],
+    queryKey: ['subjects-taken', cookies, createdAt],
     queryFn: fetchSubjectsTaken,
     staleTime: 24 * HOUR_IN_MS,
+    enabled: Boolean(cookies),
+    retry: 0,
     onSuccess: d => {
       dispatch(reducer.setState(d));
     },

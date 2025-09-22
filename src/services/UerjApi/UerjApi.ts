@@ -10,12 +10,15 @@ import { NOT_RETRY_ERRORS } from './utils';
 const BASE_URL = 'https://www.alunoonline.uerj.br';
 const COOKIE_MAX_DURATION_IN_HOURS = 2;
 const MAX_ERROR_RETRIES = 3;
+const MAX_SERVER_ERROR_RETRIES = 3;
 const MAX_SUCCESS_RETRIES = 1;
+const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 const api = axios.create({
   baseURL: BASE_URL,
   responseType: 'arraybuffer',
   withCredentials: true,
+  timeout: 15_000,
   transformResponse: [
     res => (res ? iconv.decode(Buffer.from(res), 'iso-8859-1') : res),
   ],
@@ -38,15 +41,30 @@ const responseErrorInterceptor = async (err: AxiosError) => {
     throw new Error('NOT_LOGGED_IN');
   }
 
-  const isServerError = err?.response?.status && err.response.status >= 500;
+  const status = err?.response?.status;
+  const isAuthError = status === 401 || status === 403;
+  const isServerError = status !== undefined && status >= 500;
   const originalRequest = err.config as any;
 
   const isReachedRetryLimit = originalRequest._retries >= MAX_ERROR_RETRIES;
 
   const isSessionPossiblyExpired =
-    cookieTimeInHours > COOKIE_MAX_DURATION_IN_HOURS || isServerError;
+    cookieTimeInHours > COOKIE_MAX_DURATION_IN_HOURS ||
+    isAuthError ||
+    isServerError;
 
   const isNotRetryError = NOT_RETRY_ERRORS.includes(err.message);
+
+  if (isServerError) {
+    const retries = (originalRequest as any)._serverRetries || 0;
+    if (retries < MAX_SERVER_ERROR_RETRIES) {
+      (originalRequest as any)._serverRetries = retries + 1;
+      const backoff = Math.min(1000 * 2 ** retries, 5000); // 1s, 2s, 4s
+      await delay(backoff);
+      return api(originalRequest);
+    }
+    return Promise.reject(err);
+  }
 
   if (isSessionPossiblyExpired && !isReachedRetryLimit && !isNotRetryError) {
     originalRequest._retries = (originalRequest._retries || 0) + 1;
@@ -61,7 +79,7 @@ const responseErrorInterceptor = async (err: AxiosError) => {
     return api(originalRequest);
   }
 
-  Promise.reject(err);
+  return Promise.reject(err);
 };
 
 const responseSuccessInterceptor = async (res: AxiosResponse) => {
@@ -77,10 +95,9 @@ const responseSuccessInterceptor = async (res: AxiosResponse) => {
     await refreshAuth().catch(e => {
       const notRetry = NOT_RETRY_ERRORS.includes(e.message);
       if (notRetry) {
-        originalRequest._retries = MAX_SUCCESS_RETRIES;
+        originalRequest._retries = MAX_ERROR_RETRIES;
       }
     });
-
     return api(originalRequest);
   }
 

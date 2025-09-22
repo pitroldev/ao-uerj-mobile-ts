@@ -45,13 +45,15 @@ const SubjectsToTake = () => {
   const ref = useRef<FlatList>(null);
 
   const {
-    isFetching: loading,
+    isLoading: loading,
     error,
     refetch,
   } = useQuery({
     queryKey: ['subjects-to-take', cookies],
     queryFn: fetchSubjectsToTake,
     staleTime: 24 * HOUR_IN_MS,
+    enabled: Boolean(cookies),
+    retry: 0,
     onSuccess: d => {
       dispatch(reducer.setState(d));
     },

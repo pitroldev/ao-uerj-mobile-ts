@@ -10,14 +10,14 @@ type ApiConfig = {
   dictionary: Dict;
   isBlocked: boolean;
   _token?: string;
-  createdAt: Date;
+  createdAt: number;
 };
 
 const initialState: ApiConfig = {
   cookies: null,
   isBlocked: false,
   dictionary: {},
-  createdAt: new Date(),
+  createdAt: Date.now(),
 };
 
 const apiConfigSlice = createSlice({
@@ -25,7 +25,7 @@ const apiConfigSlice = createSlice({
   initialState,
   reducers: {
     setState: (state, action: PayloadAction<Partial<ApiConfig>>) => {
-      const createdAt = new Date();
+      const createdAt = Date.now();
       Object.assign(state, { ...action.payload, createdAt });
     },
     addDictionary: (state, action: PayloadAction<Dict>) => {
@@ -38,7 +38,7 @@ const apiConfigSlice = createSlice({
       state._token = action.payload;
     },
     clear: state => {
-      Object.assign(state, initialState);
+      Object.assign(state, { ...initialState, createdAt: Date.now() });
     },
   },
 });

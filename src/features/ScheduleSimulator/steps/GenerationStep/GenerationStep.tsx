@@ -76,7 +76,7 @@ const GenerationStep = () => {
   });
 
   const {
-    isFetching: loading,
+    isLoading: loading,
     data,
     error,
     refetch,

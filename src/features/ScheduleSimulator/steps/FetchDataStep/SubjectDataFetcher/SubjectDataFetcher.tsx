@@ -37,7 +37,7 @@ const SubjectDataFetcher = (subject: CurriculumSubject) => {
   const alreadyHasSubject = subjects.some(s => s.id === subject.id);
 
   const {
-    isFetching: loadingInfo,
+    isLoading: loadingInfo,
     error: errorInfo,
     refetch: refetchInfo,
     data: subjectInfo,

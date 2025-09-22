@@ -40,7 +40,9 @@ const SubjectsStep = () => {
   const dispatch = useAppDispatch();
   const { nextStep, prevStep } = useStepsContext();
 
-  const { cookies } = useAppSelector(apiConfigReducer.selectApiConfig);
+  const { cookies, createdAt } = useAppSelector(
+    apiConfigReducer.selectApiConfig,
+  );
   const { data } = useAppSelector(
     curriculumSubjectsReducer.selectCurriculumSubjects,
   );
@@ -53,7 +55,7 @@ const SubjectsStep = () => {
   });
 
   const { isFetching, error, refetch } = useQuery({
-    queryKey: ['curriculum-subjects', cookies],
+    queryKey: ['curriculum-subjects', cookies, createdAt],
     queryFn: fetchCurriculumSubjects,
     onSuccess: d => {
       dispatch(curriculumSubjectsReducer.setState(d));

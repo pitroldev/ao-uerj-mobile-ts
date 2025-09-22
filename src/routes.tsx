@@ -3,6 +3,7 @@ import { createDrawerNavigator } from '@react-navigation/drawer';
 import { useQuery } from 'react-query';
 
 import { selectApiConfig } from '@reducers/apiConfig';
+import { selectUserInfo } from '@reducers/userInfo';
 import { useAppSelector } from '@root/store';
 import { refreshAuth } from '@services/UerjApi';
 
@@ -46,10 +47,13 @@ const Drawer = createDrawerNavigator<RootDrawerParamList>();
 
 const MainRoutes = () => {
   const { cookies } = useAppSelector(selectApiConfig);
+  const { matricula, password } = useAppSelector(selectUserInfo);
 
   const { isLoading } = useQuery({
     queryKey: ['refresh-auth'],
     queryFn: refreshAuth,
+    enabled: Boolean(matricula && password),
+    retry: 0,
   });
 
   const isSignedIn = Boolean(cookies);

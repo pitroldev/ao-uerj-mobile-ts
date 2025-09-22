@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components';
 import Icon from 'react-native-vector-icons/AntDesign';
 
@@ -21,6 +22,7 @@ type Props = {
 
 const Header = ({ navigationState }: Props) => {
   const [routeName, setRouteName] = useState('');
+  const insets = useSafeAreaInsets();
 
   const theme = useTheme();
   const { periodo, password } = useAppSelector(infoReducer.selectUserInfo);
@@ -46,7 +48,7 @@ const Header = ({ navigationState }: Props) => {
   }
 
   return (
-    <Container>
+    <Container style={{ paddingTop: insets.top }}>
       <MenuButton onPress={RootNavigation.toggleDrawer}>
         <Icon
           name={isDrawerOpen ? 'menu-unfold' : 'menu-fold'}
@@ -66,7 +68,7 @@ const Header = ({ navigationState }: Props) => {
         </Text>
       </Button>
       <AOButton onPress={() => RootNavigation.navigate('Sobre')}>
-        <LogoAO width={10} />
+        <LogoAO width={36} height={36} />
       </AOButton>
     </Container>
   );

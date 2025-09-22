@@ -36,7 +36,7 @@ const TeacherSearch = () => {
 
   const {
     data,
-    isFetching: loading,
+    isLoading: loading,
     error,
   } = useQuery({
     queryKey: ['teacher-list', matricula],
@@ -44,7 +44,7 @@ const TeacherSearch = () => {
     initialData: [],
   });
 
-  const { data: teacherData, isFetching: loadingTeacher } = useQuery({
+  const { data: teacherData, isLoading: loadingTeacher } = useQuery({
     queryKey: ['teacher-details', selectedTeacher],
     queryFn: () => fetchTeacherDetails(selectedTeacher),
     enabled: Boolean(selectedTeacher),

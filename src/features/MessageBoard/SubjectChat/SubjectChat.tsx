@@ -30,7 +30,7 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
   const {
     data,
     error,
-    isFetching: loading,
+    isLoading: loading,
     refetch,
   } = useQuery({
     queryKey: ['private-class-messages', periodo, subject],

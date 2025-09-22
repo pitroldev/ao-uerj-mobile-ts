@@ -30,7 +30,9 @@ const FetchDataStep = () => {
   const { COLORS } = useTheme();
   const { nextStep, prevStep } = useStepsContext();
 
-  const { cookies } = useAppSelector(apiConfigReducer.selectApiConfig);
+  const { cookies, createdAt } = useAppSelector(
+    apiConfigReducer.selectApiConfig,
+  );
 
   const { control, handleSubmit, setValue } =
     useFormContext<ScheduleCreationParams>();
@@ -42,11 +44,11 @@ const FetchDataStep = () => {
   const handleNextPress = handleSubmit(nextStep);
 
   const {
-    isFetching: loadingSubjectsTaken,
+    isLoading: loadingSubjectsTaken,
     error: errorSubjectsTaken,
     refetch,
   } = useQuery({
-    queryKey: ['subjects-taken', cookies],
+    queryKey: ['subjects-taken', cookies, createdAt],
     queryFn: fetchSubjectsTaken,
     onSuccess: data => {
       setValue('takenSubjects', data);

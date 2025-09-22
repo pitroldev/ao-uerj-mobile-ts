@@ -1,4 +1,5 @@
 import api from '@services/UerjApi';
+import authApi from '@services/UerjApi/authApi';
 import { retry } from '@services/UerjApi/utils';
 import { clearAllCookies, getCookies } from '@services/cookies';
 
@@ -12,13 +13,13 @@ import { getReqIds } from './parseReqIds';
 
 async function setLoginCookie(): Promise<void> {
   const url = '/';
-  await api.get(url);
+  await authApi.get(url);
 }
 
 export async function fetchLoginPage(): Promise<string> {
   const url = '/requisicaoaluno/';
 
-  const { data } = await api.get(url);
+  const { data } = await authApi.get(url);
 
   return data as string;
 }
@@ -33,7 +34,7 @@ export async function handleLogin(matricula: string, senha: string) {
 
   const url = '/requisicaoaluno/';
   const { data: homePageData } = await retry(async () =>
-    api.get(url, {
+    authApi.get(url, {
       params: {
         requisicao: loginReqId,
         matricula,

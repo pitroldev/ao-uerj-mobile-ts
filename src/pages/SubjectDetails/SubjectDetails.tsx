@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Toast from 'react-native-toast-message';
 
 import parser from '@services/parser';
@@ -83,6 +83,20 @@ const SubjectDetailPage = () => {
       setLoading(false);
     }
   };
+
+  // Ensure that when a code exists but the subject isn't loaded yet, we fetch it.
+  useEffect(() => {
+    if (!current?.code || loading) return;
+    // If the current already has the subject loaded for this period, do nothing
+    if (current?.subject && current.periodo === periodo) return;
+    // Parse and trigger fetch without relying on the child to avoid cross-component updates during render
+    const parsed = parser.parseSubjectCode(current.code as string);
+    if (typeof parsed === 'number') {
+      // Allow cache usage if available
+      searchSubject(parsed, false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current?.code, current?.subject, periodo, loading]);
 
   if (current) {
     return (
