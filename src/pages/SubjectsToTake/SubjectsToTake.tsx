@@ -1,19 +1,19 @@
-import React, {useState, useRef} from 'react';
-import {ListRenderItemInfo} from 'react-native';
+import React, { useState, useRef } from 'react';
+import { ListRenderItemInfo } from 'react-native';
 import Toast from 'react-native-toast-message';
-import {Picker} from '@react-native-picker/picker';
-import {FlatList} from 'react-native-gesture-handler';
-import {useNavigation} from '@react-navigation/native';
+import { Picker } from '@react-native-picker/picker';
+import { FlatList } from 'react-native-gesture-handler';
+import { useNavigation } from '@react-navigation/native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import {useQuery} from 'react-query';
+import { useQuery } from 'react-query';
 
-import {normalizeText} from '@utils/normalize';
+import { normalizeText } from '@utils/normalize';
 import parser from '@services/parser';
 
-import {useAppDispatch, useAppSelector} from '@root/store';
+import { useAppDispatch, useAppSelector } from '@root/store';
 
-import {SubjectToTake} from '@features/SubjectsToTake/types';
-import {fetchSubjectsToTake} from '@features/SubjectsToTake/core';
+import { SubjectToTake } from '@features/SubjectsToTake/types';
+import { fetchSubjectsToTake } from '@features/SubjectsToTake/core';
 
 import * as apiConfigReducer from '@reducers/apiConfig';
 import * as reducer from '@features/SubjectsToTake/reducer';
@@ -26,7 +26,7 @@ import SubjectBox from '@molecules/SubjectBox';
 import DummyMessage from '@molecules/DummyMessage';
 import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
-import {Container} from './SubjectsToTake.styles';
+import { Container } from './SubjectsToTake.styles';
 
 const HOUR_IN_MS = 1000 * 60 * 60;
 
@@ -34,8 +34,10 @@ const SubjectsToTake = () => {
   const [subjectType, setSubjectType] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const {data} = useAppSelector(reducer.selectSubjectsToTake);
-  const {isBlocked, cookies} = useAppSelector(apiConfigReducer.selectApiConfig);
+  const { data } = useAppSelector(reducer.selectSubjectsToTake);
+  const { isBlocked, cookies } = useAppSelector(
+    apiConfigReducer.selectApiConfig,
+  );
 
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
@@ -57,7 +59,7 @@ const SubjectsToTake = () => {
 
   const handleSubjectTypeChange = (value: string) => {
     setSubjectType(value);
-    ref.current?.scrollToOffset({animated: true, offset: 0});
+    ref.current?.scrollToOffset({ animated: true, offset: 0 });
   };
 
   const handleSubjectPress = (subject: SubjectToTake) => {
@@ -71,8 +73,8 @@ const SubjectsToTake = () => {
     }
 
     const code = parser.parseSubjectCode(subject.id) as number;
-    dispatch(subjectDetailReducer.appendData({code}));
-    dispatch(subjectDetailReducer.select({code}));
+    dispatch(subjectDetailReducer.appendData({ code }));
+    dispatch(subjectDetailReducer.select({ code }));
     navigation.navigate('Pesquisa de Disciplinas');
   };
 
@@ -130,7 +132,7 @@ const SubjectsToTake = () => {
     );
   };
 
-  const filteredData = data.filter(({type, name}) => {
+  const filteredData = data.filter(({ type, name }) => {
     const hasSubjectType = !subjectType || type === subjectType;
     const hasSearchQuery =
       !searchQuery || normalizeText(name).includes(normalizeText(searchQuery));
@@ -144,9 +146,9 @@ const SubjectsToTake = () => {
 
   const quantities = {
     all: data.length,
-    mandatory: data.filter(({type}) => type === 'MANDATORY').length,
-    restricted: data.filter(({type}) => type === 'RESTRICTED').length,
-    defined: data.filter(({type}) => type === 'DEFINED').length,
+    mandatory: data.filter(({ type }) => type === 'MANDATORY').length,
+    restricted: data.filter(({ type }) => type === 'RESTRICTED').length,
+    defined: data.filter(({ type }) => type === 'DEFINED').length,
   };
 
   return (
@@ -155,7 +157,8 @@ const SubjectsToTake = () => {
         selectedValue={subjectType}
         onValueChange={s => handleSubjectTypeChange(s as string)}
         loading={loading}
-        enabled={!loading}>
+        enabled={!loading}
+      >
         <Picker.Item label={`Todas (${quantities.all})`} value={''} />
         <Picker.Item
           label={`Disciplinas Obrigatórias (${quantities.mandatory})`}

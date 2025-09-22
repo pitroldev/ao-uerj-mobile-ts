@@ -15,7 +15,7 @@ export const SubjectsColumn = styled.View`
 
   border-radius: 8px;
   padding: 8px;
-  background-color: ${({theme}) => theme.COLORS.BACKGROUND};
+  background-color: ${({ theme }) => theme.COLORS.BACKGROUND};
   elevation: 4;
 `;
 
@@ -50,6 +50,6 @@ export const InfoContainer = styled.View`
 
   border-radius: 8px;
   padding: 8px;
-  background-color: ${({theme}) => theme.COLORS.BACKGROUND};
+  background-color: ${({ theme }) => theme.COLORS.BACKGROUND};
   elevation: 4;
 `;

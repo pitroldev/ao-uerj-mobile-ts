@@ -1,15 +1,15 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import Toast from 'react-native-toast-message';
 
 import parser from '@services/parser';
-import {useAppDispatch, useAppSelector} from '@root/store';
+import { useAppDispatch, useAppSelector } from '@root/store';
 
 import * as userReducer from '@reducers/userInfo';
 import * as apiConfigReducer from '@reducers/apiConfig';
 import * as subjectReducer from '@features/SubjectClassesSchedule/reducer';
 
-import {SubjectInfo} from '@features/SubjectInfo/types';
-import {getSubjectInfo} from '@features/SubjectInfo/core';
+import { SubjectInfo } from '@features/SubjectInfo/types';
+import { getSubjectInfo } from '@features/SubjectInfo/core';
 
 import SubjectSearch from './SubjectSearch';
 import SubjectView from './SubjectView';
@@ -20,9 +20,9 @@ const SubjectDetailPage = () => {
 
   const dispatch = useAppDispatch();
 
-  const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
-  const {periodo} = useAppSelector(userReducer.selectUserInfo);
-  const {current, data} = useAppSelector(
+  const { isBlocked } = useAppSelector(apiConfigReducer.selectApiConfig);
+  const { periodo } = useAppSelector(userReducer.selectUserInfo);
+  const { current, data } = useAppSelector(
     subjectReducer.selectSubjectClassesSearch,
   );
 
@@ -32,7 +32,7 @@ const SubjectDetailPage = () => {
       throw new Error('SUBJECT_NOT_FOUND');
     }
 
-    dispatch(subjectReducer.setCurrent({subject, periodo, code}));
+    dispatch(subjectReducer.setCurrent({ subject, periodo, code }));
   };
 
   const handleSubjectCode = (subjectCode: string | number) => {

@@ -1,8 +1,8 @@
-import React, {useState, useRef} from 'react';
-import {Linking} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import React, { useState, useRef } from 'react';
+import { Linking } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
-import {handleLogin} from '@features/Login/core';
+import { handleLogin } from '@features/Login/core';
 
 import Text from '@atoms/Text';
 import TextInput from '@atoms/TextInput';
@@ -13,7 +13,7 @@ import {
   SignInButton,
   RecoveryPassButton,
 } from './Login.styles';
-import {useMutation} from 'react-query';
+import { useMutation } from 'react-query';
 
 const PASS_RECOVERY_URL = 'https://www.alunoonline.uerj.br/requisicaoaluno/';
 
@@ -25,7 +25,7 @@ const LoginPage = () => {
   const passwordInputRef = useRef<any>(null);
   const navigation = useNavigation();
 
-  const {isLoading: loading, mutate: login} = useMutation({
+  const { isLoading: loading, mutate: login } = useMutation({
     mutationFn: () => handleLogin(matricula, password),
     onSuccess: data => {
       if (data.fail_reason) {
@@ -79,7 +79,8 @@ const LoginPage = () => {
         <SignInButton
           loading={loading}
           disabled={loading}
-          onPress={() => handleSignInPress()}>
+          onPress={() => handleSignInPress()}
+        >
           Entrar
         </SignInButton>
 

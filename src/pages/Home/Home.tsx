@@ -1,14 +1,14 @@
-import React, {useState} from 'react';
-import {useQuery} from 'react-query';
-import {useDispatch} from 'react-redux';
+import React, { useState } from 'react';
+import { useQuery } from 'react-query';
+import { useDispatch } from 'react-redux';
 
-import {useAppSelector} from '@root/store';
+import { useAppSelector } from '@root/store';
 
 import parser from '@services/parser';
 
-import {fetchPartialRID} from '@features/PartialRID/core';
-import {fetchClassGrades} from '@features/ClassGrades/core';
-import {fetchAttendedClassesSchedule} from '@features/AttendedClassesSchedule/core';
+import { fetchPartialRID } from '@features/PartialRID/core';
+import { fetchClassGrades } from '@features/ClassGrades/core';
+import { fetchAttendedClassesSchedule } from '@features/AttendedClassesSchedule/core';
 
 import * as infoReducer from '@reducers/userInfo';
 import * as apiConfigReducer from '@reducers/apiConfig';
@@ -50,12 +50,14 @@ const HomePage = () => {
 
   const dispatch = useDispatch();
 
-  const {isBlocked, cookies} = useAppSelector(apiConfigReducer.selectApiConfig);
-  const {periodo, name} = useAppSelector(infoReducer.selectUserInfo);
-  const {data: attendedClassesData} = useAppSelector(
+  const { isBlocked, cookies } = useAppSelector(
+    apiConfigReducer.selectApiConfig,
+  );
+  const { periodo, name } = useAppSelector(infoReducer.selectUserInfo);
+  const { data: attendedClassesData } = useAppSelector(
     attendedReducer.selectAttendedClasses,
   );
-  const {data: classGrades, isClassGradesAvailable} = useAppSelector(
+  const { data: classGrades, isClassGradesAvailable } = useAppSelector(
     gradesReducer.selectClassGrades,
   );
 

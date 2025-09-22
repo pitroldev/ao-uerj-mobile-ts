@@ -1,23 +1,23 @@
-import React, {useState, useRef} from 'react';
-import {ListRenderItemInfo} from 'react-native';
+import React, { useState, useRef } from 'react';
+import { ListRenderItemInfo } from 'react-native';
 import Toast from 'react-native-toast-message';
-import {FlatList} from 'react-native-gesture-handler';
-import {useNavigation} from '@react-navigation/native';
+import { FlatList } from 'react-native-gesture-handler';
+import { useNavigation } from '@react-navigation/native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import {useQuery} from 'react-query';
+import { useQuery } from 'react-query';
 
-import {normalizeText} from '@utils/normalize';
+import { normalizeText } from '@utils/normalize';
 import parser from '@services/parser';
 
-import {useAppDispatch, useAppSelector} from '@root/store';
+import { useAppDispatch, useAppSelector } from '@root/store';
 
 import * as infoReducer from '@reducers/userInfo';
 import * as apiConfigReducer from '@reducers/apiConfig';
 import * as reducer from '@features/ClassesScheduleByDepartment/reducer';
 import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
 
-import {SubjectByUnit} from '@features/ClassesScheduleByDepartment/types';
-import {fetchClassesScheduleByDepartment} from '@features/ClassesScheduleByDepartment/core';
+import { SubjectByUnit } from '@features/ClassesScheduleByDepartment/types';
+import { fetchClassesScheduleByDepartment } from '@features/ClassesScheduleByDepartment/core';
 
 import Spinner from '@atoms/Spinner';
 import StyledPicker from '@atoms/Picker';
@@ -26,8 +26,8 @@ import SubjectBox from '@molecules/SubjectBox';
 import DummyMessage from '@molecules/DummyMessage';
 import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
-import {Container} from './ClassSchedulesByDepartment.styles';
-import {Picker} from '@react-native-picker/picker';
+import { Container } from './ClassSchedulesByDepartment.styles';
+import { Picker } from '@react-native-picker/picker';
 
 const HOUR_IN_MS = 1000 * 60 * 60;
 
@@ -37,9 +37,9 @@ const ClassesScheduleByUnit = () => {
     undefined,
   );
 
-  const {periodo} = useAppSelector(infoReducer.selectUserInfo);
-  const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
-  const {subjects, options} = useAppSelector(
+  const { periodo } = useAppSelector(infoReducer.selectUserInfo);
+  const { isBlocked } = useAppSelector(apiConfigReducer.selectApiConfig);
+  const { subjects, options } = useAppSelector(
     reducer.selectClassSchedulesByDepartment,
   );
 
@@ -65,9 +65,9 @@ const ClassesScheduleByUnit = () => {
   const handleOptionChange = (value: string) => {
     const newOptions = options.map(option => {
       if (option.value === value) {
-        return {...option, selected: true};
+        return { ...option, selected: true };
       }
-      return {...option, selected: false};
+      return { ...option, selected: false };
     });
     dispatch(reducer.setOptions(newOptions));
     setSelectedOption(value);
@@ -83,8 +83,8 @@ const ClassesScheduleByUnit = () => {
       return;
     }
     const code = parser.parseSubjectCode(subject.id) as number;
-    dispatch(subjectDetailReducer.appendData({code}));
-    dispatch(subjectDetailReducer.select({code}));
+    dispatch(subjectDetailReducer.appendData({ code }));
+    dispatch(subjectDetailReducer.select({ code }));
     navigation.navigate('Pesquisa de Disciplinas');
   };
 
@@ -95,7 +95,7 @@ const ClassesScheduleByUnit = () => {
       return null;
     }
 
-    const {id, name} = subject;
+    const { id, name } = subject;
 
     return (
       <SubjectBox
@@ -111,7 +111,7 @@ const ClassesScheduleByUnit = () => {
     );
   };
 
-  const filteredSubjects = subjects.filter(({name}) => {
+  const filteredSubjects = subjects.filter(({ name }) => {
     const hasSearchQuery =
       !searchQuery || normalizeText(name).includes(normalizeText(searchQuery));
 
@@ -142,8 +142,9 @@ const ClassesScheduleByUnit = () => {
         selectedValue={currentSelectedOption?.value}
         onValueChange={s => handleOptionChange(s as string)}
         enabled={!loading}
-        loading={loading}>
-        {options.map(({value, text}) => (
+        loading={loading}
+      >
+        {options.map(({ value, text }) => (
           <Picker.Item value={value} key={value} label={text} />
         ))}
       </StyledPicker>

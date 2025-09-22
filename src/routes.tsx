@@ -1,10 +1,10 @@
 import React from 'react';
-import {createDrawerNavigator} from '@react-navigation/drawer';
-import {useQuery} from 'react-query';
+import { createDrawerNavigator } from '@react-navigation/drawer';
+import { useQuery } from 'react-query';
 
-import {selectApiConfig} from '@reducers/apiConfig';
-import {useAppSelector} from '@root/store';
-import {refreshAuth} from '@services/UerjApi';
+import { selectApiConfig } from '@reducers/apiConfig';
+import { useAppSelector } from '@root/store';
+import { refreshAuth } from '@services/UerjApi';
 
 import CustomDrawerNavigator from '@root/components/templates/CustomDrawerNavigator';
 
@@ -45,9 +45,9 @@ export type RootDrawerParamList = {
 const Drawer = createDrawerNavigator<RootDrawerParamList>();
 
 const MainRoutes = () => {
-  const {cookies} = useAppSelector(selectApiConfig);
+  const { cookies } = useAppSelector(selectApiConfig);
 
-  const {isLoading} = useQuery({
+  const { isLoading } = useQuery({
     queryKey: ['refresh-auth'],
     queryFn: refreshAuth,
   });
@@ -64,7 +64,8 @@ const MainRoutes = () => {
         drawerType: 'back',
         overlayColor: 'transparent',
         swipeEnabled: isSignedIn,
-      }}>
+      }}
+    >
       {isLoading && <Drawer.Screen name="Loading" component={Loading} />}
       {!isLoading && isSignedIn && (
         <>

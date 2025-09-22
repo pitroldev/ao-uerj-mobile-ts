@@ -1,5 +1,5 @@
-import React, {forwardRef} from 'react';
-import {TextAreaProps, Container, TextArea} from './TextArea.styles';
+import React, { forwardRef } from 'react';
+import { TextAreaProps, Container, TextArea } from './TextArea.styles';
 
 export type Props = TextAreaProps & React.ComponentProps<typeof TextArea>;
 

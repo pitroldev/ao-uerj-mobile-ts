@@ -13,7 +13,7 @@ export const MainContainer = styled.ScrollView`
   height: 100%;
 
   border-top-left-radius: 50px;
-  background-color: ${({theme}) => theme.COLORS.BACKGROUND};
+  background-color: ${({ theme }) => theme.COLORS.BACKGROUND};
 `;
 
 export const Row = styled.View`
@@ -40,7 +40,7 @@ export const AOLogoContainer = styled.View`
 
   padding: 16px;
   margin: 8px auto;
-  background-color: ${({theme}) => theme.COLORS.PRIMARY};
+  background-color: ${({ theme }) => theme.COLORS.PRIMARY};
 `;
 
 export const AOUerjLogo = styled(AOUerjSVG)`
@@ -51,7 +51,7 @@ export const CardapioMobileLogo = styled(CardapioSVG)`
   align-self: center;
 `;
 
-export const Icon = styled(FontAwesomeIcon).attrs(({theme}) => ({
+export const Icon = styled(FontAwesomeIcon).attrs(({ theme }) => ({
   color: theme.COLORS.BACKGROUND,
   size: 20,
 }))``;

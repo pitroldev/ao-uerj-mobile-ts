@@ -1,15 +1,15 @@
 import 'react-native-gesture-handler';
-import React, {useState} from 'react';
-import {Provider} from 'react-redux';
-import {persistStore} from 'redux-persist';
-import {PersistGate} from 'redux-persist/integration/react';
-import {DefaultTheme, NavigationContainer} from '@react-navigation/native';
-import {ThemeProvider} from 'styled-components';
+import React, { useState } from 'react';
+import { Provider } from 'react-redux';
+import { persistStore } from 'redux-persist';
+import { PersistGate } from 'redux-persist/integration/react';
+import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import { ThemeProvider } from 'styled-components';
 import Toast from 'react-native-toast-message';
-import {QueryClientProvider} from 'react-query';
+import { QueryClientProvider } from 'react-query';
 
-import {LIGHT} from '@root/themes';
-import {navigationRef, isReadyRef} from '@services/rootNavigation';
+import { LIGHT } from '@root/themes';
+import { navigationRef, isReadyRef } from '@services/rootNavigation';
 import queryClient from '@services/query-client';
 
 import store from './store';
@@ -33,9 +33,10 @@ const App = () => {
               theme={navTheme}
               ref={navigationRef}
               onReady={() => {
-                Object.assign(isReadyRef, {current: true});
+                Object.assign(isReadyRef, { current: true });
               }}
-              onStateChange={setNavigationState}>
+              onStateChange={setNavigationState}
+            >
               <MainRoutes />
             </NavigationContainer>
             <Toast position="bottom" autoHide visibilityTime={10000} />

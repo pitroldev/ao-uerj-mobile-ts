@@ -1,5 +1,5 @@
-import {Turno} from '@root/types/dateStuff';
-import {TIME_DICTIONARY} from '@utils/constants/time';
+import { Turno } from '@root/types/dateStuff';
+import { TIME_DICTIONARY } from '@utils/constants/time';
 
 export function convertTempoHorario(tempo: string): string[] {
   if (!TIME_DICTIONARY[tempo]) {
@@ -109,7 +109,7 @@ export function convertTempoToNumber(tempos: string[]) {
 export function searchForBreakPonts(tempos: Turno[]) {
   const numberedTempos = convertTempoToNumber(tempos);
 
-  const {length} = numberedTempos;
+  const { length } = numberedTempos;
   const firstNum = numberedTempos[0];
   const lastNum = numberedTempos[length - 1];
   const hipoteticalLenght = lastNum - firstNum + 1;

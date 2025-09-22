@@ -1,1 +1,1 @@
-export {default} from './ClassScheduleBoard';
+export { default } from './ClassScheduleBoard';

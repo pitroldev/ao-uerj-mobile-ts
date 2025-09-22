@@ -1,4 +1,4 @@
-import {SubjectsTaken} from '@features/SubjectsTaken/types';
+import { SubjectsTaken } from '@features/SubjectsTaken/types';
 
 function calculateCR(data: SubjectsTaken[]) {
   const filteredData = data.filter(v => v.grade !== null && v.credits !== null);

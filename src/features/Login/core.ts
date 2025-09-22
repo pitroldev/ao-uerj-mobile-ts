@@ -1,6 +1,6 @@
 import api from '@services/UerjApi';
-import {retry} from '@services/UerjApi/utils';
-import {clearAllCookies, getCookies} from '@services/cookies';
+import { retry } from '@services/UerjApi/utils';
+import { clearAllCookies, getCookies } from '@services/cookies';
 
 import store from '@root/store';
 import * as apiConfigReducer from '@reducers/apiConfig';
@@ -8,7 +8,7 @@ import * as userInfoReducer from '@reducers/userInfo';
 
 import parseLoginReqId from './parseLoginReqId';
 import parseLoginInfo from './parseLoginData';
-import {getReqIds} from './parseReqIds';
+import { getReqIds } from './parseReqIds';
 
 async function setLoginCookie(): Promise<void> {
   const url = '/';
@@ -18,7 +18,7 @@ async function setLoginCookie(): Promise<void> {
 export async function fetchLoginPage(): Promise<string> {
   const url = '/requisicaoaluno/';
 
-  const {data} = await api.get(url);
+  const { data } = await api.get(url);
 
   return data as string;
 }
@@ -29,10 +29,10 @@ export async function handleLogin(matricula: string, senha: string) {
   await setLoginCookie();
   const loginPageData = await retry(fetchLoginPage);
 
-  const {loginReqId, _token} = await parseLoginReqId(loginPageData);
+  const { loginReqId, _token } = await parseLoginReqId(loginPageData);
 
   const url = '/requisicaoaluno/';
-  const {data: homePageData} = await retry(async () =>
+  const { data: homePageData } = await retry(async () =>
     api.get(url, {
       params: {
         requisicao: loginReqId,
@@ -64,8 +64,8 @@ export async function handleLogin(matricula: string, senha: string) {
     }),
   );
 
-  const {dictionary, failed} = getReqIds(homePageData);
-  const new_dictionary = {...dictionary, login: loginReqId};
+  const { dictionary, failed } = getReqIds(homePageData);
+  const new_dictionary = { ...dictionary, login: loginReqId };
 
   store.dispatch(
     apiConfigReducer.setState({

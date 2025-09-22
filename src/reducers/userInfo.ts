@@ -1,6 +1,6 @@
-import {createSlice, PayloadAction} from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-import {AppState} from '@root/store';
+import { AppState } from '@root/store';
 
 type UserInfo = {
   name?: string;
@@ -36,7 +36,7 @@ const slice = createSlice({
   },
 });
 
-export const {setName, setPeriodo, setState, setFirstLogin, clear} =
+export const { setName, setPeriodo, setState, setFirstLogin, clear } =
   slice.actions;
 export const selectUserInfo = (state: AppState) => state.userInfo;
 

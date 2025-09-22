@@ -1,4 +1,4 @@
-import {AxiosError} from 'axios';
+import { AxiosError } from 'axios';
 
 import store from '@root/store';
 import * as apiConfigReducer from '@reducers/apiConfig';

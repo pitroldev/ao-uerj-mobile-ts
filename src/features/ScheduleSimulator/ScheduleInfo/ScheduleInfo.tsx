@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {GeneratedSchedule} from '../types';
+import { GeneratedSchedule } from '../types';
 
 import Text from '@atoms/Text';
 import {

@@ -29,7 +29,7 @@ export const MenuButton = styled.TouchableOpacity`
 export const Container = styled.View`
   flex-direction: row;
   justify-content: space-between;
-  background-color: ${({theme}) => theme.COLORS.PRIMARY};
+  background-color: ${({ theme }) => theme.COLORS.PRIMARY};
   height: 60px;
 `;
 

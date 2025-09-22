@@ -1,4 +1,4 @@
-import {QueryClient} from 'react-query';
+import { QueryClient } from 'react-query';
 
 export const NOT_RETRY_ERRORS = ['NOT_LOGGED_IN', 'POSSIBLY_BLOCKED'];
 const MAX_RETRIES = 3;

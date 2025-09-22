@@ -38,7 +38,7 @@ export const ScrollView = styled.ScrollView`
   height: 80%;
 `;
 
-export const Switch = styled.Switch.attrs(({theme}) => ({
+export const Switch = styled.Switch.attrs(({ theme }) => ({
   trackColor: {
     false: theme.COLORS.DISABLED,
     true: theme.COLORS.PRIMARY,

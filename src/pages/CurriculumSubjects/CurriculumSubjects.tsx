@@ -1,24 +1,24 @@
-import React, {useState, useRef} from 'react';
-import {ListRenderItemInfo} from 'react-native';
+import React, { useState, useRef } from 'react';
+import { ListRenderItemInfo } from 'react-native';
 import Toast from 'react-native-toast-message';
-import {useNavigation} from '@react-navigation/native';
-import {Picker} from '@react-native-picker/picker';
-import {FlatList} from 'react-native-gesture-handler';
+import { useNavigation } from '@react-navigation/native';
+import { Picker } from '@react-native-picker/picker';
+import { FlatList } from 'react-native-gesture-handler';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import {useQuery} from 'react-query';
+import { useQuery } from 'react-query';
 
-import {SUBJECT_TYPE} from '@utils/constants/subjectDictionary';
-import {normalizeText} from '@utils/normalize';
+import { SUBJECT_TYPE } from '@utils/constants/subjectDictionary';
+import { normalizeText } from '@utils/normalize';
 import parser from '@services/parser';
 
-import {useAppDispatch, useAppSelector} from '@root/store';
+import { useAppDispatch, useAppSelector } from '@root/store';
 
 import * as apiConfigReducer from '@reducers/apiConfig';
 import * as reducer from '@features/CurriculumSubjects/reducer';
 import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
 
-import {CurriculumSubject} from '@features/CurriculumSubjects/types';
-import {fetchCurriculumSubjects} from '@features/CurriculumSubjects/core';
+import { CurriculumSubject } from '@features/CurriculumSubjects/types';
+import { fetchCurriculumSubjects } from '@features/CurriculumSubjects/core';
 
 import Spinner from '@atoms/Spinner';
 import StyledPicker from '@atoms/Picker';
@@ -27,7 +27,7 @@ import SubjectBox from '@molecules/SubjectBox';
 import DummyMessage from '@molecules/DummyMessage';
 import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
-import {Container, Row, View} from './CurriculumSubjects.styles';
+import { Container, Row, View } from './CurriculumSubjects.styles';
 
 const HOUR_IN_MS = 1000 * 60 * 60;
 
@@ -36,8 +36,10 @@ const CurriculumSubjects = () => {
   const [subjectType, setSubjectType] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const {data} = useAppSelector(reducer.selectCurriculumSubjects);
-  const {isBlocked, cookies} = useAppSelector(apiConfigReducer.selectApiConfig);
+  const { data } = useAppSelector(reducer.selectCurriculumSubjects);
+  const { isBlocked, cookies } = useAppSelector(
+    apiConfigReducer.selectApiConfig,
+  );
 
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
@@ -59,7 +61,7 @@ const CurriculumSubjects = () => {
 
   const handleSubjectTypeChange = (value: string) => {
     setSubjectType(value);
-    ref.current?.scrollToOffset({animated: true, offset: 0});
+    ref.current?.scrollToOffset({ animated: true, offset: 0 });
   };
 
   const handleSubjectPress = (subject: CurriculumSubject) => {
@@ -72,7 +74,7 @@ const CurriculumSubjects = () => {
       return;
     }
     const code = parser.parseSubjectCode(subject.id) as number;
-    dispatch(subjectDetailReducer.setCurrent({code}));
+    dispatch(subjectDetailReducer.setCurrent({ code }));
     navigation.navigate('Pesquisa de Disciplinas');
   };
 
@@ -83,7 +85,7 @@ const CurriculumSubjects = () => {
       return null;
     }
 
-    const {name, id, type, credits, workload, branch, period, alreadyTaken} =
+    const { name, id, type, credits, workload, branch, period, alreadyTaken } =
       subject;
     const creditText = credits ? `${credits} créditos` : '';
     const workloadText = credits ? `${workload} horas` : '';
@@ -114,7 +116,7 @@ const CurriculumSubjects = () => {
     );
   };
 
-  const filteredData = data.filter(({type, name, alreadyTaken}) => {
+  const filteredData = data.filter(({ type, name, alreadyTaken }) => {
     const hasSubjectType = !subjectType || type === subjectType;
     const hasSearchQuery =
       !searchQuery || normalizeText(name).includes(normalizeText(searchQuery));
@@ -147,7 +149,8 @@ const CurriculumSubjects = () => {
             selectedValue={subjectType}
             onValueChange={s => handleSubjectTypeChange(s as string)}
             loading={loading}
-            enabled={!loading}>
+            enabled={!loading}
+          >
             <Picker.Item label={'Todas as Disciplinas'} value={''} />
             <Picker.Item
               label={'Disciplinas Obrigatórias'}
@@ -163,7 +166,8 @@ const CurriculumSubjects = () => {
             selectedValue={subjectAlreadyTaken}
             onValueChange={s => setSubjectAlreadyTaken(s as boolean)}
             loading={loading}
-            enabled={!loading}>
+            enabled={!loading}
+          >
             <Picker.Item label={'Não Atendidas'} value={false} />
             <Picker.Item label={'Atendidas'} value={true} />
           </StyledPicker>

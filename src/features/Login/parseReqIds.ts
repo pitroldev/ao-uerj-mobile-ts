@@ -51,5 +51,5 @@ export function getReqIds(data: string): ReqIds {
     }
   });
 
-  return {dictionary, failed};
+  return { dictionary, failed };
 }

@@ -1,1 +1,1 @@
-export {default} from './ClassSchedulesByDepartment';
+export { default } from './ClassSchedulesByDepartment';

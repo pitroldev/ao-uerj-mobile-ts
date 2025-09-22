@@ -9,7 +9,7 @@ export const LogoContainer = styled.KeyboardAvoidingView`
   justify-content: flex-end;
   height: 100%;
 
-  background-color: ${({theme}) => theme.COLORS.PRIMARY};
+  background-color: ${({ theme }) => theme.COLORS.PRIMARY};
 `;
 
 export const LogoUERJ = styled(SVG)`
@@ -28,7 +28,7 @@ export const Container = styled.View`
   padding-top: 10%;
 
   border-top-left-radius: 50px;
-  background-color: ${({theme}) => theme.COLORS.BACKGROUND};
+  background-color: ${({ theme }) => theme.COLORS.BACKGROUND};
 `;
 
 export const SignInButton = styled(Button)`

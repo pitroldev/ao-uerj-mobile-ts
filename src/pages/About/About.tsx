@@ -1,5 +1,5 @@
-import React, {useState} from 'react';
-import {Linking, TouchableOpacity} from 'react-native';
+import React, { useState } from 'react';
+import { Linking, TouchableOpacity } from 'react-native';
 
 import ErrorReportModal from '@features/ErrorReport/ErrorReportModal';
 
@@ -14,7 +14,7 @@ import {
   AOLogoContainer,
 } from './About.styles';
 
-import {version} from '@/package.json';
+import { version } from '@/package.json';
 
 const LINKEDIN_PROFILE_URL = 'https://www.linkedin.com/in/petrocardoso/';
 const GITHUB_REPO_URL = 'https://github.com/pitroldev/ao-uerj-mobile-ts';
@@ -43,7 +43,8 @@ const AboutPage = () => {
         size="XS"
         alignSelf="center"
         textAlign="center"
-        marginBottom="12px">
+        marginBottom="12px"
+      >
         Versão {version}
       </Text>
       <TouchableOpacity onPress={() => setIsErrorModalOpen(true)}>
@@ -52,7 +53,8 @@ const AboutPage = () => {
           size="XS"
           alignSelf="center"
           textAlign="center"
-          marginBottom="12px">
+          marginBottom="12px"
+        >
           Reportar Problema
         </Text>
       </TouchableOpacity>
@@ -63,7 +65,8 @@ const AboutPage = () => {
         <Column>
           <RoundedButton
             variant="TEXT_PRIMARY"
-            onPress={() => handleBtnPress(GITHUB_REPO_URL)}>
+            onPress={() => handleBtnPress(GITHUB_REPO_URL)}
+          >
             <Icon name="github-alt" />
           </RoundedButton>
           <Text weight="bold" size="XS" alignSelf="center" textAlign="center">
@@ -73,7 +76,8 @@ const AboutPage = () => {
         <Column>
           <RoundedButton
             variant="TEXT_PRIMARY"
-            onPress={() => handleBtnPress(LINKEDIN_PROFILE_URL)}>
+            onPress={() => handleBtnPress(LINKEDIN_PROFILE_URL)}
+          >
             <Icon name="linkedin" />
           </RoundedButton>
           <Text weight="bold" size="XS" alignSelf="center" textAlign="center">
@@ -83,7 +87,8 @@ const AboutPage = () => {
         <Column>
           <RoundedButton
             variant="TEXT_PRIMARY"
-            onPress={() => handleBtnPress(CREATOR_EMAIL)}>
+            onPress={() => handleBtnPress(CREATOR_EMAIL)}
+          >
             <Icon name="envelope" />
           </RoundedButton>
           <Text weight="bold" size="XS" alignSelf="center" textAlign="center">

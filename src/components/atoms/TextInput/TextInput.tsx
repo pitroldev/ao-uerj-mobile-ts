@@ -1,5 +1,5 @@
-import React, {forwardRef} from 'react';
-import {InputContainer, Input, IconContainer} from './TextInput.styles';
+import React, { forwardRef } from 'react';
+import { InputContainer, Input, IconContainer } from './TextInput.styles';
 
 type Ref = React.Ref<typeof Input>;
 type Props = React.ComponentProps<typeof Input> & {

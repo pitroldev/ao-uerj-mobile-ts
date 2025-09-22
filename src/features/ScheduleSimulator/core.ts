@@ -1,6 +1,6 @@
-import {WEEKDAY_DICTIONARY} from '@utils/constants/time';
+import { WEEKDAY_DICTIONARY } from '@utils/constants/time';
 
-import {GeneratedClassWithSubject, RenderedSchedule, Schedule} from './types';
+import { GeneratedClassWithSubject, RenderedSchedule, Schedule } from './types';
 
 export function convertToRenderedSchedule(
   generatedSchedules: GeneratedClassWithSubject[],
@@ -9,7 +9,7 @@ export function convertToRenderedSchedule(
 
   generatedSchedules.forEach(generatedClass => {
     generatedClass.schedules.forEach(schedule => {
-      const {week_day, start_time_in_minutes, end_time_in_minutes} = schedule;
+      const { week_day, start_time_in_minutes, end_time_in_minutes } = schedule;
 
       const weekDayDefinition =
         WEEKDAY_DICTIONARY[(week_day + 1) as keyof typeof WEEKDAY_DICTIONARY];

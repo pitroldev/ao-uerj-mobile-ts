@@ -1,28 +1,28 @@
 import React from 'react';
-import {useQuery} from 'react-query';
-import {useTheme} from 'styled-components';
-import {TouchableOpacity} from 'react-native';
-import {useFormContext, useWatch} from 'react-hook-form';
+import { useQuery } from 'react-query';
+import { useTheme } from 'styled-components';
+import { TouchableOpacity } from 'react-native';
+import { useFormContext, useWatch } from 'react-hook-form';
 import Icon from 'react-native-vector-icons/AntDesign';
 
-import {parseSubjectCode} from '@services/parser/minorParser';
+import { parseSubjectCode } from '@services/parser/minorParser';
 
-import {Prereq} from '@features/SubjectInfo/types';
-import {getSubjectInfo} from '@features/SubjectInfo/core';
+import { Prereq } from '@features/SubjectInfo/types';
+import { getSubjectInfo } from '@features/SubjectInfo/core';
 
-import {ScheduleCreationParams} from '@features/ScheduleSimulator/types';
-import {CurriculumSubject} from '@features/CurriculumSubjects/types';
+import { ScheduleCreationParams } from '@features/ScheduleSimulator/types';
+import { CurriculumSubject } from '@features/CurriculumSubjects/types';
 
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
 
-import {Container, Row} from './SubjectDataFetcher.styles';
-import {parseScheduleToGeneratorFormat} from '@root/utils/converter';
-import {hasScheduleConflict} from '@root/features/ScheduleSimulator/core';
+import { Container, Row } from './SubjectDataFetcher.styles';
+import { parseScheduleToGeneratorFormat } from '@root/utils/converter';
+import { hasScheduleConflict } from '@root/features/ScheduleSimulator/core';
 
 const SubjectDataFetcher = (subject: CurriculumSubject) => {
-  const {COLORS} = useTheme();
-  const {control, setValue} = useFormContext<ScheduleCreationParams>();
+  const { COLORS } = useTheme();
+  const { control, setValue } = useFormContext<ScheduleCreationParams>();
 
   const {
     subjects,
@@ -48,7 +48,7 @@ const SubjectDataFetcher = (subject: CurriculumSubject) => {
     staleTime: 0,
     onSuccess: data => {
       const filteredSubjects = subjects.filter(s => s.id !== subject.id);
-      setValue('subjects', [...filteredSubjects, {...data, id: subject.id}]);
+      setValue('subjects', [...filteredSubjects, { ...data, id: subject.id }]);
 
       const populatedClasses = data.classes.map(c => ({
         ...c,

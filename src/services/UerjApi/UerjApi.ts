@@ -1,11 +1,11 @@
-import axios, {AxiosError, AxiosResponse} from 'axios';
+import axios, { AxiosError, AxiosResponse } from 'axios';
 import iconv from 'iconv-lite';
-import {Buffer} from 'buffer';
+import { Buffer } from 'buffer';
 
 import store from '@root/store';
 import moment from 'moment';
-import {refreshAuth} from './lib/refreshAuth';
-import {NOT_RETRY_ERRORS} from './utils';
+import { refreshAuth } from './lib/refreshAuth';
+import { NOT_RETRY_ERRORS } from './utils';
 
 const BASE_URL = 'https://www.alunoonline.uerj.br';
 const COOKIE_MAX_DURATION_IN_HOURS = 2;
@@ -26,7 +26,7 @@ const api = axios.create({
 });
 
 const responseErrorInterceptor = async (err: AxiosError) => {
-  const {apiConfig, userInfo} = store.getState();
+  const { apiConfig, userInfo } = store.getState();
 
   const now = moment();
   const cookieCreationDate = moment(apiConfig.createdAt);

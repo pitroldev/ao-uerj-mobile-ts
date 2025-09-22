@@ -1,27 +1,27 @@
 import axios from 'axios';
-import React, {useState} from 'react';
-import {Picker} from '@react-native-picker/picker';
+import React, { useState } from 'react';
+import { Picker } from '@react-native-picker/picker';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
-import {refreshAuth} from '@services/UerjApi';
-import {parseSubjectCode} from '@services/parser/minorParser';
+import { refreshAuth } from '@services/UerjApi';
+import { parseSubjectCode } from '@services/parser/minorParser';
 import {
   parseClassToGeneratorFormat,
   parseSubjectToGeneratorFormat,
 } from '@utils/converter';
 
-import {fetchSubjectsTaken} from '@features/SubjectsTaken/core';
-import {getSubjectInfo} from '@features/SubjectInfo/core';
-import {getSubjectClassesSchedule} from '@features/SubjectClassesSchedule/core';
-import {fetchSubjectsToTake} from '@features/SubjectsToTake/core';
+import { fetchSubjectsTaken } from '@features/SubjectsTaken/core';
+import { getSubjectInfo } from '@features/SubjectInfo/core';
+import { getSubjectClassesSchedule } from '@features/SubjectClassesSchedule/core';
+import { fetchSubjectsToTake } from '@features/SubjectsToTake/core';
 
 import Text from '@atoms/Text';
 import StyledButton from '@atoms/Button';
 import StyledPicker from '@atoms/Picker';
 import TextInputWithIcon from '@atoms/TextInput';
 import SubjectBox from '@molecules/SubjectBox';
-import {MainContainer as ScrollView} from './Home/Home.styles';
-import {retry} from '@root/services/UerjApi/utils';
+import { MainContainer as ScrollView } from './Home/Home.styles';
+import { retry } from '@root/services/UerjApi/utils';
 
 const Playground = () => {
   const [loading, setLoading] = useState(false);
@@ -89,7 +89,8 @@ const Playground = () => {
         loading={loading}
         selectedValue={selectedLanguage}
         placeholder="Selecione o idioma"
-        onValueChange={(s: any) => setSelectedLanguage(s)}>
+        onValueChange={(s: any) => setSelectedLanguage(s)}
+      >
         {'Português,Inglês,Espanhol'.split(',').map(lang => (
           <Picker.Item key={lang} label={lang} value={lang} />
         ))}
@@ -114,7 +115,8 @@ const Playground = () => {
         size="small"
         onPress={async () => {
           await extractData();
-        }}>
+        }}
+      >
         Extrair dados
       </StyledButton>
       <StyledButton variant="SECONDARY" size="small" loading>

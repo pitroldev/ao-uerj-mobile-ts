@@ -1,22 +1,22 @@
-import React, {useState} from 'react';
-import {ListRenderItemInfo} from 'react-native';
-import {useQuery} from 'react-query';
-import {Picker} from '@react-native-picker/picker';
-import {useFormContext, useWatch} from 'react-hook-form';
+import React, { useState } from 'react';
+import { ListRenderItemInfo } from 'react-native';
+import { useQuery } from 'react-query';
+import { Picker } from '@react-native-picker/picker';
+import { useFormContext, useWatch } from 'react-hook-form';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import {FlatList} from 'react-native-gesture-handler';
+import { FlatList } from 'react-native-gesture-handler';
 
-import {useStepsContext} from '@hooks/useSteps';
-import {normalizeText} from '@utils/normalize';
+import { useStepsContext } from '@hooks/useSteps';
+import { normalizeText } from '@utils/normalize';
 
-import {useAppDispatch, useAppSelector} from '@root/store';
+import { useAppDispatch, useAppSelector } from '@root/store';
 import * as apiConfigReducer from '@reducers/apiConfig';
 
-import {CurriculumSubject} from '@features/CurriculumSubjects/types';
-import {fetchCurriculumSubjects} from '@features/CurriculumSubjects/core';
+import { CurriculumSubject } from '@features/CurriculumSubjects/types';
+import { fetchCurriculumSubjects } from '@features/CurriculumSubjects/core';
 import * as curriculumSubjectsReducer from '@features/CurriculumSubjects/reducer';
 
-import {ScheduleCreationParams} from '@features/ScheduleSimulator/types';
+import { ScheduleCreationParams } from '@features/ScheduleSimulator/types';
 
 import Text from '@atoms/Text';
 import Button from '@atoms/Button';
@@ -38,19 +38,21 @@ const SubjectsStep = () => {
   const [subjectType, setSubjectType] = useState('');
 
   const dispatch = useAppDispatch();
-  const {nextStep, prevStep} = useStepsContext();
+  const { nextStep, prevStep } = useStepsContext();
 
-  const {cookies} = useAppSelector(apiConfigReducer.selectApiConfig);
-  const {data} = useAppSelector(
+  const { cookies } = useAppSelector(apiConfigReducer.selectApiConfig);
+  const { data } = useAppSelector(
     curriculumSubjectsReducer.selectCurriculumSubjects,
   );
 
-  const {handleSubmit, setValue, control} =
+  const { handleSubmit, setValue, control } =
     useFormContext<ScheduleCreationParams>();
 
-  const {min_subject_amount = 3, selectedSubjects = []} = useWatch({control});
+  const { min_subject_amount = 3, selectedSubjects = [] } = useWatch({
+    control,
+  });
 
-  const {isFetching, error, refetch} = useQuery({
+  const { isFetching, error, refetch } = useQuery({
     queryKey: ['curriculum-subjects', cookies],
     queryFn: fetchCurriculumSubjects,
     onSuccess: d => {
@@ -84,7 +86,7 @@ const SubjectsStep = () => {
   }: ListRenderItemInfo<CurriculumSubject>) => {
     const isSelected = selectedSubjects.some(s => s.id === subject.id);
 
-    const {id, name, period, branch, credits, workload, minimum_credits} =
+    const { id, name, period, branch, credits, workload, minimum_credits } =
       subject;
 
     const creditsText = credits ? `${credits} créditos` : '';
@@ -120,7 +122,7 @@ const SubjectsStep = () => {
     );
   };
 
-  const filteredData = data.filter(({type, name, alreadyTaken}) => {
+  const filteredData = data.filter(({ type, name, alreadyTaken }) => {
     if (alreadyTaken) {
       return false;
     }
@@ -149,7 +151,8 @@ const SubjectsStep = () => {
           selectedValue={subjectType}
           onValueChange={s => setSubjectType(s as string)}
           loading={loading}
-          enabled={!loading}>
+          enabled={!loading}
+        >
           <Picker.Item label={'Todas'} value={''} />
           <Picker.Item label={'Disciplinas Obrigatórias'} value={'MANDATORY'} />
           <Picker.Item label={'Eletivas Restritas'} value={'RESTRICTED'} />
@@ -194,7 +197,8 @@ const SubjectsStep = () => {
         <Button
           onPress={handleNextPress}
           size="small"
-          disabled={!isMinSubjectsAmountValid || loading}>
+          disabled={!isMinSubjectsAmountValid || loading}
+        >
           Próximo
         </Button>
       </ButtonsRow>
