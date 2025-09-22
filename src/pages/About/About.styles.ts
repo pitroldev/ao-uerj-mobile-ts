@@ -51,7 +51,7 @@ export const CardapioMobileLogo = styled(CardapioSVG)`
   align-self: center;
 `;
 
-export const Icon = styled(FontAwesomeIcon).attrs(({ theme }) => ({
+export const Icon = styled(FontAwesomeIcon as any).attrs(({ theme }) => ({
   color: theme.COLORS.BACKGROUND,
   size: 20,
 }))``;

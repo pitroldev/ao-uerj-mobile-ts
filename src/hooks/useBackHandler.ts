@@ -7,9 +7,12 @@ export const useBackHandler = (callback: () => void, goBack = true) => {
       callback();
       return goBack;
     };
-    BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    const listener = BackHandler.addEventListener(
+      'hardwareBackPress',
+      onBackPress,
+    );
     return () => {
-      BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+      listener.remove();
     };
   }, [callback]);
 };

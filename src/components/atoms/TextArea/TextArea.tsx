@@ -1,7 +1,10 @@
 import React, { forwardRef } from 'react';
 import { TextAreaProps, Container, TextArea } from './TextArea.styles';
 
-export type Props = TextAreaProps & React.ComponentProps<typeof TextArea>;
+export type Props = TextAreaProps &
+  React.ComponentProps<typeof TextArea> & {
+    loading?: boolean;
+  };
 
 const CustomTextArea = forwardRef((props: Props, ref: any) => {
   return (

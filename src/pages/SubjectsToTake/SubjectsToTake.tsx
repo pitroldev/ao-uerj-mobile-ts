@@ -73,8 +73,8 @@ const SubjectsToTake = () => {
     }
 
     const code = parser.parseSubjectCode(subject.id) as number;
-    dispatch(subjectDetailReducer.appendData({ code }));
-    dispatch(subjectDetailReducer.select({ code }));
+    // dispatch(subjectDetailReducer.appendData({ code }));
+    // dispatch(subjectDetailReducer.select({ code }));
     navigation.navigate('Pesquisa de Disciplinas');
   };
 
@@ -186,7 +186,7 @@ const SubjectsToTake = () => {
           onPress={refetch}
         />
       )}
-      {!loading && error && !isBlocked && (
+      {!loading && !!error && !isBlocked && (
         <DummyMessage
           type="ERROR"
           onPress={refetch}

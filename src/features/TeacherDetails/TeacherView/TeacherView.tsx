@@ -41,8 +41,8 @@ const TeacherView = (props: Docente) => {
       return;
     }
     const code = parser.parseSubjectCode(item.subject.id) as number;
-    dispatch(subjectDetailReducer.appendData({ code }));
-    dispatch(subjectDetailReducer.select({ code }));
+    // dispatch(subjectDetailReducer.appendData({ code }));
+    // dispatch(subjectDetailReducer.select({ code }));
     navigation.navigate('Pesquisa de Disciplinas');
   };
 

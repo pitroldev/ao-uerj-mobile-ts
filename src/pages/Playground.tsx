@@ -45,7 +45,7 @@ const Playground = () => {
         console.log('Calling INFO:', s.id);
         const info = await retry(() => getSubjectInfo(parseSubjectCode(s.id)));
         console.log('Calling Classes:', s.id);
-        const subject = parseSubjectToGeneratorFormat(s, info);
+        const subject = parseSubjectToGeneratorFormat(s as any, info);
         subjects.push(subject);
 
         const class_ = await retry(() =>

@@ -93,7 +93,7 @@ const TeacherSearch = () => {
         showsVerticalScrollIndicator={false}
         keyExtractor={(item, index) => `${item}${index}`}
       />
-      {error && (
+      {!!error && (
         <DummyMessage
           text="Houve um erro ao buscar a lista de professores"
           type="ERROR"

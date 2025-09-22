@@ -1,15 +1,15 @@
 import React, { forwardRef } from 'react';
 import { InputContainer, Input, IconContainer } from './TextInput.styles';
+import type { TextInput as RNTextInput } from 'react-native';
 
-type Ref = React.Ref<typeof Input>;
 type Props = React.ComponentProps<typeof Input> & {
   icon?: React.ReactNode;
 };
-const TextInput = forwardRef((props: Props, ref: Ref) => {
+const TextInput = forwardRef<RNTextInput, Props>(({ icon, ...rest }, ref) => {
   return (
     <InputContainer>
-      {props.icon && <IconContainer>{props.icon}</IconContainer>}
-      <Input {...props} ref={ref} />
+      {icon && <IconContainer>{icon}</IconContainer>}
+      <Input {...rest} ref={ref} />
     </InputContainer>
   );
 });

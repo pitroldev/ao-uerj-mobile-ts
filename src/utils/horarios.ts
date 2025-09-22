@@ -68,7 +68,7 @@ export function convertNumberToDay(number: number) {
 
 export function convertTurnoToColor(turno: string) {
   const colorRegex = /\D/g;
-  const firstLetter = colorRegex.exec(turno)[0];
+  const firstLetter = colorRegex.exec(turno)?.[0];
   switch (firstLetter) {
     case 'M':
       return '#FBFFD5';
@@ -101,7 +101,7 @@ export function convertTempoToNumber(tempos: string[]) {
   );
 
   const numberedTempos = preNumbered.map(c =>
-    parseFloat(c.reduce((a, b) => parseFloat(a) + parseFloat(b))),
+    c.reduce((sum, part) => sum + parseFloat(part), 0),
   );
   return numberedTempos;
 }

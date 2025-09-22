@@ -43,7 +43,6 @@ export function makeStore() {
 
   return configureStore({
     reducer: persistedReducer,
-    middleware: [],
   });
 }
 
