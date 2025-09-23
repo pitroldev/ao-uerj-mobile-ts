@@ -10,7 +10,6 @@ import { NOT_RETRY_ERRORS } from './utils';
 const BASE_URL = 'https://www.alunoonline.uerj.br';
 const COOKIE_MAX_DURATION_IN_HOURS = 2;
 const MAX_ERROR_RETRIES = 3;
-const MAX_SERVER_ERROR_RETRIES = 3;
 const MAX_SUCCESS_RETRIES = 1;
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
@@ -55,17 +54,6 @@ const responseErrorInterceptor = async (err: AxiosError) => {
 
   const isNotRetryError = NOT_RETRY_ERRORS.includes(err.message);
 
-  if (isServerError) {
-    const retries = (originalRequest as any)._serverRetries || 0;
-    if (retries < MAX_SERVER_ERROR_RETRIES) {
-      (originalRequest as any)._serverRetries = retries + 1;
-      const backoff = Math.min(1000 * 2 ** retries, 5000); // 1s, 2s, 4s
-      await delay(backoff);
-      return api(originalRequest);
-    }
-    return Promise.reject(err);
-  }
-
   if (isSessionPossiblyExpired && !isReachedRetryLimit && !isNotRetryError) {
     originalRequest._retries = (originalRequest._retries || 0) + 1;
 
@@ -76,6 +64,8 @@ const responseErrorInterceptor = async (err: AxiosError) => {
       }
     });
 
+    const backoff = Math.min(1000 * 2 ** originalRequest._retries, 5000); // 1s, 2s, 4s
+    await delay(backoff);
     return api(originalRequest);
   }
 
@@ -98,6 +88,9 @@ const responseSuccessInterceptor = async (res: AxiosResponse) => {
         originalRequest._retries = MAX_ERROR_RETRIES;
       }
     });
+
+    const backoff = Math.min(1000 * 2 ** originalRequest._retries, 5000); // 1s, 2s, 4s
+    await delay(backoff);
     return api(originalRequest);
   }
 

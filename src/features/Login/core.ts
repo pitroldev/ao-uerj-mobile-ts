@@ -1,4 +1,3 @@
-import api from '@services/UerjApi';
 import authApi from '@services/UerjApi/authApi';
 import { retry } from '@services/UerjApi/utils';
 import { clearAllCookies, getCookies } from '@services/cookies';
