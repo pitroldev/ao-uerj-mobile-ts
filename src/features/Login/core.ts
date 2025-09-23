@@ -46,11 +46,7 @@ export async function handleLogin(matricula: string, senha: string) {
   const info = parseLoginInfo(homePageData);
 
   if (!info.nome || info.fail_reason) {
-    return {
-      fail_reason:
-        info.fail_reason ||
-        'Falha ao fazer login, por favor atualize o aplicativo e tente novamente.',
-    };
+    return { fail_reason: info.fail_reason };
   }
 
   const new_cookies = await getCookies();

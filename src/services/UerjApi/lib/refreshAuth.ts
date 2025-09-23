@@ -9,6 +9,7 @@ let consecutiveFailures = 0;
 async function doRefresh(): Promise<void> {
   const { userInfo } = store.getState();
   if (!userInfo.matricula || !userInfo.password) {
+    store.dispatch(apiConfigReducer.clear());
     throw new Error('NOT_LOGGED_IN');
   }
   const data = await retry(async () =>
@@ -19,7 +20,9 @@ async function doRefresh(): Promise<void> {
     typeof data.fail_reason === 'string' && data.fail_reason.trim().length > 0;
 
   if (failed) {
-    throw new Error('LOGIN_REFRESH_FAILED');
+    console.log('Login refresh failed:', data.fail_reason);
+    store.dispatch(apiConfigReducer.clear());
+    throw new Error('LOGIN_FAILED');
   }
 }
 
@@ -32,9 +35,8 @@ export async function refreshAuth(): Promise<void> {
       } catch (err) {
         consecutiveFailures += 1;
         if (consecutiveFailures >= 2) {
-          store.dispatch(apiConfigReducer.clear());
           consecutiveFailures = 0;
-          throw new Error('LOGIN_FAILED');
+          throw new Error('LOGIN_REFRESH_FAILED');
         }
         throw err;
       } finally {

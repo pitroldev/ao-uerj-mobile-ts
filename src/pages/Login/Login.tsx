@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Linking } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useMutation } from 'react-query';
 
 import { handleLogin } from '@features/Login/core';
 
@@ -13,7 +13,6 @@ import {
   SignInButton,
   RecoveryPassButton,
 } from './Login.styles';
-import { useMutation } from 'react-query';
 
 const PASS_RECOVERY_URL = 'https://www.alunoonline.uerj.br/requisicaoaluno/';
 
@@ -23,13 +22,15 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
 
   const passwordInputRef = useRef<any>(null);
-  const navigation = useNavigation();
 
   const { isLoading: loading, mutate: login } = useMutation({
     mutationFn: () => handleLogin(matricula, password),
     onSuccess: data => {
-      if (data.fail_reason) {
-        setError(data.fail_reason);
+      if ('fail_reason' in data) {
+        setError(
+          data.fail_reason ||
+            'Falha ao fazer login, por favor atualize o aplicativo e tente novamente.',
+        );
         return;
       }
     },
