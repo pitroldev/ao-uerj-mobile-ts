@@ -182,7 +182,7 @@ const SubjectsStep = () => {
             data={filteredData}
             renderItem={renderSubjects}
             showsVerticalScrollIndicator={false}
-            keyExtractor={(_, index) => index.toString()}
+            keyExtractor={item => item.id}
           />
         </StyledFlatList>
       </ContentContainer>

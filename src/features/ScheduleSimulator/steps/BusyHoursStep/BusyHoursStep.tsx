@@ -37,7 +37,7 @@ const BusyHoursStep = () => {
 
   const handleScheduleItemPress = (
     weekDay: keyof typeof WEEKDAY_DICTIONARY,
-    time: typeof TIME_VALUES[number],
+    time: (typeof TIME_VALUES)[number],
   ) => {
     const isAlreadySelected = busy_schedules.some(
       busyHour =>
@@ -67,7 +67,7 @@ const BusyHoursStep = () => {
     setValue('busy_schedules', [...busy_schedules, newBusySchedule]);
   };
 
-  const handleLongPress = (time: typeof TIME_VALUES[number]) => {
+  const handleLongPress = (time: (typeof TIME_VALUES)[number]) => {
     const {start_time_in_minutes, end_time_in_minutes} = time;
 
     const filteredBusySchedules = busy_schedules.filter(
@@ -96,7 +96,7 @@ const BusyHoursStep = () => {
     setValue('busy_schedules', [...filteredBusySchedules, ...busyRowTImes]);
   };
 
-  const renderScheduleRow = (time: typeof TIME_VALUES[number]) => {
+  const renderScheduleRow = (time: (typeof TIME_VALUES)[number]) => {
     const {
       start_time_in_minutes,
       end_time_in_minutes,
@@ -106,7 +106,7 @@ const BusyHoursStep = () => {
     } = time;
 
     return (
-      <Row key={periodAlias}>
+      <Row key={`row-${periodAlias}`}>
         {UERJ_WEEK_DAYS.map(weekDay => {
           const isAlreadySelected = busy_schedules.some(
             busyHour =>
@@ -118,7 +118,7 @@ const BusyHoursStep = () => {
 
           return (
             <ScheduleItem
-              key={`${weekDay}${periodAlias}`}
+              key={`cell-${weekDay}-${periodAlias}`}
               color={color}
               onPress={() => handleScheduleItemPress(weekDay, time)}
               onLongPress={() => handleLongPress(time)}
@@ -145,6 +145,14 @@ const BusyHoursStep = () => {
       <ContentContainer>
         <Text weight="bold" size="LG" alignSelf="center" marginBottom="10px">
           Quando você está ocupado?
+        </Text>
+        <Text
+          size="XS"
+          alignSelf="center"
+          marginBottom="6px"
+          color="BACKGROUND_700">
+          Toque para marcar um horário como ocupado. Toque e segure para marcar
+          o período inteiro do dia.
         </Text>
         <Header>
           <Header>

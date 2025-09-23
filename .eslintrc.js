@@ -9,6 +9,12 @@ module.exports = {
       rules: {
         '@typescript-eslint/no-shadow': ['error'],
         'react-hooks/exhaustive-deps': 'off',
+        'prettier/prettier': [
+          'error',
+          {
+            endOfLine: 'auto',
+          },
+        ],
       },
     },
   ],

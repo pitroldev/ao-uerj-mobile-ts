@@ -14,6 +14,7 @@ import ClassesStep from '@features/ScheduleSimulator/steps/ClassesStep';
 import GenerationStep from '@features/ScheduleSimulator/steps/GenerationStep';
 
 import {Container} from './ScheduleSimulator.styles';
+import StepHeader from '@features/ScheduleSimulator/StepHeader/StepHeader';
 
 const steps = [
   {
@@ -44,6 +45,16 @@ const steps = [
     name: 'GenerationStep',
     component: () => <GenerationStep />,
   },
+];
+
+const stepLabels = [
+  'Qtd. Disciplinas',
+  'Horários Ocupados',
+  'Prioridades',
+  'Selecionar Disciplinas',
+  'Carregar Dados',
+  'Turmas',
+  'Gerar Grade',
 ];
 
 const ScheduleCreationPage = () => {
@@ -80,7 +91,16 @@ const ScheduleCreationPage = () => {
   return (
     <FormProvider {...methods}>
       <StepsProvider values={{step, nextStep, prevStep, setStep}}>
-        <Container>{CurrentStep && <CurrentStep />}</Container>
+        <Container>
+          <StepHeader
+            labels={stepLabels}
+            current={step}
+            onStepPress={(index: number) => {
+              if (index <= step) setStep(index);
+            }}
+          />
+          {CurrentStep && <CurrentStep />}
+        </Container>
       </StepsProvider>
     </FormProvider>
   );
