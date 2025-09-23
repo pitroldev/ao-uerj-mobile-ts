@@ -7,10 +7,12 @@ import { PickerContainer, StyleProps, StyledSpinner } from './Picker.styles';
 type PickerProps = StyleProps & React.ComponentProps<typeof Picker>;
 const PickerComponent = forwardRef((props: PickerProps, ref: any) => {
   const { COLORS } = useTheme();
+
   const style = {
     backgroundColor: COLORS.BACKGROUND,
     color: COLORS.TEXT_PRIMARY,
   };
+
   return (
     <PickerContainer>
       {props.loading && <StyledSpinner size={25} />}
@@ -18,7 +20,7 @@ const PickerComponent = forwardRef((props: PickerProps, ref: any) => {
         {...props}
         ref={ref}
         mode="dialog"
-        dropdownIconColor={COLORS.TEXT_PRIMARY}
+        dropdownIconColor={props.loading ? '#ffffff' : COLORS.TEXT_PRIMARY}
         itemStyle={style}
       >
         {props.children}

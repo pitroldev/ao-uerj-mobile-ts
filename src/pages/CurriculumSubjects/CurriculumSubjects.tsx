@@ -23,6 +23,7 @@ import { fetchCurriculumSubjects } from '@features/CurriculumSubjects/core';
 import Spinner from '@atoms/Spinner';
 import StyledPicker from '@atoms/Picker';
 import TextInput from '@atoms/TextInput';
+import Text from '@atoms/Text';
 import SubjectBox from '@molecules/SubjectBox';
 import DummyMessage from '@molecules/DummyMessage';
 import SmallDummyMessage from '@molecules/SmallDummyMessage';
@@ -181,6 +182,12 @@ const CurriculumSubjects = () => {
         placeholder="Pesquise pelo nome da disciplina"
         icon={<FontAwesome name="search" size={15} />}
       />
+      {!loading && !isBlocked && !error && (
+        <Text size="SM" marginTop="8px" marginBottom="8px" marginLeft="5px">
+          Exibindo {filteredData.length} disciplina
+          {filteredData.length === 1 ? '' : 's'}
+        </Text>
+      )}
       {isBlocked && showList && (
         <SmallDummyMessage
           type="BLOCK"
