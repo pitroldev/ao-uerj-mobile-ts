@@ -2,16 +2,16 @@
 
 <!-- markdownlint-disable MD033 -->
 <p align="center">
-    <img src="resources/web_hi_res_512.png" alt="AO UERJ" width="96" height="96" />
+    <img src="resources/web_hi_res_512.png" alt="AO UERJ" width="128" height="128" />
 
 </p>
 <!-- markdownlint-enable MD033 -->
 
 [![Google Play - Download](https://img.shields.io/badge/Google%20Play-Download-3DDC84?logo=google-play&logoColor=white)](https://play.google.com/store/apps/details?id=com.aouerjmobile)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
-[![React Native](https://img.shields.io/badge/React%20Native-0.72.7-61dafb)](https://reactnative.dev/)
+[![React Native](https://img.shields.io/badge/React%20Native-0.81.4-61dafb)](https://reactnative.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-18.2-61dafb)](https://react.dev/)
+[![React](https://img.shields.io/badge/React-19.1.0-61dafb)](https://react.dev/)
 
 Aplicativo não-oficial do Aluno Online (UERJ) para Android/iOS, escrito em TypeScript + React Native. Ele traz para o celular várias funcionalidades do portal oficial, além de recursos exclusivos como Gerador de Grade e Mural de Mensagens.
 
@@ -34,7 +34,7 @@ Aplicativo não-oficial do Aluno Online (UERJ) para Android/iOS, escrito em Type
 
 ## Sobre o projeto
 
-- Plataforma: React Native 0.72 + React 18, TypeScript
+- Plataforma: React Native 0.81 + React 19, TypeScript
 - Navegação: `@react-navigation`
 - Estado: Redux Toolkit + `redux-persist`
 - Dados/async: `react-query`
@@ -48,10 +48,10 @@ Publicação: disponível na Google Play como “AO UERJ” — veja em: [play.g
 Funcionalidades espelhadas do AO (via scraping):
 
 - Início (Home):
-  - RID Parcial (provisório)
-  - Quadro de Notas (disciplinas em curso)
-  - Quadro de Horários (disciplinas em curso)
-  - Mensagens de estado (bloqueio do AO, período ainda não iniciado, dicas de recuperação de erro)
+    - RID Parcial (provisório)
+    - Quadro de Notas (disciplinas em curso)
+    - Quadro de Horários (disciplinas em curso)
+    - Mensagens de estado (bloqueio do AO, período ainda não iniciado, dicas de recuperação de erro)
 - Disciplinas Realizadas (histórico com período, créditos, carga horária, status)
 - Disciplinas do Currículo (com filtros por tipo, cursadas/não cursadas, busca)
 - Disciplinas Universais (com filtro por departamento/unidade)
@@ -60,15 +60,15 @@ Funcionalidades espelhadas do AO (via scraping):
 Funcionalidades exclusivas do app (servidores próprios):
 
 - Gerador de Grade (beta):
-  - Recebe preferências do usuário (quantidade de disciplinas, horários ocupados, prioridades etc.)
-  - Busca e processa dados do AO
-  - Gera opções de grade sem salvar os dados do usuário no servidor
+    - Recebe preferências do usuário (quantidade de disciplinas, horários ocupados, prioridades etc.)
+    - Busca e processa dados do AO
+    - Gera opções de grade sem salvar os dados do usuário no servidor
 - Mural de Mensagens:
-  - Canal de comunicação entre alunos da mesma turma
-  - Mensagens trafegam por um servidor privado, não relacionadas ao AO oficial
+    - Canal de comunicação entre alunos da mesma turma
+    - Mensagens trafegam por um servidor privado, não relacionadas ao AO oficial
 - Relatório de Erros:
-  - Reúne dados brutos de scraping para diagnóstico
-  - Remove identificadores pessoais (nome, matrícula, etc.) antes do envio
+    - Reúne dados brutos de scraping para diagnóstico
+    - Remove identificadores pessoais (nome, matrícula, etc.) antes do envio
 
 ## Como funciona (alto nível)
 
@@ -82,7 +82,7 @@ Funcionalidades exclusivas do app (servidores próprios):
 - Node.js LTS recente (>= 18 recomendado)
 - Yarn ou npm
 - Ambiente React Native:
-  - Android: JDK 17 (ou compatível RN 0.72), Android SDK, emulador/dispositivo, Gradle (wrapper incluso)
+    - Android: JDK 17 (ou compatível RN 0.72), Android SDK, emulador/dispositivo, Gradle (wrapper incluso)
 
 ## Como rodar (dev)
 
@@ -110,8 +110,8 @@ Observação: se houver erros relacionados a SDK/NDK/Gradle/Java, ajuste localme
 - `src/pages/*`: telas de navegação (Home, Login, SubjectsTaken, CurriculumSubjects, UniversalSubjects, SubjectDetails, MessageBoard, ScheduleSimulator, About, etc.)
 - `src/features/*`: módulos com lógica/coleta/parsing e UI específica (ex.: ClassGrades, PartialRID, AttendedClassesSchedule, SubjectsTaken, SubjectsToTake, CurriculumSubjects, UniversalSubjects, SubjectInfo, SubjectClassesSchedule, MessageBoard, ScheduleSimulator)
 - `src/services/*`:
-  - `UerjApi`: integração com AO (axios), utilitários de requisição (`getRequisitionID`, `retry`) e cookies
-  - `PrivateApi`: integração com o backend próprio
+    - `UerjApi`: integração com AO (axios), utilitários de requisição (`getRequisitionID`, `retry`) e cookies
+    - `PrivateApi`: integração com o backend próprio
 - `src/reducers/*`: Redux Toolkit slices (apiConfig, userInfo, etc.)
 - `src/themes/*`: tema e cores
 - `src/utils/*`: normalização, horários, helpers
@@ -143,9 +143,9 @@ Consulte também a seção “Segurança dos dados” na página da Play Store d
 ## Troubleshooting / FAQ
 
 - O app diz que o Aluno Online está indisponível. E agora?
-  - Isso ocorre quando o site oficial muda o HTML ou está fora do ar. Aguarde e tente mais tarde. Se persistir, use “Reportar erro” na tela de "Sobre" do app.
+    - Isso ocorre quando o site oficial muda o HTML ou está fora do ar. Aguarde e tente mais tarde. Se persistir, use “Reportar erro” na tela de "Sobre" do app.
 - O Gerador de Grade envia meus dados para algum lugar?
-  - Não. Os dados vão apenas para processamento temporário e não são salvos no servidor.
+    - Não. Os dados vão apenas para processamento temporário e não são salvos no servidor.
 
 ## Links úteis
 
