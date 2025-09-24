@@ -27,6 +27,21 @@ const api = axios.create({
   },
 });
 
+const looksLikeLoginHtml = (data: unknown): boolean => {
+  if (typeof data !== 'string') return false;
+  const html = data.toLowerCase();
+  const hasLoginFields =
+    html.includes('name="matricula"') ||
+    html.includes("name='matricula'") ||
+    html.includes('name="senha"') ||
+    html.includes("name='senha'");
+  const hasLoginAction =
+    html.includes('action="/requisicaoaluno/') ||
+    html.includes("action='/requisicaoaluno/");
+  const hasForm = html.includes('<form');
+  return (hasLoginFields && hasForm) || (hasLoginAction && hasForm);
+};
+
 const responseErrorInterceptor = async (err: AxiosError) => {
   const { apiConfig, userInfo } = store.getState();
 
@@ -75,11 +90,12 @@ const responseErrorInterceptor = async (err: AxiosError) => {
 const responseSuccessInterceptor = async (res: AxiosResponse) => {
   const dataLen = res?.data?.length || 0;
   const hasNoData = dataLen === 0 || dataLen < 100;
+  const isLoginPage = looksLikeLoginHtml(res?.data);
 
   const originalRequest = res.config as any;
   const isReachedRetryLimit = originalRequest._retries >= MAX_SUCCESS_RETRIES;
 
-  if (hasNoData && !isReachedRetryLimit) {
+  if ((hasNoData || isLoginPage) && !isReachedRetryLimit) {
     originalRequest._retries = (originalRequest._retries || 0) + 1;
 
     await refreshAuth().catch(e => {
