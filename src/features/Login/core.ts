@@ -10,6 +10,14 @@ import parseLoginReqId from './parseLoginReqId';
 import parseLoginInfo from './parseLoginData';
 import { getReqIds } from './parseReqIds';
 
+type HandleLoginOptions = {
+  /** When true, indicates this login is a background session refresh
+   *  and existing auth cookies should be reused instead of forcibly
+   *  clearing them (which can create race conditions with in-flight
+   *  requests and cause 401 loops). */
+  isRefresh?: boolean;
+};
+
 async function setLoginCookie(): Promise<void> {
   const url = '/';
   await authApi.get(url);
@@ -23,8 +31,20 @@ export async function fetchLoginPage(): Promise<string> {
   return data as string;
 }
 
-export async function handleLogin(matricula: string, senha: string) {
-  await clearAllCookies();
+export async function handleLogin(
+  matricula: string,
+  senha: string,
+  options: HandleLoginOptions = {},
+) {
+  const { isRefresh } = options;
+
+  // For foreground (user‑initiated) login we fully clear cookies to avoid
+  // session contamination. For silent refresh we intentionally DO NOT clear
+  // cookies, because doing so while other fetches are in flight can drop
+  // the session mid-request and trigger cascading 401/403 loops.
+  if (!isRefresh) {
+    await clearAllCookies();
+  }
 
   await setLoginCookie();
   const loginPageData = await retry(fetchLoginPage);

@@ -80,6 +80,15 @@ const responseSuccessInterceptor = async (res: AxiosResponse) => {
   const isReachedRetryLimit = originalRequest._retries >= MAX_SUCCESS_RETRIES;
 
   if (hasNoData && !isReachedRetryLimit) {
+    // eslint-disable-next-line no-console
+    console.log(
+      '[SUCCESS INTERCEPTOR] retrying due to empty/placeholder response',
+      {
+        dataLen,
+        url: originalRequest?.url,
+        attempt: originalRequest._retries,
+      },
+    );
     originalRequest._retries = (originalRequest._retries || 0) + 1;
 
     await refreshAuth().catch(e => {
