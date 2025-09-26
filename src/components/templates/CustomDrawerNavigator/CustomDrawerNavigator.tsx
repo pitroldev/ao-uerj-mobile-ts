@@ -1,4 +1,3 @@
-/* eslint-disable react-native/no-inline-styles */
 import React, { useRef, useState, useLayoutEffect } from 'react';
 import { Animated, LayoutChangeEvent } from 'react-native';
 import { DrawerContentComponentProps } from '@react-navigation/drawer';
@@ -35,19 +34,34 @@ const DrawerNavigator = ({
     LayoutChangeEvent['nativeEvent']['layout']
   >[];
 
-  useLayoutEffect(() => {
-    const key: number = state.index;
+  const visibleRoutes = routeNames.filter(
+    route => route !== 'Informações da Disciplina',
+  );
+  const currentRouteName = routeNames[state.index];
 
-    const layout = routePositions[key];
-    if (layout) {
-      setHeight(layout.height as number);
-      Animated.timing(highlighterPositionY, {
-        toValue: layout ? (layout.y as number) : 61.1429,
-        duration: 150,
-        useNativeDriver: true,
-      }).start();
+  useLayoutEffect(() => {
+    const visibleIndex = visibleRoutes.findIndex(
+      route => route === currentRouteName,
+    );
+
+    if (visibleIndex !== -1) {
+      const layout = routePositions[visibleIndex];
+      if (layout) {
+        setHeight(layout.height as number);
+        Animated.timing(highlighterPositionY, {
+          toValue: layout ? (layout.y as number) : 61.1429,
+          duration: 150,
+          useNativeDriver: true,
+        }).start();
+      }
     }
-  }, [state, highlighterPositionY, routePositions]);
+  }, [
+    state,
+    highlighterPositionY,
+    routePositions,
+    currentRouteName,
+    visibleRoutes,
+  ]);
 
   if (!isSignedIn) {
     return <Container />;
@@ -55,15 +69,20 @@ const DrawerNavigator = ({
 
   function onLayout(event: LayoutChangeEvent, key: number) {
     const { y, height } = event.nativeEvent.layout;
-    if (key === 0) {
+
+    routePositions[key] = { y, height };
+
+    const currentVisibleIndex = visibleRoutes.findIndex(
+      route => route === currentRouteName,
+    );
+    if (key === 0 || key === currentVisibleIndex) {
       setHeight(height);
       Animated.timing(highlighterPositionY, {
         toValue: y,
-        duration: 0,
+        duration: key === 0 ? 0 : 150,
         useNativeDriver: true,
       }).start();
     }
-    routePositions.push({ y, height });
   }
 
   function handleLogout() {
@@ -89,10 +108,7 @@ const DrawerNavigator = ({
             },
           ]}
         />
-        {routeNames.map((route: string, key: number) => {
-          if (route === 'Informações da Disciplina') {
-            return;
-          }
+        {visibleRoutes.map((route: string, key: number) => {
           return (
             <Button
               key={key}
