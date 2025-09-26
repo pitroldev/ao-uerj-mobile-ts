@@ -54,6 +54,8 @@ const MainRoutes = () => {
     queryFn: refreshAuth,
     enabled: Boolean(matricula && password),
     retry: 0,
+    refetchInterval: 10 * 60 * 1000, // Refresh a cada 10 minutos (600.000ms)
+    refetchOnWindowFocus: true, // Refresh quando o app volta do background
   });
 
   const isSignedIn = Boolean(cookies);
