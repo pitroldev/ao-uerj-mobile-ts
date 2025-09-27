@@ -7,7 +7,7 @@ import {
   parseUerjNumber,
 } from '@services/parser/minorParser';
 
-import {CurriculumSubject} from './types';
+import { CurriculumSubject } from './types';
 
 const TABLE_COLUMN_INDEX_MAP = {
   0: 'NAME_AND_ID',

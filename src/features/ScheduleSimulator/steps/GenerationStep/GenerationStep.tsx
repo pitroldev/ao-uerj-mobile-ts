@@ -1,15 +1,15 @@
 import React from 'react';
-import {useQuery} from 'react-query';
-import {TouchableOpacity} from 'react-native';
-import {Picker} from '@react-native-picker/picker';
-import {useFormContext, useWatch} from 'react-hook-form';
+import { useQuery } from 'react-query';
+import { TouchableOpacity } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+import { useFormContext, useWatch } from 'react-hook-form';
 
-import {useAppSelector} from '@root/store';
+import { useAppSelector } from '@root/store';
 import * as reducer from '@features/CurriculumSubjects/reducer';
 
 import api from '@services/ScheduleApi';
-import {useStepsContext} from '@hooks/useSteps';
-import {parseSubjectCode} from '@services/parser/minorParser';
+import { useStepsContext } from '@hooks/useSteps';
+import { parseSubjectCode } from '@services/parser/minorParser';
 import {
   parseClassToGeneratorFormat,
   parseSubjectToGeneratorFormat,
@@ -41,12 +41,12 @@ const GenerationStep = () => {
     'INFO',
   );
 
-  const {setStep} = useStepsContext();
+  const { setStep } = useStepsContext();
 
-  const {control} = useFormContext<ScheduleCreationParams>();
+  const { control } = useFormContext<ScheduleCreationParams>();
 
-  const body = useWatch({control}) as ScheduleCreationParams;
-  const {data: curriculumSubjects} = useAppSelector(
+  const body = useWatch({ control }) as ScheduleCreationParams;
+  const { data: curriculumSubjects } = useAppSelector(
     reducer.selectCurriculumSubjects,
   );
   const subjectsToTake = curriculumSubjects.filter(s => !s.alreadyTaken);
@@ -76,7 +76,7 @@ const GenerationStep = () => {
   });
 
   const {
-    isFetching: loading,
+    isLoading: loading,
     data,
     error,
     refetch,
@@ -139,7 +139,8 @@ const GenerationStep = () => {
           <>
             <StyledPicker
               selectedValue={selectedIndex}
-              onValueChange={s => setSelectedIndex(s as number)}>
+              onValueChange={s => setSelectedIndex(s as number)}
+            >
               {generatedSchedules.map((g, i) => (
                 <Picker.Item key={g.hash} label={`Grade ${i + 1}`} value={i} />
               ))}
@@ -148,21 +149,25 @@ const GenerationStep = () => {
             <TabRow>
               <TabBtn
                 active={currentTab === 'INFO'}
-                onPress={() => setCurrentTab('INFO')}>
+                onPress={() => setCurrentTab('INFO')}
+              >
                 <Text
                   weight="bold"
-                  color={currentTab === 'INFO' ? 'PRIMARY' : 'BACKGROUND_400'}>
+                  color={currentTab === 'INFO' ? 'PRIMARY' : 'BACKGROUND_400'}
+                >
                   Informações
                 </Text>
               </TabBtn>
               <TabBtn
                 active={currentTab === 'SCHEDULE'}
-                onPress={() => setCurrentTab('SCHEDULE')}>
+                onPress={() => setCurrentTab('SCHEDULE')}
+              >
                 <Text
                   weight="bold"
                   color={
                     currentTab === 'SCHEDULE' ? 'PRIMARY' : 'BACKGROUND_400'
-                  }>
+                  }
+                >
                   Horários
                 </Text>
               </TabBtn>

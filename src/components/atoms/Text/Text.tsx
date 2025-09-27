@@ -1,4 +1,4 @@
-import styled, {DefaultTheme} from 'styled-components/native';
+import styled, { DefaultTheme } from 'styled-components/native';
 
 type TextProps = {
   size?: 'XXS' | 'XS' | 'SM' | 'MD' | 'LG' | 'XL' | 'XXL';
@@ -28,19 +28,19 @@ type TextProps = {
 };
 
 const Text = styled.Text<TextProps>`
-  font-size: ${({size, theme}) =>
+  font-size: ${({ size, theme }) =>
     size ? theme.FONT_SIZE[size] : theme.FONT_SIZE.MD};
-  color: ${({color, theme}) =>
+  color: ${({ color, theme }) =>
     color ? theme.COLORS[color] : theme.COLORS.TEXT_PRIMARY};
-  font-style: ${({italic}) => (italic ? 'italic' : 'normal')};
-  font-weight: ${({weight}) => weight || 'normal'};
-  text-decoration: ${({underline}) => (underline ? 'underline' : 'none')};
-  text-align: ${({textAlign}) => (textAlign ? textAlign : 'left')};
-  align-self: ${({alignSelf}) => (alignSelf ? alignSelf : 'flex-start')};
-  margin-left: ${({marginLeft}) => (marginLeft ? marginLeft : '0px')};
-  margin-right: ${({marginRight}) => (marginRight ? marginRight : '0px')};
-  margin-top: ${({marginTop}) => (marginTop ? marginTop : '0px')};
-  margin-bottom: ${({marginBottom}) => (marginBottom ? marginBottom : '0px')};
+  font-style: ${({ italic }) => (italic ? 'italic' : 'normal')};
+  font-weight: ${({ weight }) => weight || 'normal'};
+  text-decoration: ${({ underline }) => (underline ? 'underline' : 'none')};
+  text-align: ${({ textAlign }) => (textAlign ? textAlign : 'left')};
+  align-self: ${({ alignSelf }) => (alignSelf ? alignSelf : 'flex-start')};
+  margin-left: ${({ marginLeft }) => (marginLeft ? marginLeft : '0px')};
+  margin-right: ${({ marginRight }) => (marginRight ? marginRight : '0px')};
+  margin-top: ${({ marginTop }) => (marginTop ? marginTop : '0px')};
+  margin-bottom: ${({ marginBottom }) => (marginBottom ? marginBottom : '0px')};
 `;
 
 export default Text;

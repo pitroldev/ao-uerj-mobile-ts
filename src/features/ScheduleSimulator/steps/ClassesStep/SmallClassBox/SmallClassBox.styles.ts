@@ -28,6 +28,6 @@ export const Column = styled.View`
   flex: 1;
 `;
 
-export const Container = styled(Box).attrs({size: 'small'})`
+export const Container = styled(Box).attrs({ size: 'small' })`
   margin: 5px;
 `;

@@ -1,12 +1,12 @@
 import React from 'react';
-import {TouchableOpacity} from 'react-native';
-import {useFormContext, useWatch} from 'react-hook-form';
+import { TouchableOpacity } from 'react-native';
+import { useFormContext, useWatch } from 'react-hook-form';
 
-import {useStepsContext} from '@hooks/useSteps';
+import { useStepsContext } from '@hooks/useSteps';
 
-import {TIME_VALUES, WEEKDAY_DICTIONARY} from '@utils/constants/time';
+import { TIME_VALUES, WEEKDAY_DICTIONARY } from '@utils/constants/time';
 
-import {ScheduleCreationParams} from '@features/ScheduleSimulator/types';
+import { ScheduleCreationParams } from '@features/ScheduleSimulator/types';
 
 import Text from '@atoms/Text';
 import Button from '@atoms/Button';
@@ -30,12 +30,12 @@ const UERJ_WEEK_DAYS = [1, 2, 3, 4, 5, 6] as Array<
 >;
 
 const BusyHoursStep = () => {
-  const {nextStep, prevStep} = useStepsContext();
+  const { nextStep, prevStep } = useStepsContext();
 
-  const {handleSubmit, setValue, control} =
+  const { handleSubmit, setValue, control } =
     useFormContext<ScheduleCreationParams>();
 
-  const busy_schedules = useWatch({control, name: 'busy_schedules'}) ?? [];
+  const busy_schedules = useWatch({ control, name: 'busy_schedules' }) ?? [];
 
   const handleNextPress = handleSubmit(nextStep);
 
@@ -72,7 +72,7 @@ const BusyHoursStep = () => {
   };
 
   const handleLongPress = (time: (typeof TIME_VALUES)[number]) => {
-    const {start_time_in_minutes, end_time_in_minutes} = time;
+    const { start_time_in_minutes, end_time_in_minutes } = time;
 
     const filteredBusySchedules = busy_schedules.filter(
       busyHour =>
@@ -203,7 +203,8 @@ const BusyHoursStep = () => {
               color={color}
               onPress={() => handleScheduleItemPress(weekDay, time)}
               onLongPress={() => handleLongPress(time)}
-              delayLongPress={500}>
+              delayLongPress={500}
+            >
               <Text size="SM" weight="500" alignSelf="center">
                 {startTimeAlias}
               </Text>
@@ -227,7 +228,8 @@ const BusyHoursStep = () => {
           size="XS"
           alignSelf="center"
           marginBottom="6px"
-          color="BACKGROUND_700">
+          color="BACKGROUND_700"
+        >
           Dica: toque para marcar, toque e segure para o período do dia. Você
           também pode usar os atalhos abaixo.
         </Text>
@@ -241,7 +243,8 @@ const BusyHoursStep = () => {
                 variant={
                   isGroupFullySelected('M') ? 'SECONDARY' : 'BACKGROUND_500'
                 }
-                onPress={() => toggleGroupAcrossWeek('M')}>
+                onPress={() => toggleGroupAcrossWeek('M')}
+              >
                 Manhã ocupada
               </Button>
             </ChipItem>
@@ -252,7 +255,8 @@ const BusyHoursStep = () => {
                 variant={
                   isGroupFullySelected('T') ? 'SECONDARY' : 'BACKGROUND_500'
                 }
-                onPress={() => toggleGroupAcrossWeek('T')}>
+                onPress={() => toggleGroupAcrossWeek('T')}
+              >
                 Tarde ocupada
               </Button>
             </ChipItem>
@@ -263,7 +267,8 @@ const BusyHoursStep = () => {
                 variant={
                   isGroupFullySelected('N') ? 'SECONDARY' : 'BACKGROUND_500'
                 }
-                onPress={() => toggleGroupAcrossWeek('N')}>
+                onPress={() => toggleGroupAcrossWeek('N')}
+              >
                 Noite ocupada
               </Button>
             </ChipItem>
@@ -272,7 +277,8 @@ const BusyHoursStep = () => {
             size="small"
             fullWidth
             variant="BACKGROUND_400"
-            onPress={clearAll}>
+            onPress={clearAll}
+          >
             Limpar tudo
           </Button>
         </ChipsContainer>
@@ -296,7 +302,8 @@ const BusyHoursStep = () => {
           {UERJ_WEEK_DAYS.map(weekDay => (
             <TouchableOpacity
               key={weekDay}
-              onPress={() => toggleWeekdayFull(weekDay, VALID_SCHEDULES)}>
+              onPress={() => toggleWeekdayFull(weekDay, VALID_SCHEDULES)}
+            >
               <Text size="SM" weight="500" alignSelf="center">
                 {WEEKDAY_DICTIONARY[weekDay].shortName}
               </Text>

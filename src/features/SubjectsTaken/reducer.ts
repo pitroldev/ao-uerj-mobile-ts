@@ -1,7 +1,7 @@
-import {createSlice, PayloadAction} from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-import {AppState} from '@root/store';
-import {SubjectsTaken} from './types';
+import { AppState } from '@root/store';
+import { SubjectsTaken } from './types';
 
 type State = {
   data: SubjectsTaken[];
@@ -28,7 +28,7 @@ const slice = createSlice({
   },
 });
 
-export const {setState, clear} = slice.actions;
+export const { setState, clear } = slice.actions;
 export const selectSubjectsAttended = (state: AppState) =>
   state.subjectsAttended;
 

@@ -1,6 +1,6 @@
 import React from 'react';
-import {TouchableOpacity} from 'react-native';
-import styled, {DefaultTheme} from 'styled-components/native';
+import { TouchableOpacity } from 'react-native';
+import styled, { DefaultTheme } from 'styled-components/native';
 
 type StyleProps = {
   variant?: keyof DefaultTheme['COLORS'];
@@ -16,15 +16,16 @@ export const ButtonContainer = styled(TouchableOpacity)<ButtonProps>`
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  background-color: ${({variant, theme}) => theme.COLORS[variant ?? 'PRIMARY']};
+  background-color: ${({ variant, theme }) =>
+    theme.COLORS[variant ?? 'PRIMARY']};
 
   margin: 5px;
-  border-radius: ${({size}) => (size === 'small' ? '15px' : '25px')};
-  padding: ${({size}) => (size === 'small' ? '5px' : '8px')};
-  width: ${({size}) => (size === 'small' ? '30px' : '50px')};
-  height: ${({size}) => (size === 'small' ? '30px' : '50px')};
+  border-radius: ${({ size }) => (size === 'small' ? '15px' : '25px')};
+  padding: ${({ size }) => (size === 'small' ? '5px' : '8px')};
+  width: ${({ size }) => (size === 'small' ? '30px' : '50px')};
+  height: ${({ size }) => (size === 'small' ? '30px' : '50px')};
 
-  ${({disabled, theme}) =>
+  ${({ disabled, theme }) =>
     disabled &&
     `
     background-color: ${theme.COLORS.DISABLED};

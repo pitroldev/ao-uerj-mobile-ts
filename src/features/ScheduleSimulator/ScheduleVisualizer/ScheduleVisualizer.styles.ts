@@ -5,7 +5,7 @@ import Box from '@atoms/Box';
 export const CarouselContainer = styled.View``;
 
 export const WeekDayContainer = styled.View`
-  background-color: ${({theme}) => theme.COLORS.BACKGROUND};
+  background-color: ${({ theme }) => theme.COLORS.BACKGROUND};
   width: 90%;
 
   border-radius: 12px;

@@ -1,7 +1,7 @@
-import {createSlice, PayloadAction} from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-import {AppState} from '@root/store';
-import {DepartmentOptions, SubjectByUnit} from './types';
+import { AppState } from '@root/store';
+import { DepartmentOptions, SubjectByUnit } from './types';
 
 type State = {
   subjects: SubjectByUnit[];
@@ -33,7 +33,7 @@ const slice = createSlice({
   },
 });
 
-export const {setSubjects, setOptions, clear} = slice.actions;
+export const { setSubjects, setOptions, clear } = slice.actions;
 export const selectClassSchedulesByDepartment = (state: AppState) =>
   state.classSchedulesByUnit;
 

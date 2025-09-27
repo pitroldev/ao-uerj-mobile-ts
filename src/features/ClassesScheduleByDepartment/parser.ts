@@ -1,6 +1,6 @@
-import {UERJ_UNIT_OPTIONS} from '@utils/constants/unitOptions';
+import { UERJ_UNIT_OPTIONS } from '@utils/constants/unitOptions';
 
-import {SubjectByUnit, DepartmentOptions} from './types';
+import { SubjectByUnit, DepartmentOptions } from './types';
 
 const cheerio = require('react-native-cheerio');
 

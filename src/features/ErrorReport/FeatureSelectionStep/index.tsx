@@ -1,1 +1,1 @@
-export {default} from './FeatureSelectionStep';
+export { default } from './FeatureSelectionStep';

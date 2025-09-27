@@ -1,16 +1,16 @@
-import React, {useState} from 'react';
-import {Picker} from '@react-native-picker/picker';
-import {useFormContext, useWatch} from 'react-hook-form';
-import {FlatList} from 'react-native-gesture-handler';
+import React, { useState } from 'react';
+import { Picker } from '@react-native-picker/picker';
+import { useFormContext, useWatch } from 'react-hook-form';
+import { FlatList } from 'react-native-gesture-handler';
 
-import {useStepsContext} from '@hooks/useSteps';
-import {parseSubjectCode} from '@services/parser/minorParser';
+import { useStepsContext } from '@hooks/useSteps';
+import { parseSubjectCode } from '@services/parser/minorParser';
 
 import {
   ScheduleCreationParams,
   SubjectClasses,
 } from '@features/ScheduleSimulator/types';
-import {SubjectInfo} from '@features/SubjectInfo/types';
+import { SubjectInfo } from '@features/SubjectInfo/types';
 
 import Text from '@atoms/Text';
 import Button from '@atoms/Button';
@@ -30,12 +30,12 @@ const MAX_CLASSES_AMOUNT = 30;
 const ClassesStep = () => {
   const [teacher, setTeacher] = useState('');
 
-  const {nextStep, prevStep} = useStepsContext();
+  const { nextStep, prevStep } = useStepsContext();
 
-  const {handleSubmit, setValue, control} =
+  const { handleSubmit, setValue, control } =
     useFormContext<ScheduleCreationParams>();
 
-  const {subjects = [], selectedClasses = []} = useWatch({control});
+  const { subjects = [], selectedClasses = [] } = useWatch({ control });
 
   const classes = subjects.reduce((acc, s) => {
     if (!s.classes) {
@@ -89,7 +89,7 @@ const ClassesStep = () => {
     setValue('selectedClasses', [...selectedClasses, c] as SubjectClasses[]);
   };
 
-  const renderClass = ({item}: {item: SubjectClasses}) => {
+  const renderClass = ({ item }: { item: SubjectClasses }) => {
     const subject = subjects.find(
       s =>
         parseSubjectCode(s.id as string) === parseSubjectCode(item.subject_id),
@@ -122,7 +122,8 @@ const ClassesStep = () => {
             size="SM"
             alignSelf="center"
             marginBottom="8px"
-            color="ERROR">
+            color="ERROR"
+          >
             Você selecionou mais de {MAX_CLASSES_AMOUNT} turmas. Por favor,
             remova {removeNumber} turmas.
           </Text>
@@ -130,7 +131,8 @@ const ClassesStep = () => {
 
         <StyledPicker
           selectedValue={teacher}
-          onValueChange={s => setTeacher(s as string)}>
+          onValueChange={s => setTeacher(s as string)}
+        >
           <Picker.Item label={'Todos os Professores'} value={''} />
           {teachers.map(t => (
             <Picker.Item key={t} label={t} value={t} />
@@ -156,7 +158,8 @@ const ClassesStep = () => {
         <Button
           onPress={handleNextPress}
           size="small"
-          disabled={isOverMaxClasses}>
+          disabled={isOverMaxClasses}
+        >
           Próximo
         </Button>
       </ButtonsRow>

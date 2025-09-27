@@ -1,6 +1,6 @@
 import React from 'react';
-import {TouchableOpacity} from 'react-native';
-import styled, {DefaultTheme} from 'styled-components/native';
+import { TouchableOpacity } from 'react-native';
+import styled, { DefaultTheme } from 'styled-components/native';
 
 type StyleProps = {
   variant?: keyof DefaultTheme['COLORS'];
@@ -20,11 +20,12 @@ export const ButtonContainer = styled(TouchableOpacity)<ButtonProps>`
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  background-color: ${({variant, theme}) => theme.COLORS[variant ?? 'PRIMARY']};
+  background-color: ${({ variant, theme }) =>
+    theme.COLORS[variant ?? 'PRIMARY']};
 
-  border-radius: ${({size}) => (size === 'small' ? '5px' : '8px')};
-  padding: ${({size}) => (size === 'small' ? '5px' : '8px')};
-  ${({fullWidth, width, size}) => {
+  border-radius: ${({ size }) => (size === 'small' ? '5px' : '8px')};
+  padding: ${({ size }) => (size === 'small' ? '5px' : '8px')};
+  ${({ fullWidth, width, size }) => {
     if (fullWidth) {
       return 'width: 100%;';
     }
@@ -38,12 +39,12 @@ export const ButtonContainer = styled(TouchableOpacity)<ButtonProps>`
 
     return `width: ${size === 'small' ? '150px' : '300px'};`;
   }}
-  ${({height, size}) =>
+  ${({ height, size }) =>
     height
       ? `height: ${height}px;`
       : `height: ${size === 'small' ? '30px' : '50px'};`}
 
-  ${({disabled, theme}) =>
+  ${({ disabled, theme }) =>
     disabled &&
     `
     background-color: ${theme.COLORS.DISABLED};
@@ -53,13 +54,14 @@ export const ButtonContainer = styled(TouchableOpacity)<ButtonProps>`
 `;
 
 export const ButtonText = styled.Text<StyleProps>`
-  color: ${({theme}) => theme.COLORS.TEXT_SECONDARY};
-  font-family: ${({theme}) => theme.FONTS.REGULAR};
-  font-size: ${({size, theme}) =>
+  color: ${({ theme }) => theme.COLORS.TEXT_SECONDARY};
+  font-family: ${({ theme }) => theme.FONTS.REGULAR};
+  font-size: ${({ size, theme }) =>
     size === 'small' ? theme.FONT_SIZE.XS : theme.FONT_SIZE.MD};
-  font-weight: ${({variant}) => (variant === 'SECONDARY' ? 'normal' : 'bold')};
+  font-weight: ${({ variant }) =>
+    variant === 'SECONDARY' ? 'normal' : 'bold'};
   text-align: center;
-  ${({disabled, theme}) =>
+  ${({ disabled, theme }) =>
     disabled &&
     `
     color: ${theme.COLORS.TEXT_PRIMARY};

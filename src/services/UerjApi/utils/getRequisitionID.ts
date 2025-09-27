@@ -4,14 +4,14 @@ import * as apiConfigReducer from '@reducers/apiConfig';
 import api from '@services/UerjApi';
 import parseSubjectInfoReqId from '@services/parser/subjectInfoReqId';
 
-import {retry} from './retry';
+import { retry } from './retry';
 
 export async function getClassInfoReqIDs() {
   const requisicao = await getRequisitionID('DisciplinasCursar');
-  const {apiConfig} = store.getState();
+  const { apiConfig } = store.getState();
 
   const url = '/requisicaoaluno/';
-  const {data} = await api.get(url, {
+  const { data } = await api.get(url, {
     params: {
       controle: 'Aluno',
       requisicao,
@@ -26,7 +26,7 @@ export async function getClassInfoReqIDs() {
 
 export async function getRequisitionID(key: string): Promise<string> {
   // TODO: string similarity > 0.8
-  const {apiConfig} = store.getState();
+  const { apiConfig } = store.getState();
   const reqId = apiConfig.dictionary[key];
 
   if (!reqId) {

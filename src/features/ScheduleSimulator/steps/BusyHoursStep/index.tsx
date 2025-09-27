@@ -1,1 +1,1 @@
-export {default} from './BusyHoursStep';
+export { default } from './BusyHoursStep';

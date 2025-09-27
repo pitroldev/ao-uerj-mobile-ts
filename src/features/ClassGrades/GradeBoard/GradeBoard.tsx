@@ -1,8 +1,8 @@
 import React from 'react';
 
-import {ClassGrade} from '@features/ClassGrades/types';
+import { ClassGrade } from '@features/ClassGrades/types';
 
-import {numberToColor} from '@utils/numberToColor';
+import { numberToColor } from '@utils/numberToColor';
 
 import Text from '@atoms/Text';
 import {
@@ -18,9 +18,9 @@ type Props = {
   data: ClassGrade[];
 };
 
-const GradeBoard = ({data}: Props) => {
+const GradeBoard = ({ data }: Props) => {
   function renderItem(item: ClassGrade) {
-    const {grades, id, name} = item;
+    const { grades, id, name } = item;
 
     const hasTests =
       typeof grades.p1 === 'number' ||
