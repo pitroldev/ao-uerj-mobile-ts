@@ -1,1 +1,1 @@
-export {default} from './MessageBoard';
+export { default } from './MessageBoard';

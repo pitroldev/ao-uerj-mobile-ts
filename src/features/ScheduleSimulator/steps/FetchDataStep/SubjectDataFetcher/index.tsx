@@ -1,1 +1,1 @@
-export {default} from './SubjectDataFetcher';
+export { default } from './SubjectDataFetcher';

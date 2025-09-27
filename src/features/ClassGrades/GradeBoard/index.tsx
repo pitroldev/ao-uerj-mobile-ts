@@ -1,1 +1,1 @@
-export {default} from './GradeBoard';
+export { default } from './GradeBoard';

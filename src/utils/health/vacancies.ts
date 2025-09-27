@@ -1,4 +1,4 @@
-import {DefaultTheme} from 'styled-components/native';
+import { DefaultTheme } from 'styled-components/native';
 
 export function getVacancieHealth(
   taken: number,
@@ -12,14 +12,14 @@ export function getVacancieHealth(
     const percentage = !inverse ? 1 - taken / available : taken / available;
 
     if (percentage < 0.5) {
-      return {status: 'CRITICAL', percentage};
+      return { status: 'CRITICAL', percentage };
     }
 
     if (percentage < 0.8) {
-      return {status: 'BAD', percentage};
+      return { status: 'BAD', percentage };
     }
-    return {status: 'GOOD', percentage};
+    return { status: 'GOOD', percentage };
   } catch (err) {
-    return {status: 'GOOD', percentage: -1};
+    return { status: 'GOOD', percentage: -1 };
   }
 }

@@ -1,7 +1,7 @@
 import React from 'react';
-import {useFormContext, useWatch} from 'react-hook-form';
+import { useFormContext, useWatch } from 'react-hook-form';
 
-import {useStepsContext} from '@hooks/useSteps';
+import { useStepsContext } from '@hooks/useSteps';
 
 import {
   Priority,
@@ -40,32 +40,32 @@ const priorities = [
       label: 'Evitar muito deslocamento, moro longe da UERJ',
     },
   ],
-  [{key: 'MIN_GAPS', label: 'Evitar intervalos grandes entre matérias'}],
-  [{key: 'MANDATORY_CLASSES', label: 'Matérias obrigatórias'}],
+  [{ key: 'MIN_GAPS', label: 'Evitar intervalos grandes entre matérias' }],
+  [{ key: 'MANDATORY_CLASSES', label: 'Matérias obrigatórias' }],
   [
     {
       key: 'CRITICAL_FIRST',
       label: 'Matérias críticas (que travam outras matérias)',
     },
   ],
-  [{key: 'MAX_CREDITS', label: 'Máximo de créditos possíveis'}],
+  [{ key: 'MAX_CREDITS', label: 'Máximo de créditos possíveis' }],
   [
-    {key: 'MIN_DAY_WORKLOAD', label: 'Pouca carga horária diária'},
-    {key: 'MAX_DAY_WORKLOAD', label: 'Muita carga horária diária'},
+    { key: 'MIN_DAY_WORKLOAD', label: 'Pouca carga horária diária' },
+    { key: 'MAX_DAY_WORKLOAD', label: 'Muita carga horária diária' },
   ],
   [
-    {key: 'MIN_WORKLOAD', label: 'Pouca carga horária semanal'},
-    {key: 'MAX_WORKLOAD', label: 'Muita carga horária semanal'},
+    { key: 'MIN_WORKLOAD', label: 'Pouca carga horária semanal' },
+    { key: 'MAX_WORKLOAD', label: 'Muita carga horária semanal' },
   ],
 ] as const;
 
 const PriorityStep = () => {
-  const {nextStep, prevStep} = useStepsContext();
+  const { nextStep, prevStep } = useStepsContext();
 
-  const {control, handleSubmit, setValue} =
+  const { control, handleSubmit, setValue } =
     useFormContext<ScheduleCreationParams>();
 
-  const priority = useWatch({control, name: 'priority'}) ?? [];
+  const priority = useWatch({ control, name: 'priority' }) ?? [];
 
   const handleNextPress = handleSubmit(data => {
     const orderedPriority = orderedPriorities.filter(key =>
@@ -104,7 +104,7 @@ const PriorityStep = () => {
         <ScrollView>
           {priorities.map((group, index) => (
             <Column key={index}>
-              {group.map(({key, label}) => (
+              {group.map(({ key, label }) => (
                 <Row key={key}>
                   <Text weight="500" size="SM" marginLeft="5px">
                     {label}

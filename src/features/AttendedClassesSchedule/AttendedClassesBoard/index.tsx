@@ -1,1 +1,1 @@
-export {default} from './AttendedClassesBoard';
+export { default } from './AttendedClassesBoard';

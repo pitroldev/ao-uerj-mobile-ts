@@ -1,9 +1,9 @@
 import React from 'react';
-import {useTheme} from 'styled-components';
+import { useTheme } from 'styled-components';
 import Icon from 'react-native-vector-icons/AntDesign';
 
 import Text from '@atoms/Text';
-import {View} from './DummyMessage.styles';
+import { View } from './DummyMessage.styles';
 
 type Props = {
   text: string;
@@ -11,8 +11,8 @@ type Props = {
   onPress?: any;
 };
 
-const DummyMessage = ({text, type, onPress}: Props) => {
-  const {COLORS} = useTheme();
+const DummyMessage = ({ text, type, onPress }: Props) => {
+  const { COLORS } = useTheme();
 
   const icons = {
     ERROR: 'closecircleo',
@@ -38,7 +38,8 @@ const DummyMessage = ({text, type, onPress}: Props) => {
         textAlign="center"
         alignSelf="center"
         weight="500"
-        color="BACKGROUND_400">
+        color="BACKGROUND_400"
+      >
         {text}
       </Text>
     </View>

@@ -25,7 +25,7 @@ export const TabRow = styled.View`
   align-items: center;
 `;
 
-type TabProps = {active: boolean};
+type TabProps = { active: boolean };
 
 export const TabBtn = styled.TouchableOpacity<TabProps>`
   display: flex;
@@ -35,7 +35,7 @@ export const TabBtn = styled.TouchableOpacity<TabProps>`
 
   padding: 8px 12px;
   border-bottom: 2px solid
-    ${({theme, active}) =>
+    ${({ theme, active }) =>
       active ? theme.COLORS.PRIMARY : theme.COLORS.BACKGROUND_400};
 `;
 

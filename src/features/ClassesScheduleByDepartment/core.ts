@@ -1,6 +1,6 @@
 import store from '@root/store';
 import api from '@services/UerjApi';
-import {getRequisitionID} from '@services/UerjApi/utils';
+import { getRequisitionID } from '@services/UerjApi/utils';
 
 import parseData from './parser';
 
@@ -9,7 +9,7 @@ export const _fetchRawClassesScheduleByUnitData = async (
 ) => {
   const url = '/requisicaoaluno/';
   const requisicao = await getRequisitionID('Horário das Turmas');
-  const {apiConfig} = store.getState();
+  const { apiConfig } = store.getState();
 
   const options = {
     params: {

@@ -1,16 +1,16 @@
 import React from 'react';
 import Share from 'react-native-share';
-import {TouchableOpacity} from 'react-native';
-import {useTheme} from 'styled-components/native';
+import { TouchableOpacity } from 'react-native';
+import { useTheme } from 'styled-components/native';
 import Carousel from 'react-native-reanimated-carousel';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-import {window} from '@utils/constants/info';
-import {TIME_VALUES} from '@utils/constants/time';
-import {AttendedClassesSchedule} from '@features/AttendedClassesSchedule/types';
+import { window } from '@utils/constants/info';
+import { TIME_VALUES } from '@utils/constants/time';
+import { AttendedClassesSchedule } from '@features/AttendedClassesSchedule/types';
 
 import Text from '@atoms/Text';
-import {buildWeekSvgDataUri} from '../svgExport';
+import { buildWeekSvgDataUri } from '../svgExport';
 
 import {
   TimeInfoColumn,
@@ -28,15 +28,15 @@ type Props = {
   onSubjectPress: (item?: AttendedClassesSchedule) => void;
 };
 
-const ClassScheduleBoard = ({data, onSubjectPress}: Props) => {
+const ClassScheduleBoard = ({ data, onSubjectPress }: Props) => {
   const theme = useTheme();
   const safeData = data ?? [];
 
-  const weekDays = [] as {number: number; name: string}[];
+  const weekDays = [] as { number: number; name: string }[];
   safeData.forEach(
     c =>
       !weekDays.some(w => w.number === c.dayNumber) &&
-      weekDays.push({number: c.dayNumber, name: c.dayAlias}),
+      weekDays.push({ number: c.dayNumber, name: c.dayAlias }),
   );
 
   const getBoxColor = (start: number) => {
@@ -50,21 +50,22 @@ const ClassScheduleBoard = ({data, onSubjectPress}: Props) => {
   };
 
   const renderClasses = (item: AttendedClassesSchedule) => {
-    const {start_time_in_minutes, end_time_in_minutes} = item;
+    const { start_time_in_minutes, end_time_in_minutes } = item;
 
-    const {periodAlias: startPeriod, startTimeAlias} = TIME_VALUES.find(
+    const { periodAlias: startPeriod, startTimeAlias } = TIME_VALUES.find(
       t => start_time_in_minutes === t.start_time_in_minutes,
-    ) ?? {periodAlias: '??'};
+    ) ?? { periodAlias: '??' };
 
-    const {periodAlias: endPeriod, endTimeAlias} = TIME_VALUES.find(
+    const { periodAlias: endPeriod, endTimeAlias } = TIME_VALUES.find(
       t => t.end_time_in_minutes === end_time_in_minutes,
-    ) ?? {periodAlias: '??'};
+    ) ?? { periodAlias: '??' };
 
     const boxColor = getBoxColor(start_time_in_minutes);
     return (
       <TouchableOpacity
         key={`${item.class.name}:${item.class.id}`}
-        onPress={() => onSubjectPress(item)}>
+        onPress={() => onSubjectPress(item)}
+      >
         <ClassBox color={boxColor}>
           <Row>
             <TimeInfoColumn>
@@ -73,7 +74,8 @@ const ClassScheduleBoard = ({data, onSubjectPress}: Props) => {
                 size="XS"
                 italic
                 textAlign="center"
-                alignSelf="center">
+                alignSelf="center"
+              >
                 {startPeriod} - {endPeriod}
               </Text>
               <Text
@@ -81,7 +83,8 @@ const ClassScheduleBoard = ({data, onSubjectPress}: Props) => {
                 size="XS"
                 italic
                 textAlign="center"
-                alignSelf="center">
+                alignSelf="center"
+              >
                 {startTimeAlias} - {endTimeAlias}
               </Text>
             </TimeInfoColumn>
@@ -106,7 +109,8 @@ const ClassScheduleBoard = ({data, onSubjectPress}: Props) => {
           textAlign="center"
           alignSelf="center"
           weight="300"
-          marginBottom="8px">
+          marginBottom="8px"
+        >
           {weekDay}
         </Text>
         {classesInThisDay.map(renderClasses)}
@@ -117,7 +121,7 @@ const ClassScheduleBoard = ({data, onSubjectPress}: Props) => {
   const currentDay = new Date().getDay();
 
   const [closestWeekday] = weekDays
-    .map(({number}) => ({diff: Math.abs(number - currentDay), number}))
+    .map(({ number }) => ({ diff: Math.abs(number - currentDay), number }))
     .sort((a, b) => a.diff - b.diff);
 
   const defaultIndex =
@@ -163,7 +167,8 @@ const ClassScheduleBoard = ({data, onSubjectPress}: Props) => {
           onPress={handleExport}
           accessibilityRole="button"
           accessibilityLabel="Compartilhar grade da semana"
-          disabled={exporting}>
+          disabled={exporting}
+        >
           <Icon
             name="share-variant"
             size={18}
@@ -179,7 +184,7 @@ const ClassScheduleBoard = ({data, onSubjectPress}: Props) => {
         data={weekDays.map(w => w.name)}
         scrollAnimationDuration={500}
         onSnapToItem={index => setCurrentIndex(index)}
-        renderItem={({item}) => renderBoard(item)}
+        renderItem={({ item }) => renderBoard(item)}
       />
     </CarouselContainer>
   );
