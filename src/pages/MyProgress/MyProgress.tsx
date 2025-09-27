@@ -1,27 +1,28 @@
-import React from 'react';
-import { ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { ScrollView, TouchableOpacity } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
 import {
   Container,
-  StatCard,
-  StatTitle,
-  StatValue,
   SectionTitle,
   Row,
   Col,
-  ProgressContainer,
-  ProgressTrack,
-  ProgressFill,
-  InlineStats,
-  Pill,
+  StatCard,
+  StatTitle,
+  StatValue,
 } from './MyProgress.styles';
 import CraLineChart from './CraLineChart';
+import ElectiveCreditsModal from './ElectiveCreditsModal';
+import SubjectTypeCard from './SubjectTypeCard';
 import { useMyProgress } from './useMyProgress';
 import { SUBJECT_TYPE } from '@utils/constants/subjectDictionary';
+import { ElectiveCreditsConfig } from '@hooks/useElectiveCreditsConfig';
 
 export default function MyProgressPage() {
+  const [modalVisible, setModalVisible] = useState(false);
+
   const {
     initialLoading,
     isEmpty,
@@ -29,8 +30,12 @@ export default function MyProgressPage() {
     currentCRA,
     pointsOverTime,
     byType,
+    electiveCreditsHook,
   } = useMyProgress();
 
+  const handleConfigSave = async (config: ElectiveCreditsConfig) => {
+    return await electiveCreditsHook.setConfig(config);
+  };
   return (
     <Container>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -69,67 +74,35 @@ export default function MyProgressPage() {
           </>
         )}
 
-        <SectionTitle>Seu caminho no currículo</SectionTitle>
-        {byType.order.map(key => {
-          const label = SUBJECT_TYPE[key];
-          const tot = byType.totals[key];
-          const comp = byType.completed[key];
-          const rem = byType.remaining[key];
-          const pct = byType.percent[key];
-          const compCred = byType.completedCredits[key];
-          const totCred = byType.totalCredits[key];
-
-          const isBarMeaningful = key === 'MANDATORY';
-          return (
-            <StatCard key={key}>
-              <Pill>
-                <Text size="XS" color="TEXT_PRIMARY" weight="600">
-                  {label}
-                </Text>
-              </Pill>
-              {isBarMeaningful ? (
-                <>
-                  <StatTitle>Progresso</StatTitle>
-                  <ProgressContainer>
-                    <ProgressTrack>
-                      <ProgressFill percent={pct} color={'#004891'} />
-                    </ProgressTrack>
-                    <InlineStats>
-                      <Text size="XS" color="TEXT_PRIMARY">
-                        Concluídas: {comp}/{tot}
-                      </Text>
-                      <Text size="XS" color="TEXT_PRIMARY">
-                        Restantes: {rem}
-                      </Text>
-                    </InlineStats>
-                  </ProgressContainer>
-                </>
-              ) : (
-                <>
-                  <InlineStats>
-                    <Text size="XS" color="TEXT_PRIMARY">
-                      Concluídas: {comp}
-                    </Text>
-                    <Text size="XS" color="TEXT_PRIMARY">
-                      Créditos concl.: {compCred}
-                    </Text>
-                  </InlineStats>
-                  <InlineStats>
-                    <Text size="XS" color="TEXT_PRIMARY">
-                      Ofertadas no currículo: {tot}
-                    </Text>
-                    {totCred > 0 && (
-                      <Text size="XS" color="TEXT_PRIMARY">
-                        Créditos ofertados: {totCred}
-                      </Text>
-                    )}
-                  </InlineStats>
-                </>
-              )}
-            </StatCard>
-          );
-        })}
+        <Row
+          style={{
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 8,
+            marginTop: 12,
+          }}
+        >
+          <SectionTitle style={{ margin: 0 }}>
+            Seu caminho no currículo
+          </SectionTitle>
+          <TouchableOpacity
+            onPress={() => setModalVisible(true)}
+            style={{ padding: 8 }}
+          >
+            <Icon name="settings" size={20} color="#666" />
+          </TouchableOpacity>
+        </Row>
+        {byType.order.map(key => (
+          <SubjectTypeCard key={key} type={key} data={byType} />
+        ))}
       </ScrollView>
+
+      <ElectiveCreditsModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onSave={handleConfigSave}
+        initialConfig={electiveCreditsHook.config}
+      />
     </Container>
   );
 }

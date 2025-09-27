@@ -5,6 +5,7 @@ import { useQuery } from 'react-query';
 import { selectApiConfig } from '@reducers/apiConfig';
 
 import { SUBJECT_TYPE } from '@utils/constants/subjectDictionary';
+import { useElectiveCreditsConfig } from '@hooks/useElectiveCreditsConfig';
 
 import { fetchSubjectsTaken } from '@features/SubjectsTaken/core';
 import { fetchCurriculumSubjects } from '@features/CurriculumSubjects/core';
@@ -67,6 +68,8 @@ export function useMyProgress() {
   const { data: taken } = useAppSelector(selectSubjectsAttended);
   const { data: curriculum } = useAppSelector(selectCurriculumSubjects);
   const { cookies } = useAppSelector(selectApiConfig);
+
+  const electiveCreditsHook = useElectiveCreditsConfig();
 
   const HOUR_IN_MS = 1000 * 60 * 60;
 
@@ -148,24 +151,56 @@ export function useMyProgress() {
       UNIVERSAL: Math.max(totals.UNIVERSAL - completed.UNIVERSAL, 0),
     };
 
+    // Calculate required credits for electives based on user config
+    const requiredCredits: Record<Key, number | null> = {
+      MANDATORY: totals.MANDATORY, // Keep existing logic for mandatory
+      RESTRICTED:
+        electiveCreditsHook.config.RESTRICTED > 0
+          ? electiveCreditsHook.config.RESTRICTED
+          : null,
+      DEFINED:
+        electiveCreditsHook.config.DEFINED > 0
+          ? electiveCreditsHook.config.DEFINED
+          : null,
+      UNIVERSAL:
+        electiveCreditsHook.config.UNIVERSAL > 0
+          ? electiveCreditsHook.config.UNIVERSAL
+          : null,
+    };
+
     const percent = (comp: number, tot: number) =>
       tot > 0 ? Math.round((comp / tot) * 100) : 0;
+
+    // For electives with configured required credits, calculate percentage based on credits
+    const getPercentage = (type: Key) => {
+      if (type === 'MANDATORY') {
+        return percent(completed[type], totals[type]);
+      }
+
+      const required = requiredCredits[type];
+      if (required && required > 0) {
+        return percent(completedCredits[type], required);
+      }
+
+      return 0;
+    };
 
     return {
       order: types,
       totals,
       completed,
       remaining,
+      requiredCredits,
       percent: {
-        MANDATORY: percent(completed.MANDATORY, totals.MANDATORY),
-        RESTRICTED: percent(completed.RESTRICTED, totals.RESTRICTED),
-        DEFINED: percent(completed.DEFINED, totals.DEFINED),
-        UNIVERSAL: percent(completed.UNIVERSAL, totals.UNIVERSAL),
+        MANDATORY: getPercentage('MANDATORY'),
+        RESTRICTED: getPercentage('RESTRICTED'),
+        DEFINED: getPercentage('DEFINED'),
+        UNIVERSAL: getPercentage('UNIVERSAL'),
       },
       totalCredits,
       completedCredits,
     };
-  }, [curriculum, taken]);
+  }, [curriculum, taken, electiveCreditsHook.config]);
 
   const initialLoading =
     subjectsTakenQuery.isLoading || curriculumQuery.isLoading;
@@ -178,5 +213,6 @@ export function useMyProgress() {
     currentCRA,
     pointsOverTime,
     byType,
+    electiveCreditsHook,
   } as const;
 }
