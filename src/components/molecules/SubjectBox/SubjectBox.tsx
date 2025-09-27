@@ -1,10 +1,10 @@
-import React, {forwardRef} from 'react';
-import {TouchableOpacity} from 'react-native-gesture-handler';
-import {DefaultTheme} from 'styled-components/native';
+import React, { forwardRef } from 'react';
+import { TouchableOpacity } from 'react-native-gesture-handler';
+import { DefaultTheme } from 'styled-components/native';
 
 import Text from '@atoms/Text';
 
-import {Container, TopRow, BottomRow} from './SubjectBox.styles';
+import { Container, TopRow, BottomRow } from './SubjectBox.styles';
 
 type BoldOptions = {
   topLeft?: boolean;
@@ -56,7 +56,8 @@ const SubjectBox = forwardRef((props: Props, ref: any) => {
             <Text
               weight={boldOptions?.topLeft ? 'bold' : 'normal'}
               marginRight="auto"
-              size="XS">
+              size="XS"
+            >
               {topLeftInfo}
             </Text>
           )}
@@ -64,7 +65,8 @@ const SubjectBox = forwardRef((props: Props, ref: any) => {
             <Text
               weight={boldOptions?.topRight ? 'bold' : 'normal'}
               marginLeft="auto"
-              size="XS">
+              size="XS"
+            >
               {topRightInfo}
             </Text>
           )}
@@ -84,7 +86,8 @@ const SubjectBox = forwardRef((props: Props, ref: any) => {
             <Text
               weight={boldOptions?.bottomLeft ? 'bold' : 'normal'}
               marginRight="auto"
-              size="XS">
+              size="XS"
+            >
               {bottomLeftInfo}
             </Text>
           )}
@@ -92,7 +95,8 @@ const SubjectBox = forwardRef((props: Props, ref: any) => {
             <Text
               weight={boldOptions?.bottomRight ? 'bold' : 'normal'}
               marginLeft="auto"
-              size="XS">
+              size="XS"
+            >
               {bottomRightInfo}
             </Text>
           )}

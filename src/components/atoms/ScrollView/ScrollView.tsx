@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {ScrollContainer} from './ScrollView.styles';
+import { ScrollContainer } from './ScrollView.styles';
 
 type ExtraProps = {
   children?: React.ReactNode;

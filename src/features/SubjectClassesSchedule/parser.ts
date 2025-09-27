@@ -6,11 +6,11 @@ import {
   parseSimNaoToBoolean,
 } from '@services/parser/minorParser';
 
-import {orderTurnosStringToArray, searchForBreakPonts} from '@utils/horarios';
+import { orderTurnosStringToArray, searchForBreakPonts } from '@utils/horarios';
 
-import {WeekDay} from '@root/types/dateStuff';
+import { WeekDay } from '@root/types/dateStuff';
 
-import {Horario, SubjectClassesSchedule} from './types';
+import { Horario, SubjectClassesSchedule } from './types';
 
 function getHorarioArray(horarioString: string) {
   try {

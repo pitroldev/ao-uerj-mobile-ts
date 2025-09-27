@@ -1,4 +1,4 @@
-import {Turno, WeekDay} from '@root/types/dateStuff';
+import { Turno, WeekDay } from '@root/types/dateStuff';
 
 export type Horario = {
   [weekDay in WeekDay]?: Turno[][];

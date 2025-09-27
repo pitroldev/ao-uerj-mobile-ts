@@ -1,12 +1,12 @@
-import {Turno} from '@root/types/dateStuff';
-import {Class, Schedule, Subject} from '@root/types/generator';
+import { Turno } from '@root/types/dateStuff';
+import { Class, Schedule, Subject } from '@root/types/generator';
 
-import {Prereq, SubjectInfo} from '@features/SubjectInfo/types';
+import { Prereq, SubjectInfo } from '@features/SubjectInfo/types';
 import {
   Horario,
   SubjectClassesSchedule,
 } from '@features/SubjectClassesSchedule/types';
-import {CurriculumSubject} from '@root/features/CurriculumSubjects/types';
+import { CurriculumSubject } from '@root/features/CurriculumSubjects/types';
 
 import {
   convertDayToNumber,

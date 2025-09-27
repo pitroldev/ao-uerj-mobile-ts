@@ -1,11 +1,15 @@
-import {AxiosError} from 'axios';
+import { AxiosError } from 'axios';
 
 import store from '@root/store';
 import * as apiConfigReducer from '@reducers/apiConfig';
 
 export const MAX_RETRIES = 3;
 
-export const NOT_RETRY_ERRORS = ['NOT_LOGGED_IN', 'POSSIBLY_BLOCKED'];
+export const NOT_RETRY_ERRORS = [
+  'NOT_LOGGED_IN',
+  'POSSIBLY_BLOCKED',
+  'LOGIN_REFRESH_FAILED',
+];
 
 export const SESSION_TIMED_OUT_ERRORS = [
   'REQ_ID_NOT_FOUND',

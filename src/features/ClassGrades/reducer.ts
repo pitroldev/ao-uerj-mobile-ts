@@ -1,8 +1,8 @@
-import {createSlice, PayloadAction} from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-import {AppState} from '@root/store';
+import { AppState } from '@root/store';
 
-import {ClassGrade} from './types';
+import { ClassGrade } from './types';
 
 type State = {
   data: ClassGrade[];
@@ -24,7 +24,7 @@ const slice = createSlice({
     setClassGrades: (state, action: PayloadAction<State['data']>) => {
       const data = action.payload;
 
-      const isClassGradesAvailable = data.some(({grades}) =>
+      const isClassGradesAvailable = data.some(({ grades }) =>
         Object.values(grades).some(grade => typeof grade === 'number'),
       );
 
@@ -40,7 +40,7 @@ const slice = createSlice({
   },
 });
 
-export const {setState, clear, setClassGrades} = slice.actions;
+export const { setState, clear, setClassGrades } = slice.actions;
 export const selectClassGrades = (state: AppState) => state.classGrades;
 
 export default slice.reducer;

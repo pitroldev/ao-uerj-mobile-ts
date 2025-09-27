@@ -10,5 +10,5 @@ export const MainContainer = styled.View`
   height: 100%;
 
   border-top-left-radius: 50px;
-  background-color: ${({theme}) => theme.COLORS.BACKGROUND};
+  background-color: ${({ theme }) => theme.COLORS.BACKGROUND};
 `;

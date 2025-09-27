@@ -1,16 +1,16 @@
 import React from 'react';
-import {TouchableOpacity} from 'react-native';
+import { TouchableOpacity } from 'react-native';
 
 import {
   Horario,
   SubjectClassesSchedule,
 } from '@features/SubjectClassesSchedule/types';
-import {SubjectInfo} from '@features/SubjectInfo/types';
+import { SubjectInfo } from '@features/SubjectInfo/types';
 
 import ScheduleBox from '@root/pages/SubjectDetails/ScheduleBox';
 
 import Text from '@atoms/Text';
-import {InlineRow, Container, Column, Row} from './SmallClassBox.styles';
+import { InlineRow, Container, Column, Row } from './SmallClassBox.styles';
 
 interface Props extends SubjectClassesSchedule {
   selected: boolean;

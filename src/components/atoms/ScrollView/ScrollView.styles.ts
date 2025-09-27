@@ -1,5 +1,5 @@
 import styled from 'styled-components/native';
-import {ScrollView} from 'react-native-gesture-handler';
+import { ScrollView } from 'react-native-gesture-handler';
 
 export const ScrollContainer = styled(ScrollView)`
   display: flex;

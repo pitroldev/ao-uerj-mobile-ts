@@ -17,9 +17,9 @@
 
 > A definir, abaixo segue um exemplo de como poderia ser feita a autenticação.
 
-
 <!-- jwt -->
-``` mermaid
+
+```mermaid
 
 sequenceDiagram
     participant Cliente
@@ -51,7 +51,7 @@ Lista todas as disciplinas em curso pelo aluno.
 
 #### Requisição - Listar Disciplinas em Curso
 
-``` http
+```http
 GET {BASE_URL}/api/v1/disciplinas-em-curso
 
 Accept: application/json
@@ -59,7 +59,7 @@ Accept: application/json
 
 #### Tipagem - Listar Disciplinas em Curso
 
-``` typescript
+```typescript
 type AttendedSubjectClassInfo = {
   id: string;
   department: string;
@@ -91,35 +91,35 @@ type EndpointResponse = {
 
 Contém informações detalhadas sobre a disciplina/turma em curso.
 
-| Campo | Descrição |
-| --- | --- |
-| `id` | Identificador/código da disciplina |
-| `department` | Departamento da disciplina |
-| `name` | Nome da disciplina |
-| `class` | Turma da disciplina |
-| `avaLocation` | URL para a turma AVA da disciplina |
-| `uerjLocation` | Número/nome da sala da disciplina |
-| `status` | Status da disciplina |
+| Campo          | Descrição                          |
+| -------------- | ---------------------------------- |
+| `id`           | Identificador/código da disciplina |
+| `department`   | Departamento da disciplina         |
+| `name`         | Nome da disciplina                 |
+| `class`        | Turma da disciplina                |
+| `avaLocation`  | URL para a turma AVA da disciplina |
+| `uerjLocation` | Número/nome da sala da disciplina  |
+| `status`       | Status da disciplina               |
 
 - **AttendedClassesSchedule**
 
 Contém informações sobre o horário de uma disciplina em curso.
 
-| Campo | Descrição |
-| --- | --- |
-| `class` | JSON AttendedSubjectInfo, contendo informações sobre a disciplina |
-| `dayAlias` | Nome do dia da semana |
-| `dayNumber` | Número do dia da semana, contado a partir de 0 (domingo) |
-| `subject_id` | Identificador/código da disciplina |
-| `start_time_in_minutes` | Horário de início da disciplina em minutos, contados a partir de 00:00 |
-| `end_time_in_minutes` | Horário de término da disciplina em minutos, contados a partir de 00:00 |
+| Campo                   | Descrição                                                               |
+| ----------------------- | ----------------------------------------------------------------------- |
+| `class`                 | JSON AttendedSubjectInfo, contendo informações sobre a disciplina       |
+| `dayAlias`              | Nome do dia da semana                                                   |
+| `dayNumber`             | Número do dia da semana, contado a partir de 0 (domingo)                |
+| `subject_id`            | Identificador/código da disciplina                                      |
+| `start_time_in_minutes` | Horário de início da disciplina em minutos, contados a partir de 00:00  |
+| `end_time_in_minutes`   | Horário de término da disciplina em minutos, contados a partir de 00:00 |
 
 - **EndpointResponse**
 
 Contém a lista de JSON AttendedClassesSchedule, contendo informações sobre as disciplinas em curso. Cada item da lista representa um período de aula de uma disciplina, estes períodos podem ser em dias diferentes ou até mesmo em horários diferentes no mesmo dia.
 
-| Campo | Descrição |
-| --- | --- |
+| Campo  | Descrição                                                                                 |
+| ------ | ----------------------------------------------------------------------------------------- |
 | `data` | Lista de JSON AttendedClassesSchedule, contendo informações sobre as disciplinas em curso |
 
 #### Exemplo de sucesso (JSON) - Listar Disciplinas em Curso
@@ -132,11 +132,11 @@ No exemplo abaixo existem duas disciplinas sendo cursadas pelo aluno:
 - Introdução ao Processamento de Dados
   - Terça: 08:00 - 09:40 (M2 - M3)
 
-``` http
+```http
 Status: 200 OK
 ```
 
-``` json
+```json
 {
   "data": [
     {
@@ -186,7 +186,7 @@ Status: 200 OK
       "subject_id": "508",
       "start_time_in_minutes": 420, // 07:00
       "end_time_in_minutes": 470 // 07:50
-    },
+    }
   ]
 }
 ```
@@ -201,7 +201,7 @@ Lista todas as notas disponíveis das disciplinas em curso pelo aluno.
 
 #### Requisição - Notas das Disciplinas em Curso
 
-``` http
+```http
 GET {BASE_URL}/api/v1/notas
 
 Accept: application/json
@@ -209,7 +209,7 @@ Accept: application/json
 
 #### Tipagem - Notas das Disciplinas em Curso
 
-``` typescript
+```typescript
 type Grade = {
   p1?: number;
   p2?: number;
@@ -233,22 +233,22 @@ type EndpointResponse = {
 
 - **Grade**
 
-| Campo | Descrição |
-| --- | --- |
-| `p1` | Nota da P1 |
-| `p2` | Nota da P2 |
-| `pf` | Nota da PF |
+| Campo    | Descrição  |
+| -------- | ---------- |
+| `p1`     | Nota da P1 |
+| `p2`     | Nota da P2 |
+| `pf`     | Nota da PF |
 | `result` | Nota final |
 
 - **ClassGrade**
 
-| Campo | Descrição |
-| --- | --- |
-| `id` | Identificador/código da disciplina |
-| `department` | Departamento da disciplina |
-| `name` | Nome da disciplina |
-| `class` | Turma da disciplina |
-| `grades` | JSON Grade, contendo as notas da disciplina |
+| Campo        | Descrição                                   |
+| ------------ | ------------------------------------------- |
+| `id`         | Identificador/código da disciplina          |
+| `department` | Departamento da disciplina                  |
+| `name`       | Nome da disciplina                          |
+| `class`      | Turma da disciplina                         |
+| `grades`     | JSON Grade, contendo as notas da disciplina |
 
 #### Exemplo de sucesso (JSON) - Notas das Disciplinas em Curso
 
@@ -264,11 +264,11 @@ No exemplo abaixo existem duas disciplinas sendo cursadas pelo aluno:
   - Nesse caso o professor não lançou as notas da P1 e P2, somente a nota final.
   - Resultado: 7.0
 
-``` http
+```http
 Status: 200 OK
 ```
 
-``` json
+```json
 {
   "data": [
     {
@@ -305,7 +305,7 @@ Lista todas as disciplinas que já foram cursadas pelo aluno, com suas respectiv
 
 #### Requisição - Listar Disciplinas Realizadas
 
-``` http
+```http
 GET {BASE_URL}/api/v1/disciplinas-realizadas
 
 Accept: application/json
@@ -313,7 +313,7 @@ Accept: application/json
 
 #### Tipagem - Listar Disciplinas Realizadas
 
-``` typescript
+```typescript
 type SubjectTaken = {
   id: string;
   department: string;
@@ -321,11 +321,7 @@ type SubjectTaken = {
   period: string;
   credits?: number;
   workload?: number;
-  type:
-  | 'MANDATORY'
-  | 'RESTRICTED_ELECTIVE'
-  | 'DEFINED_ELECTIVE'
-  | 'UNIVERSAL';
+  type: 'MANDATORY' | 'RESTRICTED_ELECTIVE' | 'DEFINED_ELECTIVE' | 'UNIVERSAL';
   frequency?: number;
   grade?: number;
   status:
@@ -334,7 +330,7 @@ type SubjectTaken = {
     | 'FAILED_BY_ATTENDANCE'
     | 'CANCELED'
     | 'EXEMPT';
-}
+};
 
 type EndpointResponse = {
   data: SubjectTaken[];
@@ -345,43 +341,44 @@ type EndpointResponse = {
 
 - **SubjectTaken**
 
-| Campo | Descrição |
-| --- | --- |
-| `id` | Identificador/código da disciplina |
-| `department` | Departamento da disciplina |
-| `name` | Nome da disciplina |
-| `period` | Período em que a disciplina foi cursada (Ex.: 2022.1) |
-| `credits` | Créditos da disciplina, caso exista |
-| `workload` | Carga horária da disciplina, caso exista |
-| `type` | Tipo da disciplina (Ex.: Obrigatória, Eletiva, etc) |
-| `frequency` | Frequência do aluno na disciplina em porcentagem, caso exista |
-| `grade` | Nota final do aluno na disciplina, caso exista |
-| `status` | Status da disciplina |
+| Campo        | Descrição                                                     |
+| ------------ | ------------------------------------------------------------- |
+| `id`         | Identificador/código da disciplina                            |
+| `department` | Departamento da disciplina                                    |
+| `name`       | Nome da disciplina                                            |
+| `period`     | Período em que a disciplina foi cursada (Ex.: 2022.1)         |
+| `credits`    | Créditos da disciplina, caso exista                           |
+| `workload`   | Carga horária da disciplina, caso exista                      |
+| `type`       | Tipo da disciplina (Ex.: Obrigatória, Eletiva, etc)           |
+| `frequency`  | Frequência do aluno na disciplina em porcentagem, caso exista |
+| `grade`      | Nota final do aluno na disciplina, caso exista                |
+| `status`     | Status da disciplina                                          |
 
 Descrição do campo `type`:
 
-| Valor | Descrição |
-| --- | --- |
-| `MANDATORY` | Obrigatória |
+| Valor                 | Descrição        |
+| --------------------- | ---------------- |
+| `MANDATORY`           | Obrigatória      |
 | `RESTRICTED_ELECTIVE` | Eletiva Restrita |
-| `DEFINED_ELECTIVE` | Eletiva Definida |
-| `UNIVERSAL` | Universal |
+| `DEFINED_ELECTIVE`    | Eletiva Definida |
+| `UNIVERSAL`           | Universal        |
 
 Descrição do campo `status`:
 
-| Valor | Descrição |
-| --- | --- |
-| `APPROVED` | Aprovado |
-| `FAILED_BY_GRADE` | Reprovado por nota |
+| Valor                  | Descrição                |
+| ---------------------- | ------------------------ |
+| `APPROVED`             | Aprovado                 |
+| `FAILED_BY_GRADE`      | Reprovado por nota       |
 | `FAILED_BY_ATTENDANCE` | Reprovado por frequência |
-| `CANCELED` | Cancelado |
-| `EXEMPT` | Isento |
+| `CANCELED`             | Cancelado                |
+| `EXEMPT`               | Isento                   |
 
 #### Exemplo de sucesso (JSON) - Listar Disciplinas Realizadas
 
 No exemplo abaixo existem duas disciplinas que já foram cursadas pelo aluno:
 
 - Cálculo Diferencial e Integral I
+
   - Período: 2022.1
   - Créditos: 6
   - Carga Horária: 90
@@ -399,11 +396,11 @@ No exemplo abaixo existem duas disciplinas que já foram cursadas pelo aluno:
   - Nota: 7.0
   - Status: Aprovado
 
-``` http
+```http
 Status: 200 OK
 ```
 
-``` json
+```json
 {
   "data": [
     {
@@ -444,7 +441,7 @@ Lista o resultado do RID Provisório do aluno.
 
 #### Requisição - Listar RID Provisório
 
-``` http
+```http
 GET {BASE_URL}/api/v1/rid-provisório
 
 Accept: application/json
@@ -452,7 +449,7 @@ Accept: application/json
 
 #### Tipagem - Listar RID Provisório
 
-``` typescript
+```typescript
 type SubjectClassTempRID = {
   id: string;
   department: string;
@@ -474,29 +471,30 @@ type EndpointResponse = {
 
 - **SubjectClassTempRID**
 
-| Campo | Descrição |
-| --- | --- |
-| `id` | Identificador/código da disciplina |
-| `department` | Departamento da disciplina |
-| `name` | Nome da disciplina |
-| `class` | Turma da disciplina |
-| `available` | Número de vagas disponíveis |
-| `requested` | Número de vagas solicitadas |
-| `position` | Posição do aluno na fila de espera |
-| `status` | Status da solicitação |
+| Campo        | Descrição                          |
+| ------------ | ---------------------------------- |
+| `id`         | Identificador/código da disciplina |
+| `department` | Departamento da disciplina         |
+| `name`       | Nome da disciplina                 |
+| `class`      | Turma da disciplina                |
+| `available`  | Número de vagas disponíveis        |
+| `requested`  | Número de vagas solicitadas        |
+| `position`   | Posição do aluno na fila de espera |
+| `status`     | Status da solicitação              |
 
 - **EndpointResponse**
 
-| Campo | Descrição |
-| --- | --- |
-| `data` | Lista de JSON SubjectClassTempRID, contendo informações sobre o RID Parcial |
-| `lastUpdatedAt` | Data e hora da última atualização do RID Provisório, no formato ISO 8601 |
+| Campo           | Descrição                                                                   |
+| --------------- | --------------------------------------------------------------------------- |
+| `data`          | Lista de JSON SubjectClassTempRID, contendo informações sobre o RID Parcial |
+| `lastUpdatedAt` | Data e hora da última atualização do RID Provisório, no formato ISO 8601    |
 
 #### Exemplo de sucesso (JSON) - Listar RID Provisório
 
 No exemplo abaixo existem duas disciplinas que o aluno se inscreveu, das quais aparecem no RID Provisório:
 
 - Cálculo Diferencial e Integral I
+
   - Turma: 1
   - Vagas Disponíveis: 10
   - Vagas Solicitadas: 20
@@ -510,11 +508,11 @@ No exemplo abaixo existem duas disciplinas que o aluno se inscreveu, das quais a
   - Posição na Fila: 5
   - Status: Aprovado
 
-``` http
+```http
 Status: 200 OK
 ```
 
-``` json
+```json
 {
   "data": [
     {
@@ -550,7 +548,7 @@ Lista todas as disciplinas do currículo do aluno. Possui um parâmetro opcional
 
 Requisição sem o parâmetro `not_taken_only`, listando todas as disciplinas do currículo:
 
-``` http
+```http
 GET {BASE_URL}/api/v1/disciplinas-curriculo
 
 Accept: application/json
@@ -558,7 +556,7 @@ Accept: application/json
 
 Requisição com o parâmetro `not_taken_only`, listando somente as disciplinas que o aluno ainda precisa cursar:
 
-``` http
+```http
 GET {BASE_URL}/api/v1/disciplinas-curriculo?not_taken_only=true
 
 Accept: application/json
@@ -566,16 +564,12 @@ Accept: application/json
 
 #### Tipagem - Listar Disciplinas do Curriculo
 
-``` typescript
+```typescript
 type SubjectInfo = {
   id: string;
   department: string;
   name: string;
-  type:
-    | 'MANDATORY'
-    | 'RESTRICTED_ELECTIVE'
-    | 'DEFINED_ELECTIVE'
-    | 'UNIVERSAL';
+  type: 'MANDATORY' | 'RESTRICTED_ELECTIVE' | 'DEFINED_ELECTIVE' | 'UNIVERSAL';
   branch?: string;
   period?: number;
   allow_conflict: boolean;
@@ -584,7 +578,7 @@ type SubjectInfo = {
   group?: string;
   credits?: number;
   workload?: number;
-}
+};
 
 type EndpointResponse = {
   data: SubjectInfo[];
@@ -595,20 +589,20 @@ type EndpointResponse = {
 
 - **SubjectInfo**
 
-| Campo | Descrição |
-| --- | --- |
-| `id` | Identificador/código da disciplina |
-| `department` | Departamento da disciplina |
-| `name` | Nome da disciplina |
-| `type` | Tipo da disciplina (Ex.: Obrigatória, Eletiva, etc) |
-| `branch` | Ramo da disciplina, caso exista |
-| `period` | Período recomendado para cursar a disciplina, caso exista |
-| `allow_conflict` | Permite conflito de horários |
-| `minimum_credits` | Créditos mínimos para cursar a disciplina |
-| `has_prerequisites` | Possui pré-requisitos |
-| `group` | Grupo da disciplina, caso exista |
-| `credits` | Créditos da disciplina, caso exista |
-| `workload` | Carga horária da disciplina, caso exista |
+| Campo               | Descrição                                                 |
+| ------------------- | --------------------------------------------------------- |
+| `id`                | Identificador/código da disciplina                        |
+| `department`        | Departamento da disciplina                                |
+| `name`              | Nome da disciplina                                        |
+| `type`              | Tipo da disciplina (Ex.: Obrigatória, Eletiva, etc)       |
+| `branch`            | Ramo da disciplina, caso exista                           |
+| `period`            | Período recomendado para cursar a disciplina, caso exista |
+| `allow_conflict`    | Permite conflito de horários                              |
+| `minimum_credits`   | Créditos mínimos para cursar a disciplina                 |
+| `has_prerequisites` | Possui pré-requisitos                                     |
+| `group`             | Grupo da disciplina, caso exista                          |
+| `credits`           | Créditos da disciplina, caso exista                       |
+| `workload`          | Carga horária da disciplina, caso exista                  |
 
 #### Exemplo de sucesso (JSON) - Listar Disciplinas do Curriculo
 
@@ -631,11 +625,11 @@ No exemplo abaixo existem duas disciplinas que o aluno ainda precisa cursar:
   - Créditos: 6
   - Carga Horária: 90
 
-``` http
+```http
 Status: 200 OK
 ```
 
-``` json
+```json
 {
   "data": [
     {
@@ -676,7 +670,7 @@ Lista todos os departamentos da UERJ.
 
 #### Requisição - Listar Departamentos
 
-``` http
+```http
 GET {BASE_URL}/api/v1/departamentos
 
 Accept: application/json
@@ -684,13 +678,12 @@ Accept: application/json
 
 #### Tipagem - Listar Departamentos
 
-``` typescript
-
+```typescript
 type DepartmentInfo = {
   id: string;
   alias: string;
   name: string;
-}
+};
 
 type EndpointResponse = {
   data: DepartmentInfo[];
@@ -701,11 +694,11 @@ type EndpointResponse = {
 
 - **DepartmentInfo**
 
-| Campo | Descrição |
-| --- | --- |
-| `id` | Identificador/código do departamento |
-| `alias` | Sigla do departamento |
-| `name` | Nome do departamento |
+| Campo   | Descrição                            |
+| ------- | ------------------------------------ |
+| `id`    | Identificador/código do departamento |
+| `alias` | Sigla do departamento                |
+| `name`  | Nome do departamento                 |
 
 #### Exemplo de sucesso (JSON) - Listar Departamentos
 
@@ -714,11 +707,11 @@ No exemplo abaixo existem dois departamentos:
 - Faculdade de Engenharia
 - Instituto de Matemática e Estatística
 
-``` http
+```http
 Status: 200 OK
 ```
 
-``` json
+```json
 {
   "data": [
     {
@@ -746,7 +739,7 @@ Lista todas as disciplinas de um determinado departamento. Possui dois parâmetr
 
 Requisição sem o parâmetro `universal_only`, listando todas as disciplinas do departamento:
 
-``` http
+```http
 GET {BASE_URL}/api/v1/departamentos/{department_id}/disciplinas
 
 Accept: application/json
@@ -754,7 +747,7 @@ Accept: application/json
 
 Requisição com o parâmetro `universal_only`, listando somente as disciplinas universais do departamento:
 
-``` http
+```http
 GET {BASE_URL}/api/v1/departamentos/{department_id}/disciplinas?universal_only=true
 
 Accept: application/json
@@ -762,17 +755,12 @@ Accept: application/json
 
 #### Tipagem - Listar Disciplinas por Departamento
 
-``` typescript
-
+```typescript
 type SubjectInfo = {
   id: string;
   department: string;
   name: string;
-  type:
-    | 'MANDATORY'
-    | 'RESTRICTED_ELECTIVE'
-    | 'DEFINED_ELECTIVE'
-    | 'UNIVERSAL';
+  type: 'MANDATORY' | 'RESTRICTED_ELECTIVE' | 'DEFINED_ELECTIVE' | 'UNIVERSAL';
   branch?: string;
   period?: number;
   allow_conflict: boolean;
@@ -781,7 +769,7 @@ type SubjectInfo = {
   group?: string;
   credits?: number;
   workload?: number;
-}
+};
 
 type EndpointResponse = {
   data: SubjectInfo[];
@@ -799,6 +787,7 @@ Visualizar descrição em [Tipagem - Listar Disciplinas do Curriculo](#tipagem--
 No exemplo abaixo são listadas todas as disciplinas do departamento de Física:
 
 - Física I
+
   - Tipo: Obrigatória
   - Créditos Mínimos: 6
   - Período: 1
@@ -816,11 +805,11 @@ No exemplo abaixo são listadas todas as disciplinas do departamento de Física:
   - Créditos: 6
   - Carga Horária: 90
 
-``` http
+```http
 Status: 200 OK
 ```
 
-``` json
+```json
 {
   "data": [
     {
@@ -861,7 +850,7 @@ Lista os detalhes de uma disciplina, incluindo suas informações e informaçõe
 
 #### Requisição - Listar Detalhes de uma Disciplina
 
-``` http
+```http
 GET {BASE_URL}/api/v1/disciplinas/{subject_id}
 
 Accept: application/json
@@ -869,22 +858,17 @@ Accept: application/json
 
 #### Tipagem - Listar Detalhes de uma Disciplina
 
-``` typescript
+```typescript
 type SubjectPrerequisite = {
   id: string;
   name: string;
-}
-
+};
 
 type SubjectInfo = {
   id: string;
   department: string;
   name: string;
-  type:
-    | 'MANDATORY'
-    | 'RESTRICTED_ELECTIVE'
-    | 'DEFINED_ELECTIVE'
-    | 'UNIVERSAL';
+  type: 'MANDATORY' | 'RESTRICTED_ELECTIVE' | 'DEFINED_ELECTIVE' | 'UNIVERSAL';
   branch?: string;
   period?: number;
   allow_conflict: boolean;
@@ -894,7 +878,7 @@ type SubjectInfo = {
   credits?: number;
   workload?: number;
   prerequisites?: SubjectPrerequisite[];
-}
+};
 
 type SubjectClassSchedule = {
   dayAlias: string;
@@ -927,10 +911,10 @@ type EndpointResponse = {
 
 - **SubjectPrerequisite**
 
-| Campo | Descrição |
-| --- | --- |
-| `id` | Identificador/código da disciplina |
-| `name` | Nome da disciplina |
+| Campo  | Descrição                          |
+| ------ | ---------------------------------- |
+| `id`   | Identificador/código da disciplina |
+| `name` | Nome da disciplina                 |
 
 - **SubjectInfo**
 
@@ -944,23 +928,23 @@ Visualizar descrição em [Tipagem - Listar Disciplinas em Curso](#tipagem---lis
 
 - **SubjectClassInfo**
 
-| Campo | Descrição |
-| --- | --- |
-| `id` | Identificador/código da disciplina |
-| `department` | Departamento da disciplina |
-| `name` | Nome da disciplina |
-| `class` | Turma da disciplina |
-| `teachers` | Lista do nome dos professores da turma |
-| `schedule` | Lista de JSON SubjectClassSchedule, contendo informações sobre o horário da disciplina |
-| `vacancies` | Número de vagas da turma |
-| `available` | Número de vagas disponíveis da turma |
-| `requested` | Número de vagas solicitadas da turma |
+| Campo        | Descrição                                                                              |
+| ------------ | -------------------------------------------------------------------------------------- |
+| `id`         | Identificador/código da disciplina                                                     |
+| `department` | Departamento da disciplina                                                             |
+| `name`       | Nome da disciplina                                                                     |
+| `class`      | Turma da disciplina                                                                    |
+| `teachers`   | Lista do nome dos professores da turma                                                 |
+| `schedule`   | Lista de JSON SubjectClassSchedule, contendo informações sobre o horário da disciplina |
+| `vacancies`  | Número de vagas da turma                                                               |
+| `available`  | Número de vagas disponíveis da turma                                                   |
+| `requested`  | Número de vagas solicitadas da turma                                                   |
 
 - **EndpointResponse**
 
-| Campo | Descrição |
-| --- | --- |
-| `subject` | JSON SubjectInfo, contendo informações sobre a disciplina |
+| Campo     | Descrição                                                                          |
+| --------- | ---------------------------------------------------------------------------------- |
+| `subject` | JSON SubjectInfo, contendo informações sobre a disciplina                          |
 | `classes` | Lista de JSON SubjectClassInfo, contendo informações sobre as turmas da disciplina |
 
 #### Exemplo de sucesso (JSON) - Listar Detalhes de uma Disciplina
@@ -993,11 +977,11 @@ No exemplo abaixo são listados os detalhes da disciplina de Cálculo Diferencia
       - Vagas Disponíveis: 15
       - Vagas Solicitadas: 20
 
-``` http
+```http
 Status: 200 OK
 ```
 
-``` json
+```json
 {
   "data": {
     "subject": {
@@ -1021,10 +1005,7 @@ Status: 200 OK
         "department": "IME",
         "name": "Cálculo Diferencial e Integral II",
         "class": "1",
-        "teachers": [
-          "Carlos Alberto",
-          "João da Silva"
-        ],
+        "teachers": ["Carlos Alberto", "João da Silva"],
         "schedule": [
           {
             "dayAlias": "Segunda",
@@ -1048,9 +1029,7 @@ Status: 200 OK
         "department": "IME",
         "name": "Cálculo Diferencial e Integral II",
         "class": "2",
-        "teachers": [
-          "Thiago Rodrigues"
-        ],
+        "teachers": ["Thiago Rodrigues"],
         "schedule": [
           {
             "dayAlias": "Segunda",

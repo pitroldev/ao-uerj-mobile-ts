@@ -1,4 +1,4 @@
-import React, {useState, useContext, createContext} from 'react';
+import React, { useState, useContext, createContext } from 'react';
 
 type StepsContextType = {
   step: number;
@@ -16,13 +16,13 @@ const StepsContext = createContext<StepsContextType>({
 
 export const useStepsContext = () => useContext(StepsContext);
 
-export const useSteps = ({initialStep = 0, maxStep = 0}) => {
+export const useSteps = ({ initialStep = 0, maxStep = 0 }) => {
   const [step, setStep] = useState(initialStep);
 
   const nextStep = () => setStep(s => Math.min(s + 1, maxStep));
   const prevStep = () => setStep(s => Math.max(s - 1, 0));
 
-  return {step, nextStep, prevStep, setStep};
+  return { step, nextStep, prevStep, setStep };
 };
 
 type StepsProviderProps = {
@@ -30,7 +30,7 @@ type StepsProviderProps = {
   values: StepsContextType;
 };
 
-const StepsProvider = ({children, values}: StepsProviderProps) => {
+const StepsProvider = ({ children, values }: StepsProviderProps) => {
   return (
     <StepsContext.Provider value={values}>{children}</StepsContext.Provider>
   );

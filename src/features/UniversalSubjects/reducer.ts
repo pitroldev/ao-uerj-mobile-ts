@@ -1,8 +1,8 @@
-import {createSlice, PayloadAction} from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-import {AppState} from '@root/store';
+import { AppState } from '@root/store';
 
-import {UniversalSubject} from './types';
+import { UniversalSubject } from './types';
 
 type State = {
   subjects: UniversalSubject[];
@@ -28,7 +28,7 @@ const slice = createSlice({
   },
 });
 
-export const {setSubjects, clear} = slice.actions;
+export const { setSubjects, clear } = slice.actions;
 export const selectUniversalSubjects = (state: AppState) =>
   state.universalSubjects;
 
