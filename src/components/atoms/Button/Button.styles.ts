@@ -8,7 +8,7 @@ type StyleProps = {
   disabled?: boolean;
   loading?: boolean;
   fullWidth?: boolean;
-  width?: number;
+  width?: number | string;
   height?: number;
 };
 
@@ -29,8 +29,12 @@ export const ButtonContainer = styled(TouchableOpacity)<ButtonProps>`
     if (fullWidth) {
       return 'width: 100%;';
     }
-    if (width) {
+    if (typeof width === 'number') {
       return `width: ${width}px;`;
+    }
+
+    if (typeof width === 'string') {
+      return `width: ${width || 'auto'};`;
     }
 
     return `width: ${size === 'small' ? '150px' : '300px'};`;

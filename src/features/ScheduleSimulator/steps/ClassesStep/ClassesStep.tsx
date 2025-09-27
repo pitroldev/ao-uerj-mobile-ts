@@ -25,7 +25,7 @@ import {
   StyledFlatList,
 } from './ClassesStep.styles';
 
-const MAX_CLASSES_AMOUNT = 25;
+const MAX_CLASSES_AMOUNT = 30;
 
 const ClassesStep = () => {
   const [teacher, setTeacher] = useState('');
@@ -144,7 +144,9 @@ const ClassesStep = () => {
             data={filteredClasses as SubjectClasses[]}
             renderItem={renderClass}
             showsVerticalScrollIndicator={false}
-            keyExtractor={(_, index) => index.toString()}
+            keyExtractor={(item, index) =>
+              `${item.subject_id}-${item.classNumber}-${index}`
+            }
           />
         </StyledFlatList>
       </ContentContainer>
