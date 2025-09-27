@@ -82,7 +82,7 @@ Funcionalidades exclusivas do app (servidores próprios):
 - Node.js LTS recente (>= 18 recomendado)
 - Yarn ou npm
 - Ambiente React Native:
-    - Android: JDK 17 (ou compatível RN 0.72), Android SDK, emulador/dispositivo, Gradle (wrapper incluso)
+    - Android: JDK 17 (ou compatível RN 0.81.4), Android SDK, emulador/dispositivo, Gradle (wrapper incluso)
 
 ## Como rodar (dev)
 
@@ -103,7 +103,7 @@ npm run android
 yarn android
 ```
 
-Observação: se houver erros relacionados a SDK/NDK/Gradle/Java, ajuste localmente as versões para o ambiente RN 0.72.
+Observação: se houver erros relacionados a SDK/NDK/Gradle/Java, ajuste localmente as versões para o ambiente RN 0.81.4.
 
 ## Arquitetura do código
 
