@@ -10,6 +10,7 @@ declare module 'styled-components/native' {
 
       DISABLED: string;
       BACKGROUND: string;
+      BACKGROUND_700: string;
       BACKGROUND_500: string;
       BACKGROUND_400: string;
       TEXT_PRIMARY: string;

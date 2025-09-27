@@ -19,6 +19,8 @@ import {
   ScrollView,
   ContentContainer,
   ButtonsRow,
+  ChipsContainer,
+  ChipItem,
 } from './PriorityStep.styles';
 
 const orderedPriorities = [
@@ -30,6 +32,7 @@ const orderedPriorities = [
   'MAX_WORKLOAD',
   'MIN_WORKLOAD',
   'MANDATORY_CLASSES',
+  'MOST_SUBJECTS_POSSIBLE',
   'MAX_CREDITS',
 ] as const;
 
@@ -42,6 +45,7 @@ const priorities = [
   ],
   [{ key: 'MIN_GAPS', label: 'Evitar intervalos grandes entre matérias' }],
   [{ key: 'MANDATORY_CLASSES', label: 'Matérias obrigatórias' }],
+  [{ key: 'MOST_SUBJECTS_POSSIBLE', label: 'Mais disciplinas possíveis' }],
   [
     {
       key: 'CRITICAL_FIRST',
@@ -94,12 +98,60 @@ const PriorityStep = () => {
     setValue('priority', newPriority);
   };
 
+  type Preset = { label: string; keys: Priority[] };
+  const presets: Preset[] = [
+    {
+      label: 'Poucas lacunas (recomendado)',
+      keys: ['MIN_GAPS', 'MANDATORY_CLASSES', 'MOST_SUBJECTS_POSSIBLE'],
+    },
+    {
+      label: 'Moro longe',
+      keys: ['LIVES_FAR_AWAY', 'MIN_GAPS', 'MIN_DAY_WORKLOAD'],
+    },
+    {
+      label: 'Acelerar curso',
+      keys: ['CRITICAL_FIRST', 'MAX_CREDITS', 'MAX_WORKLOAD'],
+    },
+    {
+      label: 'Carga leve no dia',
+      keys: ['MIN_DAY_WORKLOAD', 'MIN_WORKLOAD', 'MIN_GAPS'],
+    },
+  ];
+
+  const applyPreset = (keys: Priority[]) => {
+    const ordered = orderedPriorities.filter(k => keys.includes(k));
+    setValue('priority', ordered);
+  };
+
   return (
     <Container>
       <ContentContainer>
-        <Text weight="bold" size="LG" alignSelf="center" marginBottom="10px">
+        <Text weight="bold" size="LG" alignSelf="center" marginBottom="6px">
           Quais são suas prioridades?
         </Text>
+
+        <Text weight="500" size="SM" marginBottom="6px">
+          Sugestões rápidas
+        </Text>
+        <ChipsContainer>
+          {presets.map(p => (
+            <ChipItem key={p.label}>
+              <Button
+                size="small"
+                variant={
+                  p.keys.every(k => priority.includes(k)) &&
+                  priority.length === p.keys.length
+                    ? 'SECONDARY'
+                    : 'BACKGROUND_400'
+                }
+                onPress={() => applyPreset(p.keys)}
+                width={'auto'}
+              >
+                {p.label}
+              </Button>
+            </ChipItem>
+          ))}
+        </ChipsContainer>
 
         <ScrollView>
           {priorities.map((group, index) => (

@@ -71,11 +71,14 @@ const SubjectAmountStep = () => {
             name="min_subject_amount"
             render={({ field: { onChange, value } }) => (
               <TextInput
-                value={typeof value === 'number' ? String(value) : ''}
+                value={
+                  value === undefined || value === null ? '' : String(value)
+                }
                 keyboardType="number-pad"
                 onChangeText={(text: string) => {
                   const newText = text.replace(/[^0-9]/g, '');
-                  onChange(newText);
+                  const parsed = newText ? parseInt(newText, 10) : undefined;
+                  onChange(parsed as unknown as number);
                 }}
               />
             )}
@@ -104,8 +107,14 @@ const SubjectAmountStep = () => {
             name="max_subject_amount"
             render={({ field: { onChange, value } }) => (
               <TextInput
-                value={typeof value === 'number' ? String(value) : ''}
-                onChangeText={onChange}
+                value={
+                  value === undefined || value === null ? '' : String(value)
+                }
+                onChangeText={(text: string) => {
+                  const newText = text.replace(/[^0-9]/g, '');
+                  const parsed = newText ? parseInt(newText, 10) : undefined;
+                  onChange(parsed as unknown as number);
+                }}
                 keyboardType="number-pad"
               />
             )}
