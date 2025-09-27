@@ -1,13 +1,13 @@
 import store from '@root/store';
 import api from '@services/UerjApi';
-import {getRequisitionID} from '@services/UerjApi/utils';
+import { getRequisitionID } from '@services/UerjApi/utils';
 
 import parseSubjectInfo from './parser';
 
 export const _fetchRawSubjectInfoData = async (subjectID?: string | number) => {
   const url = '/requisicaoaluno/';
   const requisicao = await getRequisitionID('DadosDisciplina');
-  const {apiConfig} = store.getState();
+  const { apiConfig } = store.getState();
 
   const options = {
     params: {
@@ -17,7 +17,7 @@ export const _fetchRawSubjectInfoData = async (subjectID?: string | number) => {
       'disciplinas[0]': subjectID,
     },
   };
-  const {data} = await api.get(url, options);
+  const { data } = await api.get(url, options);
 
   return data as string;
 };

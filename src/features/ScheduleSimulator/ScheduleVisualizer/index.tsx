@@ -1,1 +1,1 @@
-export {default} from './ScheduleVisualizer';
+export { default } from './ScheduleVisualizer';

@@ -1,22 +1,22 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 
-import {ErrorReportBody} from '../types';
+import { ErrorReportBody } from '../types';
 
 import Text from '@atoms/Text';
 import TextArea from '@atoms/TextArea';
 
-import {Container, NextBtn} from './ExplanationStep.styles';
+import { Container, NextBtn } from './ExplanationStep.styles';
 
 type Props = {
   nextStep: () => void;
   setBody: React.Dispatch<React.SetStateAction<ErrorReportBody>>;
 };
 
-const ExplanationStep = ({nextStep, setBody}: Props) => {
+const ExplanationStep = ({ nextStep, setBody }: Props) => {
   const [description, setDescription] = useState<string>('');
 
   const handleOnPress = () => {
-    setBody(b => Object.assign(b, {description}));
+    setBody(b => Object.assign(b, { description }));
     nextStep();
   };
 

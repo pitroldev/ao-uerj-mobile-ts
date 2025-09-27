@@ -1,16 +1,16 @@
-import React, {useState} from 'react';
-import {useTheme} from 'styled-components';
+import React, { useState } from 'react';
+import { useTheme } from 'styled-components';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import {useQuery, useMutation} from 'react-query';
+import { useQuery, useMutation } from 'react-query';
 
-import {useAppSelector} from '@root/store';
+import { useAppSelector } from '@root/store';
 import * as infoReducer from '@reducers/userInfo';
 
-import {fetchMessages, postMessage} from '@features/MessageBoard/core';
-import {ChatMessage} from '@features/MessageBoard/types';
+import { fetchMessages, postMessage } from '@features/MessageBoard/core';
+import { ChatMessage } from '@features/MessageBoard/types';
 import ChatBubble from '@features/MessageBoard/ChatBubble';
-import {AttendedSubjectInfo} from '@features/AttendedClassesSchedule/types';
+import { AttendedSubjectInfo } from '@features/AttendedClassesSchedule/types';
 
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
@@ -18,19 +18,19 @@ import TextArea from '@atoms/TextArea';
 import RoundedButton from '@atoms/RoundedButton';
 import DummyMessage from '@molecules/DummyMessage';
 
-import {Row, InputRow, ScrollView} from './SubjectChat.styles';
+import { Row, InputRow, ScrollView } from './SubjectChat.styles';
 
 const SubjectChat = (subject: AttendedSubjectInfo) => {
   const [text, setText] = useState('');
 
-  const {name, periodo} = useAppSelector(infoReducer.selectUserInfo);
+  const { name, periodo } = useAppSelector(infoReducer.selectUserInfo);
 
-  const {COLORS} = useTheme();
+  const { COLORS } = useTheme();
 
   const {
     data,
     error,
-    isFetching: loading,
+    isLoading: loading,
     refetch,
   } = useQuery({
     queryKey: ['private-class-messages', periodo, subject],
@@ -38,7 +38,7 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
     initialData: [] as ChatMessage[],
   });
 
-  const {mutate, isLoading: sending} = useMutation({
+  const { mutate, isLoading: sending } = useMutation({
     mutationFn: postMessage,
     onSuccess: (newMessage: ChatMessage) => {
       setText('');

@@ -1,9 +1,9 @@
 import React from 'react';
-import {useTheme} from 'styled-components';
+import { useTheme } from 'styled-components';
 import Icon from 'react-native-vector-icons/AntDesign';
 
 import Text from '@atoms/Text';
-import {View} from './SmallDummyMessage.styles';
+import { View } from './SmallDummyMessage.styles';
 
 type Props = {
   text: string;
@@ -12,8 +12,8 @@ type Props = {
   withPadding?: boolean;
 };
 
-const SmallDummyMessage = ({text, type, onPress, withPadding}: Props) => {
-  const {COLORS} = useTheme();
+const SmallDummyMessage = ({ text, type, onPress, withPadding }: Props) => {
+  const { COLORS } = useTheme();
 
   const icons = {
     ERROR: 'closecircleo',
@@ -34,7 +34,8 @@ const SmallDummyMessage = ({text, type, onPress, withPadding}: Props) => {
     <View
       onPress={handleOnPress}
       disabled={!isEnabled}
-      withPadding={withPadding}>
+      withPadding={withPadding}
+    >
       <Icon name={icons[type]} color={COLORS.DISABLED} size={25} />
       <Text
         size="SM"
@@ -42,7 +43,8 @@ const SmallDummyMessage = ({text, type, onPress, withPadding}: Props) => {
         color="BACKGROUND_400"
         marginLeft="4px"
         marginTop="auto"
-        marginBottom="auto">
+        marginBottom="auto"
+      >
         {text}
       </Text>
     </View>

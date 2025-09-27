@@ -2,15 +2,15 @@ import store from '@root/store';
 
 import api from '@services/PrivateApi';
 
-import {ChatMessage} from './types';
+import { ChatMessage } from './types';
 
 export async function fetchMessages(
   subjectId: string,
   classNumber: string | number,
 ) {
-  const {userInfo} = store.getState();
+  const { userInfo } = store.getState();
 
-  const {data} = await api.post('/messages/get', {
+  const { data } = await api.post('/messages/get', {
     disciplina: subjectId,
     turma: classNumber,
     periodo: userInfo.periodo,
@@ -20,6 +20,6 @@ export async function fetchMessages(
 }
 
 export async function postMessage(body: any) {
-  const {data} = await api.post('/messages/post', body);
+  const { data } = await api.post('/messages/post', body);
   return data;
 }

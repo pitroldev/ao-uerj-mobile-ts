@@ -1,4 +1,4 @@
-import {RootDrawerParamList} from '@root/routes';
+import { RootDrawerParamList } from '@root/routes';
 
 declare global {
   namespace ReactNavigation {

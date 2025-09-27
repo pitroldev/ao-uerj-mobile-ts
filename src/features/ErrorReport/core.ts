@@ -1,19 +1,19 @@
-import {AxiosError} from 'axios';
+import { AxiosError } from 'axios';
 
-import {_fetchRawAttendedClassesScheduleData} from '@features/AttendedClassesSchedule/core';
-import {_fetchRawClassGradesData} from '@features/ClassGrades/core';
-import {_fetchRawCurriculumSubjectsData} from '@features/CurriculumSubjects/core';
-import {_fetchRawPartialRIDData} from '@features/PartialRID/core';
-import {_fetchRawSubjectClassesScheduleData} from '@features/SubjectClassesSchedule/core';
-import {_fetchRawSubjectInfoData} from '@features/SubjectInfo/core';
-import {_fetchRawSubjectsTakenData} from '@features/SubjectsTaken/core';
-import {_fetchRawSubjectsToTakeData} from '@features/SubjectsToTake/core';
-import {_fetchRawUniversalSubjectsData} from '@features/UniversalSubjects/core';
+import { _fetchRawAttendedClassesScheduleData } from '@features/AttendedClassesSchedule/core';
+import { _fetchRawClassGradesData } from '@features/ClassGrades/core';
+import { _fetchRawCurriculumSubjectsData } from '@features/CurriculumSubjects/core';
+import { _fetchRawPartialRIDData } from '@features/PartialRID/core';
+import { _fetchRawSubjectClassesScheduleData } from '@features/SubjectClassesSchedule/core';
+import { _fetchRawSubjectInfoData } from '@features/SubjectInfo/core';
+import { _fetchRawSubjectsTakenData } from '@features/SubjectsTaken/core';
+import { _fetchRawSubjectsToTakeData } from '@features/SubjectsToTake/core';
+import { _fetchRawUniversalSubjectsData } from '@features/UniversalSubjects/core';
 
 import api from '@services/PrivateApi';
-import {retry} from '@services/UerjApi/utils';
+import { retry } from '@services/UerjApi/utils';
 
-import {ErrorReportBody, ErrorFeature} from './types';
+import { ErrorReportBody, ErrorFeature } from './types';
 
 export const PRIVATE_ROUTES = [
   {

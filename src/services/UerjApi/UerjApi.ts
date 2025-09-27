@@ -1,21 +1,23 @@
-import axios, {AxiosError, AxiosResponse} from 'axios';
+import axios, { AxiosError, AxiosResponse } from 'axios';
 import iconv from 'iconv-lite';
-import {Buffer} from 'buffer';
+import { Buffer } from 'buffer';
 
 import store from '@root/store';
 import moment from 'moment';
-import {refreshAuth} from './lib/refreshAuth';
-import {NOT_RETRY_ERRORS} from './utils';
+import { refreshAuth } from './lib/refreshAuth';
+import { NOT_RETRY_ERRORS } from './utils';
 
 const BASE_URL = 'https://www.alunoonline.uerj.br';
 const COOKIE_MAX_DURATION_IN_HOURS = 2;
 const MAX_ERROR_RETRIES = 3;
 const MAX_SUCCESS_RETRIES = 1;
+const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 const api = axios.create({
   baseURL: BASE_URL,
   responseType: 'arraybuffer',
   withCredentials: true,
+  timeout: 15_000,
   transformResponse: [
     res => (res ? iconv.decode(Buffer.from(res), 'iso-8859-1') : res),
   ],
@@ -26,7 +28,7 @@ const api = axios.create({
 });
 
 const responseErrorInterceptor = async (err: AxiosError) => {
-  const {apiConfig, userInfo} = store.getState();
+  const { apiConfig, userInfo } = store.getState();
 
   const now = moment();
   const cookieCreationDate = moment(apiConfig.createdAt);
@@ -38,13 +40,17 @@ const responseErrorInterceptor = async (err: AxiosError) => {
     throw new Error('NOT_LOGGED_IN');
   }
 
-  const isServerError = err?.response?.status && err.response.status >= 500;
+  const status = err?.response?.status;
+  const isAuthError = status === 401 || status === 403;
+  const isServerError = status !== undefined && status >= 500;
   const originalRequest = err.config as any;
 
   const isReachedRetryLimit = originalRequest._retries >= MAX_ERROR_RETRIES;
 
   const isSessionPossiblyExpired =
-    cookieTimeInHours > COOKIE_MAX_DURATION_IN_HOURS || isServerError;
+    cookieTimeInHours > COOKIE_MAX_DURATION_IN_HOURS ||
+    isAuthError ||
+    isServerError;
 
   const isNotRetryError = NOT_RETRY_ERRORS.includes(err.message);
 
@@ -58,10 +64,12 @@ const responseErrorInterceptor = async (err: AxiosError) => {
       }
     });
 
+    const backoff = Math.min(1000 * 2 ** originalRequest._retries, 5000); // 1s, 2s, 4s
+    await delay(backoff);
     return api(originalRequest);
   }
 
-  Promise.reject(err);
+  return Promise.reject(err);
 };
 
 const responseSuccessInterceptor = async (res: AxiosResponse) => {
@@ -72,15 +80,26 @@ const responseSuccessInterceptor = async (res: AxiosResponse) => {
   const isReachedRetryLimit = originalRequest._retries >= MAX_SUCCESS_RETRIES;
 
   if (hasNoData && !isReachedRetryLimit) {
+    // eslint-disable-next-line no-console
+    console.log(
+      '[SUCCESS INTERCEPTOR] retrying due to empty/placeholder response',
+      {
+        dataLen,
+        url: originalRequest?.url,
+        attempt: originalRequest._retries,
+      },
+    );
     originalRequest._retries = (originalRequest._retries || 0) + 1;
 
     await refreshAuth().catch(e => {
       const notRetry = NOT_RETRY_ERRORS.includes(e.message);
       if (notRetry) {
-        originalRequest._retries = MAX_SUCCESS_RETRIES;
+        originalRequest._retries = MAX_ERROR_RETRIES;
       }
     });
 
+    const backoff = Math.min(1000 * 2 ** originalRequest._retries, 5000); // 1s, 2s, 4s
+    await delay(backoff);
     return api(originalRequest);
   }
 

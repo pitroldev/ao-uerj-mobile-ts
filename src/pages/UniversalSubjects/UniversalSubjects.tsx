@@ -1,25 +1,25 @@
-import React, {useState, useRef} from 'react';
-import {ListRenderItemInfo} from 'react-native';
+import React, { useState, useRef } from 'react';
+import { ListRenderItemInfo } from 'react-native';
 import Toast from 'react-native-toast-message';
-import {Picker} from '@react-native-picker/picker';
-import {FlatList} from 'react-native-gesture-handler';
-import {useNavigation} from '@react-navigation/native';
+import { Picker } from '@react-native-picker/picker';
+import { FlatList } from 'react-native-gesture-handler';
+import { useNavigation } from '@react-navigation/native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import {useQuery} from 'react-query';
+import { useQuery } from 'react-query';
 
-import {normalizeText} from '@utils/normalize';
-import {UERJ_UNIT_OPTIONS} from '@root/utils/constants/unitOptions';
+import { normalizeText } from '@utils/normalize';
+import { UERJ_UNIT_OPTIONS } from '@root/utils/constants/unitOptions';
 import parser from '@services/parser';
 
-import {useAppDispatch, useAppSelector} from '@root/store';
+import { useAppDispatch, useAppSelector } from '@root/store';
 
 import * as infoReducer from '@reducers/userInfo';
 import * as apiConfigReducer from '@reducers/apiConfig';
 import * as reducer from '@features/UniversalSubjects/reducer';
 import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
 
-import {UniversalSubject} from '@features/UniversalSubjects/types';
-import {fetchUniversalSubjects} from '@features/UniversalSubjects/core';
+import { UniversalSubject } from '@features/UniversalSubjects/types';
+import { fetchUniversalSubjects } from '@features/UniversalSubjects/core';
 
 import Spinner from '@atoms/Spinner';
 import StyledPicker from '@atoms/Picker';
@@ -28,7 +28,7 @@ import SubjectBox from '@molecules/SubjectBox';
 import DummyMessage from '@molecules/DummyMessage';
 import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
-import {Container} from './UniversalSubjects.styles';
+import { Container } from './UniversalSubjects.styles';
 
 const HOUR_IN_MS = 1000 * 60 * 60;
 
@@ -38,9 +38,9 @@ const UniversalSubjects = () => {
     string | undefined
   >(undefined);
 
-  const {periodo} = useAppSelector(infoReducer.selectUserInfo);
-  const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
-  const {subjects} = useAppSelector(reducer.selectUniversalSubjects);
+  const { periodo } = useAppSelector(infoReducer.selectUserInfo);
+  const { isBlocked } = useAppSelector(apiConfigReducer.selectApiConfig);
+  const { subjects } = useAppSelector(reducer.selectUniversalSubjects);
 
   const departmentOptions = subjects
     .reduce(
@@ -48,7 +48,7 @@ const UniversalSubjects = () => {
         const [departmentCode] = subject.id.split('-');
         const onlyLettersDepartmentCode = departmentCode.replace(/\d/g, '');
 
-        const alreadyHasDepartment = acc.some(({value}) =>
+        const alreadyHasDepartment = acc.some(({ value }) =>
           value.includes(onlyLettersDepartmentCode),
         );
         if (alreadyHasDepartment) {
@@ -56,11 +56,11 @@ const UniversalSubjects = () => {
         }
 
         const label =
-          UERJ_UNIT_OPTIONS.find(({text}) =>
+          UERJ_UNIT_OPTIONS.find(({ text }) =>
             text.includes(onlyLettersDepartmentCode),
           )?.text || departmentCode;
 
-        return [...acc, {value: onlyLettersDepartmentCode, label}];
+        return [...acc, { value: onlyLettersDepartmentCode, label }];
       },
       [] as {
         value: string;
@@ -70,7 +70,7 @@ const UniversalSubjects = () => {
     .sort((a, b) => a.label.localeCompare(b.label));
 
   const {
-    isFetching: loading,
+    isLoading: loading,
     error,
     refetch,
   } = useQuery({
@@ -98,7 +98,7 @@ const UniversalSubjects = () => {
       return;
     }
     const code = parser.parseSubjectCode(subject.id) as number;
-    dispatch(subjectDetailReducer.setCurrent({code}));
+    dispatch(subjectDetailReducer.setCurrent({ code }));
     navigation.navigate('Pesquisa de Disciplinas');
   };
 
@@ -109,7 +109,7 @@ const UniversalSubjects = () => {
       return null;
     }
 
-    const {workload, id, credits, name} = subject;
+    const { workload, id, credits, name } = subject;
 
     const creditText = credits ? `${credits} créditos` : '';
     const workloadText = credits ? `${workload} horas` : '';
@@ -131,7 +131,7 @@ const UniversalSubjects = () => {
     );
   };
 
-  const filteredSubjects = subjects?.filter(({name, id}) => {
+  const filteredSubjects = subjects?.filter(({ name, id }) => {
     const hasDepartmentMatch =
       !selectedDepartment || id.includes(selectedDepartment);
     const hasSearchQuery: boolean =
@@ -162,9 +162,10 @@ const UniversalSubjects = () => {
         selectedValue={selectedDepartment}
         onValueChange={s => handleOptionChange(s as string)}
         loading={loading}
-        enabled={!loading}>
+        enabled={!loading}
+      >
         <Picker.Item value={undefined} label="Todos os departamentos" />
-        {departmentOptions.map(({value, label}) => {
+        {departmentOptions.map(({ value, label }) => {
           return <Picker.Item value={value} key={value} label={label} />;
         })}
       </StyledPicker>

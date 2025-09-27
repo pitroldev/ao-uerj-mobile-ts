@@ -1,18 +1,18 @@
 import React from 'react';
 import Modal from 'react-native-modal';
-import {TouchableOpacity} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import { TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 import parser from '@services/parser';
-import {useAppDispatch} from '@root/store';
+import { useAppDispatch } from '@root/store';
 
-import {AttendedClassesSchedule} from '@features/AttendedClassesSchedule/types';
+import { AttendedClassesSchedule } from '@features/AttendedClassesSchedule/types';
 import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
 
 import Text from '@atoms/Text';
 import SubjectBox from '@molecules/SubjectBox';
 
-import {View} from './AttendedClassesBoard.styles';
+import { View } from './AttendedClassesBoard.styles';
 
 type Props = {
   isVisible: boolean;
@@ -20,7 +20,7 @@ type Props = {
   data: AttendedClassesSchedule[];
 };
 
-const AttendedClassesBoard = ({isVisible, setVisibility, data}: Props) => {
+const AttendedClassesBoard = ({ isVisible, setVisibility, data }: Props) => {
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
 
@@ -40,12 +40,12 @@ const AttendedClassesBoard = ({isVisible, setVisibility, data}: Props) => {
     const code = parser.parseSubjectCode(item.id) as number;
 
     setVisibility(false);
-    dispatch(subjectDetailReducer.setCurrent({code}));
+    dispatch(subjectDetailReducer.setCurrent({ code }));
     navigation.navigate('Pesquisa de Disciplinas');
   }
 
   function renderItem(item: AttendedClassesSchedule['class']) {
-    const {id, name, status, uerjLocation} = item;
+    const { id, name, status, uerjLocation } = item;
 
     const isCanceled = status === 'CANCELED';
     const hasLocal = !!uerjLocation;
@@ -59,7 +59,7 @@ const AttendedClassesBoard = ({isVisible, setVisibility, data}: Props) => {
             isCanceled ? 'Cancelada' : `Turma ${item.class} ${parsedLocal}`
           }
           name={name}
-          boldOptions={{topLeft: true}}
+          boldOptions={{ topLeft: true }}
           color={isCanceled ? 'CANCELED' : undefined}
         />
       </TouchableOpacity>
@@ -75,7 +75,8 @@ const AttendedClassesBoard = ({isVisible, setVisibility, data}: Props) => {
       animationIn={'fadeInDown'}
       animationInTiming={150}
       animationOut={'fadeOutUp'}
-      animationOutTiming={150}>
+      animationOutTiming={150}
+    >
       <View>
         <Text weight="bold" alignSelf="center" marginBottom="8px">
           Disciplinas em Curso

@@ -1,4 +1,4 @@
-import {UniversalSubject} from '@features/UniversalSubjects/types';
+import { UniversalSubject } from '@features/UniversalSubjects/types';
 
 const cheerio = require('react-native-cheerio');
 

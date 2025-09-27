@@ -1,6 +1,6 @@
 const tsconfig = require('./tsconfig.json');
 
-const {paths} = tsconfig.compilerOptions;
+const { paths } = tsconfig.compilerOptions;
 const alias = {};
 Object.keys(paths).forEach(key => {
   const [value] = paths[key];
@@ -10,7 +10,7 @@ Object.keys(paths).forEach(key => {
 });
 
 module.exports = {
-  presets: ['module:metro-react-native-babel-preset'],
+  presets: ['module:@react-native/babel-preset'],
   plugins: [
     [
       'module-resolver',
@@ -20,6 +20,6 @@ module.exports = {
         alias,
       },
     ],
-    'react-native-reanimated/plugin',
+    'react-native-worklets/plugin',
   ],
 };

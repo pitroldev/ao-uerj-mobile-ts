@@ -1,4 +1,4 @@
-import {DefaultTheme} from 'styled-components/native';
+import { DefaultTheme } from 'styled-components/native';
 
 export function getAliasPeriodColor(
   alias: string,

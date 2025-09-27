@@ -1,6 +1,6 @@
 import store from '@root/store';
 import api from '@services/UerjApi';
-import {getRequisitionID} from '@services/UerjApi/utils';
+import { getRequisitionID } from '@services/UerjApi/utils';
 
 import parseSubjectClassesSchedule from './parser';
 
@@ -9,7 +9,7 @@ export const _fetchRawSubjectClassesScheduleData = async (
 ) => {
   const url = '/requisicaoaluno/';
   const requisicao = await getRequisitionID('HorariosTurmasDisciplina');
-  const {apiConfig} = store.getState();
+  const { apiConfig } = store.getState();
 
   const options = {
     params: {
@@ -19,7 +19,7 @@ export const _fetchRawSubjectClassesScheduleData = async (
       'disciplinas[0]': subjectID,
     },
   };
-  const {data} = await api.get(url, options);
+  const { data } = await api.get(url, options);
 
   return data as string;
 };

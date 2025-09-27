@@ -1,7 +1,7 @@
-import {CurriculumSubject} from '@features/CurriculumSubjects/types';
-import {SubjectsTaken} from '@features/SubjectsTaken/types';
-import {SubjectInfo} from '@features/SubjectInfo/types';
-import {SubjectClassesSchedule} from '@features/SubjectClassesSchedule/types';
+import { CurriculumSubject } from '@features/CurriculumSubjects/types';
+import { SubjectsTaken } from '@features/SubjectsTaken/types';
+import { SubjectInfo } from '@features/SubjectInfo/types';
+import { SubjectClassesSchedule } from '@features/SubjectClassesSchedule/types';
 
 export type Schedule = {
   week_day: number;

@@ -17,7 +17,7 @@ export interface Disciplina {
 export interface Docente {
   _id: string;
   docente: string;
-  disciplinas: {[code: string]: Disciplina};
+  disciplinas: { [code: string]: Disciplina };
   createdAt: string;
   __v: number;
 }

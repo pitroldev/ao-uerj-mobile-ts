@@ -1,6 +1,6 @@
-import api from '@services/UerjApi';
-import {retry} from '@services/UerjApi/utils';
-import {clearAllCookies, getCookies} from '@services/cookies';
+import authApi from '@services/UerjApi/authApi';
+import { retry } from '@services/UerjApi/utils';
+import { clearAllCookies, getCookies } from '@services/cookies';
 
 import store from '@root/store';
 import * as apiConfigReducer from '@reducers/apiConfig';
@@ -8,32 +8,52 @@ import * as userInfoReducer from '@reducers/userInfo';
 
 import parseLoginReqId from './parseLoginReqId';
 import parseLoginInfo from './parseLoginData';
-import {getReqIds} from './parseReqIds';
+import { getReqIds } from './parseReqIds';
+
+type HandleLoginOptions = {
+  /** When true, indicates this login is a background session refresh
+   *  and existing auth cookies should be reused instead of forcibly
+   *  clearing them (which can create race conditions with in-flight
+   *  requests and cause 401 loops). */
+  isRefresh?: boolean;
+};
 
 async function setLoginCookie(): Promise<void> {
   const url = '/';
-  await api.get(url);
+  await authApi.get(url);
 }
 
 export async function fetchLoginPage(): Promise<string> {
   const url = '/requisicaoaluno/';
 
-  const {data} = await api.get(url);
+  const { data } = await authApi.get(url);
 
   return data as string;
 }
 
-export async function handleLogin(matricula: string, senha: string) {
-  await clearAllCookies();
+export async function handleLogin(
+  matricula: string,
+  senha: string,
+  options: HandleLoginOptions = {},
+) {
+  const { isRefresh } = options;
+
+  // For foreground (user‑initiated) login we fully clear cookies to avoid
+  // session contamination. For silent refresh we intentionally DO NOT clear
+  // cookies, because doing so while other fetches are in flight can drop
+  // the session mid-request and trigger cascading 401/403 loops.
+  if (!isRefresh) {
+    await clearAllCookies();
+  }
 
   await setLoginCookie();
   const loginPageData = await retry(fetchLoginPage);
 
-  const {loginReqId, _token} = await parseLoginReqId(loginPageData);
+  const { loginReqId, _token } = await parseLoginReqId(loginPageData);
 
   const url = '/requisicaoaluno/';
-  const {data: homePageData} = await retry(async () =>
-    api.get(url, {
+  const { data: homePageData } = await retry(async () =>
+    authApi.get(url, {
       params: {
         requisicao: loginReqId,
         matricula,
@@ -46,11 +66,7 @@ export async function handleLogin(matricula: string, senha: string) {
   const info = parseLoginInfo(homePageData);
 
   if (!info.nome || info.fail_reason) {
-    return {
-      fail_reason:
-        info.fail_reason ||
-        'Falha ao fazer login, por favor atualize o aplicativo e tente novamente.',
-    };
+    return { fail_reason: info.fail_reason };
   }
 
   const new_cookies = await getCookies();
@@ -64,8 +80,8 @@ export async function handleLogin(matricula: string, senha: string) {
     }),
   );
 
-  const {dictionary, failed} = getReqIds(homePageData);
-  const new_dictionary = {...dictionary, login: loginReqId};
+  const { dictionary, failed } = getReqIds(homePageData);
+  const new_dictionary = { ...dictionary, login: loginReqId };
 
   store.dispatch(
     apiConfigReducer.setState({

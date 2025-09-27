@@ -1,1 +1,1 @@
-export {default} from './ClassesStep';
+export { default } from './ClassesStep';

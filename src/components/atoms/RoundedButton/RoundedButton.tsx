@@ -1,5 +1,5 @@
-import React, {forwardRef} from 'react';
-import {ButtonProps, ButtonContainer, Spinner} from './RoundedButton.styles';
+import React, { forwardRef } from 'react';
+import { ButtonProps, ButtonContainer, Spinner } from './RoundedButton.styles';
 
 const RoundedButton = forwardRef((props: ButtonProps, ref: any) => {
   return (

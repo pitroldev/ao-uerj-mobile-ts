@@ -34,11 +34,11 @@ export const VacanciesRow = styled.View`
   justify-content: flex-end;
 `;
 
-export const Container = styled(Box).attrs({size: 'small'})`
+export const Container = styled(Box).attrs({ size: 'small' })`
   margin: 5px;
 `;
 
-export const VacancieBox = styled(Box).attrs({size: 'small'})`
+export const VacancieBox = styled(Box).attrs({ size: 'small' })`
   margin: 0px 4px;
   align-items: center;
   justify-content: center;

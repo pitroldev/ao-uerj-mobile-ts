@@ -1,11 +1,11 @@
 import React from 'react';
-import {useFormContext, useWatch} from 'react-hook-form';
+import { useFormContext, useWatch } from 'react-hook-form';
 
-import {useStepsContext} from '@hooks/useSteps';
+import { useStepsContext } from '@hooks/useSteps';
 
-import {TIME_VALUES, WEEKDAY_DICTIONARY} from '@utils/constants/time';
+import { TIME_VALUES, WEEKDAY_DICTIONARY } from '@utils/constants/time';
 
-import {ScheduleCreationParams} from '@features/ScheduleSimulator/types';
+import { ScheduleCreationParams } from '@features/ScheduleSimulator/types';
 
 import Text from '@atoms/Text';
 import Button from '@atoms/Button';
@@ -26,18 +26,18 @@ const UERJ_WEEK_DAYS = [1, 2, 3, 4, 5, 6] as Array<
 >;
 
 const BusyHoursStep = () => {
-  const {nextStep, prevStep} = useStepsContext();
+  const { nextStep, prevStep } = useStepsContext();
 
-  const {handleSubmit, setValue, control} =
+  const { handleSubmit, setValue, control } =
     useFormContext<ScheduleCreationParams>();
 
-  const busy_schedules = useWatch({control, name: 'busy_schedules'}) ?? [];
+  const busy_schedules = useWatch({ control, name: 'busy_schedules' }) ?? [];
 
   const handleNextPress = handleSubmit(nextStep);
 
   const handleScheduleItemPress = (
     weekDay: keyof typeof WEEKDAY_DICTIONARY,
-    time: typeof TIME_VALUES[number],
+    time: (typeof TIME_VALUES)[number],
   ) => {
     const isAlreadySelected = busy_schedules.some(
       busyHour =>
@@ -67,8 +67,8 @@ const BusyHoursStep = () => {
     setValue('busy_schedules', [...busy_schedules, newBusySchedule]);
   };
 
-  const handleLongPress = (time: typeof TIME_VALUES[number]) => {
-    const {start_time_in_minutes, end_time_in_minutes} = time;
+  const handleLongPress = (time: (typeof TIME_VALUES)[number]) => {
+    const { start_time_in_minutes, end_time_in_minutes } = time;
 
     const filteredBusySchedules = busy_schedules.filter(
       busyHour =>
@@ -96,7 +96,7 @@ const BusyHoursStep = () => {
     setValue('busy_schedules', [...filteredBusySchedules, ...busyRowTImes]);
   };
 
-  const renderScheduleRow = (time: typeof TIME_VALUES[number]) => {
+  const renderScheduleRow = (time: (typeof TIME_VALUES)[number]) => {
     const {
       start_time_in_minutes,
       end_time_in_minutes,
@@ -122,7 +122,8 @@ const BusyHoursStep = () => {
               color={color}
               onPress={() => handleScheduleItemPress(weekDay, time)}
               onLongPress={() => handleLongPress(time)}
-              delayLongPress={500}>
+              delayLongPress={500}
+            >
               <Text size="SM" weight="500" alignSelf="center">
                 {startTimeAlias}
               </Text>

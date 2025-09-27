@@ -1,8 +1,8 @@
 const cheerio = require('react-native-cheerio');
 
-import {TIME_VALUES} from '@utils/constants/time';
+import { TIME_VALUES } from '@utils/constants/time';
 
-import {parseSubjectName, parseSubjectID} from '@services/parser/minorParser';
+import { parseSubjectName, parseSubjectID } from '@services/parser/minorParser';
 
 import {
   AttendedSubjectInfo,
@@ -36,7 +36,7 @@ function getSubjectsInfo(html: string) {
         .find('td')
         .each((colIndex: number, cell: any) => {
           const cellValue = cell?.children && cell.children[0]?.data;
-          Object.assign(subjectRawInfo, {[header[colIndex]]: cellValue});
+          Object.assign(subjectRawInfo, { [header[colIndex]]: cellValue });
         });
 
       const hasAnyValue = Object.values(subjectRawInfo).some(Boolean);
@@ -47,7 +47,7 @@ function getSubjectsInfo(html: string) {
   );
 
   const subjects: AttendedSubjectInfo[] = rawSubjects.map(rawSubject => {
-    const {codeAndName, uerjLocationOrStatus} = rawSubject;
+    const { codeAndName, uerjLocationOrStatus } = rawSubject;
     const id = parseSubjectID(codeAndName as string);
     const name = parseSubjectName(codeAndName as string);
     const status = uerjLocationOrStatus?.toLowerCase().includes('cancelada')
@@ -151,7 +151,7 @@ function mergeFragmentedSchedule(fragmentedSchedule: ScheduleInfo[]) {
   const MAX_GAP_IN_MINUTES = 15;
 
   const mergedSchedule = fragmentedSchedule.reduce((acc, current) => {
-    const {subject_id, dayAlias, start_time_in_minutes, end_time_in_minutes} =
+    const { subject_id, dayAlias, start_time_in_minutes, end_time_in_minutes } =
       current;
     const classRightBefore = acc.find(
       c =>
@@ -165,7 +165,7 @@ function mergeFragmentedSchedule(fragmentedSchedule: ScheduleInfo[]) {
       return acc;
     }
 
-    Object.assign(classRightBefore, {end_time_in_minutes});
+    Object.assign(classRightBefore, { end_time_in_minutes });
     return acc;
   }, [] as ScheduleInfo[]);
 

@@ -12,16 +12,16 @@ export default async function parseLoginReqId(data: string) {
   $('input[name="requisicao"]')
     .eq(0)
     .each((index: string, node: any) => {
-      const {value} = node.attribs;
+      const { value } = node.attribs;
       loginReqId = value;
     });
 
   $('input[name="_token"]')
     .eq(0)
     .each((index: string, node: any) => {
-      const {value} = node.attribs;
+      const { value } = node.attribs;
       _token = value;
     });
 
-  return {loginReqId, _token};
+  return { loginReqId, _token };
 }

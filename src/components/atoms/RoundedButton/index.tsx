@@ -1,1 +1,1 @@
-export {default} from './RoundedButton';
+export { default } from './RoundedButton';

@@ -1,1 +1,1 @@
-export {default} from './SubjectAmountStep';
+export { default } from './SubjectAmountStep';

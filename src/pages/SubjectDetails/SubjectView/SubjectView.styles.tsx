@@ -1,5 +1,5 @@
 import styled from 'styled-components/native';
-import {TouchableOpacity} from 'react-native-gesture-handler';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 
 import Box from '@atoms/Box';
 
@@ -11,12 +11,12 @@ export const Container = styled.View`
   padding-top: 6%;
 
   border-top-left-radius: 50px;
-  background-color: ${({theme}) => theme.COLORS.BACKGROUND};
+  background-color: ${({ theme }) => theme.COLORS.BACKGROUND};
 `;
 
 export const TransparentButton = styled(TouchableOpacity)``;
 
-export const InfoBox = styled(Box).attrs({size: 'small'})`
+export const InfoBox = styled(Box).attrs({ size: 'small' })`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
@@ -57,17 +57,17 @@ export const Column = styled.View`
   flex: 1;
 `;
 
-export const ClassBox = styled(Box).attrs({size: 'small'})`
+export const ClassBox = styled(Box).attrs({ size: 'small' })`
   margin: 5px;
 `;
 
-export const VacancieBox = styled(Box).attrs({size: 'small'})`
+export const VacancieBox = styled(Box).attrs({ size: 'small' })`
   margin: 0px 4px;
   align-items: center;
   justify-content: center;
 `;
 
-export const ScheduleBox = styled(Box).attrs({size: 'small'})`
+export const ScheduleBox = styled(Box).attrs({ size: 'small' })`
   margin: 5px auto;
   margin-top: 8px;
 

@@ -1,5 +1,5 @@
-import styled, {DefaultTheme} from 'styled-components/native';
-import {TouchableOpacity} from 'react-native-gesture-handler';
+import styled, { DefaultTheme } from 'styled-components/native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 
 type StyleProps = {
   color?: keyof DefaultTheme['COLORS'];
@@ -7,7 +7,8 @@ type StyleProps = {
 
 export const Container = styled(TouchableOpacity)<StyleProps>`
   display: flex;
-  background-color: ${({theme, color}) => theme.COLORS[color ?? 'BACKGROUND']};
+  background-color: ${({ theme, color }) =>
+    theme.COLORS[color ?? 'BACKGROUND']};
   margin: 5px;
   padding: 12px;
   border-radius: 12px;

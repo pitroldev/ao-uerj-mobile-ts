@@ -4,8 +4,16 @@ import {
   Action,
   combineReducers,
 } from '@reduxjs/toolkit';
-import {TypedUseSelectorHook, useDispatch, useSelector} from 'react-redux';
-import {persistReducer} from 'redux-persist';
+import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
+import {
+  persistReducer,
+  FLUSH,
+  REHYDRATE,
+  PAUSE,
+  PERSIST,
+  PURGE,
+  REGISTER,
+} from 'redux-persist';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import userInfo from '@reducers/userInfo';
@@ -20,6 +28,11 @@ import attendedClasses from '@features/AttendedClassesSchedule/reducer';
 import classGrades from '@features/ClassGrades/reducer';
 
 export function makeStore() {
+  const isPlainObject = (value: any) => {
+    if (typeof value !== 'object' || value === null) return false;
+    const proto = Object.getPrototypeOf(value);
+    return proto === Object.prototype || proto === null;
+  };
   const reducers = combineReducers({
     userInfo,
     apiConfig,
@@ -43,7 +56,18 @@ export function makeStore() {
 
   return configureStore({
     reducer: persistedReducer,
-    middleware: [],
+    middleware: getDefaultMiddleware =>
+      getDefaultMiddleware({
+        serializableCheck: {
+          isSerializable: (value: any) =>
+            value instanceof Date ||
+            isPlainObject(value) ||
+            Array.isArray(value) ||
+            value === null ||
+            ['string', 'number', 'boolean', 'undefined'].includes(typeof value),
+          ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+        },
+      }),
   });
 }
 

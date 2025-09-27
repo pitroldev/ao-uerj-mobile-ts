@@ -1,10 +1,10 @@
-import React, {useEffect} from 'react';
-import {Linking, ScrollView} from 'react-native';
+import React from 'react';
+import { Linking, ScrollView } from 'react-native';
 
-import {useAppDispatch, useAppSelector} from '@root/store';
-import {useBackHandler} from '@hooks/useBackHandler';
+import { useAppDispatch, useAppSelector } from '@root/store';
+import { useBackHandler } from '@hooks/useBackHandler';
 
-import {SubjectInfo} from '@root/features/SubjectInfo/types';
+import { SubjectInfo } from '@root/features/SubjectInfo/types';
 
 import * as apiConfigReducer from '@reducers/apiConfig';
 import * as reducer from '@features/SubjectClassesSchedule/reducer';
@@ -31,12 +31,18 @@ type Props = {
   error?: unknown;
 };
 
-const SubjectView = ({searchSubject, subject, loading, code, error}: Props) => {
+const SubjectView = ({
+  searchSubject,
+  subject,
+  loading,
+  code,
+  error,
+}: Props) => {
   const dispatch = useAppDispatch();
 
   useBackHandler(() => dispatch(reducer.clearCurrent()));
 
-  const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
+  const { isBlocked } = useAppSelector(apiConfigReducer.selectApiConfig);
 
   const hasData = Boolean(subject && code);
   const getSubject = async (subjectCode: string | number) => {
@@ -51,10 +57,6 @@ const SubjectView = ({searchSubject, subject, loading, code, error}: Props) => {
     }
     searchSubject(subjectCode);
   };
-
-  useEffect(() => {
-    getSubject(code!);
-  }, [code]);
 
   const handleSyllabusPress = () => {
     const url = `https://www.ementario.uerj.br/ementa.php?cdg_disciplina=${code}`;
@@ -124,7 +126,8 @@ const SubjectView = ({searchSubject, subject, loading, code, error}: Props) => {
                 alignSelf="center"
                 weight="500"
                 marginTop="12px"
-                marginBottom="4px">
+                marginBottom="4px"
+              >
                 Nenhum requisito exigido
               </Text>
             )}
@@ -146,7 +149,8 @@ const SubjectView = ({searchSubject, subject, loading, code, error}: Props) => {
                 alignSelf="center"
                 weight="500"
                 marginTop="12px"
-                marginBottom="4px">
+                marginBottom="4px"
+              >
                 Nenhuma turma disponível
               </Text>
             )}
@@ -173,7 +177,8 @@ const SubjectView = ({searchSubject, subject, loading, code, error}: Props) => {
             weight="600"
             alignSelf="center"
             marginTop="24px"
-            marginBottom="24px">
+            marginBottom="24px"
+          >
             Acessar Ementa
           </Text>
         </TransparentButton>

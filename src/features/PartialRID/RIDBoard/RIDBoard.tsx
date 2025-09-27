@@ -1,16 +1,16 @@
 import React from 'react';
-import {useNavigation} from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 
-import {useAppDispatch} from '@root/store';
+import { useAppDispatch } from '@root/store';
 
-import {PartialRID} from '@features/PartialRID/types';
+import { PartialRID } from '@features/PartialRID/types';
 import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
 
 import parser from '@services/parser';
-import {numberToColor} from '@utils/numberToColor';
+import { numberToColor } from '@utils/numberToColor';
 
 import Text from '@atoms/Text';
-import {SubjectBox, MiniBox, Container, Row, Button} from './RIDBoard.styles';
+import { SubjectBox, MiniBox, Container, Row, Button } from './RIDBoard.styles';
 
 type Props = {
   data: {
@@ -19,11 +19,11 @@ type Props = {
   };
 };
 
-const RIDBoard = ({data}: Props) => {
+const RIDBoard = ({ data }: Props) => {
   const navigation = useNavigation();
   const dispatch = useAppDispatch();
 
-  const {subjects, updatedAt} = data;
+  const { subjects, updatedAt } = data;
 
   if (subjects.length === 0) {
     return null;
@@ -31,12 +31,12 @@ const RIDBoard = ({data}: Props) => {
 
   function handleOnPress(item: PartialRID) {
     const code = parser.parseSubjectCode(item.id) as number;
-    dispatch(subjectDetailReducer.setCurrent({code}));
+    dispatch(subjectDetailReducer.setCurrent({ code }));
     navigation.navigate('Pesquisa de Disciplinas');
   }
 
   function renderItem(item: PartialRID) {
-    const {id, classNumber, name, available, requested, position, status} =
+    const { id, classNumber, name, available, requested, position, status } =
       item;
 
     const hasWarning = position === 0;
@@ -81,7 +81,8 @@ const RIDBoard = ({data}: Props) => {
               size={'XXS'}
               alignSelf="center"
               marginTop="10px"
-              color={'ERROR'}>
+              color={'ERROR'}
+            >
               {status}
             </Text>
           )}

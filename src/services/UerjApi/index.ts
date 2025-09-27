@@ -1,3 +1,3 @@
-export {default} from './UerjApi';
+export { default } from './UerjApi';
 
 export * from './lib/refreshAuth';

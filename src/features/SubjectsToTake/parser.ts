@@ -6,7 +6,7 @@ import {
   parseUerjNumber,
 } from '@services/parser/minorParser';
 
-import {SubjectToTake} from './types';
+import { SubjectToTake } from './types';
 
 function testTable7(html: string) {
   const groupRegex = /\D+\d+\W-->\D+\d+/g;

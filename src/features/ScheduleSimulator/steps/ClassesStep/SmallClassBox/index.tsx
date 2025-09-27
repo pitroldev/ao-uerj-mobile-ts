@@ -1,1 +1,1 @@
-export {default} from './SmallClassBox';
+export { default } from './SmallClassBox';

@@ -1,10 +1,10 @@
-import React, {useState, useRef} from 'react';
-import {ListRenderItemInfo} from 'react-native';
-import {FlatList} from 'react-native-gesture-handler';
+import React, { useState, useRef } from 'react';
+import { ListRenderItemInfo } from 'react-native';
+import { FlatList } from 'react-native-gesture-handler';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Toast from 'react-native-toast-message';
 
-import {useAppSelector} from '@root/store';
+import { useAppSelector } from '@root/store';
 
 import * as apiConfigReducer from '@reducers/apiConfig';
 import * as reducer from '@features/SubjectClassesSchedule/reducer';
@@ -16,18 +16,18 @@ import SubjectBox from '@molecules/SubjectBox';
 import DummyMessage from '@molecules/DummyMessage';
 import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
-import {Container, InlineRow} from './SubjectSearch.styles';
+import { Container, InlineRow } from './SubjectSearch.styles';
 
 type Props = {
   searchSubject: (s: string | number) => void;
 };
 
-const SubjectSearch = ({searchSubject}: Props) => {
+const SubjectSearch = ({ searchSubject }: Props) => {
   const [subjectCode, setSubjectCode] = useState('');
 
-  const {data} = useAppSelector(reducer.selectSubjectClassesSearch);
+  const { data } = useAppSelector(reducer.selectSubjectClassesSearch);
 
-  const {isBlocked} = useAppSelector(apiConfigReducer.selectApiConfig);
+  const { isBlocked } = useAppSelector(apiConfigReducer.selectApiConfig);
 
   const ref = useRef<FlatList>(null);
 
@@ -46,7 +46,7 @@ const SubjectSearch = ({searchSubject}: Props) => {
   const renderSubjects = ({
     item,
   }: ListRenderItemInfo<(typeof data)[number]>) => {
-    const {subject} = item;
+    const { subject } = item;
 
     if (!subject) {
       return null;
@@ -81,7 +81,8 @@ const SubjectSearch = ({searchSubject}: Props) => {
           width={48}
           height={48}
           onPress={handleSearch}
-          disabled={!subjectCode}>
+          disabled={!subjectCode}
+        >
           <FontAwesome name="send" size={22} />
         </Button>
       </InlineRow>
@@ -90,7 +91,8 @@ const SubjectSearch = ({searchSubject}: Props) => {
         marginLeft="6px"
         marginTop="6px"
         marginBottom="6px"
-        size="LG">
+        size="LG"
+      >
         Histórico
       </Text>
       {isBlocked && (

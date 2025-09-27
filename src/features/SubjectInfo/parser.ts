@@ -7,7 +7,7 @@ import {
   parseSubjectCode,
 } from '@services/parser/minorParser';
 
-import {SubjectInfo} from './types';
+import { SubjectInfo } from './types';
 import parseSubjectClassesSchedule from './schedule-parser';
 
 const INFO_DIV_INDEX_MAP = {

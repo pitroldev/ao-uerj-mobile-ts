@@ -1,14 +1,14 @@
-import React, {useState} from 'react';
-import {useQuery} from 'react-query';
-import {useDispatch} from 'react-redux';
+import React, { useState } from 'react';
+import { useQuery } from 'react-query';
+import { useDispatch } from 'react-redux';
 
-import {useAppSelector} from '@root/store';
+import { useAppSelector } from '@root/store';
 
 import parser from '@services/parser';
 
-import {fetchPartialRID} from '@features/PartialRID/core';
-import {fetchClassGrades} from '@features/ClassGrades/core';
-import {fetchAttendedClassesSchedule} from '@features/AttendedClassesSchedule/core';
+import { fetchPartialRID } from '@features/PartialRID/core';
+import { fetchClassGrades } from '@features/ClassGrades/core';
+import { fetchAttendedClassesSchedule } from '@features/AttendedClassesSchedule/core';
 
 import * as infoReducer from '@reducers/userInfo';
 import * as apiConfigReducer from '@reducers/apiConfig';
@@ -50,23 +50,27 @@ const HomePage = () => {
 
   const dispatch = useDispatch();
 
-  const {isBlocked, cookies} = useAppSelector(apiConfigReducer.selectApiConfig);
-  const {periodo, name} = useAppSelector(infoReducer.selectUserInfo);
-  const {data: attendedClassesData} = useAppSelector(
+  const { isBlocked, cookies, createdAt } = useAppSelector(
+    apiConfigReducer.selectApiConfig,
+  );
+  const { periodo, name } = useAppSelector(infoReducer.selectUserInfo);
+  const { data: attendedClassesData } = useAppSelector(
     attendedReducer.selectAttendedClasses,
   );
-  const {data: classGrades, isClassGradesAvailable} = useAppSelector(
+  const { data: classGrades, isClassGradesAvailable } = useAppSelector(
     gradesReducer.selectClassGrades,
   );
 
   const {
-    isFetching: loadingSchedule,
+    isLoading: loadingSchedule,
     error: scheduleError,
     refetch: scheduleRefresh,
   } = useQuery({
-    queryKey: ['attended-classes-schedule', cookies],
+    queryKey: ['attended-classes-schedule', cookies, createdAt],
     queryFn: fetchAttendedClassesSchedule,
     staleTime: 12 * HOUR_IN_MS,
+    enabled: Boolean(cookies),
+    retry: 0,
     onSuccess: data => {
       dispatch(
         attendedReducer.setAttendedClasses({
@@ -78,27 +82,31 @@ const HomePage = () => {
   });
 
   const {
-    isFetching: loadingGrades,
+    isLoading: loadingGrades,
     error: gradesError,
     refetch: gradesRefresh,
   } = useQuery({
-    queryKey: ['class-grades', cookies],
+    queryKey: ['class-grades', cookies, createdAt],
     queryFn: fetchClassGrades,
     staleTime: 6 * HOUR_IN_MS,
+    enabled: Boolean(cookies),
+    retry: 0,
     onSuccess: data => {
       dispatch(gradesReducer.setClassGrades(data));
     },
   });
 
   const {
-    isFetching: loadingRID,
+    isLoading: loadingRID,
     data: partialRID,
     error: ridError,
     refetch: ridRefresh,
   } = useQuery({
-    queryKey: ['partial-rid', cookies],
+    queryKey: ['partial-rid', cookies, createdAt],
     queryFn: fetchPartialRID,
     staleTime: 1 * HOUR_IN_MS,
+    enabled: Boolean(cookies),
+    retry: 0,
   });
 
   const currentSchedule = attendedClassesData?.[periodo as string];
@@ -185,7 +193,9 @@ const HomePage = () => {
             {parsedName}
           </Text>
         </Column>
-        {isLoading && <Spinner loading size="large" />}
+        {!hasSomethingAvailable && isLoading && (
+          <Spinner loading size="large" />
+        )}
       </Row>
       {hasTooManyErrors && (
         <TooManyErrorsView>

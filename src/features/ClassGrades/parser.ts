@@ -1,8 +1,8 @@
 const cheerio = require('react-native-cheerio');
 
-import {parseSubjectName, parseNumber} from '@services/parser/minorParser';
+import { parseSubjectName, parseNumber } from '@services/parser/minorParser';
 
-import {ClassGrade} from './types';
+import { ClassGrade } from './types';
 
 export function parseGrade(strGrade: string) {
   try {
@@ -20,7 +20,7 @@ export default function parseClassGrades(html: string) {
     const $ = cheerio.load(html);
 
     const data: ClassGrade[] = [];
-    let classGrade = {grades: {}} as ClassGrade;
+    let classGrade = { grades: {} } as ClassGrade;
 
     $('font td font').text((index: number, text: string) => {
       if (index % 7 === 0) {
@@ -47,7 +47,7 @@ export default function parseClassGrades(html: string) {
       if ((index - 6) % 7 === 0) {
         classGrade.grades.result = parseGrade(text);
         data.push(classGrade);
-        classGrade = {grades: {}} as ClassGrade;
+        classGrade = { grades: {} } as ClassGrade;
       }
     });
 

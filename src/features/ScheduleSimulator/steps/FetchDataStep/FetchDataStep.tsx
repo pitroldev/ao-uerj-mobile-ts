@@ -1,17 +1,17 @@
 import React from 'react';
-import {useQuery} from 'react-query';
-import {useTheme} from 'styled-components';
-import {TouchableOpacity} from 'react-native';
-import {useFormContext, useWatch} from 'react-hook-form';
+import { useQuery } from 'react-query';
+import { useTheme } from 'styled-components';
+import { TouchableOpacity } from 'react-native';
+import { useFormContext, useWatch } from 'react-hook-form';
 import Icon from 'react-native-vector-icons/AntDesign';
 
-import {useAppSelector} from '@root/store';
+import { useAppSelector } from '@root/store';
 import * as apiConfigReducer from '@reducers/apiConfig';
 
-import {useStepsContext} from '@hooks/useSteps';
+import { useStepsContext } from '@hooks/useSteps';
 
-import {fetchSubjectsTaken} from '@features/SubjectsTaken/core';
-import {ScheduleCreationParams} from '@features/ScheduleSimulator/types';
+import { fetchSubjectsTaken } from '@features/SubjectsTaken/core';
+import { ScheduleCreationParams } from '@features/ScheduleSimulator/types';
 
 import Text from '@atoms/Text';
 import Button from '@atoms/Button';
@@ -27,26 +27,28 @@ import {
 } from './FetchDataStep.styles';
 
 const FetchDataStep = () => {
-  const {COLORS} = useTheme();
-  const {nextStep, prevStep} = useStepsContext();
+  const { COLORS } = useTheme();
+  const { nextStep, prevStep } = useStepsContext();
 
-  const {cookies} = useAppSelector(apiConfigReducer.selectApiConfig);
+  const { cookies, createdAt } = useAppSelector(
+    apiConfigReducer.selectApiConfig,
+  );
 
-  const {control, handleSubmit, setValue} =
+  const { control, handleSubmit, setValue } =
     useFormContext<ScheduleCreationParams>();
 
-  const {subjects, selectedSubjects} = useWatch({
+  const { subjects, selectedSubjects } = useWatch({
     control,
   }) as ScheduleCreationParams;
 
   const handleNextPress = handleSubmit(nextStep);
 
   const {
-    isFetching: loadingSubjectsTaken,
+    isLoading: loadingSubjectsTaken,
     error: errorSubjectsTaken,
     refetch,
   } = useQuery({
-    queryKey: ['subjects-taken', cookies],
+    queryKey: ['subjects-taken', cookies, createdAt],
     queryFn: fetchSubjectsTaken,
     onSuccess: data => {
       setValue('takenSubjects', data);
@@ -113,7 +115,8 @@ const FetchDataStep = () => {
         <Button
           onPress={handleNextPress}
           size="small"
-          disabled={!isAllDataFetched}>
+          disabled={!isAllDataFetched}
+        >
           Próximo
         </Button>
       </ButtonsRow>

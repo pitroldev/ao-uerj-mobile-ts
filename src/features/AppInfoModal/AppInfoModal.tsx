@@ -1,11 +1,11 @@
 import React from 'react';
 import Modal from 'react-native-modal';
-import {useDispatch} from 'react-redux';
+import { useDispatch } from 'react-redux';
 
-import {useAppSelector} from '@root/store';
+import { useAppSelector } from '@root/store';
 import * as infoReducer from '@reducers/userInfo';
 
-import {APP_INFO} from './info';
+import { APP_INFO } from './info';
 
 import Text from '@atoms/Text';
 import {
@@ -18,7 +18,7 @@ import {
 const AppInfoModal = () => {
   const dispatch = useDispatch();
 
-  const {wasPreviouslyLogged} = useAppSelector(infoReducer.selectUserInfo);
+  const { wasPreviouslyLogged } = useAppSelector(infoReducer.selectUserInfo);
 
   const handleClose = () => {
     dispatch(infoReducer.setFirstLogin());
@@ -33,7 +33,8 @@ const AppInfoModal = () => {
       animationIn={'fadeInDown'}
       animationInTiming={150}
       animationOut={'fadeOutUp'}
-      animationOutTiming={150}>
+      animationOutTiming={150}
+    >
       <Container>
         <Text weight="bold" size="LG" marginBottom="16px">
           Funcionalidades exclusivas

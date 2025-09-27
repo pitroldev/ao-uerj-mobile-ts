@@ -1,8 +1,8 @@
 const cheerio = require('react-native-cheerio');
 
-import {PartialRID} from './types';
+import { PartialRID } from './types';
 
-import {parseSubjectName, parseSubjectID} from '@services/parser/minorParser';
+import { parseSubjectName, parseSubjectID } from '@services/parser/minorParser';
 
 export default function parsePartialRID(html: string) {
   const $ = cheerio.load(html);

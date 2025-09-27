@@ -1,4 +1,4 @@
-import {SubjectsTaken} from '@features/SubjectsTaken/types';
+import { SubjectsTaken } from '@features/SubjectsTaken/types';
 import {
   parseSubjectID,
   parseSubjectName,
@@ -14,7 +14,7 @@ export default function parseSubjectsTaken(html: string): SubjectsTaken[] {
 
     let hasIsentos = false;
     const regexPeriodo = /\d{4}[/]\d/g;
-    const disciplinaCodes = [] as {code: string; disciplina: string}[];
+    const disciplinaCodes = [] as { code: string; disciplina: string }[];
 
     $('td:nth-child(8)').text((index: number, text: string) => {
       if (text.includes('Isento')) {
@@ -31,7 +31,7 @@ export default function parseSubjectsTaken(html: string): SubjectsTaken[] {
       const onClickString = node.attribs.onclick;
       const [code] = numberRegex.exec(onClickString) as RegExpExecArray;
       const disciplina = node.children[2].data.trim();
-      disciplinaCodes.push({disciplina, code});
+      disciplinaCodes.push({ disciplina, code });
     });
 
     // Disciplinas // #titulo+ table td

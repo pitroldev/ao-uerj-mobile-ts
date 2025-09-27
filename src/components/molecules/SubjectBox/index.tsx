@@ -1,1 +1,1 @@
-export {default} from './SubjectBox.tsx';
+export { default } from './SubjectBox.tsx';

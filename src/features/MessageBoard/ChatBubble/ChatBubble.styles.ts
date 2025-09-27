@@ -1,4 +1,4 @@
-import {StyleSheet} from 'react-native';
+import { StyleSheet } from 'react-native';
 import styled from 'styled-components/native';
 import Hyperlink from 'react-native-hyperlink';
 

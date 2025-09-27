@@ -1,4 +1,4 @@
-import React, {forwardRef} from 'react';
+import React, { forwardRef } from 'react';
 import {
   ButtonProps,
   ButtonContainer,
@@ -15,7 +15,8 @@ const TouchableButton = forwardRef((props: ButtonProps, ref: any) => {
           variant={props.variant}
           size={props.size}
           disabled={props.disabled}
-          loading={props.loading}>
+          loading={props.loading}
+        >
           {props.children}
         </ButtonText>
       )}

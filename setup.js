@@ -1,7 +1,7 @@
 // setup.js
 module.exports = function (Handlebars) {
   Handlebars.registerHelper('custom', function (context, options) {
-    const {exclude, message, subject, id, href} = context.hash;
+    const { exclude, message, subject, id, href } = context.hash;
     const excludeRegex = new RegExp(exclude);
     const messageRegex = new RegExp(message);
 

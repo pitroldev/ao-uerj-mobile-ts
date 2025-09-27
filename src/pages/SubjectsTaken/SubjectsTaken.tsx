@@ -1,23 +1,26 @@
-import React, {useState, useEffect, useRef} from 'react';
-import {ListRenderItemInfo} from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { ListRenderItemInfo } from 'react-native';
 import Toast from 'react-native-toast-message';
-import {useNavigation} from '@react-navigation/native';
-import {Picker} from '@react-native-picker/picker';
-import {FlatList} from 'react-native-gesture-handler';
-import {useQuery} from 'react-query';
+import { useNavigation } from '@react-navigation/native';
+import { Picker } from '@react-native-picker/picker';
+import { FlatList } from 'react-native-gesture-handler';
+import { useQuery } from 'react-query';
 
 import parser from '@services/parser';
-import {SUBJECT_TYPE, SUBJECT_STATUS} from '@utils/constants/subjectDictionary';
+import {
+  SUBJECT_TYPE,
+  SUBJECT_STATUS,
+} from '@utils/constants/subjectDictionary';
 
-import {useAppDispatch, useAppSelector} from '@root/store';
+import { useAppDispatch, useAppSelector } from '@root/store';
 
 import * as apiConfigReducer from '@reducers/apiConfig';
 import * as reducer from '@features/SubjectsTaken/reducer';
 import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
 
-import {SubjectsTaken} from '@features/SubjectsTaken/types';
-import {fetchSubjectsTaken} from '@features/SubjectsTaken/core';
-import {getPeriodList} from '@features/SubjectsTaken/getPeriodList';
+import { SubjectsTaken } from '@features/SubjectsTaken/types';
+import { fetchSubjectsTaken } from '@features/SubjectsTaken/core';
+import { getPeriodList } from '@features/SubjectsTaken/getPeriodList';
 
 import Spinner from '@atoms/Spinner';
 import StyledPicker from '@atoms/Picker';
@@ -25,15 +28,17 @@ import SubjectBox from '@molecules/SubjectBox';
 import DummyMessage from '@molecules/DummyMessage';
 import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
-import {Container} from './SubjectsTaken.styles';
+import { Container } from './SubjectsTaken.styles';
 
 const HOUR_IN_MS = 1000 * 60 * 60;
 
 const SubjectsAttended = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('');
 
-  const {data} = useAppSelector(reducer.selectSubjectsAttended);
-  const {isBlocked, cookies} = useAppSelector(apiConfigReducer.selectApiConfig);
+  const { data } = useAppSelector(reducer.selectSubjectsAttended);
+  const { isBlocked, cookies, createdAt } = useAppSelector(
+    apiConfigReducer.selectApiConfig,
+  );
 
   const periodList = getPeriodList(data);
 
@@ -43,13 +48,15 @@ const SubjectsAttended = () => {
   const ref = useRef<FlatList>(null);
 
   const {
-    isFetching: loading,
+    isLoading: loading,
     error,
     refetch,
   } = useQuery({
-    queryKey: ['subjects-taken', cookies],
+    queryKey: ['subjects-taken', cookies, createdAt],
     queryFn: fetchSubjectsTaken,
     staleTime: 24 * HOUR_IN_MS,
+    enabled: Boolean(cookies),
+    retry: 0,
     onSuccess: d => {
       dispatch(reducer.setState(d));
     },
@@ -61,7 +68,7 @@ const SubjectsAttended = () => {
 
   const handleSelectedPeriodChange = (value: string) => {
     setSelectedPeriod(value);
-    ref.current?.scrollToOffset({animated: true, offset: 0});
+    ref.current?.scrollToOffset({ animated: true, offset: 0 });
   };
 
   const handleSubjectPress = (subject: SubjectsTaken) => {
@@ -74,7 +81,7 @@ const SubjectsAttended = () => {
       return;
     }
     const code = parser.parseSubjectCode(subject.id) as number;
-    dispatch(subjectDetailReducer.setCurrent({code}));
+    dispatch(subjectDetailReducer.setCurrent({ code }));
     navigation.navigate('Pesquisa de Disciplinas');
   };
 
@@ -85,7 +92,7 @@ const SubjectsAttended = () => {
       return null;
     }
 
-    const {name, status, type, frequency, credits, grade, workload} = subject;
+    const { name, status, type, frequency, credits, grade, workload } = subject;
 
     const description = frequency !== null ? `Frequência ${frequency}%` : '';
     let creditsText = credits !== null ? `${credits} Créditos` : '';
@@ -116,7 +123,7 @@ const SubjectsAttended = () => {
     );
   };
 
-  const filteredData = data.filter(({period}) => {
+  const filteredData = data.filter(({ period }) => {
     const isFromSamePeriod = selectedPeriod
       ? period === selectedPeriod
       : period === periodList[0]?.value;
@@ -134,8 +141,9 @@ const SubjectsAttended = () => {
         selectedValue={selectedPeriod}
         onValueChange={s => handleSelectedPeriodChange(s as string)}
         loading={loading}
-        enabled={!loading}>
-        {periodList.map(({label, value}) => (
+        enabled={!loading}
+      >
+        {periodList.map(({ label, value }) => (
           <Picker.Item key={value} label={label} value={value} />
         ))}
       </StyledPicker>

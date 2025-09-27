@@ -1,8 +1,8 @@
-import {createSlice, PayloadAction} from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-import {AppState} from '@root/store';
+import { AppState } from '@root/store';
 
-import {SubjectInfo} from '@features/SubjectInfo/types';
+import { SubjectInfo } from '@features/SubjectInfo/types';
 
 type SubjectData = {
   code: number | string;
@@ -27,11 +27,11 @@ const slice = createSlice({
   initialState,
   reducers: {
     setState: (state, action: PayloadAction<SubjectData>) => {
-      Object.assign(state, {data: action.payload});
+      Object.assign(state, { data: action.payload });
     },
     addSubject: (state, action: PayloadAction<SubjectData>) => {
-      const {data} = state;
-      const {payload} = action;
+      const { data } = state;
+      const { payload } = action;
 
       const otherSubjects = data.filter(
         subject =>
@@ -42,8 +42,8 @@ const slice = createSlice({
       state.data = [...otherSubjects, payload].slice(0, MAX_STORED_SUBJECTS);
     },
     setCurrent: (state, action: PayloadAction<SubjectData>) => {
-      const {data} = state;
-      const {payload} = action;
+      const { data } = state;
+      const { payload } = action;
 
       const otherSubjects = data.filter(
         subject => subject.code !== payload.code,
@@ -59,7 +59,7 @@ const slice = createSlice({
   },
 });
 
-export const {setState, addSubject, setCurrent, clearCurrent} = slice.actions;
+export const { setState, addSubject, setCurrent, clearCurrent } = slice.actions;
 export const selectSubjectClassesSearch = (state: AppState) =>
   state.subjectClassesSearch;
 
