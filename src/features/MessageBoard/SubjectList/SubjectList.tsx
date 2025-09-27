@@ -1,24 +1,24 @@
 import React from 'react';
-import {TouchableOpacity} from 'react-native';
+import { TouchableOpacity } from 'react-native';
 
-import {useAppSelector} from '@root/store';
+import { useAppSelector } from '@root/store';
 import * as infoReducer from '@reducers/userInfo';
 
-import {AttendedSubjectInfo} from '@features/AttendedClassesSchedule/types';
+import { AttendedSubjectInfo } from '@features/AttendedClassesSchedule/types';
 import * as classesReducer from '@features/AttendedClassesSchedule/reducer';
 
 import SubjectBox from '@molecules/SubjectBox';
 import DummyMessage from '@molecules/DummyMessage';
 
-import {Container} from './SubjectList.styles';
+import { Container } from './SubjectList.styles';
 
 type Props = {
   onSubjectPress: (item: AttendedSubjectInfo) => void;
 };
 
-const SubjectList = ({onSubjectPress}: Props) => {
-  const {periodo} = useAppSelector(infoReducer.selectUserInfo);
-  const {data: classScheduleData} = useAppSelector(
+const SubjectList = ({ onSubjectPress }: Props) => {
+  const { periodo } = useAppSelector(infoReducer.selectUserInfo);
+  const { data: classScheduleData } = useAppSelector(
     classesReducer.selectAttendedClasses,
   );
 
@@ -39,7 +39,7 @@ const SubjectList = ({onSubjectPress}: Props) => {
         key={item.id}
         topLeftInfo={item.id}
         name={item.name}
-        boldOptions={{topLeft: true}}
+        boldOptions={{ topLeft: true }}
       />
     </TouchableOpacity>
   );

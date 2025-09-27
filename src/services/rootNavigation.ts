@@ -1,7 +1,10 @@
-import {createRef} from 'react';
+import { createRef } from 'react';
 
-import {RootDrawerParamList} from '@root/routes';
-import {DrawerActions, NavigationContainerRef} from '@react-navigation/native';
+import { RootDrawerParamList } from '@root/routes';
+import {
+  DrawerActions,
+  NavigationContainerRef,
+} from '@react-navigation/native';
 
 export const navigationRef =
   createRef<NavigationContainerRef<RootDrawerParamList>>();

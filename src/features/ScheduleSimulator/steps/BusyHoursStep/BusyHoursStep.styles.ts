@@ -1,5 +1,5 @@
-import styled, {DefaultTheme} from 'styled-components/native';
-import {TouchableOpacity} from 'react-native';
+import styled, { DefaultTheme } from 'styled-components/native';
+import { TouchableOpacity } from 'react-native';
 
 export const Container = styled.View`
   display: flex;
@@ -40,14 +40,12 @@ export const ScheduleItem = styled(TouchableOpacity)<ScheduleItemProps>`
   align-items: center;
   flex: 1;
 
-  background-color: ${({theme, color}) => theme.COLORS[color]};
+  background-color: ${({ theme, color }) => theme.COLORS[color]};
 
   border-radius: 8px;
   padding: 4px;
   margin: 4px;
-
-  elevation: 2;
-  border: 1px solid ${({theme}) => theme.COLORS.BACKGROUND_400};
+  border: 1px solid ${({ theme }) => theme.COLORS.BACKGROUND_400};
 `;
 
 export const ScrollContainer = styled.ScrollView`
@@ -58,12 +56,31 @@ export const ScrollContainer = styled.ScrollView`
 `;
 
 export const Square = styled.View<ScheduleItemProps>`
-  background-color: ${({theme, color}) => theme.COLORS[color]};
+  background-color: ${({ theme, color }) => theme.COLORS[color]};
   width: 20px;
   height: 20px;
 
   border-radius: 10px;
-  border: 1px solid ${({theme}) => theme.COLORS.BACKGROUND_400};
+  border: 1px solid ${({ theme }) => theme.COLORS.BACKGROUND_400};
 
   margin-right: 8px;
+`;
+
+export const ChipRow = styled.View`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+`;
+
+export const ChipsContainer = styled.View`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  width: 100%;
+`;
+export const ChipItem = styled.View`
+  margin-right: 8px;
+  margin-bottom: 8px;
 `;

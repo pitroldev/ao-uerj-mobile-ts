@@ -1,10 +1,10 @@
-import React, {useEffect} from 'react';
-import {useForm, FormProvider} from 'react-hook-form';
+import React, { useEffect } from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
 
-import StepsProvider, {useSteps} from '@hooks/useSteps';
+import StepsProvider, { useSteps } from '@hooks/useSteps';
 
 import SubjectAmountStep from '@features/ScheduleSimulator/steps/SubjectAmountStep';
-import {ScheduleCreationParams} from '@features/ScheduleSimulator/types';
+import { ScheduleCreationParams } from '@features/ScheduleSimulator/types';
 
 import BusyHoursStep from '@features/ScheduleSimulator/steps/BusyHoursStep';
 import PriorityStep from '@features/ScheduleSimulator/steps/PriorityStep';
@@ -13,7 +13,8 @@ import FetchDataStep from '@features/ScheduleSimulator/steps/FetchDataStep';
 import ClassesStep from '@features/ScheduleSimulator/steps/ClassesStep';
 import GenerationStep from '@features/ScheduleSimulator/steps/GenerationStep';
 
-import {Container} from './ScheduleSimulator.styles';
+import { Container } from './ScheduleSimulator.styles';
+import StepHeader from '@features/ScheduleSimulator/StepHeader/StepHeader';
 
 const steps = [
   {
@@ -46,6 +47,16 @@ const steps = [
   },
 ];
 
+const stepLabels = [
+  'Qtd. Disciplinas',
+  'Horários Ocupados',
+  'Prioridades',
+  'Selecionar Disciplinas',
+  'Carregar Dados',
+  'Turmas',
+  'Gerar Grade',
+];
+
 const ScheduleCreationPage = () => {
   const defaultValues: ScheduleCreationParams = {
     min_subject_amount: null,
@@ -64,7 +75,7 @@ const ScheduleCreationPage = () => {
     defaultValues,
   });
 
-  const {step, nextStep, prevStep, setStep} = useSteps({
+  const { step, nextStep, prevStep, setStep } = useSteps({
     initialStep: 0,
     maxStep: steps.length - 1,
   });
@@ -79,8 +90,17 @@ const ScheduleCreationPage = () => {
 
   return (
     <FormProvider {...methods}>
-      <StepsProvider values={{step, nextStep, prevStep, setStep}}>
-        <Container>{CurrentStep && <CurrentStep />}</Container>
+      <StepsProvider values={{ step, nextStep, prevStep, setStep }}>
+        <Container>
+          <StepHeader
+            labels={stepLabels}
+            current={step}
+            onStepPress={(index: number) => {
+              if (index <= step) setStep(index);
+            }}
+          />
+          {CurrentStep && <CurrentStep />}
+        </Container>
       </StepsProvider>
     </FormProvider>
   );

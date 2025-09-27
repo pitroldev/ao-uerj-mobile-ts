@@ -1,15 +1,14 @@
-/* eslint-disable react-native/no-inline-styles */
-import React, {useRef, useState, useLayoutEffect} from 'react';
-import {Animated, LayoutChangeEvent} from 'react-native';
-import {DrawerContentComponentProps} from '@react-navigation/drawer';
+import React, { useRef, useState, useLayoutEffect } from 'react';
+import { Animated, LayoutChangeEvent } from 'react-native';
+import { DrawerContentComponentProps } from '@react-navigation/drawer';
 
 import queryClient from '@services/query-client';
 
-import {useAppDispatch, useAppSelector} from '@root/store';
+import { useAppDispatch, useAppSelector } from '@root/store';
 import * as apiConfigReducer from '@reducers/apiConfig';
 import * as userInfoReducer from '@reducers/userInfo';
 
-import {LIGHT} from '@root/themes';
+import { LIGHT } from '@root/themes';
 
 import {
   Container,
@@ -19,48 +18,71 @@ import {
   ScrollView,
 } from './CustomDrawerNavigator.styles';
 
-const DrawerNavigator = ({state, navigation}: DrawerContentComponentProps) => {
+const DrawerNavigator = ({
+  state,
+  navigation,
+}: DrawerContentComponentProps) => {
   const [highlighterHeight, setHeight] = useState(34);
 
   const dispatch = useAppDispatch();
-  const {cookies} = useAppSelector(apiConfigReducer.selectApiConfig);
+  const { cookies } = useAppSelector(apiConfigReducer.selectApiConfig);
   const isSignedIn = Boolean(cookies);
 
-  const {routeNames} = state;
+  const { routeNames } = state;
   const highlighterPositionY = useRef(new Animated.Value(61)).current;
   const routePositions = useRef([]).current as unknown as Partial<
     LayoutChangeEvent['nativeEvent']['layout']
   >[];
 
-  useLayoutEffect(() => {
-    const key: number = state.index;
+  const visibleRoutes = routeNames.filter(
+    route => route !== 'Informações da Disciplina',
+  );
+  const currentRouteName = routeNames[state.index];
 
-    const layout = routePositions[key];
-    if (layout) {
-      setHeight(layout.height as number);
-      Animated.timing(highlighterPositionY, {
-        toValue: layout ? (layout.y as number) : 61.1429,
-        duration: 150,
-        useNativeDriver: true,
-      }).start();
+  useLayoutEffect(() => {
+    const visibleIndex = visibleRoutes.findIndex(
+      route => route === currentRouteName,
+    );
+
+    if (visibleIndex !== -1) {
+      const layout = routePositions[visibleIndex];
+      if (layout) {
+        setHeight(layout.height as number);
+        Animated.timing(highlighterPositionY, {
+          toValue: layout ? (layout.y as number) : 61.1429,
+          duration: 150,
+          useNativeDriver: true,
+        }).start();
+      }
     }
-  }, [state, highlighterPositionY, routePositions]);
+  }, [
+    state,
+    highlighterPositionY,
+    routePositions,
+    currentRouteName,
+    visibleRoutes,
+  ]);
 
   if (!isSignedIn) {
     return <Container />;
   }
 
   function onLayout(event: LayoutChangeEvent, key: number) {
-    const {y, height} = event.nativeEvent.layout;
-    if (key === 0) {
+    const { y, height } = event.nativeEvent.layout;
+
+    routePositions[key] = { y, height };
+
+    const currentVisibleIndex = visibleRoutes.findIndex(
+      route => route === currentRouteName,
+    );
+    if (key === 0 || key === currentVisibleIndex) {
       setHeight(height);
       Animated.timing(highlighterPositionY, {
         toValue: y,
-        duration: 0,
+        duration: key === 0 ? 0 : 150,
         useNativeDriver: true,
       }).start();
     }
-    routePositions.push({y, height});
   }
 
   function handleLogout() {
@@ -81,20 +103,18 @@ const DrawerNavigator = ({state, navigation}: DrawerContentComponentProps) => {
               position: 'absolute',
             },
             {
-              transform: [{translateY: highlighterPositionY}],
+              transform: [{ translateY: highlighterPositionY }],
               height: highlighterHeight,
             },
           ]}
         />
-        {routeNames.map((route: string, key: number) => {
-          if (route === 'Informações da Disciplina') {
-            return;
-          }
+        {visibleRoutes.map((route: string, key: number) => {
           return (
             <Button
               key={key}
               onLayout={event => onLayout(event, key)}
-              onPress={() => navigation.navigate(route)}>
+              onPress={() => navigation.navigate(route)}
+            >
               <Text>{route}</Text>
             </Button>
           );

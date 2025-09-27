@@ -1,1 +1,1 @@
-export {default} from './ClassBox';
+export { default } from './ClassBox';

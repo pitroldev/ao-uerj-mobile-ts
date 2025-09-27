@@ -1,14 +1,14 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 
-import {useBackHandler} from '@hooks/useBackHandler';
+import { useBackHandler } from '@hooks/useBackHandler';
 
-import {AttendedSubjectInfo} from '@features/AttendedClassesSchedule/types';
+import { AttendedSubjectInfo } from '@features/AttendedClassesSchedule/types';
 import SubjectList from '@features/MessageBoard/SubjectList';
 import SubjectChat from '@features/MessageBoard/SubjectChat';
 
 import Text from '@atoms/Text';
 
-import {MainContainer} from './MessageBoard.styles';
+import { MainContainer } from './MessageBoard.styles';
 
 const MessageBoard = () => {
   const [subject, setSubject] = useState<AttendedSubjectInfo | null>(null);

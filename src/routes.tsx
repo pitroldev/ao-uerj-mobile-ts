@@ -1,10 +1,11 @@
 import React from 'react';
-import {createDrawerNavigator} from '@react-navigation/drawer';
-import {useQuery} from 'react-query';
+import { createDrawerNavigator } from '@react-navigation/drawer';
+import { useQuery } from 'react-query';
 
-import {selectApiConfig} from '@reducers/apiConfig';
-import {useAppSelector} from '@root/store';
-import {refreshAuth} from '@services/UerjApi';
+import { selectApiConfig } from '@reducers/apiConfig';
+import { selectUserInfo } from '@reducers/userInfo';
+import { useAppSelector } from '@root/store';
+import { refreshAuth } from '@services/UerjApi';
 
 import CustomDrawerNavigator from '@root/components/templates/CustomDrawerNavigator';
 
@@ -49,11 +50,16 @@ const renderDrawerContent = (props: any) => (
 );
 
 const MainRoutes = () => {
-  const {cookies} = useAppSelector(selectApiConfig);
+  const { cookies } = useAppSelector(selectApiConfig);
+  const { matricula, password } = useAppSelector(selectUserInfo);
 
-  const {isLoading} = useQuery({
+  const { isLoading } = useQuery({
     queryKey: ['refresh-auth'],
     queryFn: refreshAuth,
+    enabled: Boolean(matricula && password),
+    retry: 0,
+    refetchInterval: 10 * 60 * 1000, // Refresh a cada 10 minutos (600.000ms)
+    refetchOnWindowFocus: true, // Refresh quando o app volta do background
   });
 
   const isSignedIn = Boolean(cookies);
@@ -68,7 +74,8 @@ const MainRoutes = () => {
         drawerType: 'back',
         overlayColor: 'transparent',
         swipeEnabled: isSignedIn,
-      }}>
+      }}
+    >
       {isLoading && <Drawer.Screen name="Loading" component={Loading} />}
       {!isLoading && isSignedIn && (
         <>

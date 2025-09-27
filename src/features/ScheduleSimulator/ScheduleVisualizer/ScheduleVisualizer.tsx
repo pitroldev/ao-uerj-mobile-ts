@@ -1,8 +1,8 @@
 import React from 'react';
 import Carousel from 'react-native-reanimated-carousel';
-import {window} from '@utils/constants/info';
+import { window } from '@utils/constants/info';
 
-import {TIME_VALUES, WEEKDAY_DICTIONARY} from '@utils/constants/time';
+import { TIME_VALUES, WEEKDAY_DICTIONARY } from '@utils/constants/time';
 
 import {
   GeneratedClassWithSubject,
@@ -19,7 +19,7 @@ import {
   CarouselContainer,
 } from './ScheduleVisualizer.styles';
 
-import {convertToRenderedSchedule} from '../core';
+import { convertToRenderedSchedule } from '../core';
 
 type Props = {
   data: GeneratedClassWithSubject[];
@@ -35,7 +35,7 @@ const getBoxColor = (start: number) => {
   return 'NIGHT';
 };
 
-const ScheduleVisualizer = ({data}: Props) => {
+const ScheduleVisualizer = ({ data }: Props) => {
   if (!data || data.length === 0) {
     return null;
   }
@@ -53,15 +53,15 @@ const ScheduleVisualizer = ({data}: Props) => {
     schedule: RenderedSchedule[keyof RenderedSchedule][0],
     index: number,
   ) => {
-    const {start_time_in_minutes, end_time_in_minutes} = schedule;
+    const { start_time_in_minutes, end_time_in_minutes } = schedule;
 
-    const {periodAlias: startPeriod, startTimeAlias} = TIME_VALUES.find(
+    const { periodAlias: startPeriod, startTimeAlias } = TIME_VALUES.find(
       t => start_time_in_minutes === t.start_time_in_minutes,
-    ) ?? {periodAlias: '??'};
+    ) ?? { periodAlias: '??' };
 
-    const {periodAlias: endPeriod, endTimeAlias} = TIME_VALUES.find(
+    const { periodAlias: endPeriod, endTimeAlias } = TIME_VALUES.find(
       t => t.end_time_in_minutes === end_time_in_minutes,
-    ) ?? {periodAlias: '??'};
+    ) ?? { periodAlias: '??' };
 
     const subjectName = schedule.subject.name;
     const boxColor = getBoxColor(start_time_in_minutes);
@@ -74,7 +74,8 @@ const ScheduleVisualizer = ({data}: Props) => {
               size="XS"
               italic
               textAlign="center"
-              alignSelf="center">
+              alignSelf="center"
+            >
               {startPeriod} - {endPeriod}
             </Text>
             <Text
@@ -82,7 +83,8 @@ const ScheduleVisualizer = ({data}: Props) => {
               size="XS"
               italic
               textAlign="center"
-              alignSelf="center">
+              alignSelf="center"
+            >
               {startTimeAlias} - {endTimeAlias}
             </Text>
           </TimeInfoColumn>
@@ -106,7 +108,8 @@ const ScheduleVisualizer = ({data}: Props) => {
           textAlign="center"
           alignSelf="center"
           weight="300"
-          marginBottom="8px">
+          marginBottom="8px"
+        >
           {weekDay}
         </Text>
         {schedule.map(renderSchedule)}
@@ -127,7 +130,7 @@ const ScheduleVisualizer = ({data}: Props) => {
         height={maxPossibleHeight}
         data={weekDayNames}
         scrollAnimationDuration={500}
-        renderItem={({item}) => renderWeek(item)}
+        renderItem={({ item }) => renderWeek(item)}
       />
     </CarouselContainer>
   );

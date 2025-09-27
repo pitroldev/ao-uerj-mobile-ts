@@ -1,1 +1,1 @@
-export {default} from './UniversalSubjects';
+export { default } from './UniversalSubjects';

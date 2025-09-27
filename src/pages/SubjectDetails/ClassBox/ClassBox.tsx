@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {getVacancieHealth} from '@utils/health/vacancies';
+import { getVacancieHealth } from '@utils/health/vacancies';
 
 import {
   Horario,
@@ -54,7 +54,8 @@ const ClassBox = (c: SubjectClassesSchedule) => {
                 c.vacancies?.uerj.requestedTaken as number,
                 c.vacancies?.uerj.requestedAvailable as number,
               ).status
-            }>
+            }
+          >
             <Text size="XS" weight="bold" alignSelf="center">
               Solicitadas
             </Text>
@@ -70,7 +71,8 @@ const ClassBox = (c: SubjectClassesSchedule) => {
                 c.vacancies?.uerj.taken as number,
                 c.vacancies?.uerj.available as number,
               ).status
-            }>
+            }
+          >
             <Text size="XS" weight="bold" alignSelf="center">
               Ocupadas
             </Text>

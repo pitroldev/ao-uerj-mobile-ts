@@ -1,5 +1,3 @@
-
-
 ## [Unreleased](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.2.5...HEAD)
 
 ### New Features
@@ -11,7 +9,6 @@
 ### Performance
 
 ### Other Changes
-
 
 ## [v1.2.5](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.2.3...v1.2.5)
 
@@ -31,7 +28,6 @@
 
 - :triangular_flag_on_post: chore: Habilitando novamente feature de notas do período [`5b900e2`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/5b900e206eba3a40d8adba09ea5512bca67ad930)
 
-
 ## [v1.2.3](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.2.0...v1.2.3)
 
 ### New Features
@@ -43,7 +39,6 @@
 ### Performance
 
 ### Other Changes
-
 
 ## [v1.2.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.9...v1.2.0)
 
@@ -59,7 +54,6 @@
 
 - :memo: docs: Possível backend para integração com o sistema oficial (SAG) [`1ac35bc`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/1ac35bc920cdcee01e0bb9b63bcd36c44ffd907a)
 
-
 ## [v1.1.9](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.8...v1.1.9)
 
 ### New Features
@@ -71,7 +65,6 @@
 ### Performance
 
 ### Other Changes
-
 
 ## [v1.1.8](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.7...v1.1.8)
 
@@ -85,7 +78,6 @@
 
 ### Other Changes
 
-
 ## [v1.1.7](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.6...v1.1.7)
 
 ### New Features
@@ -98,7 +90,6 @@
 
 ### Other Changes
 
-
 ## [v1.1.6](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.5...v1.1.6)
 
 ### New Features
@@ -110,7 +101,6 @@
 ### Performance
 
 ### Other Changes
-
 
 ## [v1.1.5](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.4...v1.1.5)
 
@@ -126,7 +116,6 @@
 
 ### Other Changes
 
-
 ## [v1.1.4](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.3...v1.1.4)
 
 ### New Features
@@ -140,7 +129,6 @@
 ### Performance
 
 ### Other Changes
-
 
 ## [v1.1.3](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.2...v1.1.3)
 
@@ -156,7 +144,6 @@
 
 ### Other Changes
 
-
 ## [v1.1.2](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.1...v1.1.2)
 
 ### New Features
@@ -171,7 +158,6 @@
 ### Performance
 
 ### Other Changes
-
 
 ## [v1.1.1](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.1.0...v1.1.1)
 
@@ -191,7 +177,6 @@
 - :necktie: chore: Classes conflitantes não são automaticamente selecionadas [`1f36186`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/1f361865fe564d93450560bda164dbd70c754658)
 - :truck: chore: Diminuição do tempo de hold no BusyHoursStep [`9614b76`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/9614b76c1c8b35fed5b70bab660df66d8aef215e)
 
-
 ## [v1.1.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.6...v1.1.0)
 
 ### New Features
@@ -209,7 +194,6 @@
 
 ### Other Changes
 
-
 ## [v1.0.6](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.5...v1.0.6)
 
 ### New Features
@@ -224,7 +208,6 @@
 
 ### Other Changes
 
-
 ## [v1.0.5](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.4...v1.0.5)
 
 ### New Features
@@ -238,7 +221,6 @@
 ### Performance
 
 ### Other Changes
-
 
 ## [v1.0.4](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.2...v1.0.4)
 
@@ -256,7 +238,6 @@
 
 ### Other Changes
 
-
 ## [v1.0.2](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.1...v1.0.2)
 
 ### New Features
@@ -270,7 +251,6 @@
 ### Performance
 
 ### Other Changes
-
 
 ## [v1.0.1](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.0.0...v1.0.1)
 
@@ -288,7 +268,6 @@
 ### Other Changes
 
 - :children_crossing: chore: Fixando orientação em Portrait [`c3bd200`](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/c3bd200a8bbef70ebdae82e6fa7df8880cd5a566)
-
 
 ## [v1.0.0]()
 

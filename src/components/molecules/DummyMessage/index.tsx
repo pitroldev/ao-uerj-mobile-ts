@@ -1,1 +1,1 @@
-export {default} from './DummyMessage';
+export { default } from './DummyMessage';

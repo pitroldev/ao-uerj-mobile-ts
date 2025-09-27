@@ -1,45 +1,94 @@
 {{#each releases}}
 
-
-  ## [{{title}}]({{href}})
-
-  ### New Features
-  {{#commit-list commits heading=''message='(feat:|add:)' exclude='(style:|:lipstick:|:zap:|fix:|:recycle:)'}}
-    - {{subject}} [`{{shorthash}}`]({{href}})
+  ## [{{title}}]({{href}}) ### New Features
+  {{#commit-list
+    commits
+    heading=''
+    message='(feat:|add:)'
+    exclude='(style:|:lipstick:|:zap:|fix:|:recycle:)'
+  }}
+    -
+    {{subject}}
+    [`{{shorthash}}`]({{href}})
   {{/commit-list}}
   {{#each merges}}
-    {{custom subject=message id=id href=href message='(feat:|add:)' exclude='(style:|:lipstick:|:zap:|fix:|:recycle:)'}}
+    {{custom
+      subject=message
+      id=id
+      href=href
+      message='(feat:|add:)'
+      exclude='(style:|:lipstick:|:zap:|fix:|:recycle:)'
+    }}
   {{/each}}
 
   ### Fixes
   {{#commit-list commits heading='' message='fix:' exclude=':recycle:'}}
-    - {{subject}} [`{{shorthash}}`]({{href}})
+    -
+    {{subject}}
+    [`{{shorthash}}`]({{href}})
   {{/commit-list}}
   {{#each merges}}
-    {{custom subject=message id=id href=href message='fix:' exclude=':recycle:'}}
+    {{custom
+      subject=message
+      id=id
+      href=href
+      message='fix:'
+      exclude=':recycle:'
+    }}
   {{/each}}
 
   ### Styles
-  {{#commit-list commits heading='' message='(style:|:lipstick:)' exclude='(fix:|:recycle:)'}}
-    - {{subject}} [`{{shorthash}}`]({{href}})
+  {{#commit-list
+    commits heading='' message='(style:|:lipstick:)' exclude='(fix:|:recycle:)'
+  }}
+    -
+    {{subject}}
+    [`{{shorthash}}`]({{href}})
   {{/commit-list}}
   {{#each merges}}
-    {{custom subject=message id=id href=href message='(style:|:lipstick:)' exclude='(fix:|:recycle:)'}}
+    {{custom
+      subject=message
+      id=id
+      href=href
+      message='(style:|:lipstick:)'
+      exclude='(fix:|:recycle:)'
+    }}
   {{/each}}
 
   ### Performance
   {{#commit-list commits heading='' message=':zap:' exclude=':recycle:'}}
-    - {{subject}} [`{{shorthash}}`]({{href}})
+    -
+    {{subject}}
+    [`{{shorthash}}`]({{href}})
   {{/commit-list}}
   {{#each merges}}
-    {{custom subject=message id=id href=href  message=':zap:' exclude=':recycle:'}}
+    {{custom
+      subject=message
+      id=id
+      href=href
+      message=':zap:'
+      exclude=':recycle:'
+    }}
   {{/each}}
 
   ### Other Changes
-  {{#commit-list commits heading='' message='(chore:|docs:|refactor:|test:)' exclude=':recycle:'}}
-    - {{subject}} [`{{shorthash}}`]({{href}})
+  {{#commit-list
+    commits
+    heading=''
+    message='(chore:|docs:|refactor:|test:)'
+    exclude=':recycle:'
+  }}
+    -
+    {{subject}}
+    [`{{shorthash}}`]({{href}})
   {{/commit-list}}
   {{#each merges}}
-    {{custom subject=message id=id href=href  message='(chore:|docs:|refactor:|test:)' exclude=':recycle:'}}
+    {{custom
+      subject=message
+      id=id
+      href=href
+      message='(chore:|docs:|refactor:|test:)'
+      exclude=':recycle:'
+    }}
   {{/each}}
 {{/each}}

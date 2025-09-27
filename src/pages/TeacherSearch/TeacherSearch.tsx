@@ -1,12 +1,12 @@
-import React, {useState} from 'react';
-import {FlatList, ListRenderItemInfo} from 'react-native';
+import React, { useState } from 'react';
+import { FlatList, ListRenderItemInfo } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Toast from 'react-native-toast-message';
-import {useQuery} from 'react-query';
+import { useQuery } from 'react-query';
 
-import {useBackHandler} from '@hooks/useBackHandler';
+import { useBackHandler } from '@hooks/useBackHandler';
 
-import {useAppSelector} from '@root/store';
+import { useAppSelector } from '@root/store';
 import * as infoReducer from '@reducers/userInfo';
 
 import {
@@ -21,13 +21,13 @@ import SubjectBox from '@molecules/SubjectBox';
 import DummyMessage from '@molecules/DummyMessage';
 import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
-import {Container} from './TeacherSearch.styles';
+import { Container } from './TeacherSearch.styles';
 
 const TeacherSearch = () => {
   const [search, setSearch] = useState('');
   const [selectedTeacher, setSelectedTeacher] = useState('');
 
-  const {matricula} = useAppSelector(infoReducer.selectUserInfo);
+  const { matricula } = useAppSelector(infoReducer.selectUserInfo);
 
   useBackHandler(() => {
     setSearch('');
@@ -36,7 +36,7 @@ const TeacherSearch = () => {
 
   const {
     data,
-    isFetching: loading,
+    isLoading: loading,
     error,
   } = useQuery({
     queryKey: ['teacher-list', matricula],
@@ -44,7 +44,7 @@ const TeacherSearch = () => {
     initialData: [],
   });
 
-  const {data: teacherData, isFetching: loadingTeacher} = useQuery({
+  const { data: teacherData, isLoading: loadingTeacher } = useQuery({
     queryKey: ['teacher-details', selectedTeacher],
     queryFn: () => fetchTeacherDetails(selectedTeacher),
     enabled: Boolean(selectedTeacher),
@@ -72,7 +72,7 @@ const TeacherSearch = () => {
     );
   }
 
-  const handleRenderItem = ({item}: ListRenderItemInfo<string>) => (
+  const handleRenderItem = ({ item }: ListRenderItemInfo<string>) => (
     <SubjectBox name={item} onPress={() => setSelectedTeacher(item)} />
   );
 
@@ -93,7 +93,7 @@ const TeacherSearch = () => {
         showsVerticalScrollIndicator={false}
         keyExtractor={(item, index) => `${item}${index}`}
       />
-      {error && (
+      {!!error && (
         <DummyMessage
           text="Houve um erro ao buscar a lista de professores"
           type="ERROR"

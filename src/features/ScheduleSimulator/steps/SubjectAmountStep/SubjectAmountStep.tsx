@@ -1,9 +1,9 @@
 import React from 'react';
-import {useFormContext, Controller} from 'react-hook-form';
+import { useFormContext, Controller } from 'react-hook-form';
 
-import {useStepsContext} from '@hooks/useSteps';
+import { useStepsContext } from '@hooks/useSteps';
 
-import {ScheduleCreationParams} from '@features/ScheduleSimulator/types';
+import { ScheduleCreationParams } from '@features/ScheduleSimulator/types';
 
 import Text from '@atoms/Text';
 import Button from '@atoms/Button';
@@ -20,17 +20,17 @@ const MIN_SUBJECTS_LIMIT = 3;
 const MAX_SUBJECTS_LIMIT = 12;
 
 const SubjectAmountStep = () => {
-  const {nextStep} = useStepsContext();
+  const { nextStep } = useStepsContext();
 
   const {
     control,
-    formState: {errors},
+    formState: { errors },
     handleSubmit,
     setValue,
   } = useFormContext<ScheduleCreationParams>();
 
   const handleNextPress = handleSubmit(data => {
-    const {min_subject_amount, max_subject_amount} = data as {
+    const { min_subject_amount, max_subject_amount } = data as {
       min_subject_amount: number;
       max_subject_amount: number;
     };
@@ -69,13 +69,16 @@ const SubjectAmountStep = () => {
               max: MAX_SUBJECTS_LIMIT,
             }}
             name="min_subject_amount"
-            render={({field: {onChange, value}}) => (
+            render={({ field: { onChange, value } }) => (
               <TextInput
-                value={value}
+                value={
+                  value === undefined || value === null ? '' : String(value)
+                }
                 keyboardType="number-pad"
                 onChangeText={(text: string) => {
                   const newText = text.replace(/[^0-9]/g, '');
-                  onChange(newText);
+                  const parsed = newText ? parseInt(newText, 10) : undefined;
+                  onChange(parsed as unknown as number);
                 }}
               />
             )}
@@ -102,10 +105,16 @@ const SubjectAmountStep = () => {
               max: MAX_SUBJECTS_LIMIT,
             }}
             name="max_subject_amount"
-            render={({field: {onChange, value}}) => (
+            render={({ field: { onChange, value } }) => (
               <TextInput
-                value={value}
-                onChangeText={onChange}
+                value={
+                  value === undefined || value === null ? '' : String(value)
+                }
+                onChangeText={(text: string) => {
+                  const newText = text.replace(/[^0-9]/g, '');
+                  const parsed = newText ? parseInt(newText, 10) : undefined;
+                  onChange(parsed as unknown as number);
+                }}
                 keyboardType="number-pad"
               />
             )}

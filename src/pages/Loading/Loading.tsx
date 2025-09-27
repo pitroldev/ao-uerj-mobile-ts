@@ -1,11 +1,11 @@
 import React from 'react';
 
 import Text from '@atoms/Text';
-import {MainContainer} from './Loading.styles';
+import { MainContainer } from './Loading.styles';
 
 import Spinner from '@root/components/atoms/Spinner';
 
-const AboutPage = () => {
+const LoadingPage = () => {
   return (
     <MainContainer>
       <Spinner size={64} />
@@ -14,11 +14,12 @@ const AboutPage = () => {
         size="LG"
         alignSelf="center"
         textAlign="center"
-        marginTop="32px">
+        marginTop="32px"
+      >
         Aguarde um momento enquanto carregamos os dados...
       </Text>
     </MainContainer>
   );
 };
 
-export default AboutPage;
+export default LoadingPage;

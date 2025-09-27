@@ -11,18 +11,18 @@ export const InputContainer = styled.View`
   flex-grow: 1;
 
   border-radius: 8px;
-  background-color: ${({theme}) => theme.COLORS.BACKGROUND};
-  border: 1px solid ${({theme}) => theme.COLORS.BACKGROUND_400};
+  background-color: ${({ theme }) => theme.COLORS.BACKGROUND};
+  border: 1px solid ${({ theme }) => theme.COLORS.BACKGROUND_400};
   border-top-right-radius: 0;
 `;
 
-export const Input = styled.TextInput.attrs(({theme}) => ({
+export const Input = styled.TextInput.attrs(({ theme }) => ({
   placeholderTextColor: theme.COLORS.BACKGROUND_400,
 }))`
   flex: 1;
   margin-left: 5px;
-  font-family: ${({theme}) => theme.FONTS.REGULAR};
-  color: ${({theme}) => theme.COLORS.TEXT_PRIMARY};
+  font-family: ${({ theme }) => theme.FONTS.REGULAR};
+  color: ${({ theme }) => theme.COLORS.TEXT_PRIMARY};
 `;
 
 export const IconContainer = styled.View`

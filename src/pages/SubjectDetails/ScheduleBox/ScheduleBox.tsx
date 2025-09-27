@@ -1,15 +1,15 @@
 import React from 'react';
 
-import {getAliasPeriodColor} from '@utils/health/time';
-import {TIME_DICTIONARY} from '@utils/constants/time';
+import { getAliasPeriodColor } from '@utils/health/time';
+import { TIME_DICTIONARY } from '@utils/constants/time';
 
-import {Turno, WeekDay} from '@root/types/dateStuff';
+import { Turno, WeekDay } from '@root/types/dateStuff';
 
-import {Horario} from '@features/SubjectClassesSchedule/types';
+import { Horario } from '@features/SubjectClassesSchedule/types';
 
 import Text from '@atoms/Text';
 
-import {Container} from './ScheduleBox.styles';
+import { Container } from './ScheduleBox.styles';
 
 const ScheduleDayBoxes = (props: Horario) => {
   const day = Object.keys(props)[0] as WeekDay;

@@ -38,7 +38,7 @@ export const ScrollView = styled.ScrollView`
   height: 80%;
 `;
 
-export const Switch = styled.Switch.attrs(({theme}) => ({
+export const Switch = styled.Switch.attrs(({ theme }) => ({
   trackColor: {
     false: theme.COLORS.DISABLED,
     true: theme.COLORS.PRIMARY,
@@ -47,4 +47,15 @@ export const Switch = styled.Switch.attrs(({theme}) => ({
 }))`
   display: flex;
   flex: 1;
+`;
+
+export const ChipsContainer = styled.View`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+`;
+
+export const ChipItem = styled.View`
+  margin-right: 8px;
+  margin-bottom: 8px;
 `;
