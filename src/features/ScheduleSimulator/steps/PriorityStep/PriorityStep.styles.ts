@@ -48,3 +48,14 @@ export const Switch = styled.Switch.attrs(({ theme }) => ({
   display: flex;
   flex: 1;
 `;
+
+export const ChipsContainer = styled.View`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+`;
+
+export const ChipItem = styled.View`
+  margin-right: 8px;
+  margin-bottom: 8px;
+`;

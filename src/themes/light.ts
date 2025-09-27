@@ -6,6 +6,7 @@ export const COLORS = {
   DISABLED: '#CCCCCC',
 
   BACKGROUND: '#fdfdfd',
+  BACKGROUND_700: '#777',
   BACKGROUND_500: '#DDD',
   BACKGROUND_400: '#bbb',
 

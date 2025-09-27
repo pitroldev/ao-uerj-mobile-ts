@@ -69,6 +69,7 @@ const FetchDataStep = () => {
 
   const isTakenSubjectsFetched = !errorSubjectsTaken && !loadingSubjectsTaken;
   const isAllDataFetched = isTakenSubjectsFetched && isSubjectDataFetched;
+  const totalSubjects = selectedSubjects.length;
 
   return (
     <Container>
@@ -78,9 +79,20 @@ const FetchDataStep = () => {
             ? 'Dados carregados com sucesso!'
             : 'Aguarde, buscando dados...'}
         </Text>
+        {!isAllDataFetched && (
+          <Text
+            size="XS"
+            alignSelf="center"
+            marginBottom="6px"
+            color="BACKGROUND_700">
+            Disciplinas selecionadas: {totalSubjects}
+          </Text>
+        )}
 
         <ScrollView>
-          <TouchableOpacity onPress={handleRefetch}>
+          <TouchableOpacity
+            onPress={handleRefetch}
+            disabled={loadingSubjectsTaken}>
             <InfoRow>
               {loadingSubjectsTaken && !errorSubjectsTaken && (
                 <Spinner size={20} />
