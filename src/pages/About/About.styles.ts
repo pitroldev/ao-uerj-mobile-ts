@@ -22,12 +22,13 @@ export const Row = styled.View`
   align-items: center;
   justify-content: space-between;
 
-  margin: 16px 48px;
+  margin: 0px 8px;
 `;
 
 export const Column = styled.View`
   display: flex;
   flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   margin: 8px 16px;
@@ -39,7 +40,7 @@ export const AOLogoContainer = styled.View`
   border-radius: 50px;
 
   padding: 16px;
-  margin: 8px auto;
+  margin: 4px auto;
   background-color: ${({ theme }) => theme.COLORS.PRIMARY};
 `;
 
@@ -55,3 +56,35 @@ export const Icon = styled(FontAwesomeIcon as any).attrs(({ theme }) => ({
   color: theme.COLORS.BACKGROUND,
   size: 20,
 }))``;
+
+export const ButtonIcon = styled(FontAwesomeIcon as any).attrs(({ theme }) => ({
+  color: theme.COLORS.PRIMARY,
+  size: 16,
+}))`
+  margin-right: 8px;
+`;
+
+export const ButtonContent = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+`;
+
+export const SectionContainer = styled.View`
+  margin: 0;
+  padding: 0 12px;
+  align-items: center;
+`;
+
+export const ActionButton = styled.TouchableOpacity`
+  border: 1px solid ${({ theme }) => theme.COLORS.PRIMARY}20;
+  border-radius: 8px;
+  padding: 8px 16px;
+  margin: 6px;
+  min-width: 160px;
+  align-items: center;
+`;
+
+export const Divider = styled.View`
+  margin: 16px;
+`;
