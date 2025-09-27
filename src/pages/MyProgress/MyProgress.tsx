@@ -1,5 +1,5 @@
 import React from 'react';
-import {ScrollView} from 'react-native';
+import { ScrollView } from 'react-native';
 
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
@@ -18,8 +18,8 @@ import {
   Pill,
 } from './MyProgress.styles';
 import CraLineChart from './CraLineChart';
-import {useMyProgress} from './useMyProgress';
-import {SUBJECT_TYPE} from '@utils/constants/subjectDictionary';
+import { useMyProgress } from './useMyProgress';
+import { SUBJECT_TYPE } from '@utils/constants/subjectDictionary';
 
 export default function MyProgressPage() {
   const {

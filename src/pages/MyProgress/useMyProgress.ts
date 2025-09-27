@@ -1,29 +1,29 @@
-import {useMemo} from 'react';
-import {useAppDispatch, useAppSelector} from '@root/store';
-import {useQuery} from 'react-query';
+import { useMemo } from 'react';
+import { useAppDispatch, useAppSelector } from '@root/store';
+import { useQuery } from 'react-query';
 
-import {selectApiConfig} from '@reducers/apiConfig';
+import { selectApiConfig } from '@reducers/apiConfig';
 
-import {SUBJECT_TYPE} from '@utils/constants/subjectDictionary';
+import { SUBJECT_TYPE } from '@utils/constants/subjectDictionary';
 
-import {fetchSubjectsTaken} from '@features/SubjectsTaken/core';
-import {fetchCurriculumSubjects} from '@features/CurriculumSubjects/core';
-import {selectSubjectsAttended} from '@features/SubjectsTaken/reducer';
+import { fetchSubjectsTaken } from '@features/SubjectsTaken/core';
+import { fetchCurriculumSubjects } from '@features/CurriculumSubjects/core';
+import { selectSubjectsAttended } from '@features/SubjectsTaken/reducer';
 import * as subjectsTakenReducer from '@features/SubjectsTaken/reducer';
 import * as curriculumReducer from '@features/CurriculumSubjects/reducer';
-import {selectCurriculumSubjects} from '@features/CurriculumSubjects/reducer';
+import { selectCurriculumSubjects } from '@features/CurriculumSubjects/reducer';
 
-type Point = {label: string; cra: number};
+type Point = { label: string; cra: number };
 
 function isApproved(status: string | undefined) {
   return status === 'APPROVED' || status === 'EXEMPT';
 }
 
 function useCraProgression() {
-  const {data: taken} = useAppSelector(selectSubjectsAttended);
+  const { data: taken } = useAppSelector(selectSubjectsAttended);
 
   return useMemo(() => {
-    const perPeriod: Record<string, {sum: number; credits: number}> = {};
+    const perPeriod: Record<string, { sum: number; credits: number }> = {};
     taken.forEach(s => {
       if (
         s.grade != null &&
@@ -35,7 +35,7 @@ function useCraProgression() {
         const w = Number(s.credits) || 0;
         const g = Number(s.grade) || 0;
         if (!perPeriod[p]) {
-          perPeriod[p] = {sum: 0, credits: 0};
+          perPeriod[p] = { sum: 0, credits: 0 };
         }
         perPeriod[p].sum += g * w;
         perPeriod[p].credits += w;
@@ -51,22 +51,22 @@ function useCraProgression() {
       accSum += perPeriod[p].sum;
       accCredits += perPeriod[p].credits;
       const cra = accCredits > 0 ? accSum / accCredits : 0;
-      pointsOverTime.push({label: p, cra: Number(cra.toFixed(2))});
+      pointsOverTime.push({ label: p, cra: Number(cra.toFixed(2)) });
     });
 
     const currentCRA = pointsOverTime.length
       ? pointsOverTime[pointsOverTime.length - 1].cra
       : 0;
 
-    return {pointsOverTime, currentCRA};
+    return { pointsOverTime, currentCRA };
   }, [taken]);
 }
 
 export function useMyProgress() {
   const dispatch = useAppDispatch();
-  const {data: taken} = useAppSelector(selectSubjectsAttended);
-  const {data: curriculum} = useAppSelector(selectCurriculumSubjects);
-  const {cookies} = useAppSelector(selectApiConfig);
+  const { data: taken } = useAppSelector(selectSubjectsAttended);
+  const { data: curriculum } = useAppSelector(selectCurriculumSubjects);
+  const { cookies } = useAppSelector(selectApiConfig);
 
   const HOUR_IN_MS = 1000 * 60 * 60;
 
@@ -85,7 +85,7 @@ export function useMyProgress() {
     onSuccess: d => dispatch(curriculumReducer.setState(d)),
   });
 
-  const {currentCRA, pointsOverTime} = useCraProgression();
+  const { currentCRA, pointsOverTime } = useCraProgression();
 
   const approvedCount = useMemo(
     () => taken.filter(s => isApproved(s.status)).length,

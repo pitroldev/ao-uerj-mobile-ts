@@ -8,36 +8,36 @@ export const Container = styled.View`
   padding-top: 6%;
 
   border-top-left-radius: 50px;
-  background-color: ${({theme}) => theme.COLORS.BACKGROUND};
+  background-color: ${({ theme }) => theme.COLORS.BACKGROUND};
 `;
 
 export const StatCard = styled.View`
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 12px;
-  background-color: ${({theme}) => theme.COLORS.CARD_BACKGROUND ?? '#fff'};
+  background-color: ${({ theme }) => theme.COLORS.BACKGROUND ?? '#fff'};
 
   border-width: 1px;
-  border-color: ${({theme}) => theme.COLORS.BACKGROUND_500 ?? '#DDD'};
+  border-color: ${({ theme }) => theme.COLORS.BACKGROUND_500 ?? '#DDD'};
 `;
 
 export const StatTitle = styled.Text`
   font-size: 14px;
-  color: ${({theme}) => theme.COLORS.TEXT_PRIMARY ?? '#333'};
+  color: ${({ theme }) => theme.COLORS.TEXT_PRIMARY ?? '#333'};
 `;
 
 export const StatValue = styled.Text`
   font-size: 22px;
   font-weight: 700;
   margin-top: 4px;
-  color: ${({theme}) => theme.COLORS.TEXT_PRIMARY ?? '#000'};
+  color: ${({ theme }) => theme.COLORS.TEXT_PRIMARY ?? '#000'};
 `;
 
 export const SectionTitle = styled.Text`
   font-size: 16px;
   font-weight: 600;
   margin: 12px 0 8px 0;
-  color: ${({theme}) => theme.COLORS.TEXT_PRIMARY ?? '#000'};
+  color: ${({ theme }) => theme.COLORS.TEXT_PRIMARY ?? '#000'};
 `;
 
 export const Row = styled.View`
@@ -56,17 +56,17 @@ export const ProgressContainer = styled.View`
 export const ProgressTrack = styled.View`
   height: 10px;
   border-radius: 6px;
-  background-color: ${({theme}) => theme.COLORS.BACKGROUND_500};
+  background-color: ${({ theme }) => theme.COLORS.BACKGROUND_500};
   overflow: hidden;
   border-width: 1px;
-  border-color: ${({theme}) => theme.COLORS.BACKGROUND_500 ?? '#DDD'};
+  border-color: ${({ theme }) => theme.COLORS.BACKGROUND_500 ?? '#DDD'};
 `;
 
-export const ProgressFill = styled.View<{percent: number; color?: string}>`
+export const ProgressFill = styled.View<{ percent: number; color?: string }>`
   height: 100%;
-  width: ${({percent}) => Math.max(0, Math.min(100, percent))}%;
+  width: ${({ percent }) => Math.max(0, Math.min(100, percent))}%;
   border-radius: 6px;
-  background-color: ${({color, theme}) => color || theme.COLORS.TERTIARY};
+  background-color: ${({ color, theme }) => color || theme.COLORS.TERTIARY};
 `;
 
 export const InlineStats = styled.View`
@@ -79,6 +79,6 @@ export const Pill = styled.View`
   align-self: flex-start;
   padding: 4px 8px;
   border-radius: 999px;
-  background-color: ${({theme}) => theme.COLORS.BACKGROUND_500 ?? '#DDD'};
+  background-color: ${({ theme }) => theme.COLORS.BACKGROUND_500 ?? '#DDD'};
   margin-bottom: 6px;
 `;

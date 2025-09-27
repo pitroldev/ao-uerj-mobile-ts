@@ -1,8 +1,8 @@
-import React, {useState} from 'react';
-import Svg, {Circle, G, Text as SvgText, Line} from 'react-native-svg';
+import React, { useState } from 'react';
+import Svg, { Circle, G, Text as SvgText, Line } from 'react-native-svg';
 import styled from 'styled-components/native';
 
-type Point = {label: string; cra: number};
+type Point = { label: string; cra: number };
 
 type CraLineChartProps = {
   data: Point[];
@@ -18,7 +18,11 @@ const ChartBox = styled.View`
   width: 100%;
 `;
 
-export default function CraLineChart({data, width, height}: CraLineChartProps) {
+export default function CraLineChart({
+  data,
+  width,
+  height,
+}: CraLineChartProps) {
   const [cw, setCw] = useState<number | null>(null);
   if (!data || data.length === 0) {
     return null;
@@ -36,7 +40,7 @@ export default function CraLineChart({data, width, height}: CraLineChartProps) {
       <Wrapper>
         <ChartBox
           onLayout={e => setCw(e.nativeEvent.layout.width)}
-          style={{height: H}}
+          style={{ height: H }}
         />
       </Wrapper>
     );
@@ -166,7 +170,8 @@ export default function CraLineChart({data, width, height}: CraLineChartProps) {
                   fontSize={8}
                   fill="#666"
                   textAnchor="end"
-                  transform={`rotate(-30 ${xFor(i)} ${axisY + 12})`}>
+                  transform={`rotate(-30 ${xFor(i)} ${axisY + 12})`}
+                >
                   {d.label}
                 </SvgText>
               </G>
