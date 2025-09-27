@@ -58,7 +58,7 @@ export const Icon = styled(FontAwesomeIcon as any).attrs(({ theme }) => ({
 }))``;
 
 export const ButtonIcon = styled(FontAwesomeIcon as any).attrs(({ theme }) => ({
-  color: theme.COLORS.PRIMARY,
+  color: theme.COLORS.TEXT_PRIMARY,
   size: 16,
 }))`
   margin-right: 8px;
