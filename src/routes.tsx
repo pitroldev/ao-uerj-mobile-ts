@@ -44,7 +44,6 @@ export type RootDrawerParamList = {
 
 const Drawer = createDrawerNavigator<RootDrawerParamList>();
 
-// Move drawerContent renderer outside of component to avoid nested component lint warning
 const renderDrawerContent = (props: any) => (
   <CustomDrawerNavigator {...props} />
 );
@@ -55,7 +54,10 @@ const MainRoutes = () => {
 
   const { isLoading } = useQuery({
     queryKey: ['refresh-auth'],
-    queryFn: refreshAuth,
+    queryFn: async () => {
+      await refreshAuth();
+      return true;
+    },
     enabled: Boolean(matricula && password),
     retry: 0,
     refetchInterval: 10 * 60 * 1000, // Refresh a cada 10 minutos (600.000ms)
