@@ -80,7 +80,7 @@ Funcionalidades exclusivas do app (servidores próprios):
 ## Requisitos
 
 - Node.js LTS recente (>= 18 recomendado)
-- Yarn ou npm
+- pnpm
 - Ambiente React Native:
     - Android: JDK 17 (ou compatível RN 0.81.4), Android SDK, emulador/dispositivo, Gradle (wrapper incluso)
 
@@ -90,17 +90,13 @@ Instalar dependências
 
 ```pwsh
 # na raiz do projeto
-npm install
-# ou
-yarn
+pnpm install
 ```
 
 Android (emulador ou device)
 
 ```pwsh
-npm run android
-# ou
-yarn android
+pnpm android
 ```
 
 Observação: se houver erros relacionados a SDK/NDK/Gradle/Java, ajuste localmente as versões para o ambiente RN 0.81.4.
