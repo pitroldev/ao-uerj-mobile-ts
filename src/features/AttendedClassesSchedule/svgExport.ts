@@ -1,6 +1,6 @@
-import {Buffer} from 'buffer';
-import {TIME_VALUES} from '@utils/constants/time';
-import {AttendedClassesSchedule} from '@features/AttendedClassesSchedule/types';
+import { Buffer } from 'buffer';
+import { TIME_VALUES } from '@utils/constants/time';
+import { AttendedClassesSchedule } from '@features/AttendedClassesSchedule/types';
 
 export type SvgThemeColors = {
   BACKGROUND: string;
@@ -32,10 +32,10 @@ export const buildWeekSvgDataUri = (
 ) => {
   const safeData = data ?? [];
 
-  const weekDays: {number: number; name: string}[] = [];
+  const weekDays: { number: number; name: string }[] = [];
   safeData.forEach(c => {
     if (!weekDays.some(w => w.number === c.dayNumber)) {
-      weekDays.push({number: c.dayNumber, name: c.dayAlias});
+      weekDays.push({ number: c.dayNumber, name: c.dayAlias });
     }
   });
 
@@ -101,14 +101,14 @@ export const buildWeekSvgDataUri = (
       const leftColWidth = 120;
       const leftTextX = marginX + baselineXNudge;
       const rightTextX = marginX + baselineXNudge + leftColWidth;
-      const {start_time_in_minutes, end_time_in_minutes} = item;
-      const {periodAlias: startPeriod, startTimeAlias} =
+      const { start_time_in_minutes, end_time_in_minutes } = item;
+      const { periodAlias: startPeriod, startTimeAlias } =
         TIME_VALUES.find(
           t => start_time_in_minutes === t.start_time_in_minutes,
-        ) ?? ({periodAlias: '??', startTimeAlias: '??'} as any);
-      const {periodAlias: endPeriod, endTimeAlias} =
+        ) ?? ({ periodAlias: '??', startTimeAlias: '??' } as any);
+      const { periodAlias: endPeriod, endTimeAlias } =
         TIME_VALUES.find(t => t.end_time_in_minutes === end_time_in_minutes) ??
-        ({periodAlias: '??', endTimeAlias: '??'} as any);
+        ({ periodAlias: '??', endTimeAlias: '??' } as any);
       const fill = colors[getBoxColorKey(start_time_in_minutes)] as string;
       sections.push(`
           <rect

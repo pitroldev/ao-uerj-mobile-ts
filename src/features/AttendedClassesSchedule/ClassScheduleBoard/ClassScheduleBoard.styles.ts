@@ -1,7 +1,7 @@
 import styled from 'styled-components/native';
 
 import Box from '@atoms/Box';
-import {TouchableOpacity} from 'react-native';
+import { TouchableOpacity } from 'react-native';
 
 export const CarouselContainer = styled.View`
   margin: 12px 0;
@@ -69,5 +69,5 @@ export const ShareButton = styled(TouchableOpacity)`
   border-radius: 15px;
   align-items: center;
   justify-content: center;
-  opacity: ${({disabled}) => (disabled ? 0.6 : 1)};
+  opacity: ${({ disabled }) => (disabled ? 0.6 : 1)};
 `;
