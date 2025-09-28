@@ -1,9 +1,11 @@
 import React from 'react';
 import Share from 'react-native-share';
-import { TouchableOpacity } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
+import { TouchableOpacity, View } from 'react-native';
 import { useTheme } from 'styled-components/native';
 import Carousel from 'react-native-reanimated-carousel';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Buffer } from 'buffer';
 
 import { window } from '@utils/constants/info';
 import { TIME_VALUES } from '@utils/constants/time';
@@ -11,6 +13,10 @@ import { AttendedClassesSchedule } from '@features/AttendedClassesSchedule/types
 
 import Text from '@atoms/Text';
 import { buildWeekSvgDataUri } from '../svgExport';
+import {
+  useSvgToImage,
+  convertSvgToImageFallback,
+} from '../svgToImageConverter';
 
 import {
   TimeInfoColumn,
@@ -31,6 +37,7 @@ type Props = {
 const ClassScheduleBoard = ({ data, onSubjectPress }: Props) => {
   const theme = useTheme();
   const safeData = data ?? [];
+  const { convertSvgToImage, SvgRenderer } = useSvgToImage();
 
   const weekDays = [] as { number: number; name: string }[];
   safeData.forEach(
@@ -140,17 +147,43 @@ const ClassScheduleBoard = ({ data, onSubjectPress }: Props) => {
   const handleExport = async () => {
     try {
       setExporting(true);
-      const dataUri = buildWeekSvgDataUri(safeData, theme.COLORS as any);
-      await Share.open({
-        url: dataUri,
-        type: 'image/svg+xml',
-        failOnCancel: false,
-        message: 'Grade de aulas (semana completa)',
-      });
+
+      try {
+        const imageUri = await convertSvgToImage(safeData, theme.COLORS);
+        await Share.open({
+          url: imageUri,
+          type: 'image/png',
+          failOnCancel: false,
+        });
+      } catch (svgError) {
+        console.log(
+          'Erro na conversão SVG para PNG, tentando fallback:',
+          svgError,
+        );
+
+        try {
+          const fallbackUri = await convertSvgToImageFallback(
+            safeData,
+            theme.COLORS,
+          );
+          await Share.open({
+            url: fallbackUri,
+            type: 'image/png',
+            failOnCancel: false,
+          });
+        } catch (fallbackError) {
+          console.log('Erro no fallback, usando SVG original:', fallbackError);
+
+          const dataUri = buildWeekSvgDataUri(safeData, theme.COLORS);
+          await Share.open({
+            url: dataUri,
+            type: 'image/svg+xml',
+            failOnCancel: false,
+          });
+        }
+      }
     } catch (e) {
-      console.log('erro', e);
-      // noop for now; could show a toast if available
-      // console.warn('Export error', e);
+      console.log('Erro no compartilhamento:', e);
     } finally {
       setExporting(false);
     }
@@ -160,33 +193,41 @@ const ClassScheduleBoard = ({ data, onSubjectPress }: Props) => {
     return null;
   }
 
+  const svgDataUri = buildWeekSvgDataUri(safeData, theme.COLORS);
+  const base64Svg = svgDataUri.replace('data:image/svg+xml;base64,', '');
+  const svgString = Buffer.from(base64Svg, 'base64').toString('utf8');
+
   return (
-    <CarouselContainer>
-      <ActionsRow>
-        <ShareButton
-          onPress={handleExport}
-          accessibilityRole="button"
-          accessibilityLabel="Compartilhar grade da semana"
-          disabled={exporting}
-        >
-          <Icon
-            name="share-variant"
-            size={18}
-            color={theme.COLORS.TEXT_PRIMARY}
-          />
-        </ShareButton>
-      </ActionsRow>
-      <Carousel
-        loop
-        defaultIndex={defaultIndex}
-        width={window.width}
-        height={maxPossibleHeight}
-        data={weekDays.map(w => w.name)}
-        scrollAnimationDuration={500}
-        onSnapToItem={index => setCurrentIndex(index)}
-        renderItem={({ item }) => renderBoard(item)}
-      />
-    </CarouselContainer>
+    <>
+      <CarouselContainer>
+        <ActionsRow>
+          <ShareButton
+            onPress={handleExport}
+            accessibilityRole="button"
+            accessibilityLabel="Compartilhar grade da semana"
+            disabled={exporting}
+          >
+            <Icon
+              name="share-variant"
+              size={18}
+              color={theme.COLORS.TEXT_PRIMARY}
+            />
+          </ShareButton>
+        </ActionsRow>
+        <Carousel
+          loop
+          defaultIndex={defaultIndex}
+          width={window.width}
+          height={maxPossibleHeight}
+          data={weekDays.map(w => w.name)}
+          scrollAnimationDuration={500}
+          onSnapToItem={index => setCurrentIndex(index)}
+          renderItem={({ item }) => renderBoard(item)}
+        />
+      </CarouselContainer>
+
+      <SvgRenderer svgString={svgString} />
+    </>
   );
 };
 
