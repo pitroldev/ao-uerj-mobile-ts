@@ -1,5 +1,5 @@
-import React from 'react';
-import { useQuery } from 'react-query';
+import React, { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTheme } from 'styled-components';
 import { TouchableOpacity } from 'react-native';
 import { useFormContext, useWatch } from 'react-hook-form';
@@ -46,15 +46,21 @@ const SubjectDataFetcher = (subject: CurriculumSubject) => {
     queryFn: () => getSubjectInfo(code),
     enabled: !alreadyHasSubject,
     staleTime: 0,
-    onSuccess: data => {
-      const filteredSubjects = subjects.filter(s => s.id !== subject.id);
-      setValue('subjects', [...filteredSubjects, { ...data, id: subject.id }]);
+  });
 
-      const populatedClasses = data.classes.map(c => ({
+  useEffect(() => {
+    if (subjectInfo) {
+      const filteredSubjects = subjects.filter(s => s.id !== subject.id);
+      setValue('subjects', [
+        ...filteredSubjects,
+        { ...subjectInfo, id: subject.id },
+      ]);
+
+      const populatedClasses = subjectInfo.classes.map((c: any) => ({
         ...c,
         subject_id: subject.id,
       }));
-      const classesWithoutConflict = populatedClasses.filter(c => {
+      const classesWithoutConflict = populatedClasses.filter((c: any) => {
         const parsedSchedules = parseScheduleToGeneratorFormat(
           c?.schedule ?? [],
         );
@@ -72,8 +78,15 @@ const SubjectDataFetcher = (subject: CurriculumSubject) => {
         ...filteredSelectedClasses,
         ...classesWithoutConflict,
       ]);
-    },
-  });
+    }
+  }, [
+    subjectInfo,
+    subjects,
+    subject.id,
+    setValue,
+    selectedClasses,
+    busySchedules,
+  ]);
 
   const handleRefetchInfo = () => {
     if (errorInfo) {
@@ -81,7 +94,7 @@ const SubjectDataFetcher = (subject: CurriculumSubject) => {
     }
   };
 
-  const preReqs = subjectInfo?.prerequisite ?? ([] as Prereq[][]);
+  const preReqs = (subjectInfo as any)?.prerequisite ?? ([] as Prereq[][]);
   const approvedSubjects = takenSubjects.filter(
     taken => taken.status === 'APPROVED',
   );
@@ -91,11 +104,11 @@ const SubjectDataFetcher = (subject: CurriculumSubject) => {
   const isPrereqsSatified =
     !hasPrerequisites ||
     preReqs
-      .filter(([prereq]) => !prereq?.id?.toUpperCase().includes('TRAVA'))
-      .every(prereq =>
+      .filter(([prereq]: any) => !prereq?.id?.toUpperCase().includes('TRAVA'))
+      .every((prereq: any) =>
         approvedSubjects.some(taken =>
           prereq.some(
-            p => parseSubjectCode(p.id) === parseSubjectCode(taken.id),
+            (p: any) => parseSubjectCode(p.id) === parseSubjectCode(taken.id),
           ),
         ),
       );

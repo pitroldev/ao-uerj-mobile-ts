@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@root/store';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import { selectApiConfig } from '@reducers/apiConfig';
 
@@ -78,15 +78,25 @@ export function useMyProgress() {
     queryKey: ['subjects-taken', cookies],
     queryFn: fetchSubjectsTaken,
     staleTime: 24 * HOUR_IN_MS,
-    onSuccess: d => dispatch(subjectsTakenReducer.setState(d)),
   });
+
+  useEffect(() => {
+    if (subjectsTakenQuery.data) {
+      dispatch(subjectsTakenReducer.setState(subjectsTakenQuery.data));
+    }
+  }, [subjectsTakenQuery.data, dispatch]);
 
   const curriculumQuery = useQuery({
     queryKey: ['curriculum-subjects', cookies],
     queryFn: fetchCurriculumSubjects,
     staleTime: 24 * HOUR_IN_MS,
-    onSuccess: d => dispatch(curriculumReducer.setState(d)),
   });
+
+  useEffect(() => {
+    if (curriculumQuery.data) {
+      dispatch(curriculumReducer.setState(curriculumQuery.data));
+    }
+  }, [curriculumQuery.data, dispatch]);
 
   const { currentCRA, pointsOverTime } = useCraProgression();
 

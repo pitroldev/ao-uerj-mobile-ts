@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FlatList, ListRenderItemInfo } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Toast from 'react-native-toast-message';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import { useBackHandler } from '@hooks/useBackHandler';
 
@@ -48,15 +48,18 @@ const TeacherSearch = () => {
     queryKey: ['teacher-details', selectedTeacher],
     queryFn: () => fetchTeacherDetails(selectedTeacher),
     enabled: Boolean(selectedTeacher),
-    onError: () => {
+  });
+
+  React.useEffect(() => {
+    if (teacherData === undefined && selectedTeacher) {
       setSelectedTeacher('');
       Toast.show({
         type: 'error',
         text1: 'Ops, ocorreu um erro ao buscar este professor.',
         text2: 'Tente novamente mais tarde.',
       });
-    },
-  });
+    }
+  }, [teacherData, selectedTeacher]);
 
   const filteredData = data?.filter(name =>
     name.match(new RegExp(search, 'i')),

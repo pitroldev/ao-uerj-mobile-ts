@@ -5,7 +5,7 @@ import { Picker } from '@react-native-picker/picker';
 import { FlatList } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import { normalizeText } from '@utils/normalize';
 import { UERJ_UNIT_OPTIONS } from '@root/utils/constants/unitOptions';

@@ -6,7 +6,7 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { ThemeProvider } from 'styled-components';
 import Toast from 'react-native-toast-message';
-import { QueryClientProvider } from 'react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { LIGHT } from '@root/themes';

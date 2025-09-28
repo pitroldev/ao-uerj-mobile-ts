@@ -1,6 +1,6 @@
 import React from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import { selectApiConfig } from '@reducers/apiConfig';
 import { selectUserInfo } from '@reducers/userInfo';

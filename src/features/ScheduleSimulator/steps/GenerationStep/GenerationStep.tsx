@@ -1,5 +1,5 @@
 import React from 'react';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useFormContext, useWatch } from 'react-hook-form';
@@ -91,9 +91,6 @@ const GenerationStep = () => {
       });
 
       return res.data.data as GeneratedSchedule[];
-    },
-    onSuccess: d => {
-      console.log(d);
     },
   });
 
