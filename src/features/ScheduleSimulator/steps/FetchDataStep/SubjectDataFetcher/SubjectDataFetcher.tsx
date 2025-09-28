@@ -29,12 +29,10 @@ const SubjectDataFetcher = (subject: CurriculumSubject) => {
     selectedClasses,
     takenSubjects,
     busy_schedules: busySchedules,
-  } = useWatch({
-    control,
-  }) as ScheduleCreationParams;
+  } = useWatch({ control }) as ScheduleCreationParams;
 
   const code = parseSubjectCode(subject.id);
-  const alreadyHasSubject = subjects.some(s => s.id === subject.id);
+  const alreadyHasSubject = subjects?.some(s => s.id === subject.id) ?? false;
 
   const {
     isLoading: loadingInfo,
@@ -49,44 +47,34 @@ const SubjectDataFetcher = (subject: CurriculumSubject) => {
   });
 
   useEffect(() => {
-    if (subjectInfo) {
-      const filteredSubjects = subjects.filter(s => s.id !== subject.id);
-      setValue('subjects', [
-        ...filteredSubjects,
-        { ...subjectInfo, id: subject.id },
-      ]);
+    if (!subjectInfo) return;
+    const filteredSubjects = subjects?.filter(s => s.id !== subject.id) ?? [];
+    setValue('subjects', [
+      ...filteredSubjects,
+      { ...subjectInfo, id: subject.id },
+    ]);
 
-      const populatedClasses = subjectInfo.classes.map((c: any) => ({
+    const populatedClasses =
+      subjectInfo.classes?.map((c: any) => ({
         ...c,
         subject_id: subject.id,
-      }));
-      const classesWithoutConflict = populatedClasses.filter((c: any) => {
-        const parsedSchedules = parseScheduleToGeneratorFormat(
-          c?.schedule ?? [],
-        );
-        const hasConflictBetweenBusySchedules = hasScheduleConflict(
-          parsedSchedules,
-          busySchedules,
-        );
-
-        return !hasConflictBetweenBusySchedules;
-      });
-      const filteredSelectedClasses = selectedClasses.filter(
-        c => c.subject_id !== subject.id,
+      })) ?? [];
+    const classesWithoutConflict = populatedClasses.filter((c: any) => {
+      const parsedSchedules = parseScheduleToGeneratorFormat(c?.schedule ?? []);
+      const hasConflictBetweenBusySchedules = hasScheduleConflict(
+        parsedSchedules,
+        busySchedules,
       );
-      setValue('selectedClasses', [
-        ...filteredSelectedClasses,
-        ...classesWithoutConflict,
-      ]);
-    }
-  }, [
-    subjectInfo,
-    subjects,
-    subject.id,
-    setValue,
-    selectedClasses,
-    busySchedules,
-  ]);
+
+      return !hasConflictBetweenBusySchedules;
+    });
+    const filteredSelectedClasses =
+      selectedClasses?.filter(c => c.subject_id !== subject.id) ?? [];
+    setValue('selectedClasses', [
+      ...filteredSelectedClasses,
+      ...classesWithoutConflict,
+    ]);
+  }, [subjectInfo, subjects, subject.id, selectedClasses, busySchedules]);
 
   const handleRefetchInfo = () => {
     if (errorInfo) {
