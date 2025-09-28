@@ -1,9 +1,19 @@
 import styled from 'styled-components/native';
 
 import Box from '@atoms/Box';
+import {TouchableOpacity} from 'react-native';
 
 export const CarouselContainer = styled.View`
   margin: 12px 0;
+`;
+
+export const ActionsRow = styled.View`
+  width: 100%;
+  padding: 0 12px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  flex-direction: row;
+  justify-content: flex-end;
 `;
 
 export const WeekDayContainer = styled.View`
@@ -51,4 +61,13 @@ export const SubjectInfoColumn = styled.View`
   align-items: center;
   align-content: center;
   justify-content: center;
+`;
+
+export const ShareButton = styled(TouchableOpacity)`
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  align-items: center;
+  justify-content: center;
+  opacity: ${({disabled}) => (disabled ? 0.6 : 1)};
 `;
