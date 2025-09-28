@@ -1,22 +1,18 @@
 export const APP_INFO = [
   {
-    title: 'Mudanças no App',
+    title: 'Gerador de Grade',
     description:
-      'Devido a alterações no site oficial do AO, algumas funcionalidades foram desativadas e/ou remodeladas.',
+      'Crie grades de horários personalizadas com base nas suas preferências e disponibilidade.',
   },
   {
-    title: 'Gerador de Grade (beta)',
-    description: 'Gere suas grades de horários de forma rápida e fácil.',
+    title: 'Meu Progresso',
+    description:
+      'Acompanhe seu desempenho acadêmico com estatísticas detalhadas, evolução do CR e progresso no currículo.',
   },
   {
     title: 'Mural de mensagens',
     description:
-      'Compartilhe mensagens com seus amigos e colegas de curso de forma segura e fácil.',
-  },
-  {
-    title: 'Pesquisa de disciplina',
-    description:
-      'Pesquise disciplinas pelo código e tenha um histórico de suas pesquisas.',
+      'Canal de comunicação exclusivo entre alunos da mesma turma com total privacidade.',
   },
 ] as {
   title: string;

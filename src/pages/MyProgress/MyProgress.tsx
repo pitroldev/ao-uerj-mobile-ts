@@ -48,7 +48,7 @@ export default function MyProgressPage() {
         <Row>
           <Col>
             <StatCard>
-              <StatTitle>Disciplinas concluídas</StatTitle>
+              <StatTitle>Concluídas</StatTitle>
               <StatValue>{approvedCount}</StatValue>
             </StatCard>
           </Col>
