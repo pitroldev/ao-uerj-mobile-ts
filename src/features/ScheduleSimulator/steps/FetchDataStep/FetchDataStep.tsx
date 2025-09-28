@@ -54,10 +54,9 @@ const FetchDataStep = () => {
   });
 
   useEffect(() => {
-    if (subjectsTakenData) {
-      setValue('takenSubjects', subjectsTakenData);
-    }
-  }, [subjectsTakenData, setValue]);
+    if (!subjectsTakenData) return;
+    setValue('takenSubjects', subjectsTakenData);
+  }, [subjectsTakenData]);
 
   const handleRefetch = () => {
     if (errorSubjectsTaken) {
@@ -65,15 +64,15 @@ const FetchDataStep = () => {
     }
   };
 
-  const isSubjectDataFetched = selectedSubjects.every(subject => {
-    const hasSubject = subjects.some(s => s.id === subject.id);
-
-    return hasSubject;
-  });
+  const isSubjectDataFetched =
+    selectedSubjects?.every(subject => {
+      const hasSubject = subjects?.some(s => s.id === subject.id);
+      return hasSubject;
+    }) ?? true;
 
   const isTakenSubjectsFetched = !errorSubjectsTaken && !loadingSubjectsTaken;
   const isAllDataFetched = isTakenSubjectsFetched && isSubjectDataFetched;
-  const totalSubjects = selectedSubjects.length;
+  const totalSubjects = selectedSubjects?.length ?? 0;
 
   return (
     <Container>
@@ -120,7 +119,7 @@ const FetchDataStep = () => {
 
           {!loadingSubjectsTaken &&
             !errorSubjectsTaken &&
-            selectedSubjects.map(subject => (
+            selectedSubjects?.map(subject => (
               <SubjectDataFetcher key={subject.id} {...subject} />
             ))}
         </ScrollView>
