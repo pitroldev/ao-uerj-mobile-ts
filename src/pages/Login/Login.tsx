@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Linking } from 'react-native';
-import { useMutation } from 'react-query';
+import { useMutation } from '@tanstack/react-query';
 
 import { handleLogin } from '@features/Login/core';
 
@@ -23,7 +23,7 @@ const LoginPage = () => {
 
   const passwordInputRef = useRef<any>(null);
 
-  const { isLoading: loading, mutate: login } = useMutation({
+  const { isPending: loading, mutate: login } = useMutation({
     mutationFn: () => handleLogin(matricula, password),
     onSuccess: data => {
       if ('fail_reason' in data) {

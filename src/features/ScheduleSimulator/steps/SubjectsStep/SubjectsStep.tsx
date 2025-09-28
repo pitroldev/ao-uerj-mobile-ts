@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ListRenderItemInfo } from 'react-native';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Picker } from '@react-native-picker/picker';
 import { useFormContext, useWatch } from 'react-hook-form';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
@@ -54,13 +54,21 @@ const SubjectsStep = () => {
     control,
   });
 
-  const { isFetching, error, refetch } = useQuery({
+  const {
+    data: curriculumData,
+    isFetching,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['curriculum-subjects', cookies, createdAt],
     queryFn: fetchCurriculumSubjects,
-    onSuccess: d => {
-      dispatch(curriculumSubjectsReducer.setState(d));
-    },
   });
+
+  useEffect(() => {
+    if (curriculumData) {
+      dispatch(curriculumSubjectsReducer.setState(curriculumData));
+    }
+  }, [curriculumData, dispatch]);
 
   const loading = isFetching && !data;
 

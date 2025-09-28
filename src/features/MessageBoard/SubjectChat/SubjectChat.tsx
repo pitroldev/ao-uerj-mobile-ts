@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTheme } from 'styled-components';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { useQuery, useMutation } from 'react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 
 import { useAppSelector } from '@root/store';
 import * as infoReducer from '@reducers/userInfo';
@@ -38,7 +38,7 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
     initialData: [] as ChatMessage[],
   });
 
-  const { mutate, isLoading: sending } = useMutation({
+  const { mutate, isPending: sending } = useMutation({
     mutationFn: postMessage,
     onSuccess: (newMessage: ChatMessage) => {
       setText('');

@@ -1,5 +1,5 @@
-import React from 'react';
-import { useQuery } from 'react-query';
+import React, { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTheme } from 'styled-components';
 import { TouchableOpacity } from 'react-native';
 import { useFormContext, useWatch } from 'react-hook-form';
@@ -44,16 +44,20 @@ const FetchDataStep = () => {
   const handleNextPress = handleSubmit(nextStep);
 
   const {
+    data: subjectsTakenData,
     isLoading: loadingSubjectsTaken,
     error: errorSubjectsTaken,
     refetch,
   } = useQuery({
     queryKey: ['subjects-taken', cookies, createdAt],
     queryFn: fetchSubjectsTaken,
-    onSuccess: data => {
-      setValue('takenSubjects', data);
-    },
   });
+
+  useEffect(() => {
+    if (subjectsTakenData) {
+      setValue('takenSubjects', subjectsTakenData);
+    }
+  }, [subjectsTakenData, setValue]);
 
   const handleRefetch = () => {
     if (errorSubjectsTaken) {
@@ -84,7 +88,8 @@ const FetchDataStep = () => {
             size="XS"
             alignSelf="center"
             marginBottom="6px"
-            color="BACKGROUND_700">
+            color="BACKGROUND_700"
+          >
             Disciplinas selecionadas: {totalSubjects}
           </Text>
         )}
@@ -92,7 +97,8 @@ const FetchDataStep = () => {
         <ScrollView>
           <TouchableOpacity
             onPress={handleRefetch}
-            disabled={loadingSubjectsTaken}>
+            disabled={loadingSubjectsTaken}
+          >
             <InfoRow>
               {loadingSubjectsTaken && !errorSubjectsTaken && (
                 <Spinner size={20} />
