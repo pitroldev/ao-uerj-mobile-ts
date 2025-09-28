@@ -12,6 +12,23 @@ const { assetExts, sourceExts } = defaultConfig.resolver;
 const config = {
   transformer: {
     babelTransformerPath: require.resolve('react-native-svg-transformer'),
+    minifierConfig: {
+      mangle: {
+        keep_fnames: true,
+      },
+      output: {
+        ascii_only: true,
+        quote_style: 3,
+        wrap_iife: true,
+      },
+      sourceMap: {
+        includeSources: false,
+      },
+      toplevel: false,
+      compress: {
+        reduce_funcs: false,
+      },
+    },
   },
   resolver: {
     assetExts: assetExts.filter(ext => ext !== 'svg'),

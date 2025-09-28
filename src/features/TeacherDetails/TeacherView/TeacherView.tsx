@@ -1,5 +1,4 @@
 import React from 'react';
-import moment from 'moment';
 import { ScrollView } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useNavigation } from '@react-navigation/native';
@@ -46,7 +45,7 @@ const TeacherView = (props: Docente) => {
     navigation.navigate('Pesquisa de Disciplinas');
   };
 
-  const lastUpdatedAt = moment(createdAt).format('DD/MM/yyyy');
+  const lastUpdatedAt = new Date(createdAt).toLocaleDateString('pt-BR');
 
   const subjects = Object.entries(disciplinas);
   const subjectClasses = subjects.reduce((acc, [id, data]) => {

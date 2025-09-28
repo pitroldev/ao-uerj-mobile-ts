@@ -1,10 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ListRenderItemInfo } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { FlatList } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import { normalizeText } from '@utils/normalize';
 import parser from '@services/parser';
@@ -43,7 +43,11 @@ const ClassesScheduleByUnit = () => {
     reducer.selectClassSchedulesByDepartment,
   );
 
+  const dispatch = useAppDispatch();
+  const navigation = useNavigation();
+
   const {
+    data: scheduleData,
     isLoading: loading,
     error,
     refetch,
@@ -53,14 +57,14 @@ const ClassesScheduleByUnit = () => {
     staleTime: 6 * HOUR_IN_MS,
     enabled: Boolean(selectedOption),
     retry: 0,
-    onSuccess: d => {
-      dispatch(reducer.setSubjects(d.subjects));
-      dispatch(reducer.setOptions(d.options));
-    },
   });
 
-  const dispatch = useAppDispatch();
-  const navigation = useNavigation();
+  useEffect(() => {
+    if (scheduleData) {
+      dispatch(reducer.setSubjects(scheduleData.subjects));
+      dispatch(reducer.setOptions(scheduleData.options));
+    }
+  }, [scheduleData, dispatch]);
 
   const ref = useRef<FlatList>(null);
 

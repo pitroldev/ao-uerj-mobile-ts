@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useQuery } from 'react-query';
+import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useDispatch } from 'react-redux';
 
 import { useAppSelector } from '@root/store';
@@ -62,6 +62,7 @@ const HomePage = () => {
   );
 
   const {
+    data: attendedScheduleData,
     isLoading: loadingSchedule,
     error: scheduleError,
     refetch: scheduleRefresh,
@@ -71,17 +72,21 @@ const HomePage = () => {
     staleTime: 12 * HOUR_IN_MS,
     enabled: Boolean(cookies),
     retry: 0,
-    onSuccess: data => {
+  });
+
+  useEffect(() => {
+    if (attendedScheduleData) {
       dispatch(
         attendedReducer.setAttendedClasses({
           period: periodo as string,
-          data,
+          data: attendedScheduleData,
         }),
       );
-    },
-  });
+    }
+  }, [attendedScheduleData, dispatch, periodo]);
 
   const {
+    data: gradesData,
     isLoading: loadingGrades,
     error: gradesError,
     refetch: gradesRefresh,
@@ -91,10 +96,13 @@ const HomePage = () => {
     staleTime: 6 * HOUR_IN_MS,
     enabled: Boolean(cookies),
     retry: 0,
-    onSuccess: data => {
-      dispatch(gradesReducer.setClassGrades(data));
-    },
   });
+
+  useEffect(() => {
+    if (gradesData) {
+      dispatch(gradesReducer.setClassGrades(gradesData));
+    }
+  }, [gradesData, dispatch]);
 
   const {
     isLoading: loadingRID,

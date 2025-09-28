@@ -3,7 +3,6 @@ import iconv from 'iconv-lite';
 import { Buffer } from 'buffer';
 
 import store from '@root/store';
-import moment from 'moment';
 import { refreshAuth } from './lib/refreshAuth';
 import { NOT_RETRY_ERRORS } from './utils';
 
@@ -30,9 +29,11 @@ const api = axios.create({
 const responseErrorInterceptor = async (err: AxiosError) => {
   const { apiConfig, userInfo } = store.getState();
 
-  const now = moment();
-  const cookieCreationDate = moment(apiConfig.createdAt);
-  const cookieTimeInHours = now.diff(cookieCreationDate, 'hours');
+  const now = new Date();
+  const cookieCreationDate = new Date(apiConfig.createdAt);
+  const cookieTimeInHours = Math.floor(
+    (now.getTime() - cookieCreationDate.getTime()) / (1000 * 60 * 60),
+  );
 
   console.log('[ERROR INTERCEPTOR]', err);
 

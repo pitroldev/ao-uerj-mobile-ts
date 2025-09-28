@@ -1,11 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ListRenderItemInfo } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { Picker } from '@react-native-picker/picker';
 import { FlatList } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import { normalizeText } from '@utils/normalize';
 import parser from '@services/parser';
@@ -45,6 +45,7 @@ const SubjectsToTake = () => {
   const ref = useRef<FlatList>(null);
 
   const {
+    data: subjectsData,
     isLoading: loading,
     error,
     refetch,
@@ -54,10 +55,13 @@ const SubjectsToTake = () => {
     staleTime: 24 * HOUR_IN_MS,
     enabled: Boolean(cookies),
     retry: 0,
-    onSuccess: d => {
-      dispatch(reducer.setState(d));
-    },
   });
+
+  useEffect(() => {
+    if (subjectsData) {
+      dispatch(reducer.setState(subjectsData));
+    }
+  }, [subjectsData, dispatch]);
 
   const handleSubjectTypeChange = (value: string) => {
     setSubjectType(value);

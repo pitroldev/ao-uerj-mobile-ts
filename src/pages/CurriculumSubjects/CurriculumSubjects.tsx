@@ -1,11 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ListRenderItemInfo } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import { FlatList } from 'react-native-gesture-handler';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import { SUBJECT_TYPE } from '@utils/constants/subjectDictionary';
 import { normalizeText } from '@utils/normalize';
@@ -48,6 +48,7 @@ const CurriculumSubjects = () => {
   const ref = useRef<FlatList>(null);
 
   const {
+    data: curriculumData,
     isLoading: loading,
     error,
     refetch,
@@ -57,10 +58,13 @@ const CurriculumSubjects = () => {
     staleTime: 24 * HOUR_IN_MS,
     enabled: Boolean(cookies),
     retry: 0,
-    onSuccess: d => {
-      dispatch(reducer.setState(d));
-    },
   });
+
+  useEffect(() => {
+    if (curriculumData) {
+      dispatch(reducer.setState(curriculumData));
+    }
+  }, [curriculumData, dispatch]);
 
   const handleSubjectTypeChange = (value: string) => {
     setSubjectType(value);

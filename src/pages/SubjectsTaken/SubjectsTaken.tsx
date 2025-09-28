@@ -4,7 +4,7 @@ import Toast from 'react-native-toast-message';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import { FlatList } from 'react-native-gesture-handler';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import parser from '@services/parser';
 import {
@@ -48,6 +48,7 @@ const SubjectsAttended = () => {
   const ref = useRef<FlatList>(null);
 
   const {
+    data: subjectsTakenData,
     isLoading: loading,
     error,
     refetch,
@@ -57,10 +58,13 @@ const SubjectsAttended = () => {
     staleTime: 24 * HOUR_IN_MS,
     enabled: Boolean(cookies),
     retry: 0,
-    onSuccess: d => {
-      dispatch(reducer.setState(d));
-    },
   });
+
+  useEffect(() => {
+    if (subjectsTakenData) {
+      dispatch(reducer.setState(subjectsTakenData));
+    }
+  }, [subjectsTakenData, dispatch]);
 
   useEffect(() => {
     setSelectedPeriod(periodList?.length ? periodList[0]?.value : '');
