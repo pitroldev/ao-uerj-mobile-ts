@@ -3,9 +3,9 @@
   "version": "v1.2.10",
   "private": true,
   "scripts": {
-    "clean": "cd android && ./gradlew clean",
-    "build": "cd android && ./gradlew assembleRelease",
-    "bundle": "cd android && ./gradlew bundleRelease",
+    "clean": "cd android && (if exist gradlew.bat (gradlew.bat clean) else (./gradlew clean))",
+    "build": "cd android && (if exist gradlew.bat (gradlew.bat assembleRelease) else (./gradlew assembleRelease))",
+    "bundle": "cd android && (if exist gradlew.bat (gradlew.bat bundleRelease) else (./gradlew bundleRelease))",
     "android": "react-native run-android",
     "type-check": "tsc --noEmit",
     "prettier": "prettier --write **/*.ts",
