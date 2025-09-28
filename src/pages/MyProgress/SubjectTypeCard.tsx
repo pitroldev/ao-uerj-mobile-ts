@@ -39,6 +39,7 @@ export default function SubjectTypeCard({ type, data }: Props) {
   const requiredCred = data.requiredCredits[type];
 
   const isMandatory = type === 'MANDATORY';
+  const isUniversal = type === 'UNIVERSAL';
   const hasRequiredCredits = requiredCred && requiredCred > 0;
   const showProgressBar = isMandatory || hasRequiredCredits;
 
@@ -90,16 +91,18 @@ export default function SubjectTypeCard({ type, data }: Props) {
               Créditos concl.: {compCred}
             </Text>
           </InlineStats>
-          <InlineStats>
-            <Text size="XS" color="TEXT_PRIMARY">
-              Ofertadas no currículo: {tot}
-            </Text>
-            {totCred > 0 && (
+          {!isUniversal && (
+            <InlineStats>
               <Text size="XS" color="TEXT_PRIMARY">
-                Créditos ofertados: {totCred}
+                Ofertadas no currículo: {tot}
               </Text>
-            )}
-          </InlineStats>
+              {totCred > 0 && (
+                <Text size="XS" color="TEXT_PRIMARY">
+                  Créditos ofertados: {totCred}
+                </Text>
+              )}
+            </InlineStats>
+          )}
           <Text
             size="XS"
             color="TEXT_SECONDARY"

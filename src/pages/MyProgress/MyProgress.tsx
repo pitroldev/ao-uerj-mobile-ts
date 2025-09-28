@@ -2,8 +2,13 @@ import React, { useState } from 'react';
 import { ScrollView, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
-import Text from '@atoms/Text';
+import { ElectiveCreditsConfig } from '@hooks/useElectiveCreditsConfig';
+import { useMyProgress } from './useMyProgress';
+
 import Spinner from '@atoms/Spinner';
+import CraLineChart from './CraLineChart';
+import SubjectTypeCard from './SubjectTypeCard';
+import ElectiveCreditsModal from './ElectiveCreditsModal';
 import {
   Container,
   SectionTitle,
@@ -13,12 +18,6 @@ import {
   StatTitle,
   StatValue,
 } from './MyProgress.styles';
-import CraLineChart from './CraLineChart';
-import ElectiveCreditsModal from './ElectiveCreditsModal';
-import SubjectTypeCard from './SubjectTypeCard';
-import { useMyProgress } from './useMyProgress';
-import { SUBJECT_TYPE } from '@utils/constants/subjectDictionary';
-import { ElectiveCreditsConfig } from '@hooks/useElectiveCreditsConfig';
 
 export default function MyProgressPage() {
   const [modalVisible, setModalVisible] = useState(false);
@@ -36,15 +35,21 @@ export default function MyProgressPage() {
   const handleConfigSave = async (config: ElectiveCreditsConfig) => {
     return await electiveCreditsHook.setConfig(config);
   };
+
+  if (initialLoading && isEmpty) {
+    return (
+      <Container>
+        <StatCard>
+          <StatTitle>Carregando dados…</StatTitle>
+          <Spinner size={32} />
+        </StatCard>
+      </Container>
+    );
+  }
+
   return (
     <Container>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {initialLoading && isEmpty && (
-          <StatCard>
-            <StatTitle>Carregando dados…</StatTitle>
-            <Spinner size={32} />
-          </StatCard>
-        )}
         <Row>
           <Col>
             <StatCard>
