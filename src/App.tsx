@@ -12,6 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { LIGHT } from '@root/themes';
 import { navigationRef, isReadyRef } from '@services/rootNavigation';
 import queryClient from '@services/query-client';
+import ErrorBoundary from '@components/ErrorBoundary';
 
 import store from './store';
 import MainRoutes from './routes';
@@ -26,30 +27,32 @@ const App = () => {
   navTheme.colors.background = LIGHT.COLORS.PRIMARY;
 
   return (
-    <Provider store={store}>
-      <QueryClientProvider client={queryClient}>
-        <SafeAreaProvider>
-          <ThemeProvider theme={LIGHT}>
-            <PersistGate loading={null} persistor={persistor}>
-              <Header navigationState={navigationState} />
-              <NavigationContainer
-                theme={navTheme}
-                ref={navigationRef}
-                onReady={() => {
-                  Object.assign(isReadyRef, { current: true });
-                }}
-                onStateChange={state => {
-                  requestAnimationFrame(() => setNavigationState(state));
-                }}
-              >
-                <MainRoutes />
-              </NavigationContainer>
-              <Toast position="bottom" autoHide visibilityTime={10000} />
-            </PersistGate>
-          </ThemeProvider>
-        </SafeAreaProvider>
-      </QueryClientProvider>
-    </Provider>
+    <ErrorBoundary>
+      <Provider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <SafeAreaProvider>
+            <ThemeProvider theme={LIGHT}>
+              <PersistGate loading={null} persistor={persistor}>
+                <Header navigationState={navigationState} />
+                <NavigationContainer
+                  theme={navTheme}
+                  ref={navigationRef}
+                  onReady={() => {
+                    Object.assign(isReadyRef, { current: true });
+                  }}
+                  onStateChange={state => {
+                    requestAnimationFrame(() => setNavigationState(state));
+                  }}
+                >
+                  <MainRoutes />
+                </NavigationContainer>
+                <Toast position="bottom" autoHide visibilityTime={10000} />
+              </PersistGate>
+            </ThemeProvider>
+          </SafeAreaProvider>
+        </QueryClientProvider>
+      </Provider>
+    </ErrorBoundary>
   );
 };
 
