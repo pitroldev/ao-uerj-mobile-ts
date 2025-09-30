@@ -4,7 +4,7 @@ const PERIODO_REGEX = /(\d{4}\.\d)/;
 
 const year = new Date().getFullYear();
 const month = new Date().getMonth() + 1;
-const semester = month > 0 && month <= 6 ? '1' : '2';
+const semester = month > 1 && month <= 7 ? '1' : '2';
 const calculatedPeriod = `${year}.${semester}`;
 
 export default function parseLoginInfo(data: string) {

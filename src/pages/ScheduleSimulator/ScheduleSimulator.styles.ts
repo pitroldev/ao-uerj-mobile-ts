@@ -6,6 +6,7 @@ export const Container = styled.View`
 
   padding: 0% 4%;
   padding-top: 6%;
+  padding-bottom: 4%;
 
   border-top-left-radius: 50px;
   background-color: ${({ theme }) => theme.COLORS.BACKGROUND};
