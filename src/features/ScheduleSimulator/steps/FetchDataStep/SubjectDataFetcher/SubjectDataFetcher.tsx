@@ -20,7 +20,14 @@ import { Container, Row } from './SubjectDataFetcher.styles';
 import { parseScheduleToGeneratorFormat } from '@root/utils/converter';
 import { hasScheduleConflict } from '@root/features/ScheduleSimulator/core';
 
-const SubjectDataFetcher = (subject: CurriculumSubject) => {
+type Props = CurriculumSubject & {
+  onSubjectLoaded?: (subjectId: string) => void;
+  onSubjectError?: (subjectId: string) => void;
+};
+
+const SubjectDataFetcher = (props: Props) => {
+  const { onSubjectLoaded, onSubjectError, ...subject } = props;
+
   const { COLORS } = useTheme();
   const { control, setValue } = useFormContext<ScheduleCreationParams>();
 
@@ -43,7 +50,6 @@ const SubjectDataFetcher = (subject: CurriculumSubject) => {
     queryKey: ['subject-info', code],
     queryFn: () => getSubjectInfo(code),
     enabled: !alreadyHasSubject,
-    staleTime: 0,
   });
 
   useEffect(() => {
@@ -55,11 +61,11 @@ const SubjectDataFetcher = (subject: CurriculumSubject) => {
     ]);
 
     const populatedClasses =
-      subjectInfo.classes?.map((c: any) => ({
+      subjectInfo.classes?.map(c => ({
         ...c,
         subject_id: subject.id,
       })) ?? [];
-    const classesWithoutConflict = populatedClasses.filter((c: any) => {
+    const classesWithoutConflict = populatedClasses.filter(c => {
       const parsedSchedules = parseScheduleToGeneratorFormat(c?.schedule ?? []);
       const hasConflictBetweenBusySchedules = hasScheduleConflict(
         parsedSchedules,
@@ -74,7 +80,7 @@ const SubjectDataFetcher = (subject: CurriculumSubject) => {
       ...filteredSelectedClasses,
       ...classesWithoutConflict,
     ]);
-  }, [subjectInfo, subjects, subject.id, selectedClasses, busySchedules]);
+  }, [subjectInfo]);
 
   const handleRefetchInfo = () => {
     if (errorInfo) {
@@ -82,7 +88,7 @@ const SubjectDataFetcher = (subject: CurriculumSubject) => {
     }
   };
 
-  const preReqs = (subjectInfo as any)?.prerequisite ?? ([] as Prereq[][]);
+  const preReqs = subjectInfo?.prerequisite ?? ([] as Prereq[][]);
   const approvedSubjects = takenSubjects.filter(
     taken => taken.status === 'APPROVED',
   );
@@ -92,11 +98,11 @@ const SubjectDataFetcher = (subject: CurriculumSubject) => {
   const isPrereqsSatified =
     !hasPrerequisites ||
     preReqs
-      .filter(([prereq]: any) => !prereq?.id?.toUpperCase().includes('TRAVA'))
-      .every((prereq: any) =>
+      .filter(([prereq]) => !prereq?.id?.toUpperCase().includes('TRAVA'))
+      .every(prereq =>
         approvedSubjects.some(taken =>
           prereq.some(
-            (p: any) => parseSubjectCode(p.id) === parseSubjectCode(taken.id),
+            p => parseSubjectCode(p.id) === parseSubjectCode(taken.id),
           ),
         ),
       );
@@ -113,6 +119,22 @@ const SubjectDataFetcher = (subject: CurriculumSubject) => {
   const notAbleReason = isPrereqsSatified
     ? 'Você não possui créditos suficientes.'
     : 'Você não possui os pré-requisitos necessários.';
+
+  useEffect(() => {
+    if (!loadingInfo) {
+      if (errorInfo && onSubjectError) {
+        onSubjectError(subject.id);
+      } else if (!errorInfo && onSubjectLoaded) {
+        onSubjectLoaded(subject.id);
+      }
+    }
+  }, [loadingInfo, errorInfo, subject.id, onSubjectLoaded, onSubjectError]);
+
+  useEffect(() => {
+    if (alreadyHasSubject && onSubjectLoaded) {
+      onSubjectLoaded(subject.id);
+    }
+  }, [alreadyHasSubject, subject.id, onSubjectLoaded]);
 
   return (
     <Container>

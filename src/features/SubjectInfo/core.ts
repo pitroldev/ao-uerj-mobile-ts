@@ -23,9 +23,31 @@ export const _fetchRawSubjectInfoData = async (subjectID?: string | number) => {
 };
 
 export const getSubjectInfo = async (subjectID?: string | number) => {
-  const data = await _fetchRawSubjectInfoData(subjectID);
+  try {
+    const data = await _fetchRawSubjectInfoData(subjectID);
+    if (!data || typeof data !== 'string') {
+      throw new Error('INVALID_API_RESPONSE');
+    }
 
-  const subject = parseSubjectInfo(data);
+    const subject = parseSubjectInfo(data);
+    if (!subject || !subject.id) {
+      throw new Error('SUBJECT_PARSE_FAILED');
+    }
 
-  return subject;
+    return subject;
+  } catch (error) {
+    if (__DEV__) {
+      console.error('[getSubjectInfo] Error details:', {
+        subjectID,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+    }
+
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error('UNKNOWN_SUBJECT_INFO_ERROR');
+    }
+  }
 };

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTheme } from 'styled-components';
 import { TouchableOpacity } from 'react-native';
@@ -29,6 +29,7 @@ import {
 const FetchDataStep = () => {
   const { COLORS } = useTheme();
   const { nextStep, prevStep } = useStepsContext();
+  const [loadedSubjects, setLoadedSubjects] = useState<string[]>([]);
 
   const { cookies, createdAt } = useAppSelector(
     apiConfigReducer.selectApiConfig,
@@ -37,9 +38,7 @@ const FetchDataStep = () => {
   const { control, handleSubmit, setValue } =
     useFormContext<ScheduleCreationParams>();
 
-  const { subjects, selectedSubjects } = useWatch({
-    control,
-  }) as ScheduleCreationParams;
+  const { selectedSubjects } = useWatch({ control }) as ScheduleCreationParams;
 
   const handleNextPress = handleSubmit(nextStep);
 
@@ -58,6 +57,20 @@ const FetchDataStep = () => {
     setValue('takenSubjects', subjectsTakenData);
   }, [subjectsTakenData]);
 
+  useEffect(() => {
+    setLoadedSubjects([]);
+  }, []);
+
+  const handleSubjectLoaded = (subjectId: string) => {
+    setLoadedSubjects(prev =>
+      prev.includes(subjectId) ? prev : [...prev, subjectId],
+    );
+  };
+
+  const handleSubjectError = (subjectId: string) => {
+    setLoadedSubjects(prev => prev.filter(id => id !== subjectId));
+  };
+
   const handleRefetch = () => {
     if (errorSubjectsTaken) {
       refetch();
@@ -65,10 +78,9 @@ const FetchDataStep = () => {
   };
 
   const isSubjectDataFetched =
-    selectedSubjects?.every(subject => {
-      const hasSubject = subjects?.some(s => s.id === subject.id);
-      return hasSubject;
-    }) ?? true;
+    selectedSubjects?.length > 0
+      ? selectedSubjects.every(subject => loadedSubjects.includes(subject.id))
+      : false;
 
   const isTakenSubjectsFetched = !errorSubjectsTaken && !loadingSubjectsTaken;
   const isAllDataFetched = isTakenSubjectsFetched && isSubjectDataFetched;
@@ -120,7 +132,12 @@ const FetchDataStep = () => {
           {!loadingSubjectsTaken &&
             !errorSubjectsTaken &&
             selectedSubjects?.map(subject => (
-              <SubjectDataFetcher key={subject.id} {...subject} />
+              <SubjectDataFetcher
+                key={subject.id}
+                {...subject}
+                onSubjectLoaded={handleSubjectLoaded}
+                onSubjectError={handleSubjectError}
+              />
             ))}
         </ScrollView>
       </ContentContainer>

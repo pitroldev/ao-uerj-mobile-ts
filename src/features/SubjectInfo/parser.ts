@@ -44,43 +44,52 @@ const parseBasicSubjectInfo = (html: string) => {
       }
 
       const infoDivType = INFO_DIV_INDEX_MAP[infoIndex as InfoDivIndex];
-      const infoText = $(infoNode).text();
+      const infoText = $(infoNode).text() || '';
 
       if (infoDivType === 'NAME_AND_ID') {
-        const disciplina = infoText.replace('Disciplina: ', '');
-        infoObj.id = parseSubjectID(disciplina);
-        infoObj.code = parseSubjectCode(disciplina) as number;
-        infoObj.name = parseSubjectName(disciplina);
+        const disciplina = infoText.replace('Disciplina: ', '') || '';
+        if (disciplina) {
+          infoObj.id = parseSubjectID(disciplina);
+          infoObj.code = parseSubjectCode(disciplina) as number;
+          infoObj.name = parseSubjectName(disciplina);
+        }
         return;
       }
       if (infoDivType === 'CREDITS_AND_WORKLOAD') {
-        const numbers = infoText.replace(/\D+/g, ' ').trim().split(' ');
-        infoObj.credits = parseInt(numbers[0], 10);
-        infoObj.workload = parseInt(numbers[1], 10);
-        infoObj.timesPerWeek = parseInt(numbers[2], 10);
+        const numbers = infoText
+          .replace(/\D+/g, ' ')
+          .trim()
+          .split(' ')
+          .filter(Boolean);
+        infoObj.credits = numbers[0] ? parseInt(numbers[0], 10) || 0 : 0;
+        infoObj.workload = numbers[1] ? parseInt(numbers[1], 10) || 0 : 0;
+        infoObj.timesPerWeek = numbers[2] ? parseInt(numbers[2], 10) || 0 : 0;
         return;
       }
       if (infoDivType === 'FLAGS') {
         const res: string[] = [];
         const texts = infoText.split('? ');
         texts.shift();
-        texts.map((str: string) => {
-          res.push(str.slice(0, 3));
+        texts.forEach((str: string) => {
+          if (str && str.length >= 3) {
+            res.push(str.slice(0, 3));
+          }
         });
-        infoObj.universal = !!parseSimNaoToBoolean(res[0]);
-        infoObj.conflito = !!parseSimNaoToBoolean(res[1]);
-        infoObj.preparo = !!parseSimNaoToBoolean(res[2]);
+        infoObj.universal = res[0] ? !!parseSimNaoToBoolean(res[0]) : false;
+        infoObj.conflito = res[1] ? !!parseSimNaoToBoolean(res[1]) : false;
+        infoObj.preparo = res[2] ? !!parseSimNaoToBoolean(res[2]) : false;
         return;
       }
       if (infoDivType === 'APPROVATION_TYPE_AND_DURATION') {
         const texts = infoText
           .replace('Tipo de Aprovação', '')
           .replace('Tempo de Duração', '')
-          .split(': ');
+          .split(': ')
+          .filter(Boolean);
 
         texts.shift();
-        infoObj.approvation_type = texts[0].trim();
-        infoObj.duration = texts[1].trim();
+        infoObj.approvation_type = texts[0]?.trim() || '';
+        infoObj.duration = texts[1]?.trim() || '';
         return;
       }
     },
@@ -129,17 +138,29 @@ const parseSubjectPrerequisite = (html: string) => {
 
 export default function parseSubjectInfo(html: string) {
   try {
+    if (!html || typeof html !== 'string') {
+      throw new Error('INVALID_HTML_INPUT');
+    }
+
     const basicInfo = parseBasicSubjectInfo(html);
     const prerequisite = parseSubjectPrerequisite(html);
     const classes = parseSubjectClassesSchedule(html);
 
-    return {
+    const result = {
       ...basicInfo,
       prerequisite,
       classes,
     };
+
+    return result;
   } catch (err) {
-    console.log('parseSubjectInfo', err);
-    throw new Error('ParseError');
+    if (__DEV__) {
+      console.error('[parseSubjectInfo] Parse error:', {
+        error: err instanceof Error ? err.message : 'Unknown error',
+        htmlLength: html?.length || 0,
+        stack: err instanceof Error ? err.stack : undefined,
+      });
+    }
+    throw new Error('PARSE_ERROR');
   }
 }

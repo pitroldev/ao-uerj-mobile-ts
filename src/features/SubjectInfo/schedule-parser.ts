@@ -13,54 +13,74 @@ import { WeekDay } from '@root/types/dateStuff';
 import { Horario, SubjectClassesSchedule } from './types';
 
 const parseVacancyNumber = (text: string) => {
-  const parsedNumber = parseInt(text?.trim(), 10);
+  if (!text || typeof text !== 'string') {
+    return 0;
+  }
+  const parsedNumber = parseInt(text.trim(), 10);
   return isNaN(parsedNumber) ? 0 : parsedNumber || 0;
 };
 
 function parseHorarioArray(horarioString: string) {
   try {
-    const regex = /\D{3}\b/g;
-    const splittedString = horarioString.replace('\n', '');
-
-    const dias = splittedString.match(regex) as WeekDay[];
-    if (!dias) {
+    if (!horarioString || typeof horarioString !== 'string') {
       return [];
     }
 
-    dias.map((dia: string, i: number) => {
+    const regex = /\D{3}\b/g;
+    const splittedString = horarioString.replace('\n', '') || '';
+
+    const dias = splittedString.match(regex) as WeekDay[];
+    if (!dias || !Array.isArray(dias)) {
+      return [];
+    }
+
+    dias.forEach((dia: string, i: number) => {
       switch (dia) {
         case 'SEG':
-          return (dias[i] = 'Segunda');
+          dias[i] = 'Segunda';
+          break;
         case 'TER':
-          return (dias[i] = 'Terça');
+          dias[i] = 'Terça';
+          break;
         case 'QUA':
-          return (dias[i] = 'Quarta');
+          dias[i] = 'Quarta';
+          break;
         case 'QUI':
-          return (dias[i] = 'Quinta');
+          dias[i] = 'Quinta';
+          break;
         case 'SEX':
-          return (dias[i] = 'Sexta');
+          dias[i] = 'Sexta';
+          break;
         case 'SAB':
-          return (dias[i] = 'Sábado');
+          dias[i] = 'Sábado';
+          break;
         case 'DOM':
-          return (dias[i] = 'Domingo');
+          dias[i] = 'Domingo';
+          break;
         default:
-          return (dias[i] = dia as any);
+          dias[i] = dia as any;
       }
     });
 
     let cleanedString = splittedString.split(regex);
-    cleanedString = cleanedString.filter(item => item && item);
+    cleanedString = cleanedString.filter(item => item && item.trim());
 
     const horariosArray: Horario[] = [];
-    dias.map((dia, i) => {
-      horariosArray.push({
-        [dia]: searchForBreakPonts(orderTurnosStringToArray(cleanedString[i])),
-      });
+    dias.forEach((dia, i) => {
+      if (cleanedString[i]) {
+        horariosArray.push({
+          [dia]: searchForBreakPonts(
+            orderTurnosStringToArray(cleanedString[i]),
+          ),
+        });
+      }
     });
 
     return horariosArray;
   } catch (e) {
-    console.error('getHorarioObj', e);
+    if (__DEV__) {
+      console.error('[parseHorarioArray] Error:', e);
+    }
     return [];
   }
 }
@@ -220,7 +240,7 @@ export default function parseSubjectClassesSchedule(html: string) {
     const turmasArray: SubjectClassesSchedule[] = [];
     $(
       '.divContentBlock:nth-child(3) .divContentBlockBody > table > tbody > tr > td > div',
-    ).each((turmaIndex: number, turmaNode: any) => {
+    ).each((_turmaIndex: number, turmaNode: any) => {
       const turmaBasicInfo = getTurmaBasicInfo(turmaNode);
       turmasArray.push(turmaBasicInfo);
     });
