@@ -1,7 +1,6 @@
 import React from 'react';
 import Share from 'react-native-share';
-import { captureRef } from 'react-native-view-shot';
-import { TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity } from 'react-native';
 import { useTheme } from 'styled-components/native';
 import Carousel from 'react-native-reanimated-carousel';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
