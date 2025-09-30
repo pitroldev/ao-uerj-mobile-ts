@@ -77,12 +77,11 @@ const GenerationStep = () => {
 
   const {
     isLoading: loading,
-    data,
+    data = [],
     error,
     refetch,
   } = useQuery({
     queryKey: ['schedule-generation', body],
-    initialData: [] as GeneratedSchedule[],
     queryFn: async () => {
       const res = await api.post('/generate', {
         preferences,
@@ -102,9 +101,8 @@ const GenerationStep = () => {
   const selectedGeneration = generatedSchedules[selectedIndex];
   const selectedSchedule = selectedGeneration?.schedule;
 
-  const hasData = data && data?.length > 0 && !error;
-
-  const isEmpty = data && data?.length === 0 && !loading;
+  const hasData = data?.length > 0 && !error;
+  const isEmpty = data?.length === 0 && !loading && !error;
 
   return (
     <Container>
@@ -127,8 +125,7 @@ const GenerationStep = () => {
           <DummyMessage
             text="Não foi possível gerar nenhuma grade com os dados informados, clique aqui para gerar outra grade"
             type="EMPTY"
-            // onPress={handleResetPress}
-            onPress={refetch}
+            onPress={handleResetPress}
           />
         )}
 
