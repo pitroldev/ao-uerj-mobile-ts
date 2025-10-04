@@ -1,5 +1,6 @@
 import 'react-native-gesture-handler';
 import React, { useState } from 'react';
+import { enableScreens } from 'react-native-screens';
 import { Provider } from 'react-redux';
 import { persistStore } from 'redux-persist';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -19,6 +20,8 @@ import MainRoutes from './routes';
 import Header from '@templates/Header/Header';
 
 const persistor = persistStore(store);
+
+enableScreens(true);
 
 const App = () => {
   const [navigationState, setNavigationState] = useState<any>(null);

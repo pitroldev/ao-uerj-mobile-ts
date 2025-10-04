@@ -24,6 +24,16 @@
 # React Native Vector Icons
 -keep class com.oblador.vectoricons.** { *; }
 
+# React Native Screens
+-keep class com.swmansion.rnscreens.** { *; }
+-dontwarn com.swmansion.rnscreens.**
+
+# Gesture Handler & Reanimated
+-keep class com.swmansion.gesturehandler.** { *; }
+-dontwarn com.swmansion.gesturehandler.**
+-keep class com.swmansion.reanimated.** { *; }
+-dontwarn com.swmansion.reanimated.**
+
 # Aggressive optimization
 -optimizationpasses 5
 -dontusemixedcaseclassnames
