@@ -5,7 +5,7 @@ import {
   Alert,
   TextInput as RNTextInput,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import Icon from '@react-native-vector-icons/material-icons';
 
 import Text from '@atoms/Text';
 import { SUBJECT_TYPE } from '@utils/constants/subjectDictionary';
