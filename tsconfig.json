@@ -10,6 +10,7 @@
     "**/Pods"
   ],
   "compilerOptions": {
+    "types": ["jest"],
     "target": "esnext",
     "lib": ["es2017"],
     "jsx": "react-native",
