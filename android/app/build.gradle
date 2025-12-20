@@ -93,8 +93,6 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 3145825
         versionName "v1.3.2"
-        setProperty("archivesBaseName", applicationId + "-" + versionName + "-" + versionCode)
-
     }
     signingConfigs {
         release {
@@ -121,6 +119,12 @@ android {
             minifyEnabled enableProguardInReleaseBuilds
             shrinkResources enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+        }
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "${variant.applicationId}-${variant.versionName}-${variant.versionCode}.apk"
         }
     }
 }
