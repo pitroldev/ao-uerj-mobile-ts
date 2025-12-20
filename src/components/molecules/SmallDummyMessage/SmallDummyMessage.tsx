@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme } from 'styled-components';
-import Icon from 'react-native-vector-icons/AntDesign';
+import Icon from '@react-native-vector-icons/ant-design';
 
 import Text from '@atoms/Text';
 import { View } from './SmallDummyMessage.styles';

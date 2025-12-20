@@ -4,7 +4,7 @@ import Toast from 'react-native-toast-message';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import { FlatList } from 'react-native-gesture-handler';
-import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import FontAwesome from '@react-native-vector-icons/fontawesome';
 import { useQuery } from '@tanstack/react-query';
 
 import { SUBJECT_TYPE } from '@utils/constants/subjectDictionary';

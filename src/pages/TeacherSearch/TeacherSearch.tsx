@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FlatList, ListRenderItemInfo } from 'react-native';
-import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import FontAwesome from '@react-native-vector-icons/fontawesome';
 import Toast from 'react-native-toast-message';
 import { useQuery } from '@tanstack/react-query';
 
