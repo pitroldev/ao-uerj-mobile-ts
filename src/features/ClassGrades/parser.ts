@@ -17,39 +17,40 @@ export function parseGrade(strGrade: string) {
 
 export default function parseClassGrades(html: string) {
   try {
+    console.log('Parsing class grades data...');
+    console.log(html);
+
     const $ = cheerio.load(html);
 
     const data: ClassGrade[] = [];
-    let classGrade = { grades: {} } as ClassGrade;
 
-    $('font td font').text((index: number, text: string) => {
-      if (index % 7 === 0) {
-        classGrade.id = text.trim();
-        return;
-      }
+    $('table.reportTable tr').each((rowIndex: number, row: any) => {
+      if (rowIndex === 0) return;
 
-      if ((index - 1) % 7 === 0) {
-        classGrade.name = parseSubjectName(text.trim(), true);
-        return;
-      }
-      if ((index - 2) % 7 === 0) {
-        classGrade.class = parseNumber(text);
-      }
-      if ((index - 3) % 7 === 0) {
-        classGrade.grades.p1 = parseGrade(text);
-      }
-      if ((index - 4) % 7 === 0) {
-        classGrade.grades.p2 = parseGrade(text);
-      }
-      if ((index - 5) % 7 === 0) {
-        classGrade.grades.pf = parseGrade(text);
-      }
-      if ((index - 6) % 7 === 0) {
-        classGrade.grades.result = parseGrade(text);
-        data.push(classGrade);
-        classGrade = { grades: {} } as ClassGrade;
-      }
+      const cells = $(row).find('td');
+      if (cells.length < 6) return;
+
+      const subjectText = $(cells[0]).text().trim();
+      const idMatch = subjectText.match(/^([A-Z]{3}\d{2}-\d{5})\s+(.+)$/);
+
+      const classGrade: ClassGrade = {
+        id: idMatch ? idMatch[1] : subjectText,
+        name: idMatch
+          ? parseSubjectName(idMatch[2], true)
+          : parseSubjectName(subjectText, true),
+        class: parseNumber($(cells[1]).text()),
+        grades: {
+          p1: parseGrade($(cells[2]).text()),
+          p2: parseGrade($(cells[3]).text()),
+          pf: parseGrade($(cells[4]).text()),
+          result: parseGrade($(cells[5]).text()),
+        },
+      };
+
+      data.push(classGrade);
     });
+
+    console.log('Parsed class grades data:', data);
 
     return data;
   } catch (err) {
