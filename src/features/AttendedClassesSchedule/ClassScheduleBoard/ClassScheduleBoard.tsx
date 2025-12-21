@@ -3,7 +3,7 @@ import Share from 'react-native-share';
 import { TouchableOpacity } from 'react-native';
 import { useTheme } from 'styled-components/native';
 import Carousel from 'react-native-reanimated-carousel';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialDesignIcons as Icon } from '@react-native-vector-icons/material-design-icons';
 import { Buffer } from 'buffer';
 
 import { window } from '@utils/constants/info';

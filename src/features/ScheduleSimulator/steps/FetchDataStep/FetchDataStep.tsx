@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTheme } from 'styled-components';
 import { TouchableOpacity } from 'react-native';
 import { useFormContext, useWatch } from 'react-hook-form';
-import Icon from 'react-native-vector-icons/AntDesign';
+import { AntDesign as Icon } from '@react-native-vector-icons/ant-design';
 
 import { useAppSelector } from '@root/store';
 import * as apiConfigReducer from '@reducers/apiConfig';
@@ -116,7 +116,7 @@ const FetchDataStep = () => {
               )}
               {!loadingSubjectsTaken && (
                 <Icon
-                  name={errorSubjectsTaken ? 'closecircle' : 'checkcircle'}
+                  name={errorSubjectsTaken ? 'close-circle' : 'check-circle'}
                   color={errorSubjectsTaken ? COLORS.ERROR : COLORS.SUCCESS}
                   size={20}
                 />
