@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components';
-import Icon from '@react-native-vector-icons/ant-design';
+import { AntDesign as Icon } from '@react-native-vector-icons/ant-design';
 
 import { useAppSelector } from '@root/store';
 import * as infoReducer from '@reducers/userInfo';

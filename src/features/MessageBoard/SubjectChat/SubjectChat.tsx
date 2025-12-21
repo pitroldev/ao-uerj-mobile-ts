@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from 'styled-components';
 import Toast from 'react-native-toast-message';
-import Icon from '@react-native-vector-icons/fontawesome';
+import { FontAwesome as Icon } from '@react-native-vector-icons/fontawesome';
 import { useQuery, useMutation } from '@tanstack/react-query';
 
 import { useAppSelector } from '@root/store';

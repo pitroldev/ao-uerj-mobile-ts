@@ -3,7 +3,7 @@ import { ListRenderItemInfo } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { FlatList } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
-import FontAwesome from '@react-native-vector-icons/fontawesome';
+import { FontAwesome } from '@react-native-vector-icons/fontawesome';
 import { useQuery } from '@tanstack/react-query';
 
 import { normalizeText } from '@utils/normalize';

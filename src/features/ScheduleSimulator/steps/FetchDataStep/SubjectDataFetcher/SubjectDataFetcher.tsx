@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTheme } from 'styled-components';
 import { TouchableOpacity } from 'react-native';
 import { useFormContext, useWatch } from 'react-hook-form';
-import Icon from 'react-native-vector-icons/AntDesign';
+import { AntDesign as Icon } from '@react-native-vector-icons/ant-design';
 
 import { parseSubjectCode } from '@services/parser/minorParser';
 
@@ -143,7 +143,9 @@ const SubjectDataFetcher = (props: Props) => {
           {loadingInfo && !errorInfo && <Spinner size={20} />}
           {!loadingInfo && (
             <Icon
-              name={errorInfo || !isAbleToTake ? 'closecircle' : 'checkcircle'}
+              name={
+                errorInfo || !isAbleToTake ? 'close-circle' : 'check-circle'
+              }
               color={errorInfo || !isAbleToTake ? COLORS.ERROR : COLORS.SUCCESS}
               size={20}
             />
