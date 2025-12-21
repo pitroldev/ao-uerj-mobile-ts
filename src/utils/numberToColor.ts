@@ -6,10 +6,10 @@ export function numberToColor(current: unknown, base = 10, inverse = false) {
   const target = inverse ? base - current : current;
   const percent = target / base;
 
-  if (percent >= 0.8) {
+  if (percent >= 0.7) {
     return 'GOOD';
   }
-  if (percent >= 0.6) {
+  if (percent >= 0.5) {
     return 'BAD';
   }
 
