@@ -1,6 +1,6 @@
 {
   "name": "aouerjmobile",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "private": true,
   "scripts": {
     "clean": "cd android && (if exist gradlew.bat (gradlew.bat clean) else (./gradlew clean))",
