@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ScrollView, TouchableOpacity } from 'react-native';
-import Icon from '@react-native-vector-icons/material-icons';
+import { MaterialIcons as Icon } from '@react-native-vector-icons/material-icons';
 
 import { ElectiveCreditsConfig } from '@hooks/useElectiveCreditsConfig';
 import { useMyProgress } from './useMyProgress';

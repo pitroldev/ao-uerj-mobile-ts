@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ListRenderItemInfo } from 'react-native';
 import { FlatList } from 'react-native-gesture-handler';
-import FontAwesome from '@react-native-vector-icons/fontawesome';
+import { FontAwesome } from '@react-native-vector-icons/fontawesome';
 import Toast from 'react-native-toast-message';
 
 import { useAppSelector } from '@root/store';

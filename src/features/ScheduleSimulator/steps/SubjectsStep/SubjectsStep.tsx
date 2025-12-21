@@ -3,7 +3,7 @@ import { ListRenderItemInfo } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Picker } from '@react-native-picker/picker';
 import { useFormContext, useWatch } from 'react-hook-form';
-import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import { FontAwesome } from '@react-native-vector-icons/fontawesome';
 import { FlatList } from 'react-native-gesture-handler';
 
 import { useStepsContext } from '@hooks/useSteps';

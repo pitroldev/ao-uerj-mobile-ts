@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme } from 'styled-components';
-import Icon from '@react-native-vector-icons/ant-design';
+import { AntDesign as Icon } from '@react-native-vector-icons/ant-design';
 
 import Text from '@atoms/Text';
 import { View } from './DummyMessage.styles';
@@ -14,9 +14,12 @@ type Props = {
 const DummyMessage = ({ text, type, onPress }: Props) => {
   const { COLORS } = useTheme();
 
-  const icons = {
-    ERROR: 'closecircleo',
-    EMPTY: 'frowno',
+  const icons: Record<
+    Props['type'],
+    React.ComponentProps<typeof Icon>['name']
+  > = {
+    ERROR: 'close-circle',
+    EMPTY: 'frown',
     INFO: 'notification',
     BLOCK: 'lock',
   };

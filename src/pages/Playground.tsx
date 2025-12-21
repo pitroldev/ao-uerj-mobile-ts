@@ -1,7 +1,7 @@
 import axios from 'axios';
 import React, { useState } from 'react';
 import { Picker } from '@react-native-picker/picker';
-import FontAwesome from '@react-native-vector-icons/fontawesome';
+import { FontAwesome } from '@react-native-vector-icons/fontawesome';
 
 import { refreshAuth } from '@services/UerjApi';
 import { parseSubjectCode } from '@services/parser/minorParser';
