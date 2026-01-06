@@ -40,7 +40,7 @@ const AttendedClassesBoard = ({ isVisible, setVisibility, data }: Props) => {
     const code = parser.parseSubjectCode(item.id) as number;
 
     setVisibility(false);
-    dispatch(subjectDetailReducer.setCurrent({ code }));
+    dispatch(subjectDetailReducer.setCurrent({ code, sourceRoute: 'Início' }));
     navigation.navigate('Pesquisa de Disciplinas');
   }
 

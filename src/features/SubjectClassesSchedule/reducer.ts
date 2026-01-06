@@ -10,17 +10,23 @@ type SubjectData = {
   subject?: SubjectInfo;
 };
 
+type SetCurrentPayload = SubjectData & {
+  sourceRoute?: string;
+};
+
 type State = {
   data: SubjectData[];
   current: SubjectData | null;
+  sourceRoute: string | null;
 };
 
 const MAX_STORED_SUBJECTS = 20;
 
-const initialState = {
+const initialState: State = {
   data: [],
   current: null,
-} as State;
+  sourceRoute: null,
+};
 
 const slice = createSlice({
   name: 'subjectClassesSearch',
@@ -41,20 +47,24 @@ const slice = createSlice({
 
       state.data = [...otherSubjects, payload].slice(0, MAX_STORED_SUBJECTS);
     },
-    setCurrent: (state, action: PayloadAction<SubjectData>) => {
+    setCurrent: (state, action: PayloadAction<SetCurrentPayload>) => {
       const { data } = state;
-      const { payload } = action;
+      const { sourceRoute, ...subjectData } = action.payload;
 
       const otherSubjects = data.filter(
-        subject => subject.code !== payload.code,
+        subject => subject.code !== subjectData.code,
       );
 
-      state.data = [payload, ...otherSubjects].slice(0, MAX_STORED_SUBJECTS);
-
-      state.current = payload;
+      state.data = [subjectData, ...otherSubjects].slice(
+        0,
+        MAX_STORED_SUBJECTS,
+      );
+      state.current = subjectData;
+      state.sourceRoute = sourceRoute ?? null;
     },
     clearCurrent: state => {
       state.current = initialState.current;
+      state.sourceRoute = null;
     },
   },
 });
