@@ -17,9 +17,6 @@ export function parseGrade(strGrade: string) {
 
 export default function parseClassGrades(html: string) {
   try {
-    console.log('Parsing class grades data...');
-    console.log(html);
-
     const $ = cheerio.load(html);
 
     const data: ClassGrade[] = [];
@@ -49,8 +46,6 @@ export default function parseClassGrades(html: string) {
 
       data.push(classGrade);
     });
-
-    console.log('Parsed class grades data:', data);
 
     return data;
   } catch (err) {
