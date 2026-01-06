@@ -81,7 +81,12 @@ const CurriculumSubjects = () => {
       return;
     }
     const code = parser.parseSubjectCode(subject.id) as number;
-    dispatch(subjectDetailReducer.setCurrent({ code }));
+    dispatch(
+      subjectDetailReducer.setCurrent({
+        code,
+        sourceRoute: 'Disciplinas do Currículo',
+      }),
+    );
     navigation.navigate('Pesquisa de Disciplinas');
   };
 

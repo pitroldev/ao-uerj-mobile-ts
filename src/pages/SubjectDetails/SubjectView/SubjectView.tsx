@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Linking, ScrollView } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 import { useAppDispatch, useAppSelector } from '@root/store';
 import { useBackHandler } from '@hooks/useBackHandler';
@@ -39,8 +40,19 @@ const SubjectView = ({
   error,
 }: Props) => {
   const dispatch = useAppDispatch();
+  const navigation = useNavigation();
 
-  useBackHandler(() => dispatch(reducer.clearCurrent()));
+  const { sourceRoute } = useAppSelector(reducer.selectSubjectClassesSearch);
+
+  const handleBack = useCallback(() => {
+    const routeToGoBack = sourceRoute;
+    dispatch(reducer.clearCurrent());
+    if (routeToGoBack) {
+      navigation.navigate(routeToGoBack as never);
+    }
+  }, [dispatch, sourceRoute, navigation]);
+
+  useBackHandler(handleBack, Boolean(sourceRoute));
 
   const { isBlocked } = useAppSelector(apiConfigReducer.selectApiConfig);
 
