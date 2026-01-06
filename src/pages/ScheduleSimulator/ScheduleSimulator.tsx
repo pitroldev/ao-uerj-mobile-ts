@@ -57,22 +57,22 @@ const stepLabels = [
   'Gerar Grade',
 ];
 
-const ScheduleCreationPage = () => {
-  const defaultValues: ScheduleCreationParams = {
-    min_subject_amount: null,
-    max_subject_amount: null,
-    busy_schedules: [],
-    priority: ['MOST_SUBJECTS_POSSIBLE'],
-    subjectsToTake: [],
-    selectedSubjects: [],
-    takenSubjects: [],
-    subjects: [],
-    selectedClasses: [],
-  };
+const getDefaultValues = (): ScheduleCreationParams => ({
+  min_subject_amount: null,
+  max_subject_amount: null,
+  busy_schedules: [],
+  priority: ['MOST_SUBJECTS_POSSIBLE'],
+  subjectsToTake: [],
+  selectedSubjects: [],
+  takenSubjects: [],
+  subjects: [],
+  selectedClasses: [],
+});
 
+const ScheduleCreationPage = () => {
   const methods = useForm<ScheduleCreationParams>({
     mode: 'all',
-    defaultValues,
+    defaultValues: getDefaultValues(),
   });
 
   const { step, nextStep, prevStep, setStep } = useSteps({
@@ -82,9 +82,9 @@ const ScheduleCreationPage = () => {
 
   useEffect(() => {
     if (step === 0) {
-      methods.reset(defaultValues);
+      methods.reset(getDefaultValues());
     }
-  }, [step]);
+  }, [step, methods]);
 
   const CurrentStep = steps[step]?.component ?? null;
 
