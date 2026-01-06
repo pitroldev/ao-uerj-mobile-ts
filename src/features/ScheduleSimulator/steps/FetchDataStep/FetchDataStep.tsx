@@ -59,7 +59,7 @@ const FetchDataStep = () => {
 
   useEffect(() => {
     setLoadedSubjects([]);
-  }, []);
+  }, [selectedSubjects]);
 
   const handleSubjectLoaded = (subjectId: string) => {
     setLoadedSubjects(prev =>
