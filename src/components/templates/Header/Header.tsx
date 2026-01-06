@@ -27,7 +27,10 @@ const Header = ({ navigationState }: Props) => {
   const theme = useTheme();
   const { periodo, password } = useAppSelector(infoReducer.selectUserInfo);
 
-  const currentRoute = RootNavigation.getCurrentRouteName();
+  // Use optional chaining and provide a fallback
+  const currentRoute = RootNavigation.isNavigationReady()
+    ? RootNavigation.getCurrentRouteName()
+    : undefined;
 
   useEffect(() => {
     setRouteName(currentRoute ?? periodo ?? '');

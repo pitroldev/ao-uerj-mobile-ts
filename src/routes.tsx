@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { useQuery } from '@tanstack/react-query';
 
@@ -52,25 +52,36 @@ const MainRoutes = () => {
   const { cookies } = useAppSelector(selectApiConfig);
   const { matricula, password } = useAppSelector(selectUserInfo);
 
-  const { isLoading } = useQuery({
+  const shouldRefresh = Boolean(matricula && password);
+
+  const { isLoading, isError } = useQuery({
     queryKey: ['refresh-auth'],
     queryFn: async () => {
       await refreshAuth();
       return true;
     },
-    enabled: Boolean(matricula && password),
-    retry: 0,
-    refetchInterval: 10 * 60 * 1000, // Refresh a cada 10 minutos (600.000ms)
-    refetchOnWindowFocus: true, // Refresh quando o app volta do background
+    enabled: shouldRefresh,
+    retry: 1, // Tentar uma vez antes de falhar
+    retryDelay: 1000, // Esperar 1s antes de retry
+    refetchInterval: 10 * 60 * 1000, // Refresh a cada 10 minutos
+    refetchOnWindowFocus: true,
+    staleTime: 30 * 1000, // Considerar dados frescos por 30s (evita refetch imediato ao voltar do background)
   });
 
   const isSignedIn = Boolean(cookies);
 
-  const initialRoute = isSignedIn ? 'Início' : 'Login';
+  // Se houve erro no refresh mas temos cookies, ainda podemos mostrar o app
+  const showLoading = isLoading && shouldRefresh && !cookies;
+
+  const initialRoute = useMemo(() => {
+    if (showLoading) return 'Loading';
+    return isSignedIn ? 'Início' : 'Login';
+  }, [showLoading, isSignedIn]);
+
   return (
     <Drawer.Navigator
       drawerContent={renderDrawerContent}
-      initialRouteName={isLoading ? 'Loading' : initialRoute}
+      initialRouteName={initialRoute}
       screenOptions={{
         headerShown: false,
         drawerType: 'back',
@@ -78,8 +89,8 @@ const MainRoutes = () => {
         swipeEnabled: isSignedIn,
       }}
     >
-      {isLoading && <Drawer.Screen name="Loading" component={Loading} />}
-      {!isLoading && isSignedIn && (
+      {showLoading && <Drawer.Screen name="Loading" component={Loading} />}
+      {!showLoading && isSignedIn && (
         <>
           {/* <Drawer.Screen name="Playground" component={Playground} /> */}
           <Drawer.Screen name="Início" component={Home} />
@@ -120,7 +131,7 @@ const MainRoutes = () => {
           <Drawer.Screen name="Sobre" component={About} />
         </>
       )}
-      {!isLoading && !isSignedIn && (
+      {!showLoading && !isSignedIn && (
         <>
           <Drawer.Screen name="Login" component={Login} />
         </>
