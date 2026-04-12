@@ -54,6 +54,8 @@ const SubjectDataFetcher = (props: Props) => {
 
   useEffect(() => {
     if (!subjectInfo) return;
+    if (alreadyHasSubject) return;
+
     const filteredSubjects = subjects?.filter(s => s.id !== subject.id) ?? [];
     setValue('subjects', [
       ...filteredSubjects,
@@ -80,7 +82,7 @@ const SubjectDataFetcher = (props: Props) => {
       ...filteredSelectedClasses,
       ...classesWithoutConflict,
     ]);
-  }, [subjectInfo]);
+  }, [subjectInfo, alreadyHasSubject]);
 
   const handleRefetchInfo = () => {
     if (errorInfo) {
