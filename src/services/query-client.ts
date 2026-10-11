@@ -1,10 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
+import { NOT_RETRY_ERRORS } from './UerjApi/errors';
 
-export const NOT_RETRY_ERRORS = [
-  'NOT_LOGGED_IN',
-  'POSSIBLY_BLOCKED',
-  'LOGIN_REFRESH_FAILED',
-];
+export { NOT_RETRY_ERRORS } from './UerjApi/errors';
 const MAX_RETRIES = 3;
 
 const queryClient = new QueryClient({

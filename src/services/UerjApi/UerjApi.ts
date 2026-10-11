@@ -1,16 +1,20 @@
-import axios, { AxiosError, AxiosResponse } from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import iconv from 'iconv-lite';
 import { Buffer } from 'buffer';
 
 import store from '@root/store';
 import { refreshAuth } from './lib/refreshAuth';
-import { NOT_RETRY_ERRORS } from './utils';
+import { isSessionExpiredResponse } from './lib/isSessionExpiredResponse';
+import { getRequisitionID, getRequisitionKey } from './utils/getRequisitionID';
 
 const BASE_URL = 'https://www.alunoonline.uerj.br';
-const COOKIE_MAX_DURATION_IN_HOURS = 2;
-const MAX_ERROR_RETRIES = 3;
-const MAX_SUCCESS_RETRIES = 1;
-const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+export type SessionRequestConfig = InternalAxiosRequestConfig & {
+  _requisitionKey?: string;
+  _sessionCreatedAt?: number;
+  _sessionToken?: string;
+  _sessionRetried?: boolean;
+};
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -26,90 +30,72 @@ const api = axios.create({
   },
 });
 
-const responseErrorInterceptor = async (err: AxiosError) => {
-  const { apiConfig, userInfo } = store.getState();
+api.interceptors.request.use(async (config: SessionRequestConfig) => {
+  config._requisitionKey ??= getRequisitionKey(config.params?.requisicao);
+  let { apiConfig } = store.getState();
 
-  const now = new Date();
-  const cookieCreationDate = new Date(apiConfig.createdAt);
-  const cookieTimeInHours = Math.floor(
-    (now.getTime() - cookieCreationDate.getTime()) / (1000 * 60 * 60),
-  );
-
-  console.log('[ERROR INTERCEPTOR]', err);
-
-  if (!userInfo.matricula || !userInfo.password) {
-    throw new Error('NOT_LOGGED_IN');
+  if (config._requisitionKey) {
+    // Existing IDs and the token must come from one synchronous snapshot.
+    // Only a missing derived ID requires I/O; reread after each await because
+    // another login may have replaced the session while it was being fetched.
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      if (apiConfig.dictionary[config._requisitionKey]) break;
+      await getRequisitionID(config._requisitionKey, false);
+      apiConfig = store.getState().apiConfig;
+    }
+    const requisicao = apiConfig.dictionary[config._requisitionKey];
+    if (!requisicao) throw new Error('SESSION_EXPIRED');
+    config.params = { ...config.params, requisicao };
   }
 
-  const status = err?.response?.status;
-  const isAuthError = status === 401 || status === 403;
-  const isServerError = status !== undefined && status >= 500;
-  const originalRequest = err.config as any;
+  config.params = { ...config.params, _token: apiConfig._token };
+  config._sessionCreatedAt = apiConfig.createdAt;
+  config._sessionToken = apiConfig._token;
+  return config;
+});
 
-  const isReachedRetryLimit = originalRequest._retries >= MAX_ERROR_RETRIES;
+async function recoverSession(config: SessionRequestConfig) {
+  if (config._sessionRetried) {
+    throw new Error('SESSION_EXPIRED');
+  }
+  config._sessionRetried = true;
 
-  const isSessionPossiblyExpired =
-    cookieTimeInHours > COOKIE_MAX_DURATION_IN_HOURS ||
-    isAuthError ||
-    isServerError;
+  const { apiConfig } = store.getState();
+  const sessionAlreadyChanged =
+    config._sessionCreatedAt !== apiConfig.createdAt ||
+    config._sessionToken !== apiConfig._token;
 
-  const isNotRetryError = NOT_RETRY_ERRORS.includes(err.message);
-
-  if (isSessionPossiblyExpired && !isReachedRetryLimit && !isNotRetryError) {
-    originalRequest._retries = (originalRequest._retries || 0) + 1;
-
-    await refreshAuth().catch(e => {
-      const notRetry = NOT_RETRY_ERRORS.includes(e.message);
-      if (notRetry) {
-        originalRequest._retries = MAX_ERROR_RETRIES;
-      }
-    });
-
-    const backoff = Math.min(1000 * 2 ** originalRequest._retries, 5000); // 1s, 2s, 4s
-    await delay(backoff);
-    return api(originalRequest);
+  if (!sessionAlreadyChanged) {
+    // refreshAuth shares one in-flight login. Let failures propagate so a
+    // rejected login cannot become a successful, empty feature response.
+    await refreshAuth();
   }
 
-  return Promise.reject(err);
-};
-
-const responseSuccessInterceptor = async (res: AxiosResponse) => {
-  const dataLen = res?.data?.length || 0;
-  const hasNoData = dataLen === 0 || dataLen < 100;
-
-  const originalRequest = res.config as any;
-  const isReachedRetryLimit = originalRequest._retries >= MAX_SUCCESS_RETRIES;
-
-  if (hasNoData && !isReachedRetryLimit) {
-    // eslint-disable-next-line no-console
-    console.log(
-      '[SUCCESS INTERCEPTOR] retrying due to empty/placeholder response',
-      {
-        dataLen,
-        url: originalRequest?.url,
-        attempt: originalRequest._retries,
-      },
-    );
-    originalRequest._retries = (originalRequest._retries || 0) + 1;
-
-    await refreshAuth().catch(e => {
-      const notRetry = NOT_RETRY_ERRORS.includes(e.message);
-      if (notRetry) {
-        originalRequest._retries = MAX_ERROR_RETRIES;
-      }
-    });
-
-    const backoff = Math.min(1000 * 2 ** originalRequest._retries, 5000); // 1s, 2s, 4s
-    await delay(backoff);
-    return api(originalRequest);
+  if (!config._requisitionKey) {
+    throw new Error('REQ_ID_NOT_FOUND');
   }
 
-  return res;
-};
+  return api(config);
+}
 
 api.interceptors.response.use(
-  responseSuccessInterceptor,
-  responseErrorInterceptor,
+  res => {
+    if (isSessionExpiredResponse(res.data)) {
+      return recoverSession(res.config);
+    }
+    return res;
+  },
+  (err: AxiosError) => {
+    const status = err.response?.status;
+    const mayBeExpired =
+      status === 401 || status === 403 || status === 419 || status === 500;
+
+    if (mayBeExpired && err.config) {
+      return recoverSession(err.config);
+    }
+
+    return Promise.reject(err);
+  },
 );
 
 export default api;

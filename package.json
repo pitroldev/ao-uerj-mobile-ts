@@ -13,6 +13,7 @@
     "ios": "react-native run-ios",
     "start": "react-native start",
     "test": "jest",
+    "diagnose:ao": "node scripts/diagnose-ao.cjs",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "commit": "gitmoji --commit"
   },

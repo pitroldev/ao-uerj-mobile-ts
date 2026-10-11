@@ -101,6 +101,21 @@ pnpm android
 
 Observação: se houver erros relacionados a SDK/NDK/Gradle/Java, ajuste localmente as versões para o ambiente RN 0.81.4.
 
+### Testes da integração com o Aluno Online
+
+`pnpm test --runInBand` executa as regressões locais sem credenciais nem acesso ao portal.
+
+Para diagnosticar o portal real, configure `AO_MATRICULA` e `AO_PASSWORD` no `.env` local e execute:
+
+```pwsh
+pnpm diagnose:ao
+pnpm diagnose:ao --expire-session
+```
+
+O segundo comando também descarta os cookies do próprio diagnóstico para verificar a renovação da sessão e a repetição das consultas. O script usa os serviços e parsers do app, com cookies e armazenamento em memória; imprime apenas etapas, contagens e códigos de erro. Requer Node.js 20.12+ e as dependências de desenvolvimento. A validação do transporte nativo no Android/iOS é separada.
+
+Detalhes da falha e da correção: [diagnóstico da sessão do Aluno Online](docs/aluno-online-session-diagnosis.md).
+
 ## Arquitetura do código
 
 - `src/pages/*`: telas de navegação (Home, Login, SubjectsTaken, CurriculumSubjects, UniversalSubjects, SubjectDetails, MessageBoard, ScheduleSimulator, About, etc.)

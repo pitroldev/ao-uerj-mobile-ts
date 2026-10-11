@@ -8,39 +8,31 @@ export default function parsePartialRID(html: string) {
   const $ = cheerio.load(html);
 
   const subjects: PartialRID[] = [];
-  let ridSubject = {} as Partial<PartialRID>;
 
-  if (!$('div div td').text()) {
-    return {
-      subjects,
-      updatedAt: '',
-    };
-  }
+  // Receipt and layout tables share this page with the provisional results.
+  $('table.reportTable > tr, table.reportTable > tbody > tr').each(
+    (_index: number, row: any) => {
+      const cells = $(row).children('td');
+      if (cells.length !== 6 || cells.filter('[colspan]').length) {
+        return;
+      }
 
-  $('div div td').text((index: number, text: string) => {
-    if (index % 6 === 0) {
-      ridSubject.id = parseSubjectID(text);
-      ridSubject.name = parseSubjectName(text);
-    }
+      const subject = cells.eq(0).text().trim();
+      if (!/\b[A-Z]+\d+-\d+\b/i.test(subject)) {
+        return;
+      }
 
-    if ((index - 1) % 6 === 0) {
-      ridSubject.classNumber = text.trim();
-    }
-    if ((index - 2) % 6 === 0) {
-      ridSubject.available = parseInt(text.trim(), 10);
-    }
-    if ((index - 3) % 6 === 0) {
-      ridSubject.requested = parseInt(text.trim(), 10);
-    }
-    if ((index - 4) % 6 === 0) {
-      ridSubject.position = parseInt(text.trim(), 10);
-    }
-    if ((index - 5) % 6 === 0) {
-      ridSubject.status = text.trim();
-      subjects.push(ridSubject as PartialRID);
-      ridSubject = {};
-    }
-  });
+      subjects.push({
+        id: parseSubjectID(subject),
+        name: parseSubjectName(subject),
+        classNumber: cells.eq(1).text().trim(),
+        available: parseInt(cells.eq(2).text().trim(), 10),
+        requested: parseInt(cells.eq(3).text().trim(), 10),
+        position: parseInt(cells.eq(4).text().trim(), 10),
+        status: cells.eq(5).text().trim(),
+      });
+    },
+  );
 
   const updatedAt = $('div div:nth-child(1) b').first().text();
 

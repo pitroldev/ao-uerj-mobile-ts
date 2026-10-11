@@ -66,7 +66,21 @@ export async function handleLogin(
   const info = parseLoginInfo(homePageData);
 
   if (!info.nome || info.fail_reason) {
-    return { fail_reason: info.fail_reason };
+    return {
+      fail_reason:
+        info.fail_reason ||
+        'Não foi possível confirmar o acesso ao Aluno Online. Tente novamente.',
+    };
+  }
+
+  const { dictionary, failed } = getReqIds(homePageData);
+
+  if (failed > 20) {
+    throw new Error('POSSIBLY_BLOCKED');
+  }
+
+  if (!Object.keys(dictionary).length) {
+    throw new Error('LOGIN_REQUISITIONS_NOT_FOUND');
   }
 
   const new_cookies = await getCookies();
@@ -80,7 +94,6 @@ export async function handleLogin(
     }),
   );
 
-  const { dictionary, failed } = getReqIds(homePageData);
   const new_dictionary = { ...dictionary, login: loginReqId };
 
   store.dispatch(
@@ -91,11 +104,7 @@ export async function handleLogin(
     }),
   );
 
-  if (failed > 20) {
-    throw new Error('POSSIBLY_BLOCKED');
-  } else {
-    store.dispatch(apiConfigReducer.setIsBlocked(false));
-  }
+  store.dispatch(apiConfigReducer.setIsBlocked(false));
 
   return info;
 }

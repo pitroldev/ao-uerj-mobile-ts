@@ -26,13 +26,14 @@ const LoginPage = () => {
   const { isPending: loading, mutate: login } = useMutation({
     mutationFn: () => handleLogin(matricula, password),
     onSuccess: data => {
-      if ('fail_reason' in data) {
-        setError(
-          data.fail_reason ||
-            'Falha ao fazer login, por favor atualize o aplicativo e tente novamente.',
-        );
-        return;
+      if (data.fail_reason) {
+        setError(data.fail_reason);
       }
+    },
+    onError: () => {
+      setError(
+        'Não foi possível acessar o Aluno Online. Verifique sua conexão e tente novamente.',
+      );
     },
   });
 
