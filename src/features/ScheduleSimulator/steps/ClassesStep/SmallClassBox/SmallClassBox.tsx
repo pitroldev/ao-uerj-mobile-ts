@@ -1,35 +1,34 @@
+import { SubjectClasses } from '@root/modules/planning/domain/models';
 import React from 'react';
 import { TouchableOpacity } from 'react-native';
 
-import {
-  Horario,
-  SubjectClassesSchedule,
-} from '@features/SubjectClassesSchedule/types';
-import { SubjectInfo } from '@features/SubjectInfo/types';
+import { Horario } from '@root/modules/academics/domain/models';
+import { SubjectInfo } from '@root/modules/academics/domain/models';
 
 import ScheduleBox from '@root/pages/SubjectDetails/ScheduleBox';
 
 import Text from '@atoms/Text';
 import { InlineRow, Container, Column, Row } from './SmallClassBox.styles';
 
-interface Props extends SubjectClassesSchedule {
+interface Props extends SubjectClasses {
   selected: boolean;
-  onPress: (c: any) => void;
+  onPress: (group: SubjectClasses) => void;
   subject: SubjectInfo;
 }
 
 const SmallClassBox = (c: Props) => {
+  const { onPress, selected, subject, ...subjectClass } = c;
   const hasMultipleTeachers = (c?.teachers as string[])?.length > 1;
 
   const teachers: string[] = c.teachers ?? [];
   const schedule: Horario[] = c.schedule ?? [];
 
   return (
-    <TouchableOpacity onPress={() => c.onPress(c)}>
-      <Container key={c.classNumber} color={c.selected ? 'FREE' : 'BUSY'}>
+    <TouchableOpacity onPress={() => onPress(subjectClass)}>
+      <Container key={c.classNumber} color={selected ? 'FREE' : 'BUSY'}>
         <InlineRow>
           <Text size="XS" weight="bold" marginRight="auto">
-            {c.subject.id}
+            {subject.id}
           </Text>
           <Text size="XS" weight="bold" marginLeft="auto">
             Turma {c.classNumber}
@@ -38,7 +37,7 @@ const SmallClassBox = (c: Props) => {
         </InlineRow>
         <InlineRow>
           <Text size="XS" marginRight="auto">
-            {c.subject.name}
+            {subject.name}
           </Text>
         </InlineRow>
 

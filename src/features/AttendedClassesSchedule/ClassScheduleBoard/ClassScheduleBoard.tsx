@@ -1,5 +1,7 @@
 import React from 'react';
-import Share from 'react-native-share';
+import { Alert } from 'react-native';
+import { nextWeekdayIndex } from '@root/modules/academics/domain/rules/schedule';
+import { useScheduleSharing } from '@root/modules/academics/presentation/useScheduleSharing';
 import { TouchableOpacity } from 'react-native';
 import { useTheme } from 'styled-components/native';
 import Carousel from 'react-native-reanimated-carousel';
@@ -8,14 +10,10 @@ import { Buffer } from 'buffer';
 
 import { window } from '@utils/constants/info';
 import { TIME_VALUES } from '@utils/constants/time';
-import { AttendedClassesSchedule } from '@features/AttendedClassesSchedule/types';
+import { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
 
 import Text from '@atoms/Text';
-import { buildWeekSvgDataUri } from '../svgExport';
-import {
-  useSvgToImage,
-  convertSvgToImageFallback,
-} from '../svgToImageConverter';
+import { buildWeekSvgDataUri } from '@root/modules/academics/presentation/scheduleSvg';
 
 import {
   TimeInfoColumn,
@@ -36,7 +34,7 @@ type Props = {
 const ClassScheduleBoard = ({ data, onSubjectPress }: Props) => {
   const theme = useTheme();
   const safeData = data ?? [];
-  const { convertSvgToImage, SvgRenderer } = useSvgToImage();
+  const { share, exporting, SvgRenderer } = useScheduleSharing();
 
   const weekDays = [] as { number: number; name: string }[];
   safeData.forEach(
@@ -69,7 +67,7 @@ const ClassScheduleBoard = ({ data, onSubjectPress }: Props) => {
     const boxColor = getBoxColor(start_time_in_minutes);
     return (
       <TouchableOpacity
-        key={`${item.class.name}:${item.class.id}`}
+        key={`${item.class.id}:${item.start_time_in_minutes}`}
         onPress={() => onSubjectPress(item)}
       >
         <ClassBox color={boxColor}>
@@ -124,67 +122,27 @@ const ClassScheduleBoard = ({ data, onSubjectPress }: Props) => {
     );
   };
 
-  const currentDay = new Date().getDay();
-
-  const [closestWeekday] = weekDays
-    .map(({ number }) => ({ diff: Math.abs(number - currentDay), number }))
-    .sort((a, b) => a.diff - b.diff);
-
-  const defaultIndex =
-    weekDays.findIndex(w => w.number === closestWeekday.number) ?? 0;
+  weekDays.sort((left, right) => left.number - right.number);
+  const defaultIndex = nextWeekdayIndex(
+    weekDays.map(day => day.number),
+    new Date().getDay(),
+  );
 
   const qttyItemsPerWeekDay = weekDays.map(
     w => safeData.filter(c => c.dayAlias === w.name).length,
   );
-  const maxQttyOfItemsInAWeekDay = Math.max(...qttyItemsPerWeekDay);
+  const maxQttyOfItemsInAWeekDay = Math.max(0, ...qttyItemsPerWeekDay);
   const maxPossibleHeight =
     60 * maxQttyOfItemsInAWeekDay + 12 * maxQttyOfItemsInAWeekDay + 80;
 
-  const [_currentIndex, setCurrentIndex] = React.useState<number>(defaultIndex);
-  const [exporting, setExporting] = React.useState<boolean>(false);
-
   const handleExport = async () => {
     try {
-      setExporting(true);
-
-      try {
-        const imageUri = await convertSvgToImage(safeData, theme.COLORS);
-        await Share.open({
-          url: imageUri,
-          type: 'image/png',
-          failOnCancel: false,
-        });
-      } catch (svgError) {
-        console.log(
-          'Erro na conversão SVG para PNG, tentando fallback:',
-          svgError,
-        );
-
-        try {
-          const fallbackUri = await convertSvgToImageFallback(
-            safeData,
-            theme.COLORS,
-          );
-          await Share.open({
-            url: fallbackUri,
-            type: 'image/png',
-            failOnCancel: false,
-          });
-        } catch (fallbackError) {
-          console.log('Erro no fallback, usando SVG original:', fallbackError);
-
-          const dataUri = buildWeekSvgDataUri(safeData, theme.COLORS);
-          await Share.open({
-            url: dataUri,
-            type: 'image/svg+xml',
-            failOnCancel: false,
-          });
-        }
-      }
-    } catch (e) {
-      console.log('Erro no compartilhamento:', e);
-    } finally {
-      setExporting(false);
+      await share(buildWeekSvgDataUri(safeData, theme.COLORS));
+    } catch {
+      Alert.alert(
+        'Compartilhamento',
+        'Não foi possível compartilhar a grade. Tente novamente.',
+      );
     }
   };
 
@@ -220,7 +178,6 @@ const ClassScheduleBoard = ({ data, onSubjectPress }: Props) => {
           height={maxPossibleHeight}
           data={weekDays.map(w => w.name)}
           scrollAnimationDuration={500}
-          onSnapToItem={index => setCurrentIndex(index)}
           renderItem={({ item }) => renderBoard(item)}
         />
       </CarouselContainer>
@@ -230,9 +187,4 @@ const ClassScheduleBoard = ({ data, onSubjectPress }: Props) => {
   );
 };
 
-export default React.memo(ClassScheduleBoard, (prev, next) => {
-  if (JSON.stringify(prev) === JSON.stringify(next)) {
-    return true;
-  }
-  return false;
-});
+export default React.memo(ClassScheduleBoard);

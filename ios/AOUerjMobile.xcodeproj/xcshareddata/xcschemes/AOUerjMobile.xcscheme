@@ -17,7 +17,7 @@
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
                BuildableName = "aouerjmobile.app"
                BlueprintName = "aouerjmobile"
-               ReferencedContainer = "container:aouerjmobile.xcodeproj">
+               ReferencedContainer = "container:AOUerjMobile.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -27,18 +27,7 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
-      <Testables>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "aouerjmobileTests.xctest"
-               BlueprintName = "aouerjmobileTests"
-               ReferencedContainer = "container:aouerjmobile.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-      </Testables>
+      <Testables />
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -57,7 +46,7 @@
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
             BuildableName = "aouerjmobile.app"
             BlueprintName = "aouerjmobile"
-            ReferencedContainer = "container:aouerjmobile.xcodeproj">
+            ReferencedContainer = "container:AOUerjMobile.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -74,7 +63,7 @@
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
             BuildableName = "aouerjmobile.app"
             BlueprintName = "aouerjmobile"
-            ReferencedContainer = "container:aouerjmobile.xcodeproj">
+            ReferencedContainer = "container:AOUerjMobile.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

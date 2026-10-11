@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import Text from '@atoms/Text';
 import { SUBJECT_TYPE } from '@utils/constants/subjectDictionary';
 import {
@@ -26,11 +27,16 @@ interface SubjectTypeData {
 interface Props {
   type: SubjectTypeKey;
   data: SubjectTypeData;
+  curriculumAvailable: boolean;
 }
 
-export default function SubjectTypeCard({ type, data }: Props) {
+export default function SubjectTypeCard({
+  type,
+  data,
+  curriculumAvailable,
+}: Props) {
   const label = SUBJECT_TYPE[type];
-  const tot = data.totals[type];
+  const tot = curriculumAvailable ? data.totals[type] : undefined;
   const comp = data.completed[type];
   const rem = data.remaining[type];
   const pct = data.percent[type];
@@ -41,7 +47,8 @@ export default function SubjectTypeCard({ type, data }: Props) {
   const isMandatory = type === 'MANDATORY';
   const isUniversal = type === 'UNIVERSAL';
   const hasRequiredCredits = requiredCred && requiredCred > 0;
-  const showProgressBar = isMandatory || hasRequiredCredits;
+  const showProgressBar =
+    curriculumAvailable && (isMandatory ? (tot ?? 0) > 0 : hasRequiredCredits);
 
   return (
     <StatCard>
@@ -91,7 +98,7 @@ export default function SubjectTypeCard({ type, data }: Props) {
               Créditos concl.: {compCred}
             </Text>
           </InlineStats>
-          {!isUniversal && (
+          {curriculumAvailable && !isUniversal && (
             <InlineStats>
               <Text size="XS" color="TEXT_PRIMARY">
                 Ofertadas no currículo: {tot}
@@ -103,15 +110,17 @@ export default function SubjectTypeCard({ type, data }: Props) {
               )}
             </InlineStats>
           )}
-          <Text
-            size="XS"
-            color="TEXT_SECONDARY"
-            style={{ marginTop: 8, fontStyle: 'italic' }}
-          >
-            Configure os créditos necessários para ver o progresso
-          </Text>
+          {curriculumAvailable && !isMandatory && !hasRequiredCredits && (
+            <Text size="XS" color="TEXT_PRIMARY" style={styles.hint}>
+              Configure os créditos necessários para ver o progresso
+            </Text>
+          )}
         </>
       )}
     </StatCard>
   );
 }
+
+const styles = StyleSheet.create({
+  hint: { marginTop: 8, fontStyle: 'italic' },
+});

@@ -1,20 +1,18 @@
+import { useQueryClient } from '@tanstack/react-query';
+import { useIdentity } from '@root/app/providers/AppServicesProvider';
+import { academicKeys } from '@root/modules/academics/presentation/queryKeys';
+import { SubjectInfo } from '@root/modules/academics/domain/models';
 import React, { useState, useRef } from 'react';
 import { ListRenderItemInfo } from 'react-native';
 import { FlatList } from 'react-native-gesture-handler';
 import { FontAwesome } from '@react-native-vector-icons/fontawesome';
 import Toast from 'react-native-toast-message';
 
-import { useAppSelector } from '@root/store';
-
-import * as apiConfigReducer from '@reducers/apiConfig';
-import * as reducer from '@features/SubjectClassesSchedule/reducer';
-
 import Text from '@atoms/Text';
 import Button from '@atoms/Button';
 import TextInput from '@atoms/TextInput';
 import SubjectBox from '@molecules/SubjectBox';
 import DummyMessage from '@molecules/DummyMessage';
-import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
 import { Container, InlineRow } from './SubjectSearch.styles';
 
@@ -25,9 +23,25 @@ type Props = {
 const SubjectSearch = ({ searchSubject }: Props) => {
   const [subjectCode, setSubjectCode] = useState('');
 
-  const { data } = useAppSelector(reducer.selectSubjectClassesSearch);
-
-  const { isBlocked } = useAppSelector(apiConfigReducer.selectApiConfig);
+  const queryClient = useQueryClient();
+  const { account } = useIdentity();
+  const data = account
+    ? queryClient
+        .getQueryCache()
+        .findAll({
+          queryKey: academicKeys.resource(
+            account.scope,
+            account.period,
+            'subject-details',
+          ),
+        })
+        .filter(query => query.state.data !== undefined)
+        .sort(
+          (left, right) => right.state.dataUpdatedAt - left.state.dataUpdatedAt,
+        )
+        .slice(0, 20)
+        .map(query => query.state.data as SubjectInfo)
+    : [];
 
   const ref = useRef<FlatList>(null);
 
@@ -46,7 +60,7 @@ const SubjectSearch = ({ searchSubject }: Props) => {
   const renderSubjects = ({
     item,
   }: ListRenderItemInfo<(typeof data)[number]>) => {
-    const { subject } = item;
+    const subject = item;
 
     if (!subject) {
       return null;
@@ -95,13 +109,6 @@ const SubjectSearch = ({ searchSubject }: Props) => {
       >
         Histórico
       </Text>
-      {isBlocked && (
-        <SmallDummyMessage
-          type="BLOCK"
-          text="O Aluno Online está temporariamente bloqueado."
-          onPress={fetch}
-        />
-      )}
       {isEmpty && (
         <DummyMessage
           type="EMPTY"
@@ -113,7 +120,7 @@ const SubjectSearch = ({ searchSubject }: Props) => {
         data={data}
         renderItem={renderSubjects}
         showsVerticalScrollIndicator={false}
-        keyExtractor={(_, index) => index.toString()}
+        keyExtractor={subject => subject.id!}
       />
     </Container>
   );

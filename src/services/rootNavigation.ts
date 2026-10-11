@@ -1,6 +1,6 @@
 import { createRef } from 'react';
 
-import { RootDrawerParamList } from '@root/routes';
+import type { RootDrawerParamList } from '@root/routes';
 import {
   DrawerActions,
   NavigationContainerRef,
@@ -8,15 +8,8 @@ import {
 
 export const navigationRef =
   createRef<NavigationContainerRef<RootDrawerParamList>>();
-export const isReadyRef: { current: boolean } = { current: false };
-
-// Reset ready state - call when app comes from background after being killed
-export function resetNavigationReady() {
-  isReadyRef.current = false;
-}
-
 export function isNavigationReady(): boolean {
-  return isReadyRef.current && navigationRef.current != null;
+  return navigationRef.current?.isReady() ?? false;
 }
 
 export function navigate(name: any, params?: any) {

@@ -1,171 +1,98 @@
 # AO UERJ
 
-<!-- markdownlint-disable MD033 -->
-<p align="center">
-    <img src="resources/web_hi_res_512.png" alt="AO UERJ" width="128" height="128" />
+Aplicativo não oficial do Aluno Online da UERJ, em React Native 0.83.1, React 19.2 e TypeScript. Consulta notas, histórico, currículo, disciplinas, RID e horários, além de oferecer progresso acadêmico, geração de grades e mural de mensagens.
 
-</p>
-<!-- markdownlint-enable MD033 -->
+[Google Play](https://play.google.com/store/apps/details?id=com.aouerjmobile) · [Licença GPLv3](LICENSE)
 
-[![Google Play - Download](https://img.shields.io/badge/Google%20Play-Download-3DDC84?logo=google-play&logoColor=white)](https://play.google.com/store/apps/details?id=com.aouerjmobile)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
-[![React Native](https://img.shields.io/badge/React%20Native-0.81.4-61dafb)](https://reactnative.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-19.1.0-61dafb)](https://react.dev/)
+## Desenvolvimento
 
-Aplicativo não-oficial do Aluno Online (UERJ) para Android/iOS, escrito em TypeScript + React Native. Ele traz para o celular várias funcionalidades do portal oficial, além de recursos exclusivos como Gerador de Grade e Mural de Mensagens.
+- Node 22.21.1 (`.node-version`); mínimo suportado 20.19.4.
+- pnpm 9.10.0, definido em `packageManager`.
+- Android: JDK 17, SDK 36, Build Tools 36.0.0 e NDK 27.1.12297006.
+- iOS: macOS, Xcode, Ruby/Bundler e CocoaPods. Não é possível compilar iOS no Windows.
 
-> Não-oficial • Depende do site do Aluno Online • Scraping controlado
+Use pnpm 9.10.0 para instalar dependências. Se a versão global for diferente, execute `npx --yes pnpm@9.10.0 install --frozen-lockfile`; o campo `packageManager` registra a versão esperada pelo projeto e pelo CI.
 
----
-
-## Sumário
-
-- ℹ️ [Sobre o projeto](#sobre-o-projeto)
-- ✨ [Funcionalidades](#funcionalidades)
-- 🧠 [Como funciona (alto nível)](#como-funciona-alto-nível)
-- 🔧 [Requisitos](#requisitos)
-- ▶️ [Como rodar (dev)](#como-rodar-dev)
-- 🏗️ [Arquitetura do código](#arquitetura-do-código)
-- 🔐 [Privacidade e dados do usuário](#privacidade-e-dados-do-usuário)
-- ⚠️ [Limitações conhecidas](#limitações-conhecidas)
-- 🧰 [Troubleshooting / FAQ](#troubleshooting--faq)
-- 🔗 [Links úteis](#links-úteis)
-
-## Sobre o projeto
-
-- Plataforma: React Native 0.81 + React 19, TypeScript
-- Navegação: `@react-navigation`
-- Estado: Redux Toolkit + `redux-persist`
-- Dados/async: `react-query`
-- UI: `styled-components`
-- Parsing: `cheerio` para HTML scraping do Aluno Online.
-
-Publicação: disponível na Google Play como “AO UERJ” — veja em: [play.google.com/store/apps/details?id=com.aouerjmobile](https://play.google.com/store/apps/details?id=com.aouerjmobile)
-
-## Funcionalidades
-
-Funcionalidades espelhadas do AO (via scraping):
-
-- Início (Home):
-    - RID Parcial (provisório)
-    - Quadro de Notas (disciplinas em curso)
-    - Quadro de Horários (disciplinas em curso)
-    - Mensagens de estado (bloqueio do AO, período ainda não iniciado, dicas de recuperação de erro)
-- Disciplinas Realizadas (histórico com período, créditos, carga horária, status)
-- Disciplinas do Currículo (com filtros por tipo, cursadas/não cursadas, busca)
-- Disciplinas Universais (com filtro por departamento/unidade)
-- Pesquisa de Disciplina (detalhes, turmas, horários, professores, vagas)
-
-Funcionalidades exclusivas do app (servidores próprios):
-
-- Gerador de Grade (beta):
-    - Recebe preferências do usuário (quantidade de disciplinas, horários ocupados, prioridades etc.)
-    - Busca e processa dados do AO
-    - Gera opções de grade sem salvar os dados do usuário no servidor
-- Mural de Mensagens:
-    - Canal de comunicação entre alunos da mesma turma
-    - Mensagens trafegam por um servidor privado, não relacionadas ao AO oficial
-- Relatório de Erros:
-    - Reúne dados brutos de scraping para diagnóstico
-    - Remove identificadores pessoais (nome, matrícula, etc.) antes do envio
-
-## Como funciona (alto nível)
-
-- Login/sessão: o app autentica no Aluno Online e mantém cookies/sessão.
-- Coleta de dados: chamadas ao Aluno Online usam `UerjApi` com parâmetros específicos. O HTML retornado é parseado e transformado em estruturas tipadas.
-- Camadas privadas: recursos de Mural de Mensagens, Gerador de Grade e Relatório de Erros utilizam `PrivateApi` apontando para um backend próprio.
-- Resiliência: quando o Aluno Online muda o HTML, o app exibe mensagens de erro, sugere ações (atualizar, relogar, reinstalar) e disponibiliza reporte para ajuste rápido dos parsers.
-
-## Requisitos
-
-- Node.js LTS recente (>= 18 recomendado)
-- pnpm
-- Ambiente React Native:
-    - Android: JDK 17 (ou compatível RN 0.81.4), Android SDK, emulador/dispositivo, Gradle (wrapper incluso)
-
-## Como rodar (dev)
-
-Instalar dependências
-
-```pwsh
-# na raiz do projeto
-pnpm install
-```
-
-Android (emulador ou device)
-
-```pwsh
+```sh
+pnpm install --frozen-lockfile
+pnpm start
+# Em outro terminal, com emulador/dispositivo disponível:
 pnpm android
 ```
 
-Observação: se houver erros relacionados a SDK/NDK/Gradle/Java, ajuste localmente as versões para o ambiente RN 0.81.4.
+Configure `JAVA_HOME` para o JDK 17 e `ANDROID_HOME` para o SDK instalado. O SDK também pode ser indicado em `android/local.properties` (arquivo local, não versionado).
 
-### Testes da integração com o Aluno Online
+No macOS, depois de instalar as dependências JavaScript, prepare os módulos nativos do iOS antes de executar o aplicativo:
 
-`pnpm test --runInBand` executa as regressões locais sem credenciais nem acesso ao portal.
+```sh
+bundle install
+bundle exec pod install --project-directory=ios
+pnpm ios
+```
 
-Para diagnosticar o portal real, configure `AO_MATRICULA` e `AO_PASSWORD` no `.env` local e execute:
+```sh
+pnpm build:debug
+pnpm build:debug -PreactNativeArchitectures=x86_64
+pnpm check:patches
+pnpm lint
+pnpm type-check
+pnpm test:ci
+pnpm test:tooling
+```
 
-```pwsh
+Os scripts Gradle funcionam no Windows, Linux e macOS. Debug não exige assinatura de publicação. `pnpm build` e `pnpm bundle` exigem `android/keystore.properties` com `keyAlias`, `keyPassword`, `storeFile` e `storePassword`; `storeFile` é relativo a `android/app` ou um caminho absoluto. Esses segredos ficam fora do Git.
+
+O `postinstall` substitui `jcenter()` por `mavenCentral()` no Gradle de `@react-native-cookies/cookies` 6.2.1. A operação é idempotente; `check:patches` falha se o arquivo estiver ausente, o formato esperado não for reconhecido ou o patch ainda estiver pendente. O CI executa instalação congelada, lint, TypeScript, testes e build Android. O workflow iOS é acionado manualmente em macOS. A existência de um workflow não equivale à sua execução: consulte as [evidências da refatoração](docs/refactor-progress.md).
+
+## Arquitetura
+
+Casos de uso dependem de portas. Protocolos, HTML e bibliotecas de fornecedores ficam nos adaptadores; a composição conecta as implementações.
+
+```text
+src/app/                         composição, provedores e QueryClient
+src/modules/identity/            identidade pública, login, restauração e logout
+src/modules/academics/           modelos, regras acadêmicas, consultas e compartilhamento
+src/modules/planning/            preparação e geração de grades
+src/modules/community/           mensagens e consulta de professores
+src/modules/support/             relatórios estruturados e sanitização
+src/adapters/outbound/           AO, APIs privadas, armazenamento e recursos nativos
+src/pages/ e src/features/       telas e componentes de apresentação
+src/shared/                     erros compartilhados
+```
+
+O ESLint impede imports de React, SDKs, adaptadores e estado global em domínio/aplicação. As queries acadêmicas usam conta e contexto do portal na chave. Cookies e tokens não participam das chaves. Os componentes não copiam respostas para outro armazenamento de estado.
+
+O coordenador AO centraliza login, token, códigos de requisição e renovação concorrente. Uma consulta expirada permite um único replay; erros transitórios têm repetição limitada nas queries. Parsers diferenciam página vazia reconhecida de estrutura inesperada.
+
+O gerador exige uma ação explícita para enviar a solicitação. Seus detalhes são carregados com concorrência limitada e cancelamento. Mensagens, suporte e geração usam APIs próprias, distintas do portal UERJ.
+
+## Persistência e privacidade
+
+- Credenciais e identificação da conta ficam no Keychain/Keystore por `react-native-keychain`.
+- Cookies, token e IDs de requisição são efêmeros e pertencem ao adaptador AO.
+- O cache acadêmico persistido em AsyncStorage, sem criptografia, tem dono explícito e validade de sete dias por dado. A interface conserva a última resposta em falhas de atualização.
+- O logout invalida resultados tardios, aguarda operações nativas, limpa cookies, credenciais e cache da conta.
+- A migração do antigo Redux persistido transfere credenciais para armazenamento seguro e remove a cópia em texto simples. Se a transferência falhar, um novo login pode ser necessário.
+- Relatórios de suporte enviam diagnóstico estruturado e descrição sanitizada. Não coletam HTML bruto, senha, cookies ou tokens do portal.
+- Mensagens enviam nome do autor, turma, disciplina, período escolhido e texto. O gerador envia dados necessários ao cálculo. Este repositório cliente não comprova políticas de retenção dos servidores.
+
+Quando o AO não informa o semestre, a interface usa “Período atual”. O período do mural é um filtro selecionado pelo usuário; não é uma confirmação do calendário acadêmico oficial.
+
+## Diagnóstico do portal real
+
+Os testes comuns usam dados sintéticos e não acessam contas reais. Para o diagnóstico opcional, defina `AO_MATRICULA` e `AO_PASSWORD` no `.env` local:
+
+```sh
 pnpm diagnose:ao
 pnpm diagnose:ao --expire-session
 ```
 
-O segundo comando também descarta os cookies do próprio diagnóstico para verificar a renovação da sessão e a repetição das consultas. O script usa os serviços e parsers do app, com cookies e armazenamento em memória; imprime apenas etapas, contagens e códigos de erro. Requer Node.js 20.12+ e as dependências de desenvolvimento. A validação do transporte nativo no Android/iOS é separada.
+O script compõe o mesmo adaptador e parsers com transporte e cookies em memória no Node. O segundo comando simula perda de sessão e verifica a recuperação, inclusive de IDs derivados. A saída contém etapas, contagens e códigos de erro, sem credenciais ou HTML. Essa checagem não substitui a jornada no transporte nativo.
 
-Detalhes da falha e da correção: [diagnóstico da sessão do Aluno Online](docs/aluno-online-session-diagnosis.md).
+## Documentação
 
-## Arquitetura do código
+- [Plano da refatoração e diagnóstico da base](docs/plano-refatoracao.md)
+- [Execução, verificações e limites](docs/refactor-progress.md)
+- [Incidente de comunicação com o Aluno Online](docs/aluno-online-session-diagnosis.md)
 
-- `src/pages/*`: telas de navegação (Home, Login, SubjectsTaken, CurriculumSubjects, UniversalSubjects, SubjectDetails, MessageBoard, ScheduleSimulator, About, etc.)
-- `src/features/*`: módulos com lógica/coleta/parsing e UI específica (ex.: ClassGrades, PartialRID, AttendedClassesSchedule, SubjectsTaken, SubjectsToTake, CurriculumSubjects, UniversalSubjects, SubjectInfo, SubjectClassesSchedule, MessageBoard, ScheduleSimulator)
-- `src/services/*`:
-    - `UerjApi`: integração com AO (axios), utilitários de requisição (`getRequisitionID`, `retry`) e cookies
-    - `PrivateApi`: integração com o backend próprio
-- `src/reducers/*`: Redux Toolkit slices (apiConfig, userInfo, etc.)
-- `src/themes/*`: tema e cores
-- `src/utils/*`: normalização, horários, helpers
-- `docs/*`: documentações sobre o projeto
-
-Fluxo típico:
-
-1. Tela dispara uma chamada HTTP por uma função `fetch*` da feature relacionada
-2. `fetch*` chama `UerjApi` e recebe o HTML do Aluno Online
-3. Parser transforma HTML em JSON estruturado e salva localmente ou retorna ao componente
-4. UI atualiza com tratamento de erro e mensagens de estado
-
-## Privacidade e dados do usuário
-
-- Não há compartilhamento com terceiros.
-- O app depende de scraping do Aluno Online e guarda somente o mínimo necessário em cache local.
-- Mural de Mensagens, Gerador de Grade e Relatório de Erros utilizam servidores próprios do projeto.
-- Relatório de Erros: remove dados identificáveis (ex.: matrícula, nome) antes de enviar para diagnóstico.
-- Gerador de Grade: não persiste dados submetidos pelo usuário.
-
-Consulte também a seção “Segurança dos dados” na página da Play Store do aplicativo.
-
-## Limitações conhecidas
-
-- Dependência total do HTML/fluxo do Aluno Online: alterações no site podem quebrar parsers.
-- Durante bloqueios/manutenções do Aluno Online, o app pode ficar parcialmente indisponível.
-- Parsers são atualizados continuamente; use o recurso de “Reportar erro” quando notar inconsistências.
-
-## Troubleshooting / FAQ
-
-- O app diz que o Aluno Online está indisponível. E agora?
-    - Isso ocorre quando o site oficial muda o HTML ou está fora do ar. Aguarde e tente mais tarde. Se persistir, use “Reportar erro” na tela de "Sobre" do app.
-- O Gerador de Grade envia meus dados para algum lugar?
-    - Não. Os dados vão apenas para processamento temporário e não são salvos no servidor.
-
-## Links úteis
-
-- App na Google Play: [play.google.com/store/apps/details?id=com.aouerjmobile](https://play.google.com/store/apps/details?id=com.aouerjmobile)
-- Site do Aluno Online (UERJ): [www.alunoonline.uerj.br](https://www.alunoonline.uerj.br/)
-- Documentação React Native: [reactnative.dev](https://reactnative.dev/)
-- Documentação React: [react.dev](https://react.dev/)
-- TypeScript: [typescriptlang.org](https://www.typescriptlang.org/)
-
----
-
-Dúvidas e suporte: abra uma issue ou utilize o recurso de relatório de erro pelo app. Sugestões são muito bem-vindas.
+Alterações no portal podem exigir atualização dos parsers. O app preserva dados já carregados e informa falhas de atualização; use o relatório em “Sobre” para descrever problemas persistentes.

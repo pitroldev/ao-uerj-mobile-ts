@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTheme } from 'styled-components';
+import { useTheme } from 'styled-components/native';
 import { AntDesign as Icon } from '@react-native-vector-icons/ant-design';
 
 import Text from '@atoms/Text';
@@ -8,11 +8,16 @@ import { View } from './SmallDummyMessage.styles';
 type Props = {
   text: string;
   type: 'ERROR' | 'INFO' | 'EMPTY' | 'BLOCK';
-  onPress?: any;
+  onPress?: () => unknown;
   withPadding?: boolean;
 };
 
-const SmallDummyMessage = ({ text, type, onPress, withPadding }: Props) => {
+const SmallDummyMessage = ({
+  text,
+  type,
+  onPress,
+  withPadding = true,
+}: Props) => {
   const { COLORS } = useTheme();
 
   const icons: Record<
@@ -37,7 +42,7 @@ const SmallDummyMessage = ({ text, type, onPress, withPadding }: Props) => {
     <View
       onPress={handleOnPress}
       disabled={!isEnabled}
-      withPadding={withPadding}
+      $withPadding={withPadding}
     >
       <Icon name={icons[type]} color={COLORS.DISABLED} size={25} />
       <Text
@@ -52,11 +57,6 @@ const SmallDummyMessage = ({ text, type, onPress, withPadding }: Props) => {
       </Text>
     </View>
   );
-};
-
-SmallDummyMessage.defaultProps = {
-  onPress: undefined,
-  withPadding: true,
 };
 
 export default SmallDummyMessage;

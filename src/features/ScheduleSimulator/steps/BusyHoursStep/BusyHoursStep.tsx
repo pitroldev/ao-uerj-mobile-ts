@@ -1,3 +1,4 @@
+import { academicWeekdayToPlanningDay } from '@root/modules/planning/domain/rules';
 import React from 'react';
 import { TouchableOpacity } from 'react-native';
 import { useFormContext, useWatch } from 'react-hook-form';
@@ -6,7 +7,7 @@ import { useStepsContext } from '@hooks/useSteps';
 
 import { TIME_VALUES, WEEKDAY_DICTIONARY } from '@utils/constants/time';
 
-import { ScheduleCreationParams } from '@features/ScheduleSimulator/types';
+import { ScheduleCreationParams } from '@root/modules/planning/domain/models';
 
 import Text from '@atoms/Text';
 import Button from '@atoms/Button';
@@ -45,7 +46,7 @@ const BusyHoursStep = () => {
   ) => {
     const isAlreadySelected = busy_schedules.some(
       busyHour =>
-        busyHour.week_day === weekDay &&
+        busyHour.week_day === academicWeekdayToPlanningDay(weekDay) &&
         busyHour.start_time_in_minutes === time.start_time_in_minutes &&
         busyHour.end_time_in_minutes === time.end_time_in_minutes,
     );
@@ -53,7 +54,7 @@ const BusyHoursStep = () => {
     if (isAlreadySelected) {
       const newBusySchedules = busy_schedules.filter(
         busyHour =>
-          busyHour.week_day !== weekDay ||
+          busyHour.week_day !== academicWeekdayToPlanningDay(weekDay) ||
           busyHour.start_time_in_minutes !== time.start_time_in_minutes ||
           busyHour.end_time_in_minutes !== time.end_time_in_minutes,
       );
@@ -63,7 +64,7 @@ const BusyHoursStep = () => {
     }
 
     const newBusySchedule = {
-      week_day: weekDay,
+      week_day: academicWeekdayToPlanningDay(weekDay),
       start_time_in_minutes: time.start_time_in_minutes,
       end_time_in_minutes: time.end_time_in_minutes,
     };
@@ -92,7 +93,7 @@ const BusyHoursStep = () => {
     }
 
     const busyRowTImes = UERJ_WEEK_DAYS.map(weekDay => ({
-      week_day: weekDay,
+      week_day: academicWeekdayToPlanningDay(weekDay),
       start_time_in_minutes,
       end_time_in_minutes,
     }));
@@ -106,7 +107,7 @@ const BusyHoursStep = () => {
   ) =>
     busy_schedules.some(
       b =>
-        b.week_day === weekDay &&
+        b.week_day === academicWeekdayToPlanningDay(weekDay) &&
         b.start_time_in_minutes === time.start_time_in_minutes &&
         b.end_time_in_minutes === time.end_time_in_minutes,
     );
@@ -117,14 +118,16 @@ const BusyHoursStep = () => {
   ) => {
     const allSelected = times.every(t => isSlotSelected(weekDay, t));
     if (allSelected) {
-      const filtered = busy_schedules.filter(b => b.week_day !== weekDay);
+      const filtered = busy_schedules.filter(
+        b => b.week_day !== academicWeekdayToPlanningDay(weekDay),
+      );
       setValue('busy_schedules', filtered);
       return;
     }
     const toAdd = times
       .filter(t => !isSlotSelected(weekDay, t))
       .map(t => ({
-        week_day: weekDay,
+        week_day: academicWeekdayToPlanningDay(weekDay),
         start_time_in_minutes: t.start_time_in_minutes,
         end_time_in_minutes: t.end_time_in_minutes,
       }));
@@ -167,7 +170,7 @@ const BusyHoursStep = () => {
       times
         .filter(t => !isSlotSelected(weekDay, t))
         .map(t => ({
-          week_day: weekDay,
+          week_day: academicWeekdayToPlanningDay(weekDay),
           start_time_in_minutes: t.start_time_in_minutes,
           end_time_in_minutes: t.end_time_in_minutes,
         })),
@@ -191,7 +194,7 @@ const BusyHoursStep = () => {
         {UERJ_WEEK_DAYS.map(weekDay => {
           const isAlreadySelected = busy_schedules.some(
             busyHour =>
-              busyHour.week_day === weekDay &&
+              busyHour.week_day === academicWeekdayToPlanningDay(weekDay) &&
               busyHour.start_time_in_minutes === start_time_in_minutes &&
               busyHour.end_time_in_minutes === end_time_in_minutes,
           );

@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { useTheme } from 'styled-components';
+import { useTheme } from 'styled-components/native';
 import { Picker } from '@react-native-picker/picker';
 
 import { PickerContainer, StyleProps, StyledSpinner } from './Picker.styles';

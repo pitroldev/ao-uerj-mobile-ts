@@ -1,0 +1,36 @@
+name: iOS simulator build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      - run: pnpm install --frozen-lockfile
+      - run: bundle exec pod install --project-directory=ios
+      - name: Build without signing for simulator
+        run: >-
+          xcodebuild
+          -workspace ios/AOUerjMobile.xcworkspace
+          -scheme AOUerjMobile
+          -configuration Debug
+          -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath ios/build
+          CODE_SIGNING_ALLOWED=NO
+          build

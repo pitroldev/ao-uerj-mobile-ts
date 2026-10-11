@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { GeneratedSchedule } from '../types';
+import { GeneratedSchedule } from '@root/modules/planning/domain/models';
 
 import Text from '@atoms/Text';
 import {
@@ -18,7 +18,7 @@ const ScheduleInfo = (generation: GeneratedSchedule) => {
       subject_name: s.name,
       subject_id: s.subject.id,
       class_id: s.id,
-      teachers: s.teachers.sort(),
+      teachers: [...s.teachers].sort(),
     }))
     .sort((a, b) => a.subject_name.localeCompare(b.subject_name));
 

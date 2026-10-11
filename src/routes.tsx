@@ -1,11 +1,9 @@
-import React, { useMemo } from 'react';
-import { createDrawerNavigator } from '@react-navigation/drawer';
-import { useQuery } from '@tanstack/react-query';
-
-import { selectApiConfig } from '@reducers/apiConfig';
-import { selectUserInfo } from '@reducers/userInfo';
-import { useAppSelector } from '@root/store';
-import { refreshAuth } from '@services/UerjApi';
+import React from 'react';
+import {
+  createDrawerNavigator,
+  type DrawerContentComponentProps,
+} from '@react-navigation/drawer';
+import { useIdentity } from '@root/app/providers/AppServicesProvider';
 
 import CustomDrawerNavigator from '@root/components/templates/CustomDrawerNavigator';
 
@@ -20,20 +18,18 @@ import About from '@root/pages/About';
 import ScheduleSimulator from '@root/pages/ScheduleSimulator';
 import MyProgress from '@root/pages/MyProgress';
 import Loading from './pages/Loading';
-// import Playground from '@root/pages/Playground';
 
 export type RootDrawerParamList = {
   Login: undefined;
-  Playground: undefined;
 
   Início: undefined;
   'Mural de Mensagens': undefined;
-  'Disciplinas a Cursar': undefined;
   'Disciplinas Realizadas': undefined;
   'Disciplinas do Currículo': undefined;
   'Disciplinas Universais': undefined;
-  'Horário das Turmas': undefined;
-  'Pesquisa de Disciplinas': undefined;
+  'Pesquisa de Disciplinas':
+    | { subjectId?: string; sourceRoute?: keyof RootDrawerParamList }
+    | undefined;
   'Pesquisa de Professores': undefined;
   'Gerador de Grade': undefined;
   'Meu Progresso': undefined;
@@ -44,44 +40,22 @@ export type RootDrawerParamList = {
 
 const Drawer = createDrawerNavigator<RootDrawerParamList>();
 
-const renderDrawerContent = (props: any) => (
+const renderDrawerContent = (props: DrawerContentComponentProps) => (
   <CustomDrawerNavigator {...props} />
 );
 
 const MainRoutes = () => {
-  const { cookies } = useAppSelector(selectApiConfig);
-  const { matricula, password } = useAppSelector(selectUserInfo);
-
-  const shouldRefresh = Boolean(matricula && password);
-
-  const { isLoading, isError } = useQuery({
-    queryKey: ['refresh-auth'],
-    queryFn: async () => {
-      await refreshAuth();
-      return true;
-    },
-    enabled: shouldRefresh,
-    retry: 1, // Tentar uma vez antes de falhar
-    retryDelay: 1000, // Esperar 1s antes de retry
-    refetchInterval: 10 * 60 * 1000, // Refresh a cada 10 minutos
-    refetchOnWindowFocus: true,
-    staleTime: 30 * 1000, // Considerar dados frescos por 30s (evita refetch imediato ao voltar do background)
-  });
-
-  const isSignedIn = Boolean(cookies);
-
-  // Se houve erro no refresh mas temos cookies, ainda podemos mostrar o app
-  const showLoading = isLoading && shouldRefresh && !cookies;
-
-  const initialRoute = useMemo(() => {
-    if (showLoading) return 'Loading';
-    return isSignedIn ? 'Início' : 'Login';
-  }, [showLoading, isSignedIn]);
+  const { account, status } = useIdentity();
+  const showLoading = status === 'restoring';
+  const isSignedIn =
+    Boolean(account) && (status === 'signedIn' || status === 'refreshing');
 
   return (
     <Drawer.Navigator
       drawerContent={renderDrawerContent}
-      initialRouteName={initialRoute}
+      initialRouteName={
+        showLoading ? 'Loading' : isSignedIn ? 'Início' : 'Login'
+      }
       screenOptions={{
         headerShown: false,
         drawerType: 'back',
@@ -89,10 +63,13 @@ const MainRoutes = () => {
         swipeEnabled: isSignedIn,
       }}
     >
-      {showLoading && <Drawer.Screen name="Loading" component={Loading} />}
+      {showLoading && (
+        <Drawer.Group navigationKey="restoring">
+          <Drawer.Screen name="Loading" component={Loading} />
+        </Drawer.Group>
+      )}
       {!showLoading && isSignedIn && (
-        <>
-          {/* <Drawer.Screen name="Playground" component={Playground} /> */}
+        <Drawer.Group navigationKey={account!.scope}>
           <Drawer.Screen name="Início" component={Home} />
           <Drawer.Screen name="Meu Progresso" component={MyProgress} />
           <Drawer.Screen
@@ -100,10 +77,6 @@ const MainRoutes = () => {
             component={ScheduleSimulator}
           />
           <Drawer.Screen name="Mural de Mensagens" component={MessageBoard} />
-          {/* <Drawer.Screen
-            name="Disciplinas a Cursar"
-            component={SubjectsToTake}
-          /> */}
           <Drawer.Screen
             name="Disciplinas Realizadas"
             component={SubjectsTaken}
@@ -116,10 +89,6 @@ const MainRoutes = () => {
             name="Disciplinas Universais"
             component={UniversalSubjects}
           />
-          {/* { <Drawer.Screen
-            name="Horário das Turmas"
-            component={ClassSchedulesByDepartment}
-          />} */}
           <Drawer.Screen
             name="Pesquisa de Disciplinas"
             component={SubjectDetails}
@@ -129,12 +98,12 @@ const MainRoutes = () => {
             component={TeacherSearch}
           /> */}
           <Drawer.Screen name="Sobre" component={About} />
-        </>
+        </Drawer.Group>
       )}
       {!showLoading && !isSignedIn && (
-        <>
+        <Drawer.Group navigationKey="signed-out">
           <Drawer.Screen name="Login" component={Login} />
-        </>
+        </Drawer.Group>
       )}
     </Drawer.Navigator>
   );

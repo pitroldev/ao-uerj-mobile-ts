@@ -3,7 +3,7 @@ import { useFormContext, Controller } from 'react-hook-form';
 
 import { useStepsContext } from '@hooks/useSteps';
 
-import { ScheduleCreationParams } from '@features/ScheduleSimulator/types';
+import { ScheduleCreationParams } from '@root/modules/planning/domain/models';
 
 import Text from '@atoms/Text';
 import Button from '@atoms/Button';
@@ -16,7 +16,7 @@ import {
   Column,
 } from './SubjectAmountStep.styles';
 
-const MIN_SUBJECTS_LIMIT = 3;
+const MIN_SUBJECTS_LIMIT = 1;
 const MAX_SUBJECTS_LIMIT = 12;
 
 const SubjectAmountStep = () => {
@@ -30,10 +30,8 @@ const SubjectAmountStep = () => {
   } = useFormContext<ScheduleCreationParams>();
 
   const handleNextPress = handleSubmit(data => {
-    const { min_subject_amount, max_subject_amount } = data as {
-      min_subject_amount: number;
-      max_subject_amount: number;
-    };
+    const { min_subject_amount, max_subject_amount } = data;
+    if (min_subject_amount === null || max_subject_amount === null) return;
 
     if (min_subject_amount > max_subject_amount) {
       const swappedValues = {
@@ -77,8 +75,8 @@ const SubjectAmountStep = () => {
                 keyboardType="number-pad"
                 onChangeText={(text: string) => {
                   const newText = text.replace(/[^0-9]/g, '');
-                  const parsed = newText ? parseInt(newText, 10) : undefined;
-                  onChange(parsed as unknown as number);
+                  const parsed = newText ? parseInt(newText, 10) : null;
+                  onChange(parsed);
                 }}
               />
             )}
@@ -112,8 +110,8 @@ const SubjectAmountStep = () => {
                 }
                 onChangeText={(text: string) => {
                   const newText = text.replace(/[^0-9]/g, '');
-                  const parsed = newText ? parseInt(newText, 10) : undefined;
-                  onChange(parsed as unknown as number);
+                  const parsed = newText ? parseInt(newText, 10) : null;
+                  onChange(parsed);
                 }}
                 keyboardType="number-pad"
               />

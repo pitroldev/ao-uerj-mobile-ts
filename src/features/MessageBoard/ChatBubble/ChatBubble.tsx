@@ -2,49 +2,41 @@ import React from 'react';
 import { Linking } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import Toast from 'react-native-toast-message';
-
-import parser from '@services/parser';
-
-import { ChatMessage } from '@features/MessageBoard/types';
-
+import type { Message } from '@root/modules/community/domain/models';
 import Box from '@atoms/Box';
 import Text from '@atoms/Text';
-
 import { Row, ChatText, TouchableButton } from './ChatBubble.styles';
 
-const ChatBubble = (item: ChatMessage) => {
-  const { createdAt, message, fullName } = item;
-
+const ChatBubble = ({ createdAt, text, authorName }: Message) => {
   const date = new Date(createdAt);
-  const parsedName = parser.parseName(fullName, false);
-
   const copyToClipboard = () => {
-    Clipboard.setString(message);
+    Clipboard.setString(text);
     Toast.show({
       type: 'success',
       text1: 'Copiado com sucesso!',
-      text2: 'O texto foi copiado para a área de trasnferência',
+      text2: 'O texto foi copiado para a área de transferência.',
     });
   };
-
+  const openLink = (url: string) => {
+    if (!/^https?:\/\//i.test(url)) return;
+    void Linking.openURL(url).catch(() =>
+      Toast.show({ type: 'error', text1: 'Não foi possível abrir este link.' }),
+    );
+  };
   return (
     <TouchableButton onPress={copyToClipboard}>
       <Box>
         <Row>
           <Text size="XS" weight="bold">
-            {parsedName}
+            {authorName}
           </Text>
-          <Text
-            size="XS"
-            italic
-          >{`${date.getHours()}:${date.getMinutes()} - ${date.toLocaleDateString()}`}</Text>
+          <Text size="XS" italic>{`${date.toLocaleTimeString('pt-BR', {
+            hour: '2-digit',
+            minute: '2-digit',
+          })} - ${date.toLocaleDateString('pt-BR')}`}</Text>
         </Row>
-        <ChatText
-          onPress={(url: string) => {
-            Linking.openURL(url).catch((err: Error) => console.log('err', err));
-          }}
-        >
-          <Text size="XS">{message}</Text>
+        <ChatText onPress={openLink}>
+          <Text size="XS">{text}</Text>
         </ChatText>
       </Box>
     </TouchableButton>

@@ -1,47 +1,53 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
-function patchFile(relativePath, replacers) {
-  const absolutePath = path.resolve(__dirname, '..', relativePath);
-  if (!fs.existsSync(absolutePath)) {
-    return { absolutePath, changed: false, skipped: true, reason: 'missing' };
+const target =
+  'node_modules/@react-native-cookies/cookies/android/build.gradle';
+
+// cookies 6.2.1 still declares jcenter(), removed in Gradle 9. Keep this
+// compatibility patch until upgrading the cookie adapter and its native tests.
+function patchedCookiesGradle(source) {
+  const result = source.replace(/\bjcenter\s*\(\s*\)/g, 'mavenCentral()');
+  if (!/\bmavenCentral\s*\(\s*\)/.test(result)) {
+    throw new Error(
+      'Patch cookies: layout desconhecido; revise a dependência.',
+    );
   }
-
-  const before = fs.readFileSync(absolutePath, 'utf8');
-  let after = before;
-
-  for (const { from, to } of replacers) {
-    after = after.split(from).join(to);
-  }
-
-  if (after === before) {
-    return { absolutePath, changed: false, skipped: false };
-  }
-
-  fs.writeFileSync(absolutePath, after, 'utf8');
-  return { absolutePath, changed: true, skipped: false };
+  return result;
 }
 
-const results = [];
-
-// Fix for Gradle 7+ / 8+ / 9+: jcenter() is removed.
-results.push(
-  patchFile('node_modules/@react-native-cookies/cookies/android/build.gradle', [
-    { from: 'jcenter()', to: 'mavenCentral()' },
-  ]),
-);
-
-const changed = results.filter(r => r.changed);
-const missing = results.filter(r => r.skipped);
-
-if (changed.length > 0) {
-  console.log('[postinstall] Patched Android deps:');
-  for (const r of changed) console.log(`- ${r.absolutePath}`);
+function patchAndroidDependencies({
+  check = false,
+  root = path.resolve(__dirname, '..'),
+} = {}) {
+  const filename = path.join(root, target);
+  if (!fs.existsSync(filename)) {
+    throw new Error(
+      `Patch obrigatório ausente: ${target}. Instale as dependências completas.`,
+    );
+  }
+  const source = fs.readFileSync(filename, 'utf8');
+  const patched = patchedCookiesGradle(source);
+  if (source !== patched) {
+    if (check)
+      throw new Error('Patch cookies pendente: execute pnpm postinstall.');
+    fs.writeFileSync(filename, patched, 'utf8');
+  }
+  return source !== patched;
 }
 
-// Don’t fail installs if the dep isn’t present (e.g., optional installs).
-if (missing.length > 0) {
-  console.log(
-    '[postinstall] Some Android dep patch targets not found (skipped).',
-  );
+if (require.main === module) {
+  try {
+    const changed = patchAndroidDependencies({
+      check: process.argv.includes('--check'),
+    });
+    console.log(
+      `[patches] cookies Gradle: ${changed ? 'aplicado' : 'verificado'}.`,
+    );
+  } catch (error) {
+    console.error(error.message);
+    process.exitCode = 1;
+  }
 }
+
+module.exports = { patchedCookiesGradle, patchAndroidDependencies };

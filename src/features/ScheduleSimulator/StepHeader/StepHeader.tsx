@@ -1,7 +1,7 @@
 import React from 'react';
-import {ScrollView, TouchableOpacity} from 'react-native';
+import { ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import Text from '@atoms/Text';
-import {Container, Step, Circle, Line} from './StepHeader.styles';
+import { Container, Step, Circle, Line } from './StepHeader.styles';
 
 type Props = {
   labels: string[];
@@ -9,13 +9,14 @@ type Props = {
   onStepPress?: (index: number) => void;
 };
 
-const StepHeader = ({labels, current, onStepPress}: Props) => {
+const StepHeader = ({ labels, current, onStepPress }: Props) => {
   return (
     <Container>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{alignItems: 'center'}}>
+        contentContainerStyle={styles.content}
+      >
         {labels.map((label, index) => {
           const isActive = index === current;
           const isCompleted = index < current;
@@ -25,7 +26,8 @@ const StepHeader = ({labels, current, onStepPress}: Props) => {
               {index > 0 && <Line completed={isCompleted} />}
               <TouchableOpacity
                 activeOpacity={canPress ? 0.7 : 1}
-                onPress={() => canPress && onStepPress(index)}>
+                onPress={() => canPress && onStepPress(index)}
+              >
                 <Step>
                   <Circle active={isActive} completed={isCompleted}>
                     <Text
@@ -37,7 +39,8 @@ const StepHeader = ({labels, current, onStepPress}: Props) => {
                         isActive || isCompleted
                           ? 'BACKGROUND'
                           : 'BACKGROUND_700'
-                      }>
+                      }
+                    >
                       {index + 1}
                     </Text>
                   </Circle>
@@ -52,3 +55,5 @@ const StepHeader = ({labels, current, onStepPress}: Props) => {
 };
 
 export default StepHeader;
+
+const styles = StyleSheet.create({ content: { alignItems: 'center' } });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTheme } from 'styled-components';
+import { useTheme } from 'styled-components/native';
 import { AntDesign as Icon } from '@react-native-vector-icons/ant-design';
 
 import Text from '@atoms/Text';
@@ -8,7 +8,7 @@ import { View } from './DummyMessage.styles';
 type Props = {
   text: string;
   type: 'ERROR' | 'INFO' | 'EMPTY' | 'BLOCK';
-  onPress?: any;
+  onPress?: () => unknown;
 };
 
 const DummyMessage = ({ text, type, onPress }: Props) => {
@@ -47,10 +47,6 @@ const DummyMessage = ({ text, type, onPress }: Props) => {
       </Text>
     </View>
   );
-};
-
-DummyMessage.defaultProps = {
-  onPress: undefined,
 };
 
 export default DummyMessage;

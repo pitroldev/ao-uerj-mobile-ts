@@ -70,15 +70,29 @@ def enableProguardInReleaseBuilds = true
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
 
-// Create a variable called keystorePropertiesFile, and initialize it to your
-// keystore.properties file, in the rootProject folder.
 def keystorePropertiesFile = rootProject.file("keystore.properties")
-
-// Initialize a new Properties() object called keystoreProperties.
 def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
 
-// Load your keystore.properties file into the keystoreProperties object.
-keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+// Debug/CI builds never require publication secrets. Release fails explicitly
+// rather than falling back to the public debug key.
+def releaseSigningKeys = ["keyAlias", "keyPassword", "storeFile", "storePassword"]
+def hasReleaseSigning = releaseSigningKeys.every { keystoreProperties[it] }
+def verifyReleaseSigning = tasks.register("verifyReleaseSigning") {
+    doLast {
+        if (!hasReleaseSigning) {
+            throw new GradleException("Release requires android/keystore.properties with keyAlias, keyPassword, storeFile and storePassword.")
+        }
+        if (!file(keystoreProperties["storeFile"]).isFile()) {
+            throw new GradleException("Release keystore file was not found. Check storeFile in android/keystore.properties.")
+        }
+    }
+}
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    dependsOn(verifyReleaseSigning)
+}
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -96,10 +110,12 @@ android {
     }
     signingConfigs {
         release {
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storeFile file(keystoreProperties['storeFile'])
-            storePassword keystoreProperties['storePassword']
+            if (hasReleaseSigning) {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+            }
         }
         debug {
             storeFile file('debug.keystore')
@@ -138,11 +154,4 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-}
-
-// Run this once to be able to run the application with BUCK
-// puts all compile dependencies into folder libs for BUCK to use
-task copyDownloadableDepsToLibs(type: Copy) {
-    from configurations.implementation
-    into 'libs'
 }

@@ -1,10 +1,6 @@
-export type ErrorReportBody = {
-  page: string;
-  description: string;
-  html: string[];
-};
+import type { ErrorReportDraft } from '@root/modules/support/application/ports';
 
-export type ErrorFeature = {
-  name: string;
-  callbacks: (() => Promise<string>)[];
+export type ReportStepProps = {
+  body: ErrorReportDraft;
+  nextStep: (updates: Partial<ErrorReportDraft>) => void;
 };

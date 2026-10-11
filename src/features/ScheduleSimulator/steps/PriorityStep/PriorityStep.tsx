@@ -6,7 +6,7 @@ import { useStepsContext } from '@hooks/useSteps';
 import {
   Priority,
   ScheduleCreationParams,
-} from '@features/ScheduleSimulator/types';
+} from '@root/modules/planning/domain/models';
 
 import Text from '@atoms/Text';
 import Button from '@atoms/Button';

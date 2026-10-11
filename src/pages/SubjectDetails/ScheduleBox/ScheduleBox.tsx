@@ -5,7 +5,7 @@ import { TIME_DICTIONARY } from '@utils/constants/time';
 
 import { Turno, WeekDay } from '@root/types/dateStuff';
 
-import { Horario } from '@features/SubjectClassesSchedule/types';
+import { Horario } from '@root/modules/academics/domain/models';
 
 import Text from '@atoms/Text';
 

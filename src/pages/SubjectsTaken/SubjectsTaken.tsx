@@ -1,26 +1,21 @@
-import React, { useState, useEffect, useRef } from 'react';
+import {
+  useHistory,
+  isPortalBlocked,
+} from '@root/modules/academics/presentation/queries';
+import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
+import React, { useState, useRef } from 'react';
 import { ListRenderItemInfo } from 'react-native';
-import Toast from 'react-native-toast-message';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import { FlatList } from 'react-native-gesture-handler';
-import { useQuery } from '@tanstack/react-query';
 
-import parser from '@services/parser';
 import {
   SUBJECT_TYPE,
   SUBJECT_STATUS,
 } from '@utils/constants/subjectDictionary';
 
-import { useAppDispatch, useAppSelector } from '@root/store';
-
-import * as apiConfigReducer from '@reducers/apiConfig';
-import * as reducer from '@features/SubjectsTaken/reducer';
-import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
-
-import { SubjectsTaken } from '@features/SubjectsTaken/types';
-import { fetchSubjectsTaken } from '@features/SubjectsTaken/core';
-import { getPeriodList } from '@features/SubjectsTaken/getPeriodList';
+import { SubjectsTaken } from '@root/modules/academics/domain/models';
+import { getPeriodList } from '@root/modules/academics/domain/rules/progress';
 
 import Spinner from '@atoms/Spinner';
 import StyledPicker from '@atoms/Picker';
@@ -30,45 +25,17 @@ import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
 import { Container } from './SubjectsTaken.styles';
 
-const HOUR_IN_MS = 1000 * 60 * 60;
-
 const SubjectsAttended = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('');
 
-  const { data } = useAppSelector(reducer.selectSubjectsAttended);
-  const { isBlocked, cookies, createdAt } = useAppSelector(
-    apiConfigReducer.selectApiConfig,
-  );
-
+  const query = useHistory();
+  const { data = [], isLoading: loading, error, refetch } = query;
+  const isBlocked = isPortalBlocked(error);
   const periodList = getPeriodList(data);
 
-  const dispatch = useAppDispatch();
   const navigation = useNavigation();
 
   const ref = useRef<FlatList>(null);
-
-  const {
-    data: subjectsTakenData,
-    isLoading: loading,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ['subjects-taken', cookies, createdAt],
-    queryFn: fetchSubjectsTaken,
-    staleTime: 24 * HOUR_IN_MS,
-    enabled: Boolean(cookies),
-    retry: 0,
-  });
-
-  useEffect(() => {
-    if (subjectsTakenData) {
-      dispatch(reducer.setState(subjectsTakenData));
-    }
-  }, [subjectsTakenData, dispatch]);
-
-  useEffect(() => {
-    setSelectedPeriod(periodList?.length ? periodList[0]?.value : '');
-  }, [data]);
 
   const handleSelectedPeriodChange = (value: string) => {
     setSelectedPeriod(value);
@@ -76,22 +43,10 @@ const SubjectsAttended = () => {
   };
 
   const handleSubjectPress = (subject: SubjectsTaken) => {
-    if (isBlocked) {
-      Toast.show({
-        type: 'error',
-        text1: 'Aluno Online bloqueado',
-        text2: 'Tente novamente mais tarde.',
-      });
-      return;
-    }
-    const code = parser.parseSubjectCode(subject.id) as number;
-    dispatch(
-      subjectDetailReducer.setCurrent({
-        code,
-        sourceRoute: 'Disciplinas Realizadas',
-      }),
-    );
-    navigation.navigate('Pesquisa de Disciplinas');
+    navigation.navigate('Pesquisa de Disciplinas', {
+      subjectId: subject.id,
+      sourceRoute: 'Disciplinas Realizadas',
+    });
   };
 
   const renderSubjects = ({
@@ -109,7 +64,7 @@ const SubjectsAttended = () => {
       creditsText += ` | ${workload} horas`;
     }
     const gradeText = grade !== null ? `Nota ${grade}` : '';
-    const color = (status as keyof typeof SUBJECT_STATUS) ?? 'TEXT_SECONDARY';
+    const color = status === 'IN_PROGRESS' ? 'TEXT_SECONDARY' : status;
 
     return (
       <SubjectBox
@@ -132,9 +87,15 @@ const SubjectsAttended = () => {
     );
   };
 
+  const activePeriod = periodList.some(
+    option => option.value === selectedPeriod,
+  )
+    ? selectedPeriod
+    : periodList[0]?.value ?? '';
+
   const filteredData = data.filter(({ period }) => {
-    const isFromSamePeriod = selectedPeriod
-      ? period === selectedPeriod
+    const isFromSamePeriod = activePeriod
+      ? period === activePeriod
       : period === periodList[0]?.value;
 
     return isFromSamePeriod;
@@ -146,8 +107,16 @@ const SubjectsAttended = () => {
 
   return (
     <Container>
+      <QueryNotice
+        dataUpdatedAt={query.dataUpdatedAt}
+        isPaused={query.isPaused}
+        isFetching={query.isFetching}
+        error={error}
+        hasData={query.data !== undefined}
+        retry={refetch}
+      />
       <StyledPicker
-        selectedValue={selectedPeriod}
+        selectedValue={activePeriod}
         onValueChange={s => handleSelectedPeriodChange(s as string)}
         loading={loading}
         enabled={!loading}
@@ -164,14 +133,14 @@ const SubjectsAttended = () => {
         />
       )}
       {showSpinner && <Spinner size={40} />}
-      {!loading && (error as Error) && !isBlocked && (
+      {!loading && !!error && !isBlocked && !data.length && (
         <DummyMessage
           type="ERROR"
           onPress={refetch}
           text="Ops, ocorreu um erro ao buscar as disciplinas. Toque aqui para tentar novamente."
         />
       )}
-      {!loading && !error && isEmpty && (
+      {!loading && !query.isPaused && !error && isEmpty && (
         <DummyMessage
           type="EMPTY"
           text="Parece que não há disciplinas cursadas no período selecionado."

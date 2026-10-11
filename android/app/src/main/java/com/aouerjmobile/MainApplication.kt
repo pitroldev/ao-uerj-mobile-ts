@@ -9,6 +9,7 @@ import com.facebook.react.ReactNativeHost
 import com.facebook.react.ReactPackage
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
+import com.facebook.react.modules.network.OkHttpClientProvider
 
 class MainApplication : Application(), ReactApplication {
 
@@ -25,6 +26,12 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
+    // NetworkingModule uses a context-backed client with cacheDir/http-cache.
+    // getOkHttpClient() has no context/cache and cannot purge these legacy URLs.
+    // Close this temporary cache before React opens its own cache instance.
+    OkHttpClientProvider.createClientBuilder(applicationContext).build().cache?.use { cache ->
+      cache.evictAll()
+    }
     loadReactNative(this)
   }
 }

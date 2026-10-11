@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import { useBackHandler } from '@hooks/useBackHandler';
 
-import { AttendedSubjectInfo } from '@features/AttendedClassesSchedule/types';
+import type { AttendedSubjectInfo } from '@root/modules/academics/domain/models';
 import SubjectList from '@features/MessageBoard/SubjectList';
 import SubjectChat from '@features/MessageBoard/SubjectChat';
 
@@ -13,7 +13,7 @@ import { MainContainer } from './MessageBoard.styles';
 const MessageBoard = () => {
   const [subject, setSubject] = useState<AttendedSubjectInfo | null>(null);
 
-  useBackHandler(() => setSubject(null));
+  useBackHandler(() => setSubject(null), Boolean(subject));
 
   if (subject) {
     return (

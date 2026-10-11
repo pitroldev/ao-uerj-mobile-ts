@@ -1,19 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useDispatch } from 'react-redux';
-
-import { useAppSelector } from '@root/store';
-
+import React, { useState } from 'react';
 import parser from '@services/parser';
-
-import { fetchPartialRID } from '@features/PartialRID/core';
-import { fetchClassGrades } from '@features/ClassGrades/core';
-import { fetchAttendedClassesSchedule } from '@features/AttendedClassesSchedule/core';
-
-import * as infoReducer from '@reducers/userInfo';
-import * as apiConfigReducer from '@reducers/apiConfig';
-import * as gradesReducer from '@features/ClassGrades/reducer';
-import * as attendedReducer from '@features/AttendedClassesSchedule/reducer';
+import { useIdentity } from '@root/app/providers/AppServicesProvider';
+import {
+  useGrades,
+  useSchedule,
+  usePartialRid,
+  isPortalBlocked,
+} from '@root/modules/academics/presentation/queries';
+import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
+import { useOnlineStatus } from '@root/modules/academics/presentation/useOnlineStatus';
 
 import AppInfoModal from '@features/AppInfoModal';
 import RIDBoard from '@features/PartialRID/RIDBoard';
@@ -40,88 +35,51 @@ import {
 type ErrorControl = {
   key: string;
   label: string;
-  callback: () => any;
+  callback: () => unknown;
 };
-
-const HOUR_IN_MS = 1000 * 60 * 60;
 
 const HomePage = () => {
   const [attendedModalVisibility, setAttendedModalVisibility] = useState(false);
 
-  const dispatch = useDispatch();
-
-  const { isBlocked, cookies, createdAt } = useAppSelector(
-    apiConfigReducer.selectApiConfig,
-  );
-  const { periodo, name } = useAppSelector(infoReducer.selectUserInfo);
-  const { data: attendedClassesData } = useAppSelector(
-    attendedReducer.selectAttendedClasses,
-  );
-  const { data: classGrades, isClassGradesAvailable } = useAppSelector(
-    gradesReducer.selectClassGrades,
-  );
-
+  const { account } = useIdentity();
+  const online = useOnlineStatus();
+  const scheduleQuery = useSchedule();
+  const gradesQuery = useGrades();
+  const ridQuery = usePartialRid();
   const {
-    data: attendedScheduleData,
     isLoading: loadingSchedule,
     error: scheduleError,
     refetch: scheduleRefresh,
-  } = useQuery({
-    queryKey: ['attended-classes-schedule', cookies, createdAt],
-    queryFn: fetchAttendedClassesSchedule,
-    staleTime: 12 * HOUR_IN_MS,
-    enabled: Boolean(cookies),
-    retry: 0,
-  });
-
-  useEffect(() => {
-    if (attendedScheduleData) {
-      dispatch(
-        attendedReducer.setAttendedClasses({
-          period: periodo as string,
-          data: attendedScheduleData,
-        }),
-      );
-    }
-  }, [attendedScheduleData, dispatch, periodo]);
-
+  } = scheduleQuery;
   const {
-    data: gradesData,
     isLoading: loadingGrades,
     error: gradesError,
     refetch: gradesRefresh,
-  } = useQuery({
-    queryKey: ['class-grades', cookies, createdAt],
-    queryFn: fetchClassGrades,
-    staleTime: 6 * HOUR_IN_MS,
-    enabled: Boolean(cookies),
-    retry: 0,
-  });
-
-  useEffect(() => {
-    if (gradesData) {
-      dispatch(gradesReducer.setClassGrades(gradesData));
-    }
-  }, [gradesData, dispatch]);
-
+  } = gradesQuery;
   const {
-    isLoading: loadingRID,
     data: partialRID,
+    isLoading: loadingRID,
     error: ridError,
     refetch: ridRefresh,
-  } = useQuery({
-    queryKey: ['partial-rid', cookies, createdAt],
-    queryFn: fetchPartialRID,
-    staleTime: 1 * HOUR_IN_MS,
-    enabled: Boolean(cookies),
-    retry: 0,
-  });
-
-  const currentSchedule = attendedClassesData?.[periodo as string];
-
-  const parsedName = parser.parseName(name as string, false);
+  } = ridQuery;
+  const currentSchedule = scheduleQuery.data ?? [];
+  const classGrades = gradesQuery.data ?? [];
+  const isClassGradesAvailable = classGrades.some(({ grades }) =>
+    Object.values(grades).some(
+      grade => typeof grade === 'number' && Number.isFinite(grade),
+    ),
+  );
+  const isBlocked = [scheduleError, gradesError, ridError].some(
+    isPortalBlocked,
+  );
+  const parsedName = parser.parseName(account?.name ?? '', false);
 
   const isLoading = loadingSchedule || loadingGrades || loadingRID;
+  const isPaused =
+    !online ||
+    scheduleQuery.isPaused ||
+    gradesQuery.isPaused ||
+    ridQuery.isPaused;
 
   const isScheduleAvailable = currentSchedule?.length > 0;
   const isPartialRidAvailable = partialRID && partialRID?.subjects?.length > 0;
@@ -143,7 +101,7 @@ const HomePage = () => {
   const isGradesWithError = Boolean(gradesError && !isClassGradesAvailable);
   if (isGradesWithError) {
     errors.push({
-      key: 'SCHEDULE',
+      key: 'GRADES',
       label: 'Quadro de notas',
       callback: gradesRefresh,
     });
@@ -215,7 +173,7 @@ const HomePage = () => {
             2. Saia e entre novamente no aplicativo
           </TooManyErrorsBulletItem>
           <TooManyErrorsBulletItem>
-            3. Desinstale e instale novamente o aplicativo
+            3. Tente novamente mais tarde
           </TooManyErrorsBulletItem>
           <TooManyErrorsBulletDescription>
             As vezes a UERJ atualiza o sistema e isso pode causar problemas no
@@ -232,13 +190,24 @@ const HomePage = () => {
           onPress={errorsCallback}
         />
       )}
-      {!hasSomethingAvailable && !hasAnyError && !isLoading && (
+      {!hasSomethingAvailable && !hasAnyError && !isLoading && !isPaused && (
         <DummyMessage
           type="EMPTY"
           text="Parece que o período não se iniciou ainda."
         />
       )}
       <ScrollContainer>
+        {[scheduleQuery, gradesQuery, ridQuery].map((query, index) => (
+          <QueryNotice
+            key={index}
+            dataUpdatedAt={query.dataUpdatedAt}
+            isPaused={query.isPaused}
+            isFetching={query.isFetching}
+            error={query.error}
+            hasData={query.data !== undefined}
+            retry={query.refetch}
+          />
+        ))}
         {isClassGradesAvailable && <GradeBoard data={classGrades} />}
         <ClassScheduleBoard
           data={currentSchedule}

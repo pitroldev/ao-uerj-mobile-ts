@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Modal from 'react-native-modal';
-
-import { ErrorReportBody } from '../types';
-import { sendErrorReport } from '../core';
-
+import Toast from 'react-native-toast-message';
+import { useAppServices } from '@root/app/providers/AppServicesProvider';
+import { errorMessage } from '@root/shared/errors/AppError';
+import type { ErrorReportDraft } from '@root/modules/support/application/ports';
 import FeatureSelectionStep from '../FeatureSelectionStep';
 import ExplanationStep from '../ExplanationStep';
-
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
 import { Container } from './ErrorReportModal.styles';
@@ -15,79 +14,62 @@ type Props = {
   visible: boolean;
   setVisibility: React.Dispatch<React.SetStateAction<boolean>>;
 };
-
-const STEPS = [
-  {
-    component: FeatureSelectionStep,
-    order: 0,
-  },
-  {
-    component: ExplanationStep,
-    order: 1,
-  },
-];
-
-const INITIAL_STEP = 0;
-const EXPLANATION_STEP = 1;
-const LAST_STEP = STEPS.length - 1;
+const emptyDraft = (): ErrorReportDraft => ({ page: '', description: '' });
 
 const ErrorReportModal = ({ visible, setVisibility }: Props) => {
+  const { support } = useAppServices();
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(INITIAL_STEP);
-  const [body, setBody] = useState<ErrorReportBody>({
-    page: '',
-    description: '',
-    html: [],
-  });
-
+  const [step, setStep] = useState(0);
+  const [body, setBody] = useState(emptyDraft);
   useEffect(() => {
-    if (!visible) {
-      return;
+    if (visible) {
+      setLoading(false);
+      setStep(0);
+      setBody(emptyDraft());
     }
-    setLoading(false);
-    setStep(INITIAL_STEP);
-    setBody({
-      page: '',
-      description: '',
-      html: [],
-    });
   }, [visible]);
-
-  const handleSendReport = async () => {
+  const sendReport = async (draft: ErrorReportDraft) => {
     setLoading(true);
-    await sendErrorReport(body);
-    setVisibility(false);
-  };
-
-  const handleNextStep = () => {
-    if (step >= LAST_STEP) {
-      handleSendReport();
+    try {
+      await support.execute(draft);
+      setVisibility(false);
+      Toast.show({ type: 'success', text1: 'Relato enviado. Obrigado!' });
+    } catch (error) {
+      Toast.show({ type: 'error', text1: errorMessage(error) });
+    } finally {
+      setLoading(false);
     }
-
-    setStep(EXPLANATION_STEP);
   };
-
-  const { component: CurrentComponent } = STEPS[step];
-
+  const nextStep = (updates: Partial<ErrorReportDraft>) => {
+    const draft = { ...body, ...updates };
+    setBody(draft);
+    if (step === 0) setStep(1);
+    else if (!loading) void sendReport(draft);
+  };
+  const close = () => {
+    if (!loading) setVisibility(false);
+  };
   return (
     <Modal
       isVisible={visible}
-      onBackdropPress={() => setVisibility(false)}
-      onBackButtonPress={() => setVisibility(false)}
+      onBackdropPress={close}
+      onBackButtonPress={close}
       useNativeDriver
-      animationIn={'fadeInDown'}
+      animationIn="fadeInDown"
       animationInTiming={150}
-      animationOut={'fadeOutUp'}
+      animationOut="fadeOutUp"
       animationOutTiming={150}
     >
       <Container>
         <Text weight="bold" alignSelf="center" textAlign="center">
-          Reportar Problema
+          Reportar problema
         </Text>
         {loading ? (
           <Spinner loading size="large" />
+        ) : step === 0 ? (
+          <FeatureSelectionStep body={body} nextStep={nextStep} />
         ) : (
-          <CurrentComponent setBody={setBody} nextStep={handleNextStep} />
+          <ExplanationStep body={body} nextStep={nextStep} />
         )}
       </Container>
     </Modal>

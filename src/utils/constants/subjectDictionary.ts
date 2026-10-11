@@ -11,4 +11,5 @@ export const SUBJECT_STATUS = {
   FAILED_BY_ATTENDANCE: 'Reprovado por Frequência',
   CANCELED: 'Cancelado',
   EXEMPT: 'Isento',
+  IN_PROGRESS: 'Em Preparo',
 };

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
   Modal,
+  StyleSheet,
   TouchableOpacity,
   Alert,
   TextInput as RNTextInput,
 } from 'react-native';
-import { MaterialIcons as Icon } from '@react-native-vector-icons/material-icons';
 
 import Text from '@atoms/Text';
 import { SUBJECT_TYPE } from '@utils/constants/subjectDictionary';
@@ -26,7 +26,6 @@ import {
   ButtonRow,
   CancelButton,
   SaveButton,
-  CloseIcon,
 } from './ElectiveCreditsModal.styles';
 
 interface Props {
@@ -70,7 +69,7 @@ export default function ElectiveCreditsModal({
   };
 
   const handleInputChange = (type: ElectiveType, value: string) => {
-    const numericValue = parseInt(value) || 0;
+    const numericValue = parseInt(value, 10) || 0;
     setTempConfig(prev => ({
       ...prev,
       [type]: Math.max(0, numericValue),
@@ -103,12 +102,13 @@ export default function ElectiveCreditsModal({
       <ModalOverlay>
         <ModalContainer>
           <ModalHeader>
-            <ModalTitle>Configurar Créditos Faltantes</ModalTitle>
+            <ModalTitle>Configurar Créditos Exigidos</ModalTitle>
           </ModalHeader>
 
           <ModalContent>
-            <Text size="SM" color="TEXT_PRIMARY" style={{ marginBottom: 16 }}>
-              Configure quantos créditos ainda faltam para cada tipo de eletiva
+            <Text size="SM" color="TEXT_PRIMARY" style={styles.description}>
+              Configure o total de créditos exigidos pelo currículo para cada
+              tipo de eletiva
             </Text>
 
             {(['RESTRICTED', 'DEFINED', 'UNIVERSAL'] as ElectiveType[]).map(
@@ -126,17 +126,12 @@ export default function ElectiveCreditsModal({
                       keyboardType="numeric"
                       placeholder="0"
                       maxLength={3}
-                      style={{
-                        flex: 1,
-                        fontSize: 16,
-                        color: '#333',
-                        paddingVertical: 12,
-                      }}
+                      style={styles.input}
                     />
                     <Text
                       size="XS"
                       color="TEXT_SECONDARY"
-                      style={{ marginLeft: 8 }}
+                      style={styles.creditUnit}
                     >
                       créditos
                     </Text>
@@ -153,7 +148,7 @@ export default function ElectiveCreditsModal({
               </TouchableOpacity>
             </ButtonRow>
 
-            <ButtonRow style={{ marginTop: 20 }}>
+            <ButtonRow style={styles.actions}>
               <CancelButton onPress={onClose}>
                 <Text
                   size="SM"
@@ -164,14 +159,14 @@ export default function ElectiveCreditsModal({
                   Cancelar
                 </Text>
               </CancelButton>
-              <SaveButton onPress={saveConfig}>
+              <SaveButton onPress={saveConfig} disabled={saving}>
                 <Text
                   size="SM"
                   color="BACKGROUND"
                   weight="600"
                   alignSelf="center"
                 >
-                  Salvar
+                  {saving ? 'Salvando…' : 'Salvar'}
                 </Text>
               </SaveButton>
             </ButtonRow>
@@ -181,3 +176,10 @@ export default function ElectiveCreditsModal({
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  description: { marginBottom: 16 },
+  creditUnit: { marginLeft: 8 },
+  actions: { marginTop: 20 },
+  input: { flex: 1, fontSize: 16, color: '#333', paddingVertical: 12 },
+});

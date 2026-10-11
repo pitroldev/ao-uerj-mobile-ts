@@ -1,5 +1,8 @@
+import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
+import DummyMessage from '@molecules/DummyMessage';
+import SmallDummyMessage from '@molecules/SmallDummyMessage';
 import React, { useState } from 'react';
-import { ScrollView, TouchableOpacity } from 'react-native';
+import { ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons as Icon } from '@react-native-vector-icons/material-icons';
 
 import { ElectiveCreditsConfig } from '@hooks/useElectiveCreditsConfig';
@@ -25,11 +28,17 @@ export default function MyProgressPage() {
   const {
     initialLoading,
     isEmpty,
+    curriculumAvailable,
     approvedCount,
     currentCRA,
     pointsOverTime,
     byType,
     electiveCreditsHook,
+    error,
+    dataUpdatedAt,
+    isPaused,
+    isFetching,
+    retry,
   } = useMyProgress();
 
   const handleConfigSave = async (config: ElectiveCreditsConfig) => {
@@ -50,6 +59,27 @@ export default function MyProgressPage() {
   return (
     <Container>
       <ScrollView showsVerticalScrollIndicator={false}>
+        <QueryNotice
+          dataUpdatedAt={dataUpdatedAt}
+          isPaused={isPaused}
+          isFetching={isFetching}
+          error={error}
+          hasData={!isEmpty}
+          retry={retry}
+        />
+        {error && isEmpty && (
+          <DummyMessage
+            type="ERROR"
+            text="Não foi possível carregar seu progresso. Toque para tentar novamente."
+            onPress={retry}
+          />
+        )}
+        {!error && !isPaused && isEmpty && (
+          <DummyMessage
+            type="EMPTY"
+            text="Ainda não há histórico ou currículo disponível."
+          />
+        )}
         <Row>
           <Col>
             <StatCard>
@@ -79,26 +109,31 @@ export default function MyProgressPage() {
           </>
         )}
 
-        <Row
-          style={{
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 8,
-            marginTop: 12,
-          }}
-        >
-          <SectionTitle style={{ margin: 0 }}>
+        <Row style={styles.heading}>
+          <SectionTitle style={styles.title}>
             Seu caminho no currículo
           </SectionTitle>
           <TouchableOpacity
             onPress={() => setModalVisible(true)}
-            style={{ padding: 8 }}
+            style={styles.settings}
           >
             <Icon name="settings" size={20} color="#666" />
           </TouchableOpacity>
         </Row>
+        {!curriculumAvailable && (
+          <SmallDummyMessage
+            type="INFO"
+            text="Currículo indisponível. Os totais e o progresso serão exibidos após o carregamento."
+            onPress={retry}
+          />
+        )}
         {byType.order.map(key => (
-          <SubjectTypeCard key={key} type={key} data={byType} />
+          <SubjectTypeCard
+            key={key}
+            type={key}
+            data={byType}
+            curriculumAvailable={curriculumAvailable}
+          />
         ))}
       </ScrollView>
 
@@ -111,3 +146,14 @@ export default function MyProgressPage() {
     </Container>
   );
 }
+
+const styles = StyleSheet.create({
+  title: { margin: 0 },
+  settings: { padding: 8 },
+  heading: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    marginTop: 12,
+  },
+});

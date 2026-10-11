@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { ClassGrade } from '@features/ClassGrades/types';
+import { ClassGrade } from '@root/modules/academics/domain/models';
 
 import { numberToColor } from '@utils/numberToColor';
 
@@ -100,9 +100,4 @@ const GradeBoard = ({ data }: Props) => {
   return <Container>{data?.map(renderItem)}</Container>;
 };
 
-export default React.memo(GradeBoard, (prev, next) => {
-  if (JSON.stringify(prev) === JSON.stringify(next)) {
-    return true;
-  }
-  return false;
-});
+export default React.memo(GradeBoard);

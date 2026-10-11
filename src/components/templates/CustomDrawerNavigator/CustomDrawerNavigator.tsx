@@ -1,12 +1,13 @@
-import React, { useRef, useState, useLayoutEffect } from 'react';
-import { Animated, LayoutChangeEvent } from 'react-native';
+import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
+import { Animated, LayoutChangeEvent, StyleSheet } from 'react-native';
 import { DrawerContentComponentProps } from '@react-navigation/drawer';
 
-import queryClient from '@services/query-client';
-
-import { useAppDispatch, useAppSelector } from '@root/store';
-import * as apiConfigReducer from '@reducers/apiConfig';
-import * as userInfoReducer from '@reducers/userInfo';
+import {
+  useAppServices,
+  useIdentity,
+} from '@root/app/providers/AppServicesProvider';
+import Toast from 'react-native-toast-message';
+import { errorMessage } from '@root/shared/errors/AppError';
 
 import { LIGHT } from '@root/themes';
 
@@ -24,9 +25,9 @@ const DrawerNavigator = ({
 }: DrawerContentComponentProps) => {
   const [highlighterHeight, setHeight] = useState(34);
 
-  const dispatch = useAppDispatch();
-  const { cookies } = useAppSelector(apiConfigReducer.selectApiConfig);
-  const isSignedIn = Boolean(cookies);
+  const { identity } = useAppServices();
+  const { account } = useIdentity();
+  const isSignedIn = Boolean(account);
 
   const { routeNames } = state;
   const highlighterPositionY = useRef(new Animated.Value(61)).current;
@@ -34,8 +35,9 @@ const DrawerNavigator = ({
     LayoutChangeEvent['nativeEvent']['layout']
   >[];
 
-  const visibleRoutes = routeNames.filter(
-    route => route !== 'Informações da Disciplina',
+  const visibleRoutes = useMemo(
+    () => routeNames.filter(route => route !== 'Informações da Disciplina'),
+    [routeNames],
   );
   const currentRouteName = routeNames[state.index];
 
@@ -86,10 +88,12 @@ const DrawerNavigator = ({
   }
 
   function handleLogout() {
-    dispatch(apiConfigReducer.clear());
-    dispatch(userInfoReducer.clear());
-    navigation.toggleDrawer();
-    queryClient.clear();
+    navigation.closeDrawer();
+    void identity
+      .signOut()
+      .catch(error =>
+        Toast.show({ type: 'error', text1: errorMessage(error) }),
+      );
   }
 
   return (
@@ -97,11 +101,7 @@ const DrawerNavigator = ({
       <ScrollView>
         <Animated.View
           style={[
-            {
-              backgroundColor: LIGHT.COLORS.SECONDARY,
-              width: 600,
-              position: 'absolute',
-            },
+            styles.highlighter,
             {
               transform: [{ translateY: highlighterPositionY }],
               height: highlighterHeight,
@@ -111,7 +111,7 @@ const DrawerNavigator = ({
         {visibleRoutes.map((route: string, key: number) => {
           return (
             <Button
-              key={key}
+              key={route}
               onLayout={event => onLayout(event, key)}
               onPress={() => navigation.navigate(route)}
             >
@@ -128,3 +128,11 @@ const DrawerNavigator = ({
 };
 
 export default DrawerNavigator;
+
+const styles = StyleSheet.create({
+  highlighter: {
+    backgroundColor: LIGHT.COLORS.SECONDARY,
+    width: 600,
+    position: 'absolute',
+  },
+});

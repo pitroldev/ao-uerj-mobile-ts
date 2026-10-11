@@ -1,33 +1,28 @@
 import React, { useState } from 'react';
-
-import { ErrorReportBody } from '../types';
-
+import type { ReportStepProps } from '../types';
 import Text from '@atoms/Text';
 import TextArea from '@atoms/TextArea';
-
 import { Container, NextBtn } from './ExplanationStep.styles';
 
-type Props = {
-  nextStep: () => void;
-  setBody: React.Dispatch<React.SetStateAction<ErrorReportBody>>;
-};
-
-const ExplanationStep = ({ nextStep, setBody }: Props) => {
-  const [description, setDescription] = useState<string>('');
-
-  const handleOnPress = () => {
-    setBody(b => Object.assign(b, { description }));
-    nextStep();
-  };
-
+const ExplanationStep = ({ body, nextStep }: ReportStepProps) => {
+  const [description, setDescription] = useState(body.description);
   return (
     <Container>
       <Text italic marginTop="8px" marginBottom="8px">
-        Descreva o erro em poucas palavras
+        Descreva o que aconteceu e o resultado esperado
       </Text>
-      <TextArea onChangeText={setDescription} />
-      <NextBtn size="small" fullWidth onPress={handleOnPress}>
-        Próximo
+      <TextArea
+        value={description}
+        onChangeText={setDescription}
+        maxLength={4000}
+      />
+      <NextBtn
+        size="small"
+        fullWidth
+        disabled={!description.trim()}
+        onPress={() => nextStep({ description })}
+      >
+        Enviar relato
       </NextBtn>
     </Container>
   );

@@ -7,7 +7,7 @@ import { TIME_VALUES, WEEKDAY_DICTIONARY } from '@utils/constants/time';
 import {
   GeneratedClassWithSubject,
   RenderedSchedule,
-} from '@features/ScheduleSimulator/types';
+} from '@root/modules/planning/domain/models';
 import Text from '@atoms/Text';
 
 import {
@@ -19,7 +19,7 @@ import {
   CarouselContainer,
 } from './ScheduleVisualizer.styles';
 
-import { convertToRenderedSchedule } from '../core';
+import { convertToRenderedSchedule } from '@root/modules/planning/presentation/renderSchedule';
 
 type Props = {
   data: GeneratedClassWithSubject[];

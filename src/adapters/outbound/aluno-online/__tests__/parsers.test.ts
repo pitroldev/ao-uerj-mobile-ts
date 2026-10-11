@@ -1,0 +1,318 @@
+import parseGrades, { parseGrade } from '../parsers/ClassGrades';
+import parseCurriculum from '../parsers/CurriculumSubjects';
+import parseHistory from '../parsers/SubjectsTaken';
+import parseUniversal from '../parsers/UniversalSubjects';
+import parsePartialRid from '../parsers/PartialRID';
+import parseSchedule from '../parsers/AttendedClassesSchedule';
+import parseSubject from '../parsers/SubjectInfo';
+import { optionalNumber } from '../parsers/contract';
+
+const cells = (values: string[]) =>
+  `<tr>${values.map(value => `<td>${value}</td>`).join('')}</tr>`;
+const table = (headers: string[], rows = '', className = '') =>
+  `<table class="${className}"><tr>${headers
+    .map(value => `<th>${value}</th>`)
+    .join('')}</tr>${rows}</table>`;
+const content = (body: string) =>
+  `<div class="divContentBoxBody">${body}</div>`;
+const gradeHeaders = ['Disciplina', 'Turma', 'P1', 'P2', 'PF', 'Média'];
+const curriculumHeaders = [
+  'Disciplina',
+  'Período',
+  'Realizada',
+  'Tipo',
+  'Ramo',
+  'Créditos',
+  'Carga',
+  'Mínimo',
+  'Período atual',
+];
+const historyHeaders = [
+  'Período',
+  'Disciplina',
+  'Créditos',
+  'Carga',
+  'Tipo',
+  'Frequência',
+  'Nota',
+  'Situação',
+];
+
+it.each([
+  '',
+  '<p>Portal fora do ar</p>',
+  '<div class="divContentBoxBody"><table><tr><td>Layout novo</td></tr></table></div>',
+])(
+  'rejects unrecognized academic layouts without presenting an empty list',
+  html => {
+    [
+      parseGrades,
+      parseCurriculum,
+      parseHistory,
+      parseUniversal,
+      parsePartialRid,
+      parseSubject,
+    ].forEach(parser => {
+      expect(() => parser(html)).toThrow('PORTAL_LAYOUT_CHANGED');
+    });
+  },
+);
+
+it('recognizes legitimate empty tables by their academic structure', () => {
+  expect(parseGrades(table(gradeHeaders, '', 'reportTable'))).toEqual([]);
+  expect(parseCurriculum(content(table(curriculumHeaders)))).toEqual([]);
+  expect(parseHistory(content(table(historyHeaders)))).toEqual([]);
+  expect(
+    parseUniversal(
+      content(table(['Disciplina', 'Créditos', 'Carga', 'Atual'])),
+    ),
+  ).toEqual([]);
+});
+
+it.each(['', ' ', '-', '—'])('keeps a missing grade %j as null', input => {
+  expect(parseGrade(input)).toBeNull();
+});
+
+it.each(['erro', '7,5x', 'NaN', 'Infinity'])(
+  'rejects malformed numeric input %j instead of returning NaN',
+  input => {
+    expect(() => optionalNumber(input)).toThrow('PORTAL_LAYOUT_CHANGED');
+  },
+);
+
+it('preserves decimal grades and numeric zero', () => {
+  const html = table(
+    gradeHeaders,
+    cells(['ABCD01-12345 ÁLGEBRA II', '01', '7,5', '0', '-', '8,25']),
+    'reportTable',
+  );
+  expect(parseGrades(html)).toEqual([
+    {
+      id: 'ABCD01-12345',
+      name: 'Álgebra II',
+      class: '01',
+      grades: { p1: 7.5, p2: 0, pf: null, result: 8.25 },
+    },
+  ]);
+});
+
+it('rejects missing columns or unknown subject IDs in grades', () => {
+  expect(() =>
+    parseGrades(
+      table(
+        gradeHeaders,
+        cells(['ABC01-12345 ÁLGEBRA', '1', '8']),
+        'reportTable',
+      ),
+    ),
+  ).toThrow('PORTAL_LAYOUT_CHANGED');
+  expect(() =>
+    parseGrades(
+      table(
+        gradeHeaders,
+        cells(['UNKNOWN', '1', '8', '8', '-', '8']),
+        'reportTable',
+      ),
+    ),
+  ).toThrow('PORTAL_LAYOUT_CHANGED');
+});
+
+it('preserves zero credits and required minimums in curriculum', () => {
+  const html = content(
+    table(
+      curriculumHeaders,
+      cells([
+        'ABC01-12345 ÁLGEBRA',
+        '1',
+        'Não',
+        'Obrigatória',
+        '-',
+        '0',
+        '30',
+        '0',
+        'Sim',
+      ]),
+    ),
+  );
+  expect(parseCurriculum(html)[0]).toMatchObject({
+    credits: 0,
+    workload: 30,
+    minimum_credits: 0,
+    type: 'MANDATORY',
+    subjectOfPeriod: true,
+  });
+});
+
+it('sets the universal subject category instead of leaving it undefined', () => {
+  const html = content(
+    table(
+      ['Disciplina', 'Créditos', 'Carga', 'Atual'],
+      cells(['ABC01-12345 ÁLGEBRA', '0', '30', 'Sim']),
+    ),
+  );
+  expect(parseUniversal(html)[0]).toMatchObject({
+    id: 'ABC01-12345',
+    credits: 0,
+    type: 'UNIVERSAL',
+  });
+});
+
+it('keeps every history attempt when the portal leaves subsequent period cells empty', () => {
+  const html = content(
+    table(
+      historyHeaders,
+      [
+        [
+          '2025/1',
+          'ABC01-12345 ÁLGEBRA',
+          '4',
+          '60',
+          'Obrigatória',
+          '100%',
+          '4,5',
+          'Reprov. Nota',
+        ],
+        [
+          '',
+          'ABC01-12346 FÍSICA',
+          '4',
+          '60',
+          'Obrigatória',
+          '60%',
+          '5',
+          'Reprov. Freq.',
+        ],
+        [
+          '2025/2',
+          'ABC01-12345 ÁLGEBRA',
+          '4',
+          '60',
+          'Obrigatória',
+          '100%',
+          '8',
+          'Aprov. Nota',
+        ],
+        [
+          '',
+          'ABC01-12347 QUÍMICA',
+          '4',
+          '60',
+          'Obrigatória',
+          '-',
+          '-',
+          'Cancelado',
+        ],
+        [
+          '',
+          'ABC01-12348 PROJETO',
+          '0',
+          '30',
+          'Obrigatória',
+          '-',
+          '-',
+          'Em Preparo',
+        ],
+      ]
+        .map(cells)
+        .join(''),
+    ),
+  );
+  const history = parseHistory(html);
+  expect(history).toHaveLength(5);
+  expect(history.map(item => [item.period, item.status])).toEqual([
+    ['2025.1', 'FAILED_BY_GRADE'],
+    ['2025.1', 'FAILED_BY_ATTENDANCE'],
+    ['2025.2', 'APPROVED'],
+    ['2025.2', 'CANCELED'],
+    ['2025.2', 'IN_PROGRESS'],
+  ]);
+  expect(history.filter(item => item.id === 'ABC01-12345')).toHaveLength(2);
+});
+
+it('accepts explicit exemption rows and rejects unknown completion status', () => {
+  const exemption = content(
+    table(
+      historyHeaders,
+      cells([
+        'Isento',
+        'ABC01-12345 ÁLGEBRA',
+        '4',
+        '60',
+        'Obrigatória',
+        '-',
+        '-',
+        'Isento',
+      ]),
+    ),
+  );
+  expect(parseHistory(exemption)[0]).toMatchObject({
+    period: 'Isento',
+    status: 'EXEMPT',
+    grade: null,
+  });
+  const unknown = content(
+    table(
+      historyHeaders,
+      cells([
+        '2025/1',
+        'ABC01-12345 ÁLGEBRA',
+        '4',
+        '60',
+        'Obrigatória',
+        '100%',
+        '8',
+        'Alterado',
+      ]),
+    ),
+  );
+  expect(() => parseHistory(unknown)).toThrow('PORTAL_LAYOUT_CHANGED');
+});
+
+it('rejects nonnumeric RID availability without leaking NaN into the domain', () => {
+  const html = table(
+    ['Disciplina', 'Turma', 'Vagas', 'Pedidos', 'Posição', 'Situação'],
+    cells([
+      'ABC01-12345 ÁLGEBRA',
+      '1',
+      'indisponível',
+      '12',
+      '1',
+      'Classificado',
+    ]),
+    'reportTable',
+  );
+  expect(() => parsePartialRid(html)).toThrow('PORTAL_LAYOUT_CHANGED');
+});
+
+it('keeps disjoint schedule intervals separate while merging adjacent slots', () => {
+  const subjects = table(
+    ['Índice', 'Disciplina', 'Turma', 'AVA', 'Local'],
+    cells(['1', 'ABC01-12345 ÁLGEBRA', '1', '', 'Sala']),
+  );
+  // Two rows per slot as rendered by the portal; M1 and M2 are adjacent,
+  // M5 starts after a long gap and must remain a separate appointment.
+  const scheduleRows = [
+    '<tr><th>Segunda</th></tr>',
+    '<tr id="start"><td>ABC01-12345</td></tr>',
+    '<tr><td></td></tr>',
+    '<tr><td>ABC01-12345</td></tr>',
+    '<tr><td></td></tr>',
+    '<tr><td></td></tr>',
+    '<tr><td></td></tr>',
+    '<tr><td></td></tr>',
+    '<tr><td></td></tr>',
+    '<tr><td>ABC01-12345</td></tr>',
+  ].join('');
+  const html = content(
+    `<div>${subjects}</div><div><table>${scheduleRows}</table></div>`,
+  );
+  const result = parseSchedule(html);
+  expect(result).toHaveLength(2);
+  expect(
+    result.map(item => [item.start_time_in_minutes, item.end_time_in_minutes]),
+  ).toEqual([
+    [420, 520],
+    [640, 690],
+  ]);
+  expect(result[0].endTimeAlias).toBe('8:40');
+});

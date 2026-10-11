@@ -1,14 +1,12 @@
 import React, { useCallback } from 'react';
 import { Linking, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { BackHandler } from 'react-native';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
+import { RootDrawerParamList } from '@root/routes';
+import { isPortalBlocked } from '@root/modules/academics/presentation/queries';
 
-import { useAppDispatch, useAppSelector } from '@root/store';
-import { useBackHandler } from '@hooks/useBackHandler';
-
-import { SubjectInfo } from '@root/features/SubjectInfo/types';
-
-import * as apiConfigReducer from '@reducers/apiConfig';
-import * as reducer from '@features/SubjectClassesSchedule/reducer';
+import { SubjectInfo } from '@root/modules/academics/domain/models';
 
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
@@ -30,6 +28,7 @@ type Props = {
   subject?: SubjectInfo;
   loading: boolean;
   error?: unknown;
+  sourceRoute?: keyof RootDrawerParamList;
 };
 
 const SubjectView = ({
@@ -38,23 +37,27 @@ const SubjectView = ({
   loading,
   code,
   error,
+  sourceRoute,
 }: Props) => {
-  const dispatch = useAppDispatch();
-  const navigation = useNavigation();
-
-  const { sourceRoute } = useAppSelector(reducer.selectSubjectClassesSearch);
-
+  const navigation =
+    useNavigation<
+      DrawerNavigationProp<RootDrawerParamList, 'Pesquisa de Disciplinas'>
+    >();
   const handleBack = useCallback(() => {
-    const routeToGoBack = sourceRoute;
-    dispatch(reducer.clearCurrent());
-    if (routeToGoBack) {
-      navigation.navigate(routeToGoBack as never);
-    }
-  }, [dispatch, sourceRoute, navigation]);
-
-  useBackHandler(handleBack, Boolean(sourceRoute));
-
-  const { isBlocked } = useAppSelector(apiConfigReducer.selectApiConfig);
+    navigation.setParams({ subjectId: undefined, sourceRoute: undefined });
+    if (sourceRoute) navigation.navigate(sourceRoute as never);
+    return true;
+  }, [sourceRoute, navigation]);
+  useFocusEffect(
+    useCallback(() => {
+      const listener = BackHandler.addEventListener(
+        'hardwareBackPress',
+        handleBack,
+      );
+      return () => listener.remove();
+    }, [handleBack]),
+  );
+  const isBlocked = isPortalBlocked(error);
 
   const hasData = Boolean(subject && code);
   const getSubject = async (subjectCode: string | number) => {
@@ -71,7 +74,11 @@ const SubjectView = ({
   };
 
   const handleSyllabusPress = () => {
-    const url = `https://www.ementario.uerj.br/ementa.php?cdg_disciplina=${code}`;
+    const url = `https://www.ementario.uerj.br/ementa.php?cdg_disciplina=${String(
+      code,
+    )
+      .split('-')
+      .pop()}`;
     Linking.openURL(url).catch((err: Error) => console.log('err', err));
   };
 
@@ -80,7 +87,7 @@ const SubjectView = ({
   const hasPrerequisite =
     subject?.prerequisite && subject.prerequisite.length > 0;
 
-  const showInfo = hasSubject && !loading && !error;
+  const showInfo = hasSubject;
 
   return (
     <Container>
@@ -120,7 +127,7 @@ const SubjectView = ({
               subject?.prerequisite?.map((reqs, index) =>
                 reqs.map(req => (
                   <SubjectBox
-                    key={req.id}
+                    key={`${index}:${req.id}`}
                     topLeftInfo={req.id}
                     topRightInfo={`${index + 1}`}
                     name={req.name}

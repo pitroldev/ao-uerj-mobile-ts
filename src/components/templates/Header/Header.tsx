@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import type { NavigationState } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from 'styled-components';
+import { useTheme } from 'styled-components/native';
 import { AntDesign as Icon } from '@react-native-vector-icons/ant-design';
 
-import { useAppSelector } from '@root/store';
-import * as infoReducer from '@reducers/userInfo';
+import { useIdentity } from '@root/app/providers/AppServicesProvider';
 import * as RootNavigation from '@services/rootNavigation';
 
 import Text from '@atoms/Text';
@@ -17,34 +17,37 @@ import {
 } from './Header.styles';
 
 type Props = {
-  navigationState: any;
+  navigationState?: NavigationState;
 };
 
 const Header = ({ navigationState }: Props) => {
-  const [routeName, setRouteName] = useState('');
   const insets = useSafeAreaInsets();
 
   const theme = useTheme();
-  const { periodo, password } = useAppSelector(infoReducer.selectUserInfo);
+  const { account } = useIdentity();
 
   // Use optional chaining and provide a fallback
   const currentRoute = RootNavigation.isNavigationReady()
     ? RootNavigation.getCurrentRouteName()
     : undefined;
 
-  useEffect(() => {
-    setRouteName(currentRoute ?? periodo ?? '');
-  }, [navigationState]);
-
   const isSignedIn =
-    Boolean(password) && currentRoute !== 'Login' && Boolean(currentRoute);
+    Boolean(account) && currentRoute !== 'Login' && Boolean(currentRoute);
 
   const isDrawerOpen = navigationState?.history?.some(
-    (it: any) => it.type === 'drawer',
+    item =>
+      typeof item === 'object' &&
+      item !== null &&
+      'type' in item &&
+      item.type === 'drawer',
   );
 
   const isAtHome = currentRoute === 'Início';
-  const title = isAtHome ? periodo : routeName;
+  const title = isAtHome
+    ? account?.period === 'current'
+      ? 'Período atual'
+      : account?.period
+    : currentRoute;
 
   if (!isSignedIn) {
     return null;

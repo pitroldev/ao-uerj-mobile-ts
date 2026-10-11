@@ -1,0 +1,48 @@
+import { requireStructure, requiredNumber } from './contract';
+const cheerio = require('react-native-cheerio');
+
+import { PartialRID } from '@root/modules/academics/domain/models';
+
+import { parseSubjectName, parseSubjectID } from './values';
+
+export default function parsePartialRID(html: string) {
+  const $ = cheerio.load(html);
+
+  requireStructure(
+    $('table.reportTable').length > 0 ||
+      /não há resultado provisório disponível/i.test($.root().text()),
+  );
+  const subjects: PartialRID[] = [];
+
+  // Receipt and layout tables share this page with the provisional results.
+  $('table.reportTable > tr, table.reportTable > tbody > tr').each(
+    (_index: number, row: any) => {
+      const cells = $(row).children('td');
+      if (cells.length !== 6 || cells.filter('[colspan]').length) {
+        return;
+      }
+
+      const subject = cells.eq(0).text().trim();
+      if (!/\b[A-Z]+\d+-\d+\b/i.test(subject)) {
+        return;
+      }
+
+      subjects.push({
+        id: parseSubjectID(subject),
+        name: parseSubjectName(subject),
+        classNumber: cells.eq(1).text().trim(),
+        available: requiredNumber(cells.eq(2).text()),
+        requested: requiredNumber(cells.eq(3).text()),
+        position: requiredNumber(cells.eq(4).text()),
+        status: cells.eq(5).text().trim(),
+      });
+    },
+  );
+
+  const updatedAt = $('div div:nth-child(1) b').first().text();
+
+  return {
+    subjects,
+    updatedAt,
+  };
+}

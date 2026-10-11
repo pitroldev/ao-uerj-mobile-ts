@@ -1,8 +1,6 @@
 import React, { Component, ReactNode } from 'react';
-import { View, StyleSheet } from 'react-native';
-
-import Text from '@atoms/Text';
-import Button from '@atoms/Button';
+import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { LIGHT } from '@root/themes';
 
 interface Props {
   children: ReactNode;
@@ -51,26 +49,23 @@ class ErrorBoundary extends Component<Props, State> {
 
       return (
         <View style={styles.container}>
-          <Text weight="bold" size="LG" alignSelf="center" marginBottom="16px">
+          <Text style={styles.title} accessibilityRole="header">
             Oops! Algo deu errado
           </Text>
-          <Text
-            size="SM"
-            alignSelf="center"
-            textAlign="center"
-            marginBottom="16px"
-          >
+          <Text style={styles.description}>
             Ocorreu um erro inesperado. Tente novamente ou reinicie o
             aplicativo.
           </Text>
           {__DEV__ && this.state.error && (
-            <Text size="XS" color="ERROR" marginBottom="16px">
-              {this.state.error.message}
-            </Text>
+            <Text style={styles.error}>{this.state.error.message}</Text>
           )}
-          <Button onPress={this.handleResetError} size="small">
-            Tentar Novamente
-          </Button>
+          <TouchableOpacity
+            onPress={this.handleResetError}
+            accessibilityRole="button"
+            style={styles.button}
+          >
+            <Text style={styles.buttonLabel}>Tentar Novamente</Text>
+          </TouchableOpacity>
         </View>
       );
     }
@@ -85,6 +80,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: LIGHT.COLORS.BACKGROUND,
+  },
+  title: {
+    color: LIGHT.COLORS.TEXT_PRIMARY,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  description: {
+    color: LIGHT.COLORS.TEXT_PRIMARY,
+    fontSize: 13,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  error: {
+    color: LIGHT.COLORS.ERROR,
+    fontSize: 12,
+    marginBottom: 16,
+  },
+  button: {
+    padding: 8,
+    minHeight: 44,
+    minWidth: 150,
+    borderRadius: 5,
+    backgroundColor: LIGHT.COLORS.PRIMARY,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonLabel: {
+    color: LIGHT.COLORS.TEXT_SECONDARY,
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
 

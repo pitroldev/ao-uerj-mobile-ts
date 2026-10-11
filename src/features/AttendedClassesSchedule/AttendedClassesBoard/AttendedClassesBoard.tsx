@@ -3,11 +3,7 @@ import Modal from 'react-native-modal';
 import { TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
-import parser from '@services/parser';
-import { useAppDispatch } from '@root/store';
-
-import { AttendedClassesSchedule } from '@features/AttendedClassesSchedule/types';
-import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
+import { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
 
 import Text from '@atoms/Text';
 import SubjectBox from '@molecules/SubjectBox';
@@ -21,7 +17,6 @@ type Props = {
 };
 
 const AttendedClassesBoard = ({ isVisible, setVisibility, data }: Props) => {
-  const dispatch = useAppDispatch();
   const navigation = useNavigation();
 
   if (!data) {
@@ -37,11 +32,11 @@ const AttendedClassesBoard = ({ isVisible, setVisibility, data }: Props) => {
   }, [] as AttendedClassesSchedule['class'][]);
 
   function handleOnPress(item: AttendedClassesSchedule['class']) {
-    const code = parser.parseSubjectCode(item.id) as number;
-
     setVisibility(false);
-    dispatch(subjectDetailReducer.setCurrent({ code, sourceRoute: 'Início' }));
-    navigation.navigate('Pesquisa de Disciplinas');
+    navigation.navigate('Pesquisa de Disciplinas', {
+      subjectId: item.id,
+      sourceRoute: 'Início',
+    });
   }
 
   function renderItem(item: AttendedClassesSchedule['class']) {
@@ -87,9 +82,4 @@ const AttendedClassesBoard = ({ isVisible, setVisibility, data }: Props) => {
   );
 };
 
-export default React.memo(AttendedClassesBoard, (prev, next) => {
-  if (JSON.stringify(prev) === JSON.stringify(next)) {
-    return true;
-  }
-  return false;
-});
+export default React.memo(AttendedClassesBoard);

@@ -1,53 +1,34 @@
 import React, { useState } from 'react';
 import { Picker } from '@react-native-picker/picker';
-
-import parser from '@services/parser';
-
-import { executeErrorCallbacks, PRIVATE_ROUTES } from '../core';
-import { ErrorReportBody, ErrorFeature } from '../types';
-
+import type { ReportStepProps } from '../types';
 import Text from '@atoms/Text';
 import TextInput from '@atoms/TextInput';
 import StyledPicker from '@atoms/Picker';
 import { Container, NextBtn } from './FeatureSelectionStep.styles';
 
-type Props = {
-  nextStep: () => void;
-  setBody: React.Dispatch<React.SetStateAction<ErrorReportBody>>;
-};
+const FEATURES = [
+  'Login e Sessão',
+  'Quadro de Horários',
+  'Gerador de Grade',
+  'Meu Progresso',
+  'Mural de Mensagens',
+  'Quadro de Notas',
+  'RID Parcial',
+  'Disciplinas do Currículo',
+  'Disciplinas Universais',
+  'Disciplinas Realizadas',
+  'Pesquisa de Disciplinas',
+  'Informações de uma disciplina específica',
+  'Sobre',
+];
 
-const FeatureSelectionStep = ({ nextStep, setBody }: Props) => {
-  const [page, setPage] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  const [subjectCode, setSubjectCode] = useState('');
-
+const FeatureSelectionStep = ({ body, nextStep }: ReportStepProps) => {
+  const [page, setPage] = useState(body.page);
+  const [subjectCode, setSubjectCode] = useState(body.subjectCode ?? '');
   const withCodeInput = page === 'Informações de uma disciplina específica';
-
-  const handleFetchData = async () => {
-    setLoading(true);
-    const { callbacks } = PRIVATE_ROUTES.find(
-      c => c.name === page,
-    ) as ErrorFeature;
-    if (withCodeInput) {
-      const code = parser.parseSubjectCode(subjectCode) as number;
-      const populatedCallbacks = callbacks.map(
-        (c: (n: number) => Promise<string>) => () => c(code),
-      );
-      const html = await executeErrorCallbacks(populatedCallbacks);
-      setBody(b => Object.assign(b, { html }));
-    } else {
-      const html = await executeErrorCallbacks(callbacks);
-      setBody(b => Object.assign(b, { html }));
-    }
-    setLoading(false);
-  };
-
-  const handleOnPress = async () => {
-    await handleFetchData();
-    setBody(b => Object.assign(b, { page }));
-    nextStep();
-  };
-
+  const validCode = /^[A-Z][A-Z0-9]{1,7}-\d{3,8}$/.test(
+    subjectCode.trim().toUpperCase(),
+  );
   return (
     <Container>
       <Text italic marginTop="8px" marginBottom="4px">
@@ -55,13 +36,12 @@ const FeatureSelectionStep = ({ nextStep, setBody }: Props) => {
       </Text>
       <StyledPicker
         selectedValue={page}
-        onValueChange={s => setPage(s as string)}
-        enabled={!loading}
+        onValueChange={value => setPage(String(value))}
       >
         <Picker.Item value="" label="Selecione um item" />
-        {PRIVATE_ROUTES.map(({ name }) => {
-          return <Picker.Item value={name} key={name} label={name} />;
-        })}
+        {FEATURES.map(name => (
+          <Picker.Item value={name} key={name} label={name} />
+        ))}
       </StyledPicker>
       {withCodeInput && (
         <>
@@ -69,17 +49,25 @@ const FeatureSelectionStep = ({ nextStep, setBody }: Props) => {
             Insira o código da disciplina
           </Text>
           <TextInput
+            value={subjectCode}
             onChangeText={setSubjectCode}
-            placeholder="Ex.: IME-01388"
+            placeholder="Ex.: IME02-01388"
+            autoCapitalize="characters"
           />
         </>
       )}
       <NextBtn
         size="small"
         fullWidth
-        onPress={handleOnPress}
-        loading={loading}
-        disabled={!page}
+        disabled={!page || (withCodeInput && !validCode)}
+        onPress={() =>
+          nextStep({
+            page,
+            subjectCode: withCodeInput
+              ? subjectCode.trim().toUpperCase()
+              : undefined,
+          })
+        }
       >
         Próximo
       </NextBtn>

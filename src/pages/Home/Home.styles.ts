@@ -7,7 +7,7 @@ export const MainContainer = styled.View`
 
   padding: 0%;
   padding-top: 8%;
-  height: 100%;
+  flex: 1;
 
   border-top-left-radius: 50px;
   background-color: ${({ theme }) => theme.COLORS.BACKGROUND};

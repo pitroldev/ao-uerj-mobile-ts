@@ -5,7 +5,7 @@ import { getVacancieHealth } from '@utils/health/vacancies';
 import {
   Horario,
   SubjectClassesSchedule,
-} from '@features/SubjectClassesSchedule/types';
+} from '@root/modules/academics/domain/models';
 
 import Text from '@atoms/Text';
 

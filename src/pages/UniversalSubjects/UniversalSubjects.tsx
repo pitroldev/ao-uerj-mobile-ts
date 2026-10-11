@@ -1,25 +1,19 @@
+import {
+  useUniversalSubjects,
+  isPortalBlocked,
+} from '@root/modules/academics/presentation/queries';
+import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
 import React, { useState, useRef } from 'react';
 import { ListRenderItemInfo } from 'react-native';
-import Toast from 'react-native-toast-message';
 import { Picker } from '@react-native-picker/picker';
 import { FlatList } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesome } from '@react-native-vector-icons/fontawesome';
-import { useQuery } from '@tanstack/react-query';
 
 import { normalizeText } from '@utils/normalize';
 import { UERJ_UNIT_OPTIONS } from '@root/utils/constants/unitOptions';
-import parser from '@services/parser';
 
-import { useAppDispatch, useAppSelector } from '@root/store';
-
-import * as infoReducer from '@reducers/userInfo';
-import * as apiConfigReducer from '@reducers/apiConfig';
-import * as reducer from '@features/UniversalSubjects/reducer';
-import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
-
-import { UniversalSubject } from '@features/UniversalSubjects/types';
-import { fetchUniversalSubjects } from '@features/UniversalSubjects/core';
+import { UniversalSubject } from '@root/modules/academics/domain/models';
 
 import Spinner from '@atoms/Spinner';
 import StyledPicker from '@atoms/Picker';
@@ -30,17 +24,15 @@ import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
 import { Container } from './UniversalSubjects.styles';
 
-const HOUR_IN_MS = 1000 * 60 * 60;
-
 const UniversalSubjects = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState<
     string | undefined
   >(undefined);
 
-  const { periodo } = useAppSelector(infoReducer.selectUserInfo);
-  const { isBlocked } = useAppSelector(apiConfigReducer.selectApiConfig);
-  const { subjects } = useAppSelector(reducer.selectUniversalSubjects);
+  const query = useUniversalSubjects();
+  const { data: subjects = [], isLoading: loading, error, refetch } = query;
+  const isBlocked = isPortalBlocked(error);
 
   const departmentOptions = subjects
     .reduce(
@@ -69,17 +61,6 @@ const UniversalSubjects = () => {
     )
     .sort((a, b) => a.label.localeCompare(b.label));
 
-  const {
-    isLoading: loading,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ['universal-subjects', periodo],
-    queryFn: () => fetchUniversalSubjects(),
-    staleTime: 24 * HOUR_IN_MS,
-  });
-
-  const dispatch = useAppDispatch();
   const navigation = useNavigation();
 
   const ref = useRef<FlatList>(null);
@@ -89,22 +70,10 @@ const UniversalSubjects = () => {
   };
 
   const handleSubjectPress = (subject: UniversalSubject) => {
-    if (isBlocked) {
-      Toast.show({
-        type: 'error',
-        text1: 'Aluno Online bloqueado',
-        text2: 'Tente novamente mais tarde.',
-      });
-      return;
-    }
-    const code = parser.parseSubjectCode(subject.id) as number;
-    dispatch(
-      subjectDetailReducer.setCurrent({
-        code,
-        sourceRoute: 'Disciplinas Universais',
-      }),
-    );
-    navigation.navigate('Pesquisa de Disciplinas');
+    navigation.navigate('Pesquisa de Disciplinas', {
+      subjectId: subject.id,
+      sourceRoute: 'Disciplinas Universais',
+    });
   };
 
   const renderSubjects = ({
@@ -117,7 +86,7 @@ const UniversalSubjects = () => {
     const { workload, id, credits, name } = subject;
 
     const creditText = credits ? `${credits} créditos` : '';
-    const workloadText = credits ? `${workload} horas` : '';
+    const workloadText = workload !== null ? `${workload} horas` : '';
 
     return (
       <SubjectBox
@@ -149,7 +118,7 @@ const UniversalSubjects = () => {
   const showList = !isEmpty;
   const showSpinner = isEmpty && loading;
 
-  if (isBlocked) {
+  if (isBlocked && !subjects.length) {
     return (
       <Container>
         <DummyMessage
@@ -163,6 +132,14 @@ const UniversalSubjects = () => {
 
   return (
     <Container>
+      <QueryNotice
+        dataUpdatedAt={query.dataUpdatedAt}
+        isPaused={query.isPaused}
+        isFetching={query.isFetching}
+        error={error}
+        hasData={query.data !== undefined}
+        retry={refetch}
+      />
       <StyledPicker
         selectedValue={selectedDepartment}
         onValueChange={s => handleOptionChange(s as string)}
@@ -188,17 +165,17 @@ const UniversalSubjects = () => {
         />
       )}
       {showSpinner && <Spinner size={40} />}
-      {!loading && (error as Error) && !isBlocked && (
+      {!loading && !!error && !isBlocked && !subjects.length && (
         <DummyMessage
           type="ERROR"
           onPress={refetch}
           text="Ops, ocorreu um erro ao buscar as disciplinas. Toque aqui para tentar novamente."
         />
       )}
-      {!loading && !error && isEmpty && (
+      {!loading && !query.isPaused && !error && isEmpty && (
         <DummyMessage
           type="EMPTY"
-          text="Parece que não há disciplinas no departamento selecionado."
+          text="Nenhuma disciplina encontrada com os filtros selecionados."
         />
       )}
       {showList && (

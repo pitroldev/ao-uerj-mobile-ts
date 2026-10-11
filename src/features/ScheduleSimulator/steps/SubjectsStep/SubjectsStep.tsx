@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useCurriculum } from '@root/modules/academics/presentation/queries';
+import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
+import React, { useState } from 'react';
 import { ListRenderItemInfo } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
 import { Picker } from '@react-native-picker/picker';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { FontAwesome } from '@react-native-vector-icons/fontawesome';
@@ -9,14 +10,9 @@ import { FlatList } from 'react-native-gesture-handler';
 import { useStepsContext } from '@hooks/useSteps';
 import { normalizeText } from '@utils/normalize';
 
-import { useAppDispatch, useAppSelector } from '@root/store';
-import * as apiConfigReducer from '@reducers/apiConfig';
+import { CurriculumSubject } from '@root/modules/academics/domain/models';
 
-import { CurriculumSubject } from '@features/CurriculumSubjects/types';
-import { fetchCurriculumSubjects } from '@features/CurriculumSubjects/core';
-import * as curriculumSubjectsReducer from '@features/CurriculumSubjects/reducer';
-
-import { ScheduleCreationParams } from '@features/ScheduleSimulator/types';
+import { ScheduleCreationParams } from '@root/modules/planning/domain/models';
 
 import Text from '@atoms/Text';
 import Button from '@atoms/Button';
@@ -37,40 +33,17 @@ const SubjectsStep = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [subjectType, setSubjectType] = useState('');
 
-  const dispatch = useAppDispatch();
   const { nextStep, prevStep } = useStepsContext();
 
-  const { cookies, createdAt } = useAppSelector(
-    apiConfigReducer.selectApiConfig,
-  );
-  const { data } = useAppSelector(
-    curriculumSubjectsReducer.selectCurriculumSubjects,
-  );
+  const query = useCurriculum();
+  const { data = [], error, refetch, isLoading: loading } = query;
 
   const { handleSubmit, setValue, control } =
     useFormContext<ScheduleCreationParams>();
 
-  const { min_subject_amount = 3, selectedSubjects = [] } = useWatch({
+  const { min_subject_amount = 1, selectedSubjects = [] } = useWatch({
     control,
   });
-
-  const {
-    data: curriculumData,
-    isFetching,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ['curriculum-subjects', cookies, createdAt],
-    queryFn: fetchCurriculumSubjects,
-  });
-
-  useEffect(() => {
-    if (curriculumData) {
-      dispatch(curriculumSubjectsReducer.setState(curriculumData));
-    }
-  }, [curriculumData, dispatch]);
-
-  const loading = isFetching && !data;
 
   const handleNextPress = handleSubmit(nextStep);
 
@@ -147,12 +120,19 @@ const SubjectsStep = () => {
   const isEmpty = filteredData.length === 0;
 
   const isMinSubjectsAmountValid =
-    selectedSubjects.length >= (min_subject_amount as number) ||
-    data.length < (min_subject_amount as number);
+    selectedSubjects.length >= (min_subject_amount ?? 1);
 
   return (
     <Container>
       <ContentContainer>
+        <QueryNotice
+          dataUpdatedAt={query.dataUpdatedAt}
+          isPaused={query.isPaused}
+          isFetching={query.isFetching}
+          error={error}
+          hasData={query.data !== undefined}
+          retry={refetch}
+        />
         <Text weight="bold" size="LG" alignSelf="center" marginBottom="8px">
           Escolha {min_subject_amount} ou mais disciplinas
         </Text>
@@ -184,7 +164,7 @@ const SubjectsStep = () => {
               text="Ops, ocorreu um erro ao buscar as disciplinas. Toque aqui para tentar novamente."
             />
           )}
-          {!loading && !error && isEmpty && (
+          {!loading && !query.isPaused && !error && isEmpty && (
             <DummyMessage
               type="EMPTY"
               text="Parece que não há disciplinas a cursar nessa categoria."

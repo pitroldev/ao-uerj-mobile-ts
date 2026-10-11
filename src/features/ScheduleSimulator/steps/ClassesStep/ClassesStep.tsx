@@ -1,16 +1,17 @@
+import { MAX_CLASSES_AMOUNT } from '@root/modules/planning/domain/rules';
 import React, { useState } from 'react';
 import { Picker } from '@react-native-picker/picker';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { FlatList } from 'react-native-gesture-handler';
 
 import { useStepsContext } from '@hooks/useSteps';
-import { parseSubjectCode } from '@services/parser/minorParser';
+import { normalizeSubjectId } from '@root/modules/academics/domain/rules/subjectId';
 
 import {
   ScheduleCreationParams,
   SubjectClasses,
-} from '@features/ScheduleSimulator/types';
-import { SubjectInfo } from '@features/SubjectInfo/types';
+} from '@root/modules/planning/domain/models';
+import { SubjectInfo } from '@root/modules/academics/domain/models';
 
 import Text from '@atoms/Text';
 import Button from '@atoms/Button';
@@ -24,8 +25,6 @@ import {
   ButtonsRow,
   StyledFlatList,
 } from './ClassesStep.styles';
-
-const MAX_CLASSES_AMOUNT = 30;
 
 const ClassesStep = () => {
   const [teacher, setTeacher] = useState('');
@@ -92,7 +91,8 @@ const ClassesStep = () => {
   const renderClass = ({ item }: { item: SubjectClasses }) => {
     const subject = subjects.find(
       s =>
-        parseSubjectCode(s.id as string) === parseSubjectCode(item.subject_id),
+        normalizeSubjectId(s.id as string) ===
+        normalizeSubjectId(item.subject_id),
     );
 
     const isSelected = selectedClasses.some(
@@ -158,7 +158,7 @@ const ClassesStep = () => {
         <Button
           onPress={handleNextPress}
           size="small"
-          disabled={isOverMaxClasses}
+          disabled={isOverMaxClasses || !selectedClasses.length}
         >
           Próximo
         </Button>

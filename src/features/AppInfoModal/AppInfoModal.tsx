@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Modal from 'react-native-modal';
-import { useDispatch } from 'react-redux';
-
-import { useAppSelector } from '@root/store';
-import * as infoReducer from '@reducers/userInfo';
-
+import Toast from 'react-native-toast-message';
+import {
+  useAppServices,
+  useIdentity,
+} from '@root/app/providers/AppServicesProvider';
 import { APP_INFO } from './info';
-
+import { version } from '@/package.json';
 import Text from '@atoms/Text';
 import {
   Container,
@@ -16,23 +16,44 @@ import {
 } from './AppInfoModal.styles';
 
 const AppInfoModal = () => {
-  const dispatch = useDispatch();
-
-  const { wasPreviouslyLogged } = useAppSelector(infoReducer.selectUserInfo);
-
+  const { preferences } = useAppServices();
+  const { account } = useIdentity();
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    let active = true;
+    setVisible(false);
+    if (account)
+      void preferences
+        .read<string>(account.scope, 'app-info-version')
+        .then(seenVersion => {
+          if (active) setVisible(seenVersion !== version);
+        })
+        .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [account, preferences]);
   const handleClose = () => {
-    dispatch(infoReducer.setFirstLogin());
+    setVisible(false);
+    if (account)
+      void preferences
+        .write(account.scope, 'app-info-version', version)
+        .catch(() =>
+          Toast.show({
+            type: 'error',
+            text1: 'Não foi possível salvar esta preferência.',
+          }),
+        );
   };
-
   return (
     <Modal
-      isVisible={!wasPreviouslyLogged}
+      isVisible={visible}
       onBackdropPress={handleClose}
       onBackButtonPress={handleClose}
       useNativeDriver
-      animationIn={'fadeInDown'}
+      animationIn="fadeInDown"
       animationInTiming={150}
-      animationOut={'fadeOutUp'}
+      animationOut="fadeOutUp"
       animationOutTiming={150}
     >
       <Container>
@@ -40,8 +61,8 @@ const AppInfoModal = () => {
           Funcionalidades exclusivas
         </Text>
         <ScrollView>
-          {APP_INFO.map((info, index) => (
-            <FeatureContainer key={index}>
+          {APP_INFO.map(info => (
+            <FeatureContainer key={info.title}>
               <Row>
                 <Text weight="bold">{info.title}</Text>
                 {info.isNew && (

@@ -1,10 +1,13 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 
 import StepsProvider, { useSteps } from '@hooks/useSteps';
 
 import SubjectAmountStep from '@features/ScheduleSimulator/steps/SubjectAmountStep';
-import { ScheduleCreationParams } from '@features/ScheduleSimulator/types';
+import {
+  ScheduleCreationParams,
+  createScheduleDraft,
+} from '@root/modules/planning/domain/models';
 
 import BusyHoursStep from '@features/ScheduleSimulator/steps/BusyHoursStep';
 import PriorityStep from '@features/ScheduleSimulator/steps/PriorityStep';
@@ -57,34 +60,16 @@ const stepLabels = [
   'Gerar Grade',
 ];
 
-const getDefaultValues = (): ScheduleCreationParams => ({
-  min_subject_amount: null,
-  max_subject_amount: null,
-  busy_schedules: [],
-  priority: ['MOST_SUBJECTS_POSSIBLE'],
-  subjectsToTake: [],
-  selectedSubjects: [],
-  takenSubjects: [],
-  subjects: [],
-  selectedClasses: [],
-});
-
 const ScheduleCreationPage = () => {
   const methods = useForm<ScheduleCreationParams>({
     mode: 'all',
-    defaultValues: getDefaultValues(),
+    defaultValues: createScheduleDraft(),
   });
 
   const { step, nextStep, prevStep, setStep } = useSteps({
     initialStep: 0,
     maxStep: steps.length - 1,
   });
-
-  useEffect(() => {
-    if (step === 0) {
-      methods.reset(getDefaultValues());
-    }
-  }, [step, methods]);
 
   const CurrentStep = steps[step]?.component ?? null;
 

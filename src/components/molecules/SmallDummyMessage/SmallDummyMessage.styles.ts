@@ -1,6 +1,6 @@
 import styled from 'styled-components/native';
 
-export const View = styled.TouchableOpacity<any>`
+export const View = styled.TouchableOpacity<{ $withPadding: boolean }>`
   display: flex;
   flex-direction: row;
 
@@ -9,6 +9,6 @@ export const View = styled.TouchableOpacity<any>`
   justify-content: flex-start;
 
   margin: 8px;
-  padding: ${props => (props.withPadding ? '0 16px' : '0')};
+  padding: ${props => (props.$withPadding ? '0 16px' : '0')};
   width: 100%;
 `;

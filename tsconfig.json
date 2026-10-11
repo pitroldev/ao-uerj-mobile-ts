@@ -14,7 +14,7 @@
     "target": "esnext",
     "lib": ["es2017"],
     "jsx": "react-native",
-  "module": "esnext",
+    "module": "esnext",
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
@@ -30,7 +30,6 @@
       "@hooks/*": ["./src/hooks/*"],
       "@utils/*": ["./src/utils/*"],
       "@features/*": ["./src/features/*"],
-      "@reducers/*": ["./src/reducers/*"],
       "@assets/*": ["./src/assets/*"],
       "@/*": ["./*"]
     },

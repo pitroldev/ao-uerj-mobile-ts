@@ -1,12 +1,8 @@
 import React from 'react';
 import { useNavigation } from '@react-navigation/native';
 
-import { useAppDispatch } from '@root/store';
+import { PartialRID } from '@root/modules/academics/domain/models';
 
-import { PartialRID } from '@features/PartialRID/types';
-import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
-
-import parser from '@services/parser';
 import { numberToColor } from '@utils/numberToColor';
 
 import Text from '@atoms/Text';
@@ -21,7 +17,6 @@ type Props = {
 
 const RIDBoard = ({ data }: Props) => {
   const navigation = useNavigation();
-  const dispatch = useAppDispatch();
 
   const { subjects, updatedAt } = data;
 
@@ -30,9 +25,10 @@ const RIDBoard = ({ data }: Props) => {
   }
 
   function handleOnPress(item: PartialRID) {
-    const code = parser.parseSubjectCode(item.id) as number;
-    dispatch(subjectDetailReducer.setCurrent({ code, sourceRoute: 'Início' }));
-    navigation.navigate('Pesquisa de Disciplinas');
+    navigation.navigate('Pesquisa de Disciplinas', {
+      subjectId: item.id,
+      sourceRoute: 'Início',
+    });
   }
 
   function renderItem(item: PartialRID) {
@@ -105,9 +101,4 @@ const RIDBoard = ({ data }: Props) => {
   );
 };
 
-export default React.memo(RIDBoard, (prev, next) => {
-  if (JSON.stringify(prev) === JSON.stringify(next)) {
-    return true;
-  }
-  return false;
-});
+export default React.memo(RIDBoard);

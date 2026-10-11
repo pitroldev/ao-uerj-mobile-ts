@@ -1,8 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { Linking } from 'react-native';
+import { Linking, type TextInput as NativeTextInput } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 
-import { handleLogin } from '@features/Login/core';
+import {
+  useAppServices,
+  useIdentity,
+} from '@root/app/providers/AppServicesProvider';
+import { errorMessage } from '@root/shared/errors/AppError';
 
 import Text from '@atoms/Text';
 import TextInput from '@atoms/TextInput';
@@ -20,31 +24,30 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [matricula, setMatricula] = useState('');
   const [password, setPassword] = useState('');
+  const { identity } = useAppServices();
+  const { error: identityError } = useIdentity();
 
-  const passwordInputRef = useRef<any>(null);
+  const passwordInputRef = useRef<NativeTextInput>(null);
 
   const { isPending: loading, mutate: login } = useMutation({
-    mutationFn: () => handleLogin(matricula, password),
-    onSuccess: data => {
-      if (data.fail_reason) {
-        setError(data.fail_reason);
-      }
-    },
-    onError: () => {
-      setError(
-        'Não foi possível acessar o Aluno Online. Verifique sua conexão e tente novamente.',
-      );
-    },
+    mutationFn: () =>
+      identity.signIn({ matricula: matricula.trim(), password }),
+    onError: failure => setError(errorMessage(failure)),
   });
 
   const handleSignInPress = () => {
+    if (loading) return;
+    if (!matricula.trim() || !password) {
+      setError('Preencha a matrícula e a senha.');
+      return;
+    }
     setError('');
     login();
   };
 
   const handleRecoveryPassPress = () => {
-    Linking.openURL(PASS_RECOVERY_URL).catch((err: Error) =>
-      console.log('handleRecoveryPassPress error', err),
+    void Linking.openURL(PASS_RECOVERY_URL).catch(() =>
+      setError('Não foi possível abrir o portal.'),
     );
   };
 
@@ -57,6 +60,9 @@ const LoginPage = () => {
         </Text>
         <TextInput
           placeholder={'Digite sua matrícula'}
+          accessibilityLabel="Matrícula"
+          autoComplete="username"
+          autoCapitalize="none"
           keyboardType="number-pad"
           value={matricula}
           onChangeText={setMatricula}
@@ -67,6 +73,9 @@ const LoginPage = () => {
         </Text>
         <TextInput
           placeholder={'Digite sua senha'}
+          accessibilityLabel="Senha"
+          autoComplete="password"
+          autoCapitalize="none"
           secureTextEntry
           value={password}
           ref={passwordInputRef}
@@ -74,7 +83,7 @@ const LoginPage = () => {
           onSubmitEditing={() => handleSignInPress()}
         />
         <Text size="XS" alignSelf="center" textAlign="center" color="ERROR">
-          {error ?? ''}
+          {error || identityError || ''}
         </Text>
         <SignInButton
           loading={loading}

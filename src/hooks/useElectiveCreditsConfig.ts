@@ -1,65 +1,75 @@
-import { useLocalStorage } from '@hooks/useLocalStorage';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useAppServices,
+  useIdentity,
+} from '@root/app/providers/AppServicesProvider';
+import {
+  defaultElectiveCredits,
+  normalizeElectiveCredits,
+  ElectiveCreditsConfig,
+  ElectiveType,
+} from '@root/modules/academics/domain/rules/progress';
 
-export type ElectiveType = 'RESTRICTED' | 'DEFINED' | 'UNIVERSAL';
-
-export interface ElectiveCreditsConfig {
-  RESTRICTED: number;
-  DEFINED: number;
-  UNIVERSAL: number;
-}
-
-const STORAGE_KEY = '@elective_credits_config';
-
-const DEFAULT_CONFIG: ElectiveCreditsConfig = {
-  RESTRICTED: 0,
-  DEFINED: 0,
-  UNIVERSAL: 0,
-};
+export type {
+  ElectiveCreditsConfig,
+  ElectiveType,
+} from '@root/modules/academics/domain/rules/progress';
+const STORAGE_KEY = 'elective-credits';
 
 export function useElectiveCreditsConfig() {
-  const {
-    value: config,
-    updateValue: setConfig,
-    removeValue: resetConfig,
-    refresh,
-    loading,
-    error,
-  } = useLocalStorage<ElectiveCreditsConfig>(STORAGE_KEY, DEFAULT_CONFIG);
+  const { preferences, identity } = useAppServices();
+  const { account } = useIdentity();
+  const queryClient = useQueryClient();
+  const scope = account?.scope;
+  const queryKey = ['preferences', scope ?? 'signed-out', STORAGE_KEY];
+  const query = useQuery({
+    queryKey,
+    queryFn: async () =>
+      normalizeElectiveCredits(
+        await preferences.read<ElectiveCreditsConfig>(scope!, STORAGE_KEY),
+      ),
+    enabled: Boolean(scope),
+    staleTime: Infinity,
+    retry: false,
+  });
+  const config = query.data ?? defaultElectiveCredits;
 
-  const updateCredits = (type: ElectiveType, credits: number) => {
-    return setConfig(prev => ({
-      ...prev,
-      [type]: Math.max(0, credits),
-    }));
-  };
-
-  const hasConfiguredCredits = (type: ElectiveType) => {
-    return config[type] > 0;
-  };
-
-  const getRemainingCredits = (
-    type: ElectiveType,
-    completedCredits: number,
-  ) => {
-    const required = config[type];
-    return required > 0 ? Math.max(0, required - completedCredits) : 0;
-  };
-
-  const getProgress = (type: ElectiveType, completedCredits: number) => {
-    const required = config[type];
-    return required > 0 ? Math.round((completedCredits / required) * 100) : 0;
+  const setConfig = async (
+    value:
+      | ElectiveCreditsConfig
+      | ((previous: ElectiveCreditsConfig) => ElectiveCreditsConfig),
+  ): Promise<boolean> => {
+    if (!scope || identity.getSnapshot().account?.scope !== scope) return false;
+    const previous =
+      queryClient.getQueryData<ElectiveCreditsConfig>(queryKey) ?? config;
+    const next = normalizeElectiveCredits(
+      typeof value === 'function' ? value(previous) : value,
+    );
+    try {
+      await preferences.write(scope, STORAGE_KEY, next);
+      if (identity.getSnapshot().account?.scope !== scope) return false;
+      queryClient.setQueryData(queryKey, next);
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   return {
     config,
     setConfig,
-    updateCredits,
-    resetConfig,
-    refresh,
-    loading,
-    error,
-    hasConfiguredCredits,
-    getRemainingCredits,
-    getProgress,
+    updateCredits: (type: ElectiveType, credits: number) =>
+      setConfig(previous => ({ ...previous, [type]: credits })),
+    resetConfig: () => setConfig(defaultElectiveCredits),
+    refresh: query.refetch,
+    loading: query.isLoading,
+    error: query.error,
+    hasConfiguredCredits: (type: ElectiveType) => config[type] > 0,
+    getRemainingCredits: (type: ElectiveType, completed: number) =>
+      Math.max(0, config[type] - completed),
+    getProgress: (type: ElectiveType, completed: number) =>
+      config[type] > 0
+        ? Math.min(100, Math.round((completed / config[type]) * 100))
+        : 0,
   };
 }

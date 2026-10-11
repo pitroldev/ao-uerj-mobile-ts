@@ -1,24 +1,19 @@
-import React, { useState, useRef, useEffect } from 'react';
+import {
+  useCurriculum,
+  isPortalBlocked,
+} from '@root/modules/academics/presentation/queries';
+import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
+import React, { useState, useRef } from 'react';
 import { ListRenderItemInfo } from 'react-native';
-import Toast from 'react-native-toast-message';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import { FlatList } from 'react-native-gesture-handler';
 import { FontAwesome } from '@react-native-vector-icons/fontawesome';
-import { useQuery } from '@tanstack/react-query';
 
 import { SUBJECT_TYPE } from '@utils/constants/subjectDictionary';
 import { normalizeText } from '@utils/normalize';
-import parser from '@services/parser';
 
-import { useAppDispatch, useAppSelector } from '@root/store';
-
-import * as apiConfigReducer from '@reducers/apiConfig';
-import * as reducer from '@features/CurriculumSubjects/reducer';
-import * as subjectDetailReducer from '@features/SubjectClassesSchedule/reducer';
-
-import { CurriculumSubject } from '@features/CurriculumSubjects/types';
-import { fetchCurriculumSubjects } from '@features/CurriculumSubjects/core';
+import { CurriculumSubject } from '@root/modules/academics/domain/models';
 
 import Spinner from '@atoms/Spinner';
 import StyledPicker from '@atoms/Picker';
@@ -30,41 +25,18 @@ import SmallDummyMessage from '@molecules/SmallDummyMessage';
 
 import { Container, Row, View } from './CurriculumSubjects.styles';
 
-const HOUR_IN_MS = 1000 * 60 * 60;
-
 const CurriculumSubjects = () => {
   const [subjectAlreadyTaken, setSubjectAlreadyTaken] = useState(false);
   const [subjectType, setSubjectType] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { data } = useAppSelector(reducer.selectCurriculumSubjects);
-  const { isBlocked, cookies, createdAt } = useAppSelector(
-    apiConfigReducer.selectApiConfig,
-  );
+  const query = useCurriculum();
+  const { data = [], isLoading: loading, error, refetch } = query;
+  const isBlocked = isPortalBlocked(error);
 
-  const dispatch = useAppDispatch();
   const navigation = useNavigation();
 
   const ref = useRef<FlatList>(null);
-
-  const {
-    data: curriculumData,
-    isLoading: loading,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ['curriculum-subjects', cookies, createdAt],
-    queryFn: fetchCurriculumSubjects,
-    staleTime: 24 * HOUR_IN_MS,
-    enabled: Boolean(cookies),
-    retry: 0,
-  });
-
-  useEffect(() => {
-    if (curriculumData) {
-      dispatch(reducer.setState(curriculumData));
-    }
-  }, [curriculumData, dispatch]);
 
   const handleSubjectTypeChange = (value: string) => {
     setSubjectType(value);
@@ -72,22 +44,10 @@ const CurriculumSubjects = () => {
   };
 
   const handleSubjectPress = (subject: CurriculumSubject) => {
-    if (isBlocked) {
-      Toast.show({
-        type: 'error',
-        text1: 'Aluno Online bloqueado',
-        text2: 'Tente novamente mais tarde.',
-      });
-      return;
-    }
-    const code = parser.parseSubjectCode(subject.id) as number;
-    dispatch(
-      subjectDetailReducer.setCurrent({
-        code,
-        sourceRoute: 'Disciplinas do Currículo',
-      }),
-    );
-    navigation.navigate('Pesquisa de Disciplinas');
+    navigation.navigate('Pesquisa de Disciplinas', {
+      subjectId: subject.id,
+      sourceRoute: 'Disciplinas do Currículo',
+    });
   };
 
   const renderSubjects = ({
@@ -100,7 +60,7 @@ const CurriculumSubjects = () => {
     const { name, id, type, credits, workload, branch, period, alreadyTaken } =
       subject;
     const creditText = credits ? `${credits} créditos` : '';
-    const workloadText = credits ? `${workload} horas` : '';
+    const workloadText = workload !== null ? `${workload} horas` : '';
 
     const periodText = period ? `${period}º Período` : '';
 
@@ -132,7 +92,8 @@ const CurriculumSubjects = () => {
     const hasSubjectType = !subjectType || type === subjectType;
     const hasSearchQuery =
       !searchQuery || normalizeText(name).includes(normalizeText(searchQuery));
-    const hasSubjectAlreadyTaken = subjectAlreadyTaken === alreadyTaken;
+    const hasSubjectAlreadyTaken =
+      subjectAlreadyTaken === Boolean(alreadyTaken);
 
     return hasSubjectType && hasSearchQuery && hasSubjectAlreadyTaken;
   });
@@ -141,7 +102,7 @@ const CurriculumSubjects = () => {
   const showList = !isEmpty;
   const showSpinner = isEmpty && loading;
 
-  if (isBlocked) {
+  if (isBlocked && !data.length) {
     return (
       <Container>
         <DummyMessage
@@ -155,6 +116,14 @@ const CurriculumSubjects = () => {
 
   return (
     <Container>
+      <QueryNotice
+        dataUpdatedAt={query.dataUpdatedAt}
+        isPaused={query.isPaused}
+        isFetching={query.isFetching}
+        error={error}
+        hasData={query.data !== undefined}
+        retry={refetch}
+      />
       <Row>
         <View>
           <StyledPicker
@@ -205,7 +174,7 @@ const CurriculumSubjects = () => {
         />
       )}
       {showSpinner && <Spinner size={40} />}
-      {!loading && (error as Error) && !isBlocked && (
+      {!loading && !!error && !isBlocked && !data.length && (
         <DummyMessage
           type="ERROR"
           onPress={refetch}

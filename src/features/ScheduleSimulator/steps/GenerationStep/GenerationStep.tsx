@@ -1,23 +1,16 @@
+import Button from '@atoms/Button';
+import { useGenerateSchedules } from '@root/modules/planning/presentation/useGenerateSchedules';
+import { AppError, errorMessage } from '@root/shared/errors/AppError';
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useFormContext, useWatch } from 'react-hook-form';
 
-import { useAppSelector } from '@root/store';
-import * as reducer from '@features/CurriculumSubjects/reducer';
-
-import api from '@services/ScheduleApi';
 import { useStepsContext } from '@hooks/useSteps';
-import { parseSubjectCode } from '@services/parser/minorParser';
 import {
-  parseClassToGeneratorFormat,
-  parseSubjectToGeneratorFormat,
-} from '@utils/converter';
-import {
-  GeneratedSchedule,
   ScheduleCreationParams,
-} from '@features/ScheduleSimulator/types';
+  createScheduleDraft,
+} from '@root/modules/planning/domain/models';
 
 import Text from '@atoms/Text';
 import Spinner from '@atoms/Spinner';
@@ -41,68 +34,29 @@ const GenerationStep = () => {
     'INFO',
   );
 
-  const { setStep } = useStepsContext();
+  const { setStep, prevStep } = useStepsContext();
 
-  const { control } = useFormContext<ScheduleCreationParams>();
+  const { control, reset } = useFormContext<ScheduleCreationParams>();
 
   const body = useWatch({ control }) as ScheduleCreationParams;
-  const { data: curriculumSubjects } = useAppSelector(
-    reducer.selectCurriculumSubjects,
-  );
-  const subjectsToTake = curriculumSubjects.filter(s => !s.alreadyTaken);
-
-  const preferences = {
-    min_subject_amount: body.min_subject_amount,
-    max_subject_amount: body.max_subject_amount,
-    priority: body.priority,
-    busy_schedules: body.busy_schedules,
+  const generation = useGenerateSchedules();
+  const { isPending: loading, data = [], error } = generation;
+  const handleGenerate = () => {
+    setSelectedIndex(0);
+    generation.mutate(body);
   };
 
-  const classes = body.selectedClasses.map(c => {
-    const subject = body.subjects.find(
-      s => parseSubjectCode(s.id as string) === parseSubjectCode(c.subject_id),
-    )!;
-
-    return parseClassToGeneratorFormat(c, subject);
-  });
-
-  const subjects = body.subjects.map(s => {
-    const subjectToTake = subjectsToTake.find(
-      subject =>
-        parseSubjectCode(subject.id) === parseSubjectCode(s.id as string),
-    )!;
-
-    return parseSubjectToGeneratorFormat(subjectToTake, s);
-  });
-
-  const {
-    isLoading: loading,
-    data = [],
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ['schedule-generation', body],
-    queryFn: async () => {
-      const res = await api.post('/generate', {
-        preferences,
-        classes,
-        subjects,
-      });
-
-      return res.data.data as GeneratedSchedule[];
-    },
-  });
-
   const handleResetPress = () => {
+    reset(createScheduleDraft());
     setStep(0);
   };
 
-  const generatedSchedules = (data ?? []) as GeneratedSchedule[];
+  const generatedSchedules = data;
   const selectedGeneration = generatedSchedules[selectedIndex];
   const selectedSchedule = selectedGeneration?.schedule;
 
   const hasData = data?.length > 0 && !error;
-  const isEmpty = data?.length === 0 && !loading && !error;
+  const isEmpty = generation.isSuccess && data.length === 0;
 
   return (
     <Container>
@@ -110,15 +64,24 @@ const GenerationStep = () => {
         <Text weight="bold" alignSelf="center" marginBottom="8px">
           {loading
             ? 'Aguarde enquanto geramos sua grade'
+            : generation.isIdle
+            ? 'Tudo pronto para gerar sua grade'
             : 'Veja abaixo as grades geradas'}
         </Text>
 
+        {generation.isIdle && (
+          <Button onPress={handleGenerate}>Gerar grades</Button>
+        )}
         {loading && <Spinner size="large" />}
         {(error as Error) && (
           <DummyMessage
-            text="Ocorreu um erro ao gerar as grades, toque aqui para tentar novamente"
+            text={`${
+              error instanceof AppError && error.code === 'INVALID_INPUT'
+                ? error.message
+                : errorMessage(error)
+            } Toque aqui para tentar novamente.`}
             type="ERROR"
-            onPress={refetch}
+            onPress={handleGenerate}
           />
         )}
         {isEmpty && (
@@ -176,15 +139,20 @@ const GenerationStep = () => {
         )}
       </ContentContainer>
 
-      {hasData && (
-        <ButtonsRow>
-          <TouchableOpacity onPress={handleResetPress}>
-            <Text weight="bold" color="PRIMARY">
-              Gerar outra grade
-            </Text>
-          </TouchableOpacity>
-        </ButtonsRow>
-      )}
+      <ButtonsRow>
+        <Button onPress={prevStep} size="small">
+          Anterior
+        </Button>
+        {hasData && (
+          <>
+            <TouchableOpacity onPress={handleResetPress}>
+              <Text weight="bold" color="PRIMARY">
+                Gerar outra grade
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </ButtonsRow>
     </Container>
   );
 };
