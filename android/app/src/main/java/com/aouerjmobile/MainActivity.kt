@@ -1,5 +1,6 @@
 package com.aouerjmobile
 
+import android.os.Bundle
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
@@ -12,6 +13,15 @@ class MainActivity : ReactActivity() {
    * rendering of the component.
    */
   override fun getMainComponentName(): String = "aouerjmobile"
+
+  /**
+   * react-native-screens does not restore fragments: recreating the activity (e.g. changing the
+   * system font size with the app open) crashed with "Screen fragments should never be restored".
+   * See https://github.com/software-mansion/react-native-screens#android
+   */
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(null)
+  }
 
   /**
    * Returns the instance of the [ReactActivityDelegate]. We use [DefaultReactActivityDelegate]
