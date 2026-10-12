@@ -1,45 +1,54 @@
+import React, { useMemo, useRef, useState } from 'react';
+import type { ScrollView } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+
 import {
   useHistory,
   isPortalBlocked,
 } from '@root/modules/academics/presentation/queries';
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
-import React, { useState, useRef } from 'react';
-import { ListRenderItemInfo } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { Picker } from '@react-native-picker/picker';
-import { FlatList } from 'react-native-gesture-handler';
+import type { SubjectsTaken } from '@root/modules/academics/domain/models';
 
+import { SelectField } from '@components/ui';
+import ScreenPanel from '@templates/ScreenPanel';
 import {
-  SUBJECT_TYPE,
-  SUBJECT_STATUS,
-} from '@utils/constants/subjectDictionary';
+  TakenSubjectsSummary,
+  TakenSubjectsTable,
+  buildPeriodOptions,
+} from '@features/SubjectsTaken';
+import {
+  SubjectListFallback,
+  subjectListPhase,
+} from '@features/SubjectsToTake';
 
-import { SubjectsTaken } from '@root/modules/academics/domain/models';
-import { getPeriodList } from '@root/modules/academics/domain/rules/progress';
+const NO_SUBJECTS: SubjectsTaken[] = [];
 
-import Spinner from '@atoms/Spinner';
-import StyledPicker from '@atoms/Picker';
-import SubjectBox from '@molecules/SubjectBox';
-import DummyMessage from '@molecules/DummyMessage';
-import SmallDummyMessage from '@molecules/SmallDummyMessage';
-
-import { Container } from './SubjectsTaken.styles';
-
-const SubjectsAttended = () => {
+const SubjectsTakenScreen = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('');
 
   const query = useHistory();
-  const { data = [], isLoading: loading, error, refetch } = query;
-  const isBlocked = isPortalBlocked(error);
-  const periodList = getPeriodList(data);
+  const { error, refetch } = query;
+  const data = query.data ?? NO_SUBJECTS;
+  const periodOptions = useMemo(() => buildPeriodOptions(data), [data]);
 
   const navigation = useNavigation();
+  const scrollRef = useRef<ScrollView>(null);
 
-  const ref = useRef<FlatList>(null);
+  const activePeriod = periodOptions.some(
+    option => option.value === selectedPeriod,
+  )
+    ? selectedPeriod
+    : periodOptions[0]?.value ?? '';
+
+  const subjects = data.filter(({ period }) => period === activePeriod);
+  const phase = subjectListPhase(query, {
+    hasData: query.data !== undefined,
+    blocked: isPortalBlocked(error),
+  });
 
   const handleSelectedPeriodChange = (value: string) => {
     setSelectedPeriod(value);
-    ref.current?.scrollToOffset({ animated: true, offset: 0 });
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
   };
 
   const handleSubjectPress = (subject: SubjectsTaken) => {
@@ -49,64 +58,8 @@ const SubjectsAttended = () => {
     });
   };
 
-  const renderSubjects = ({
-    item: subject,
-  }: ListRenderItemInfo<SubjectsTaken>) => {
-    if (!subject) {
-      return null;
-    }
-
-    const { name, status, type, frequency, credits, grade, workload } = subject;
-
-    const description = frequency !== null ? `Frequência ${frequency}%` : '';
-    let creditsText = credits !== null ? `${credits} Créditos` : '';
-    if (workload) {
-      creditsText += ` | ${workload} horas`;
-    }
-    const gradeText = grade !== null ? `Nota ${grade}` : '';
-    const color = status === 'IN_PROGRESS' ? 'TEXT_SECONDARY' : status;
-
-    return (
-      <SubjectBox
-        color={color}
-        topLeftInfo={
-          SUBJECT_STATUS[status as keyof typeof SUBJECT_STATUS] ?? status
-        }
-        topRightInfo={SUBJECT_TYPE[type as keyof typeof SUBJECT_TYPE] ?? type}
-        name={name}
-        description={description}
-        bottomLeftInfo={gradeText}
-        bottomRightInfo={creditsText}
-        boldOptions={{
-          topLeft: true,
-          name: true,
-          bottomLeft: true,
-        }}
-        onPress={() => handleSubjectPress(subject)}
-      />
-    );
-  };
-
-  const activePeriod = periodList.some(
-    option => option.value === selectedPeriod,
-  )
-    ? selectedPeriod
-    : periodList[0]?.value ?? '';
-
-  const filteredData = data.filter(({ period }) => {
-    const isFromSamePeriod = activePeriod
-      ? period === activePeriod
-      : period === periodList[0]?.value;
-
-    return isFromSamePeriod;
-  });
-
-  const isEmpty = filteredData.length === 0;
-  const showList = !isEmpty;
-  const showSpinner = isEmpty && loading;
-
   return (
-    <Container>
+    <ScreenPanel scrollRef={scrollRef}>
       <QueryNotice
         dataUpdatedAt={query.dataUpdatedAt}
         isPaused={query.isPaused}
@@ -115,48 +68,38 @@ const SubjectsAttended = () => {
         hasData={query.data !== undefined}
         retry={refetch}
       />
-      <StyledPicker
-        selectedValue={activePeriod}
-        onValueChange={s => handleSelectedPeriodChange(s as string)}
-        loading={loading}
-        enabled={!loading}
-      >
-        {periodList.map(({ label, value }) => (
-          <Picker.Item key={value} label={label} value={value} />
-        ))}
-      </StyledPicker>
-      {isBlocked && showList && (
-        <SmallDummyMessage
-          type="BLOCK"
-          text="O Aluno Online está temporariamente bloqueado."
-          onPress={refetch}
+      <SelectField
+        label="Período"
+        icon="date_range"
+        options={periodOptions}
+        value={activePeriod}
+        onChange={handleSelectedPeriodChange}
+        placeholder={
+          phase === 'loading' ? 'Carregando…' : 'Nenhum período disponível'
+        }
+        disabled={periodOptions.length === 0}
+      />
+      {subjects.length > 0 ? (
+        <>
+          <TakenSubjectsSummary subjects={subjects} />
+          <TakenSubjectsTable
+            period={activePeriod}
+            subjects={subjects}
+            onSubjectPress={handleSubjectPress}
+          />
+        </>
+      ) : (
+        <SubjectListFallback
+          phase={phase}
+          onRetry={refetch}
+          empty={{
+            icon: 'history_edu',
+            text: 'Parece que não há disciplinas cursadas no período selecionado.',
+          }}
         />
       )}
-      {showSpinner && <Spinner size={40} />}
-      {!loading && !!error && !isBlocked && !data.length && (
-        <DummyMessage
-          type="ERROR"
-          onPress={refetch}
-          text="Ops, ocorreu um erro ao buscar as disciplinas. Toque aqui para tentar novamente."
-        />
-      )}
-      {!loading && !query.isPaused && !error && isEmpty && (
-        <DummyMessage
-          type="EMPTY"
-          text="Parece que não há disciplinas cursadas no período selecionado."
-        />
-      )}
-      {showList && (
-        <FlatList
-          ref={ref}
-          data={filteredData}
-          renderItem={renderSubjects}
-          showsVerticalScrollIndicator={false}
-          keyExtractor={(_, index) => index.toString()}
-        />
-      )}
-    </Container>
+    </ScreenPanel>
   );
 };
 
-export default SubjectsAttended;
+export default SubjectsTakenScreen;

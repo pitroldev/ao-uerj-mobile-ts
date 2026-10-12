@@ -17,6 +17,7 @@ import { SubmitErrorReport } from '@root/modules/support/application/SubmitError
 import { version } from '../../../package.json';
 import { createQueryClient } from '../queryClient';
 import { initializeIdentity } from './initializeIdentity';
+import { loadDemoBackend, withDemoMode } from './demoMode';
 
 function createScope() {
   return `account-${Date.now().toString(36)}-${Math.random()
@@ -37,29 +38,46 @@ export function createAppServices() {
     readCredentials: async () =>
       (await credentials.read())?.credentials ?? null,
   });
+  // Development builds route demo credentials to fictitious adapters;
+  // release builds (and every real credential) use the real ports unchanged.
+  const ports = withDemoMode(
+    {
+      authentication: portal.authentication,
+      records: portal.records,
+      ...createPrivateApiAdapters(),
+      scheduleGenerator: createScheduleGeneratorAdapter(),
+      preferences,
+    },
+    loadDemoBackend(),
+  );
   const identity = new IdentityController({
     credentials,
-    authentication: portal.authentication,
+    authentication: ports.authentication,
     accountData: cache.lifecycle,
     createScope,
   });
-  const privateApi = createPrivateApiAdapters();
   const currentAccount = () => identity.getSnapshot().account;
   let startup: Promise<string | null> | null = null;
   return {
     queryClient,
     identity,
-    preferences,
-    community: new Community({ ...privateApi, currentAccount }),
+    preferences: ports.preferences,
+    community: new Community({
+      messageBoard: ports.messageBoard,
+      teacherDirectory: ports.teacherDirectory,
+      currentAccount,
+    }),
     support: new SubmitErrorReport(
-      privateApi.errorReporter,
+      ports.errorReporter,
       { appVersion: version, parserVersion: '2' },
       currentAccount,
     ),
-    scheduleGenerator: createScheduleGeneratorAdapter(),
-    academicRecords: portal.records,
+    scheduleGenerator: ports.scheduleGenerator,
+    academicRecords: ports.records,
     scheduleSharing: new NativeScheduleSharing(),
     flushCache: cache.flush,
+    /** null in release builds; see demoMode.ts. */
+    demo: ports.demo,
     initialize() {
       startup ??= initializeIdentity(
         () =>

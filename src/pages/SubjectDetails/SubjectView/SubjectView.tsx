@@ -1,25 +1,38 @@
 import React, { useCallback } from 'react';
-import { Linking, ScrollView } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { BackHandler } from 'react-native';
+import { Linking } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
+
 import { RootDrawerParamList } from '@root/routes';
 import { isPortalBlocked } from '@root/modules/academics/presentation/queries';
-
-import { SubjectInfo } from '@root/modules/academics/domain/models';
-
-import Text from '@atoms/Text';
-import Spinner from '@atoms/Spinner';
-import SubjectBox from '@molecules/SubjectBox';
-import DummyMessage from '@molecules/DummyMessage';
-import SmallDummyMessage from '@molecules/SmallDummyMessage';
-
-import ClassBox from '../ClassBox';
+import { Prereq, SubjectInfo } from '@root/modules/academics/domain/models';
+import { useBackHandler } from '@hooks/useBackHandler';
+import { useHeaderBack } from '@templates/Header';
 import {
-  Container,
-  TransparentButton,
-  InfoBox,
-  SpinnerBox,
+  BlockedState,
+  Button,
+  ErrorState,
+  ListRow,
+  Section,
+  SkeletonList,
+  StatusLabel,
+  Text,
+} from '@components/ui';
+
+import ClassesTable from '../ClassesTable';
+import {
+  isCreditLock,
+  plural,
+  requirementMet,
+  syllabusUrl,
+} from '../subjectFormat';
+import { useCachedHistory } from '../useCachedHistory';
+import {
+  GroupLabel,
+  GroupList,
+  Properties,
+  RequirementMeta,
+  SyllabusFoot,
 } from './SubjectView.styles';
 
 type Props = {
@@ -30,6 +43,50 @@ type Props = {
   error?: unknown;
   sourceRoute?: keyof RootDrawerParamList;
 };
+
+const ERROR_TEXT =
+  'Ops, ocorreu um erro ao buscar as informações da disciplina. Toque aqui para tentar novamente.';
+
+function Requirement({
+  item,
+  approval,
+  onOpen,
+  divider,
+}: {
+  item: Prereq;
+  approval: string | null;
+  onOpen: (id: string) => void;
+  /** Repassado pelo `List`, que tira o fio do último item. */
+  divider?: boolean;
+}) {
+  const lock = isCreditLock(item.id);
+  return (
+    <ListRow
+      dense
+      divider={divider}
+      title={item.name}
+      meta={
+        <RequirementMeta>
+          {lock ? (
+            <StatusLabel tone="warn" icon="lock" label={item.id} />
+          ) : (
+            <Text variant="meta" tone="muted">
+              {item.id}
+            </Text>
+          )}
+          {approval ? (
+            <StatusLabel tone="good" icon="check" label={approval} />
+          ) : null}
+        </RequirementMeta>
+      }
+      chevron={!lock}
+      onPress={lock ? undefined : () => onOpen(item.id)}
+      accessibilityLabel={[item.name, item.id, approval]
+        .filter(Boolean)
+        .join(', ')}
+    />
+  );
+}
 
 const SubjectView = ({
   searchSubject,
@@ -43,26 +100,20 @@ const SubjectView = ({
     useNavigation<
       DrawerNavigationProp<RootDrawerParamList, 'Pesquisa de Disciplinas'>
     >();
+  const history = useCachedHistory();
+
   const handleBack = useCallback(() => {
     navigation.setParams({ subjectId: undefined, sourceRoute: undefined });
     if (sourceRoute) navigation.navigate(sourceRoute as never);
-    return true;
   }, [sourceRoute, navigation]);
-  useFocusEffect(
-    useCallback(() => {
-      const listener = BackHandler.addEventListener(
-        'hardwareBackPress',
-        handleBack,
-      );
-      return () => listener.remove();
-    }, [handleBack]),
-  );
+  useBackHandler(handleBack);
+  useHeaderBack(handleBack);
+
   const isBlocked = isPortalBlocked(error);
 
   const hasData = Boolean(subject && code);
-  const getSubject = async (subjectCode: string | number) => {
-    const isTrava = subjectCode.toString().toUpperCase().includes('TRAVA');
-    if (isTrava) {
+  const getSubject = (subjectCode: string | number) => {
+    if (isCreditLock(subjectCode)) {
       return;
     }
 
@@ -74,135 +125,114 @@ const SubjectView = ({
   };
 
   const handleSyllabusPress = () => {
-    const url = `https://www.ementario.uerj.br/ementa.php?cdg_disciplina=${String(
-      code,
-    )
-      .split('-')
-      .pop()}`;
-    Linking.openURL(url).catch((err: Error) => console.log('err', err));
+    Linking.openURL(syllabusUrl(code)).catch((err: Error) =>
+      console.log('err', err),
+    );
   };
 
-  const hasSubject = Boolean(subject);
-  const hasClasses = subject?.classes && subject.classes?.length > 0;
-  const hasPrerequisite =
-    subject?.prerequisite && subject.prerequisite.length > 0;
+  const syllabus = (afterState = false) => (
+    <SyllabusFoot $afterState={afterState}>
+      <Button
+        variant="outline"
+        block
+        icon="open_in_new"
+        label="Acessar ementa"
+        accessibilityHint="Abre o ementário da UERJ no navegador"
+        onPress={handleSyllabusPress}
+      />
+    </SyllabusFoot>
+  );
 
-  const showInfo = hasSubject;
+  if (!subject) {
+    if (error && !loading) {
+      return (
+        <>
+          {isBlocked ? (
+            <BlockedState onRetry={() => getSubject(code)} />
+          ) : (
+            <ErrorState message={ERROR_TEXT} onRetry={() => getSubject(code)} />
+          )}
+          {syllabus(true)}
+        </>
+      );
+    }
+    return (
+      <>
+        <Text variant="meta" tone="muted">
+          {`Buscando disciplina ${code}`}
+        </Text>
+        <SkeletonList count={4} />
+      </>
+    );
+  }
+
+  const id = subject.id ?? String(code);
+  const prerequisite = (subject.prerequisite ?? []).filter(
+    group => group.length > 0,
+  );
+  const classes = subject.classes ?? [];
 
   return (
-    <Container>
-      <Text size="MD" italic weight="300" marginLeft="4px">
-        {subject?.id ?? `Buscando disciplina ${code}`}
+    <>
+      <Text variant="titleL" accessibilityRole="header">
+        {subject.name || `Disciplina ${id}`}
       </Text>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {hasSubject && (
-          <>
-            <Text size="XL" weight="bold" marginLeft="4px">
-              {subject?.name}
-            </Text>
-            {isBlocked && (
-              <SmallDummyMessage
-                type="BLOCK"
-                text="O Aluno Online está temporariamente bloqueado."
-              />
-            )}
-            <Text size="MD" weight="600" marginLeft="4px" marginTop="12px">
-              Informações
-            </Text>
-            <InfoBox>
-              <Text size="XS" weight="bold">
-                {subject?.credits} Créditos
-              </Text>
-              <Text size="XS" weight="bold">
-                {subject?.workload} Horas
-              </Text>
-              <Text size="XS" weight="bold">
-                {subject?.duration}
-              </Text>
-            </InfoBox>
-            <Text size="MD" weight="600" marginLeft="4px" marginTop="4px">
-              Requisitos Exigidos
-            </Text>
-            {showInfo &&
-              subject?.prerequisite?.map((reqs, index) =>
-                reqs.map(req => (
-                  <SubjectBox
-                    key={`${index}:${req.id}`}
-                    topLeftInfo={req.id}
-                    topRightInfo={`${index + 1}`}
-                    name={req.name}
-                    onPress={() => getSubject(req.id)}
-                    boldOptions={{
-                      topLeft: true,
-                    }}
+      <Properties
+        items={[
+          { label: 'Código', value: id },
+          {
+            label: 'Créditos',
+            value: subject.credits != null ? String(subject.credits) : '–',
+          },
+          {
+            label: 'Carga horária',
+            value: subject.workload != null ? `${subject.workload} horas` : '–',
+          },
+          { label: 'Duração', value: subject.duration || '–' },
+        ]}
+      />
+
+      <Section title="Requisitos exigidos">
+        {prerequisite.length ? (
+          prerequisite.map((group, index) => (
+            <React.Fragment key={index}>
+              <GroupLabel label={`Grupo ${index + 1}`} />
+              <GroupList>
+                {group.map(item => (
+                  <Requirement
+                    key={`${index}:${item.id}`}
+                    item={item}
+                    approval={requirementMet(item.id, history)}
+                    onOpen={getSubject}
                   />
-                )),
-              )}
-            {showInfo && !hasPrerequisite && (
-              <Text
-                size="MD"
-                color="BACKGROUND_400"
-                alignSelf="center"
-                weight="500"
-                marginTop="12px"
-                marginBottom="4px"
-              >
-                Nenhum requisito exigido
-              </Text>
-            )}
-          </>
-        )}
-
-        {showInfo && subject?.classes && (
-          <>
-            <Text size="MD" weight="600" marginLeft="4px" marginTop="4px">
-              Turmas
-            </Text>
-            {subject?.classes?.map((props, index) => (
-              <ClassBox {...props} key={index.toString()} />
-            ))}
-            {!hasClasses && (
-              <Text
-                size="MD"
-                color="BACKGROUND_400"
-                alignSelf="center"
-                weight="500"
-                marginTop="12px"
-                marginBottom="4px"
-              >
-                Nenhuma turma disponível
-              </Text>
-            )}
-          </>
-        )}
-
-        {loading && (
-          <SpinnerBox>
-            <Spinner size="large" />
-          </SpinnerBox>
-        )}
-
-        {!loading && (error as Error) && (
-          <DummyMessage
-            type="ERROR"
-            text="Ops, ocorreu um erro ao buscar as informações da disciplina. Toque aqui para tentar novamente."
-            onPress={() => getSubject(code)}
-          />
-        )}
-
-        <TransparentButton onPress={handleSyllabusPress}>
-          <Text
-            size="MD"
-            weight="600"
-            alignSelf="center"
-            marginTop="24px"
-            marginBottom="24px"
-          >
-            Acessar Ementa
+                ))}
+              </GroupList>
+            </React.Fragment>
+          ))
+        ) : (
+          <Text variant="meta" tone="muted">
+            Nenhum requisito exigido
           </Text>
-        </TransparentButton>
-      </ScrollView>
-    </Container>
+        )}
+      </Section>
+
+      <Section
+        title="Turmas"
+        note={
+          classes.length ? plural(classes.length, 'turma', 'turmas') : undefined
+        }
+      >
+        {classes.length ? (
+          <ClassesTable classes={classes} />
+        ) : (
+          <Text variant="meta" tone="muted">
+            Nenhuma turma disponível
+          </Text>
+        )}
+      </Section>
+
+      {syllabus()}
+    </>
   );
 };
 

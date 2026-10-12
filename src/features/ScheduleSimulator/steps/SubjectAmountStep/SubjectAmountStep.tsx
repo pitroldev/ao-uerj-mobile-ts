@@ -1,29 +1,93 @@
 import React from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
+import styled from 'styled-components/native';
 
 import { useStepsContext } from '@hooks/useSteps';
+import { FieldError, NumberStepper, Text } from '@components/ui';
 
 import { ScheduleCreationParams } from '@root/modules/planning/domain/models';
 
-import Text from '@atoms/Text';
-import Button from '@atoms/Button';
-import TextInput from '@atoms/TextInput';
-
-import {
-  Container,
-  ContentContainer,
-  ButtonsRow,
-  Column,
-} from './SubjectAmountStep.styles';
+import { GeneratorStep, StepIntro } from '../../layout';
 
 const MIN_SUBJECTS_LIMIT = 1;
 const MAX_SUBJECTS_LIMIT = 12;
+const RANGE_MESSAGE = `Use um número de ${MIN_SUBJECTS_LIMIT} a ${MAX_SUBJECTS_LIMIT}.`;
+
+const Question = styled.View`
+  margin-top: 24px;
+`;
+
+const Label = styled(Text)`
+  margin-bottom: 10px;
+`;
+
+/** Reserva a linha do erro (".err" min-height 18 + 6) para nada pular. */
+const ErrorSlot = styled.View`
+  min-height: 24px;
+`;
+
+type AmountField = 'min_subject_amount' | 'max_subject_amount';
+
+function AmountQuestion({
+  name,
+  label,
+  accessibilityLabel,
+  requiredMessage,
+}: {
+  name: AmountField;
+  label: string;
+  accessibilityLabel: string;
+  requiredMessage: string;
+}) {
+  const { control } = useFormContext<ScheduleCreationParams>();
+  return (
+    <Controller
+      control={control}
+      rules={{
+        required: true,
+        min: MIN_SUBJECTS_LIMIT,
+        max: MAX_SUBJECTS_LIMIT,
+      }}
+      name={name}
+      render={({ field: { onChange, value }, fieldState: { error } }) => {
+        const message = !error
+          ? null
+          : error.type === 'required'
+          ? requiredMessage
+          : RANGE_MESSAGE;
+        return (
+          <Question>
+            <Label variant="body" weight="medium">
+              {label}
+            </Label>
+            <NumberStepper
+              value={value === undefined || value === null ? '' : String(value)}
+              onChangeText={(text: string) => {
+                const newText = text.replace(/[^0-9]/g, '');
+                const parsed = newText ? parseInt(newText, 10) : null;
+                onChange(parsed);
+              }}
+              min={MIN_SUBJECTS_LIMIT}
+              max={MAX_SUBJECTS_LIMIT}
+              maxLength={2}
+              unit="matérias"
+              accessibilityLabel={accessibilityLabel}
+              invalid={Boolean(error)}
+            />
+            <ErrorSlot>
+              {message ? <FieldError message={message} /> : null}
+            </ErrorSlot>
+          </Question>
+        );
+      }}
+    />
+  );
+}
 
 const SubjectAmountStep = () => {
   const { nextStep } = useStepsContext();
 
   const {
-    control,
     formState: { errors },
     handleSubmit,
     setValue,
@@ -49,91 +113,34 @@ const SubjectAmountStep = () => {
   const hasErrors = Object.keys(errors).length > 0;
 
   return (
-    <Container>
-      <ContentContainer>
-        <Text weight="bold" size="LG" alignSelf="center" marginBottom="10px">
-          Conte-nos um pouco sobre você
-        </Text>
-
-        <Column>
-          <Text weight="500" size="SM" marginLeft="5px">
-            Qual o mínimo de matérias que você quer cursar?
-          </Text>
-          <Controller
-            control={control}
-            rules={{
-              required: true,
-              min: MIN_SUBJECTS_LIMIT,
-              max: MAX_SUBJECTS_LIMIT,
-            }}
-            name="min_subject_amount"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                value={
-                  value === undefined || value === null ? '' : String(value)
-                }
-                keyboardType="number-pad"
-                onChangeText={(text: string) => {
-                  const newText = text.replace(/[^0-9]/g, '');
-                  const parsed = newText ? parseInt(newText, 10) : null;
-                  onChange(parsed);
-                }}
-              />
-            )}
-          />
-          <Text weight="500" size="XS" marginLeft="5px" color="ERROR">
-            {errors.min_subject_amount?.type === 'required' &&
-              'O mínimo de matérias é obrigatório'}
-            {errors.min_subject_amount?.type === 'min' &&
-              `O mínimo de matérias deve ser no mínimo ${MIN_SUBJECTS_LIMIT}`}
-            {errors.min_subject_amount?.type === 'max' &&
-              `O mínimo de matérias deve ser no máximo ${MAX_SUBJECTS_LIMIT}`}
-          </Text>
-        </Column>
-
-        <Column>
-          <Text weight="500" size="SM" marginLeft="5px">
-            Qual o máximo de matérias que você quer cursar?
-          </Text>
-          <Controller
-            control={control}
-            rules={{
-              required: true,
-              min: MIN_SUBJECTS_LIMIT,
-              max: MAX_SUBJECTS_LIMIT,
-            }}
-            name="max_subject_amount"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                value={
-                  value === undefined || value === null ? '' : String(value)
-                }
-                onChangeText={(text: string) => {
-                  const newText = text.replace(/[^0-9]/g, '');
-                  const parsed = newText ? parseInt(newText, 10) : null;
-                  onChange(parsed);
-                }}
-                keyboardType="number-pad"
-              />
-            )}
-          />
-          <Text weight="500" size="XS" marginLeft="5px" color="ERROR">
-            {errors.max_subject_amount?.type === 'required' &&
-              'O máximo de matérias é obrigatório'}
-            {errors.max_subject_amount?.type === 'min' &&
-              `O máximo de matérias deve ser no mínimo ${MIN_SUBJECTS_LIMIT}`}
-            {errors.max_subject_amount?.type === 'max' &&
-              `O máximo de matérias deve ser no máximo ${MAX_SUBJECTS_LIMIT}`}
-          </Text>
-        </Column>
-      </ContentContainer>
-
-      <ButtonsRow>
-        <Button onPress={handleNextPress} fullWidth disabled={hasErrors}>
-          Próximo
-        </Button>
-      </ButtonsRow>
-    </Container>
+    <GeneratorStep
+      footer={{
+        next: {
+          label: 'Próximo',
+          icon: 'arrow_forward',
+          iconPosition: 'end',
+          onPress: handleNextPress,
+          disabled: hasErrors,
+        },
+      }}
+    >
+      <StepIntro
+        title="Conte-nos um pouco sobre você"
+        description={`Quantas disciplinas você quer cursar no próximo período? Vale de ${MIN_SUBJECTS_LIMIT} a ${MAX_SUBJECTS_LIMIT}.`}
+      />
+      <AmountQuestion
+        name="min_subject_amount"
+        label="Qual o mínimo de matérias que você quer cursar?"
+        accessibilityLabel="mínimo de matérias"
+        requiredMessage="O mínimo de matérias é obrigatório"
+      />
+      <AmountQuestion
+        name="max_subject_amount"
+        label="Qual o máximo de matérias que você quer cursar?"
+        accessibilityLabel="máximo de matérias"
+        requiredMessage="O máximo de matérias é obrigatório"
+      />
+    </GeneratorStep>
   );
 };
 

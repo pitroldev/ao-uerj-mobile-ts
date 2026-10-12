@@ -1,90 +1,46 @@
 import styled from 'styled-components/native';
-import FontAwesomeIcon from '@react-native-vector-icons/fontawesome';
 
-import CardapioSVG from '@assets/CardapioMobile_Logo.svg';
-import AOUerjSVG from '@assets/AO_Logo.svg';
+import { Notice, Text } from '@components/ui';
 
-export const MainContainer = styled.ScrollView`
-  display: flex;
-  flex-direction: column;
-
-  padding: 0%;
-  padding-top: 8%;
-  height: 100%;
-
-  border-top-left-radius: 50px;
-  background-color: ${({ theme }) => theme.COLORS.BACKGROUND};
+/** ".about-hero": logo, nome e versão centralizados. */
+export const Hero = styled.View`
+  align-items: center;
+  padding-top: 8px;
 `;
 
-export const Row = styled.View`
-  display: flex;
+export const AppName = styled(Text)`
+  margin-top: 14px;
+`;
+
+export const Version = styled(Text)`
+  margin-top: 2px;
+`;
+
+/** ".callout": aviso de app não oficial, 20 abaixo do bloco do logo. */
+export const Callout = styled(Notice)`
+  margin-top: 20px;
+`;
+
+/** ".dev": avatar de iniciais e nome do desenvolvedor. */
+export const Developer = styled.View`
   flex-direction: row;
   align-items: center;
-  justify-content: space-between;
-
-  margin: 0px 8px;
+  gap: 12px;
+  padding: 4px 0px 12px;
 `;
 
-export const Column = styled.View`
-  display: flex;
-  flex-direction: column;
+/** ".dev-links": GitHub, LinkedIn e Email lado a lado (quebram com fonte grande). */
+export const DevLinks = styled.View`
+  flex-direction: row;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  margin: 8px 16px;
+  gap: 8px;
 `;
 
-export const AOLogoContainer = styled.View`
-  height: 100px;
-  width: 100px;
-  border-radius: 50px;
-
-  padding: 16px;
-  margin: 4px auto;
-  background-color: ${({ theme }) => theme.COLORS.PRIMARY};
-`;
-
-export const AOUerjLogo = styled(AOUerjSVG)`
-  align-self: center;
-`;
-
-export const CardapioMobileLogo = styled(CardapioSVG)`
-  align-self: center;
-`;
-
-export const Icon = styled(FontAwesomeIcon as any).attrs(({ theme }) => ({
-  color: theme.COLORS.BACKGROUND,
-  size: 20,
-}))``;
-
-export const ButtonIcon = styled(FontAwesomeIcon as any).attrs(({ theme }) => ({
-  color: theme.COLORS.TEXT_PRIMARY,
-  size: 16,
-}))`
-  margin-right: 8px;
-`;
-
-export const ButtonContent = styled.View`
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-`;
-
-export const SectionContainer = styled.View`
-  margin: 0;
-  padding: 0 12px;
-  align-items: center;
-`;
-
-export const ActionButton = styled.TouchableOpacity`
-  border: 1px solid ${({ theme }) => theme.COLORS.PRIMARY}20;
-  border-radius: 8px;
-  padding: 8px 16px;
-  margin: 6px;
-  min-width: 160px;
-  align-items: center;
-`;
-
-export const Divider = styled.View`
-  margin: 16px;
+/**
+ * Cada link ocupa a mesma largura; a base cresce com o tamanho da fonte do
+ * sistema para os botões quebrarem de linha em vez de cortar o rótulo.
+ */
+export const DevLink = styled.View<{ $basis: number }>`
+  flex-grow: 1;
+  flex-basis: ${({ $basis }) => $basis}px;
 `;

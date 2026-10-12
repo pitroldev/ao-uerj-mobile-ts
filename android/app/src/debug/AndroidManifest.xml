@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug only: merged over src/main/AndroidManifest.xml by the Android manifest
+  merger for the debug build type. Release builds never contain this scheme.
+
+  aouerj-dev://<rota> abre telas do app (src/app/dev/devLinking.ts);
+  aouerj-dev://demo entra na conta de demonstração. Ver scripts/dev/README.md.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:tools="http://schemas.android.com/tools">
+
+  <application>
+    <activity android:name=".MainActivity" tools:node="merge">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="aouerj-dev" />
+      </intent-filter>
+    </activity>
+  </application>
+</manifest>

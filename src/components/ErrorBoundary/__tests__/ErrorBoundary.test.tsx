@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, TouchableOpacity } from 'react-native';
+import { Text } from 'react-native';
 import { act, create, ReactTestRenderer } from 'react-test-renderer';
 import ErrorBoundary from '../ErrorBoundary';
 
@@ -33,10 +33,14 @@ it('renders and recovers from a child failure without any theme or app provider'
   expect(
     renderer.root.findAllByType(Text).map(node => node.props.children),
   ).toContain('Oops! Algo deu errado');
-  fail = false;
-  await act(async () =>
-    renderer.root.findByType(TouchableOpacity).props.onPress(),
+  const retry = renderer.root.find(
+    node =>
+      node.props.accessibilityRole === 'button' &&
+      node.props.accessibilityLabel === 'Tentar novamente' &&
+      typeof node.props.onPress === 'function',
   );
+  fail = false;
+  await act(async () => retry.props.onPress());
   expect(renderer.root.findByType(Text).props.children).toBe(
     'Aplicativo recuperado',
   );

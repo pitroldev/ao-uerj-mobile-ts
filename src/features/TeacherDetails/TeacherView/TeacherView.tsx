@@ -1,43 +1,45 @@
 import React from 'react';
-import { ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { Teacher } from '@root/modules/community/domain/models';
-import Text from '@atoms/Text';
-import SubjectBox from '@molecules/SubjectBox';
+import { List, ListRow, Section, Text } from '@components/ui';
+import { Updated } from './TeacherView.styles';
 
+/**
+ * Detalhe do professor (conteúdo do painel): nome, data da atualização e as
+ * turmas ministradas, cada uma levando ao detalhe da disciplina.
+ */
 const TeacherView = ({ name, updatedAt, subjects }: Teacher) => {
   const navigation = useNavigation();
   return (
     <>
-      <Text weight="bold" size="XL">
+      <Text variant="titleL" accessibilityRole="header">
         {name}
       </Text>
-      <Text italic size="SM">
+      <Updated variant="meta" tone="muted">
         Atualizado em: {new Date(updatedAt).toLocaleDateString('pt-BR')}
-      </Text>
-      <Text weight="bold" marginTop="12px" marginBottom="8px">
-        Disciplinas ministradas
-      </Text>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {subjects.flatMap(subject =>
-          subject.classes.map(item => (
-            <SubjectBox
-              key={`${subject.id}-${item.number}`}
-              name={subject.name}
-              topLeftInfo={subject.id}
-              topRightInfo={`Turma ${item.number}`}
-              bottomLeftInfo={item.location || undefined}
-              onPress={() =>
-                navigation.navigate('Pesquisa de Disciplinas', {
-                  subjectId: subject.id,
-                  sourceRoute: 'Pesquisa de Professores',
-                })
-              }
-              boldOptions={{ name: true }}
-            />
-          )),
-        )}
-      </ScrollView>
+      </Updated>
+      <Section title="Disciplinas ministradas">
+        <List>
+          {subjects.flatMap(subject =>
+            subject.classes.map(item => (
+              <ListRow
+                key={`${subject.id}-${item.number}`}
+                title={subject.name}
+                code={subject.id}
+                subtitle={`Turma ${item.number}`}
+                meta={item.location || undefined}
+                chevron
+                onPress={() =>
+                  navigation.navigate('Pesquisa de Disciplinas', {
+                    subjectId: subject.id,
+                    sourceRoute: 'Pesquisa de Professores',
+                  })
+                }
+              />
+            )),
+          )}
+        </List>
+      </Section>
     </>
   );
 };

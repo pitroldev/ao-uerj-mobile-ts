@@ -1,80 +1,60 @@
 import React from 'react';
 
-import { GeneratedSchedule } from '@root/modules/planning/domain/models';
+import { GeneratedClassWithSubject } from '@root/modules/planning/domain/models';
+import { List, ListRow, SHIFT_LABEL, StatusLabel, Text } from '@components/ui';
 
-import Text from '@atoms/Text';
-import {
-  Container,
-  InfoContainer,
-  InfoRow,
-  SubjectsColumn,
-  SubjectsRow,
-  TeacherColumn,
-} from './ScheduleInfo.styles';
+import { scheduleMeetings, shiftOfMinutes } from '../format';
 
-const ScheduleInfo = (generation: GeneratedSchedule) => {
-  const subjectsWithClasses = generation.schedule
-    .map(s => ({
-      subject_name: s.name,
-      subject_id: s.subject.id,
-      class_id: s.id,
-      teachers: [...s.teachers].sort(),
-    }))
-    .sort((a, b) => a.subject_name.localeCompare(b.subject_name));
+type Props = {
+  schedule: GeneratedClassWithSubject[];
+};
 
-  const subjectQtty = generation.schedule.length;
-  const workload = generation.total_workload;
-  const credits = generation.total_credits;
+const firstMeeting = (item: GeneratedClassWithSubject) =>
+  [...item.schedules].sort(
+    (a, b) =>
+      a.week_day - b.week_day ||
+      a.start_time_in_minutes - b.start_time_in_minutes,
+  )[0];
+
+/**
+ * Aba "Informações" da grade gerada: uma linha por disciplina com turma,
+ * docentes, turno e encontros ("● Manhã  Seg e Qua · M3–M4 · 8:50–10:30").
+ */
+const ScheduleInfo = ({ schedule }: Props) => {
+  const items = [...schedule].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
-    <Container>
-      <InfoRow>
-        <InfoContainer>
-          <Text weight="bold" size="SM" alignSelf="center">
-            Disciplinas
-          </Text>
-          <Text alignSelf="center" size="SM">
-            {subjectQtty}
-          </Text>
-        </InfoContainer>
-        <InfoContainer>
-          <Text weight="bold" size="SM" alignSelf="center">
-            Créditos
-          </Text>
-          <Text alignSelf="center" size="SM">
-            {credits}
-          </Text>
-        </InfoContainer>
-        <InfoContainer>
-          <Text weight="bold" size="SM" alignSelf="center">
-            Carga horária
-          </Text>
-          <Text alignSelf="center" size="SM">
-            {workload}h
-          </Text>
-        </InfoContainer>
-      </InfoRow>
-      {subjectsWithClasses.map(s => (
-        <SubjectsColumn key={s.subject_name}>
-          <SubjectsRow>
-            <Text size="XS">{s.subject_id}</Text>
-            <Text size="XS" italic>
-              Turma {s.class_id}
-            </Text>
-          </SubjectsRow>
-          <Text size="SM" weight="bold">
-            {s.subject_name}
-          </Text>
-          <TeacherColumn>
-            {s.teachers.map(t => (
-              <Text key={t} italic size="SM">
-                • {t}
-              </Text>
-            ))}
-          </TeacherColumn>
-        </SubjectsColumn>
-      ))}
-    </Container>
+    <List accessibilityLabel="Disciplinas da grade">
+      {items.map(item => {
+        const first = firstMeeting(item);
+        const shift = first
+          ? shiftOfMinutes(first.start_time_in_minutes)
+          : null;
+        const meetings = scheduleMeetings(item.schedules);
+        const teachers = [...item.teachers].sort().join(', ');
+        return (
+          <ListRow
+            key={`${item.subject_id}-${item.id}`}
+            title={item.name}
+            code={item.subject.id}
+            subtitle={`Turma ${item.id}`}
+            meta={teachers || undefined}
+            facts={
+              <>
+                {shift ? (
+                  <StatusLabel tone={shift} label={SHIFT_LABEL[shift]} />
+                ) : null}
+                {meetings ? (
+                  <Text variant="meta" tone="muted">
+                    {meetings}
+                  </Text>
+                ) : null}
+              </>
+            }
+          />
+        );
+      })}
+    </List>
   );
 };
 

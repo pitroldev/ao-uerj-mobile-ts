@@ -66,21 +66,6 @@ export function convertNumberToDay(number: number) {
   }
 }
 
-export function convertTurnoToColor(turno: string) {
-  const colorRegex = /\D/g;
-  const firstLetter = colorRegex.exec(turno)?.[0];
-  switch (firstLetter) {
-    case 'M':
-      return '#FBFFD5';
-    case 'T':
-      return '#FFF4D5';
-    case 'N':
-      return '#D5F8FF';
-    default:
-      return '#ddd';
-  }
-}
-
 export function orderTurnosStringToArray(turnoString: string): any[] {
   let ordered = turnoString.split(/\s/g);
   ordered = ordered.filter(item => item && item);

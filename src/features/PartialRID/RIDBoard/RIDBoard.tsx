@@ -1,12 +1,21 @@
 import React from 'react';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from 'styled-components/native';
 
+import {
+  HEALTH_LABEL,
+  healthTone,
+  Icon,
+  List,
+  ListRow,
+  Section,
+  StatusLabel,
+  Text,
+} from '@components/ui';
 import { PartialRID } from '@root/modules/academics/domain/models';
-
 import { numberToColor } from '@utils/numberToColor';
 
-import Text from '@atoms/Text';
-import { SubjectBox, MiniBox, Container, Row, Button } from './RIDBoard.styles';
+import { Alert, AlertText, UpdatedAt, Value, Values } from './RIDBoard.styles';
 
 type Props = {
   data: {
@@ -15,7 +24,13 @@ type Props = {
   };
 };
 
+/**
+ * RID parcial no período de inscrição: por disciplina, vagas solicitadas e
+ * oferecidas, a posição na fila (com a saúde em ponto + rótulo) e a
+ * situação, destacada quando não há posição.
+ */
 const RIDBoard = ({ data }: Props) => {
+  const theme = useTheme();
   const navigation = useNavigation();
 
   const { subjects, updatedAt } = data;
@@ -36,68 +51,75 @@ const RIDBoard = ({ data }: Props) => {
       item;
 
     const hasWarning = position === 0;
-    const vacanciesColor = numberToColor(requested, available, true);
-    const positionColor = hasWarning
-      ? 'DISABLED'
-      : numberToColor(position, available, true);
-    return (
-      <Button onPress={() => handleOnPress(item)} key={id}>
-        <SubjectBox key={id}>
-          <Row>
-            <Text weight="500" size="XS" alignSelf="center">
-              {id}
-            </Text>
-            <Text italic size="XS" alignSelf="center">
-              Turma {classNumber}
-            </Text>
-          </Row>
-          <Text size="SM">{name}</Text>
+    const vacancies = healthTone(numberToColor(requested, available, true));
+    const positionTone = hasWarning
+      ? 'neutral'
+      : healthTone(numberToColor(position, available, true));
+    const positionLabel = hasWarning
+      ? 'Sem posição'
+      : HEALTH_LABEL[positionTone];
 
-          <Row>
-            <MiniBox color={vacanciesColor}>
-              <Text weight="500" size="XS" alignSelf="center">
-                Solicitadas/Oferecidas
-              </Text>
-              <Text italic size="XS" alignSelf="center">
-                {requested}/{available}
-              </Text>
-            </MiniBox>
-            <MiniBox color={positionColor}>
-              <Text weight="500" size="XS" alignSelf="center">
-                Sua Posição
-              </Text>
-              <Text italic size="XS" alignSelf="center">
-                {position}
-              </Text>
-            </MiniBox>
-          </Row>
-          {hasWarning && (
-            <Text
-              weight="bold"
-              size={'XXS'}
-              alignSelf="center"
-              marginTop="10px"
-              color={'ERROR'}
-            >
-              {status}
+    return (
+      <ListRow
+        key={id}
+        title={name}
+        code={id}
+        subtitle={`Turma ${classNumber}`}
+        chevron
+        onPress={() => handleOnPress(item)}
+        accessibilityLabel={`${name}, ${id}, Turma ${classNumber}. Solicitadas/Oferecidas: ${requested} de ${available}, ${HEALTH_LABEL[vacancies]}. Sua posição: ${position}, ${positionLabel}. Situação: ${status}`}
+      >
+        <Values>
+          <Value>
+            <Text variant="caption" weight="regular" tone="muted">
+              Solicitadas/Oferecidas
             </Text>
-          )}
-        </SubjectBox>
-      </Button>
+            <Text variant="headline" tabular>
+              {requested}/{available}
+            </Text>
+            <StatusLabel tone={vacancies} label={HEALTH_LABEL[vacancies]} />
+          </Value>
+          <Value>
+            <Text variant="caption" weight="regular" tone="muted">
+              Sua posição
+            </Text>
+            <Text variant="headline" tabular>
+              {position}
+            </Text>
+            <StatusLabel tone={positionTone} label={positionLabel} />
+          </Value>
+        </Values>
+        {hasWarning ? (
+          <Alert>
+            <Icon
+              name="error"
+              size={theme.sizes.icon.md}
+              color={theme.status.bad.ink}
+            />
+            <AlertText variant="meta" weight="semibold" tone="bad">
+              {status}
+            </AlertText>
+          </Alert>
+        ) : (
+          <Text variant="meta" tone="muted">
+            Situação: {status}
+          </Text>
+        )}
+      </ListRow>
     );
   }
 
   return (
-    <Container>
-      <Text weight="bold" marginLeft="12px">
-        RID Parcial
-      </Text>
-      <Text italic size="SM" marginLeft="12px">
+    <Section
+      title="RID Parcial"
+      note="Período de inscrição"
+      noteIcon="how_to_reg"
+    >
+      <UpdatedAt variant="meta" tone="muted">
         Última atualização em {updatedAt.trim()}
-      </Text>
-      {subjects?.map(renderItem)}
-      <Text />
-    </Container>
+      </UpdatedAt>
+      <List>{subjects.map(renderItem)}</List>
+    </Section>
   );
 };
 

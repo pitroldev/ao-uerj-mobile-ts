@@ -1,44 +1,40 @@
 import styled from 'styled-components/native';
 
-import Button from '@atoms/Button';
-import SVG from '@assets/AO_Logo.svg';
+import { Button, Text } from '@components/ui';
 
-export const LogoContainer = styled.KeyboardAvoidingView`
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  height: 100%;
-
-  background-color: ${({ theme }) => theme.COLORS.PRIMARY};
+/** Fundo azul atrás de tudo (o painel claro sobe por cima dele). */
+export const Root = styled.View`
+  flex: 1;
+  background-color: ${({ theme }) => theme.colors.brand};
 `;
 
-export const LogoUERJ = styled(SVG)`
-  top: 8%;
-  height: 40%;
-  width: 40%;
-
-  align-self: center;
+/** ".login-top": faixa azul de 220 com o logo grande centralizado. */
+export const Top = styled.View<{ $inset: number }>`
+  height: ${({ $inset }) => 220 + $inset}px;
+  padding-top: ${({ $inset }) => $inset}px;
+  align-items: center;
+  justify-content: center;
 `;
 
-export const Container = styled.View`
-  display: flex;
-  height: 78%;
-
-  padding: 0% 5%;
-  padding-top: 10%;
-
-  border-top-left-radius: 50px;
-  background-color: ${({ theme }) => theme.COLORS.BACKGROUND};
+/** ".login-panel": painel claro com o canto superior esquerdo de 48. */
+export const Panel = styled.View<{ $inset: number }>`
+  flex-grow: 1;
+  padding: 36px 24px ${({ $inset }) => 28 + $inset}px 24px;
+  border-top-left-radius: ${({ theme }) => theme.layout.panelRadius}px;
+  background-color: ${({ theme }) => theme.colors.surface};
 `;
 
-export const SignInButton = styled(Button)`
-  margin-top: 8%;
-  align-self: center;
-  width: 99%;
+export const Subtitle = styled(Text)`
+  margin-top: 4px;
+  margin-bottom: 24px;
 `;
 
-export const RecoveryPassButton = styled.TouchableOpacity`
-  padding: 4%;
-  margin-top: 5%;
-  margin-bottom: 5%;
+export const RecoveryButton = styled(Button)`
+  margin-top: 8px;
+`;
+
+/** ".login-foot": rodapé preso ao fim do painel. */
+export const Footer = styled(Text)`
+  margin-top: auto;
+  padding-top: 16px;
 `;

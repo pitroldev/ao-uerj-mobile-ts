@@ -1,11 +1,12 @@
-import { DefaultTheme } from 'styled-components/native';
+/** Saúde das vagas, convertida em tom por `healthTone` (`@components/ui`). */
+export type VacancyHealth = 'GOOD' | 'BAD' | 'CRITICAL';
 
 export function getVacancieHealth(
   taken: number,
   available: number,
   inverse = false,
 ): {
-  status: keyof DefaultTheme['COLORS'];
+  status: VacancyHealth;
   percentage: number;
 } {
   try {

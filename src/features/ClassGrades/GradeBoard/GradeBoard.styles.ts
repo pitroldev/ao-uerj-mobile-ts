@@ -1,37 +1,33 @@
 import styled from 'styled-components/native';
 
-import Box from '@atoms/Box';
-
-export const Container = styled.View`
-  margin: 4px 10px;
+/** Nome + "● Bom na P1" na primeira coluna (".gt-name" / ".gt-sub"). */
+export const NameCell = styled.View`
+  gap: 3px;
 `;
 
-export const Row = styled.View`
+/** ".legend": pontos com rótulo, quebrando linha. */
+export const Legend = styled.View`
   flex-direction: row;
-  width: 100%;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  column-gap: 14px;
+  row-gap: 6px;
+  margin-top: 10px;
 `;
 
-export const NotasRow = styled.View`
+/**
+ * Notas embaixo do nome, quando a fonte do sistema não deixa as quatro
+ * colunas caberem ao lado dele.
+ */
+export const GradeStrip = styled.View`
   flex-direction: row;
-  width: 100%;
-  margin-top: 6px;
-  justify-content: space-around;
+  flex-wrap: wrap;
+  row-gap: 8px;
+  margin-top: 8px;
 `;
 
-export const Column = styled.View`
-  flex: 1;
-`;
-
-export const BoxContainer = styled(Box)`
-  flex-direction: column;
-  align-items: space-between;
-  padding: 8px;
-  margin: 6px 4px;
-`;
-
-export const MiniBox = styled(Box)`
-  padding: 5px;
-  margin: 2px;
-  min-width: 50px;
+/** Rótulo ("P1", "Média") sobre a célula de nota, na largura de uma coluna. */
+export const GradeSlot = styled.View<{ $width: number }>`
+  width: ${({ $width }) => $width}px;
+  align-items: center;
+  gap: 4px;
 `;

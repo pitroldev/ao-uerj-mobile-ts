@@ -1,6 +1,16 @@
-import type { ErrorReportDraft } from '@root/modules/support/application/ports';
+/** Passo 1: onde o erro aconteceu (e o código, se for uma disciplina). */
+export type FeatureStepProps = {
+  page: string;
+  subjectCode: string;
+  onChangePage: (page: string) => void;
+  onChangeSubjectCode: (code: string) => void;
+};
 
-export type ReportStepProps = {
-  body: ErrorReportDraft;
-  nextStep: (updates: Partial<ErrorReportDraft>) => void;
+/** Passo 2: descrição do que aconteceu. */
+export type ExplanationStepProps = {
+  page: string;
+  subjectCode?: string;
+  description: string;
+  onChangeDescription: (description: string) => void;
+  editable?: boolean;
 };

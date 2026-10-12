@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { FlatList, ListRenderItemInfo } from 'react-native';
-import { FontAwesome } from '@react-native-vector-icons/fontawesome';
 import { useQuery } from '@tanstack/react-query';
 import {
   useAppServices,
@@ -10,19 +9,31 @@ import { errorMessage, isTransientError } from '@root/shared/errors/AppError';
 import { useBackHandler } from '@hooks/useBackHandler';
 import { communityKeys } from '@root/modules/community/presentation/queryKeys';
 import TeacherView from '@features/TeacherDetails/TeacherView';
-import Spinner from '@atoms/Spinner';
-import TextInput from '@atoms/TextInput';
-import SubjectBox from '@molecules/SubjectBox';
-import DummyMessage from '@molecules/DummyMessage';
-import SmallDummyMessage from '@molecules/SmallDummyMessage';
-import { Container } from './TeacherSearch.styles';
+import ScreenPanel from '@templates/ScreenPanel';
+import { useHeaderBack } from '@templates/Header';
+import {
+  EmptyState,
+  ErrorState,
+  ListRow,
+  ListSeparator,
+  SearchField,
+  SkeletonList,
+} from '@components/ui';
+import {
+  SearchArea,
+  StateArea,
+  useListContentStyle,
+} from './TeacherSearch.styles';
 
 const TeacherSearch = () => {
   const [search, setSearch] = useState('');
   const [selectedTeacher, setSelectedTeacher] = useState('');
   const { community } = useAppServices();
   const { account } = useIdentity();
-  useBackHandler(() => setSelectedTeacher(''), Boolean(selectedTeacher));
+  const clearSelection = useCallback(() => setSelectedTeacher(''), []);
+  useBackHandler(clearSelection, Boolean(selectedTeacher));
+  useHeaderBack(selectedTeacher ? clearSelection : null);
+  const listContentStyle = useListContentStyle();
   const teachers = useQuery({
     queryKey: communityKeys.teachers(account?.scope ?? 'signed-out'),
     queryFn: ({ signal }) => community.teachers({ signal }),
@@ -43,69 +54,86 @@ const TeacherSearch = () => {
   const normalizedSearch = search
     .trim()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .toLowerCase();
   const filteredData = teachers.data?.filter(name =>
     name
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[̀-ͯ]/g, '')
       .toLowerCase()
       .includes(normalizedSearch),
   );
   if (selectedTeacher)
     return (
-      <Container>
-        {teacher.isLoading && <Spinner loading size="large" />}
+      <ScreenPanel>
+        {teacher.isLoading && (
+          <SkeletonList count={4} accessibilityLabel="Carregando professor…" />
+        )}
         {!!teacher.error && (
-          <DummyMessage
-            type="ERROR"
-            text={errorMessage(teacher.error)}
-            onPress={() => {
+          <ErrorState
+            message={errorMessage(teacher.error)}
+            onRetry={() => {
               void teacher.refetch();
             }}
           />
         )}
         {teacher.data && <TeacherView {...teacher.data} />}
         {teacher.data === null && (
-          <DummyMessage
-            type="EMPTY"
+          <EmptyState
+            icon="person_search"
             text="Nenhum detalhe encontrado para este professor. Volte para escolher outro nome."
-            onPress={() => setSelectedTeacher('')}
+            action={{
+              label: 'Escolher outro nome',
+              icon: 'arrow_back',
+              onPress: clearSelection,
+            }}
           />
         )}
-      </Container>
+      </ScreenPanel>
     );
   const renderItem = ({ item }: ListRenderItemInfo<string>) => (
-    <SubjectBox name={item} onPress={() => setSelectedTeacher(item)} />
+    <ListRow
+      title={item}
+      chevron
+      divider={false}
+      onPress={() => setSelectedTeacher(item)}
+    />
   );
   return (
-    <Container>
-      <TextInput
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Pesquise pelo nome do professor"
-        icon={<FontAwesome name="search" size={15} />}
-      />
-      {teachers.isLoading && <Spinner loading size="large" />}
-      {!teachers.isLoading && !teachers.error && filteredData?.length === 0 && (
-        <SmallDummyMessage text="Nenhum professor encontrado" type="EMPTY" />
-      )}
+    <ScreenPanel scroll={false}>
+      <SearchArea>
+        <SearchField
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Pesquise pelo nome do professor"
+        />
+      </SearchArea>
+      <StateArea>
+        {teachers.isLoading && <SkeletonList />}
+        {!teachers.isLoading &&
+          !teachers.error &&
+          filteredData?.length === 0 && (
+            <EmptyState icon="search_off" text="Nenhum professor encontrado" />
+          )}
+        {!!teachers.error && (
+          <ErrorState
+            message={errorMessage(teachers.error)}
+            onRetry={() => {
+              void teachers.refetch();
+            }}
+          />
+        )}
+      </StateArea>
       <FlatList
         data={filteredData}
         renderItem={renderItem}
+        ItemSeparatorComponent={ListSeparator}
+        contentContainerStyle={listContentStyle}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         keyExtractor={item => item}
       />
-      {!!teachers.error && (
-        <DummyMessage
-          text={errorMessage(teachers.error)}
-          type="ERROR"
-          onPress={() => {
-            void teachers.refetch();
-          }}
-        />
-      )}
-    </Container>
+    </ScreenPanel>
   );
 };
 

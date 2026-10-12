@@ -1,20 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import Modal from 'react-native-modal';
 import Toast from 'react-native-toast-message';
 import {
   useAppServices,
   useIdentity,
 } from '@root/app/providers/AppServicesProvider';
-import { APP_INFO } from './info';
 import { version } from '@/package.json';
-import Text from '@atoms/Text';
 import {
-  Container,
-  FeatureContainer,
-  Row,
-  ScrollView,
-} from './AppInfoModal.styles';
+  BottomSheet,
+  Button,
+  IconTile,
+  List,
+  ListRow,
+  Tag,
+} from '@components/ui';
 
+import { APP_INFO } from './info';
+import { Description } from './AppInfoModal.styles';
+
+/**
+ * Folha "Funcionalidades exclusivas", mostrada uma vez por versão do app:
+ * o que o AO UERJ faz além do Aluno Online.
+ */
 const AppInfoModal = () => {
   const { preferences } = useAppServices();
   const { account } = useIdentity();
@@ -46,39 +52,31 @@ const AppInfoModal = () => {
         );
   };
   return (
-    <Modal
-      isVisible={visible}
-      onBackdropPress={handleClose}
-      onBackButtonPress={handleClose}
-      useNativeDriver
-      animationIn="fadeInDown"
-      animationInTiming={150}
-      animationOut="fadeOutUp"
-      animationOutTiming={150}
+    <BottomSheet
+      visible={visible}
+      onClose={handleClose}
+      title="Funcionalidades exclusivas"
+      footer={<Button label="Entendi" onPress={handleClose} />}
     >
-      <Container>
-        <Text weight="bold" size="LG" marginBottom="16px">
-          Funcionalidades exclusivas
-        </Text>
-        <ScrollView>
-          {APP_INFO.map(info => (
-            <FeatureContainer key={info.title}>
-              <Row>
-                <Text weight="bold">{info.title}</Text>
-                {info.isNew && (
-                  <Text italic weight="bold" size="XS">
-                    *novo*
-                  </Text>
-                )}
-              </Row>
-              <Text italic size="SM" marginLeft="8px">
-                • {info.description}
-              </Text>
-            </FeatureContainer>
-          ))}
-        </ScrollView>
-      </Container>
-    </Modal>
+      <Description tone="muted">
+        O que o AO UERJ faz além do Aluno Online:
+      </Description>
+      <List>
+        {APP_INFO.map(info => (
+          <ListRow
+            key={info.title}
+            leading={<IconTile icon={info.icon ?? 'star'} />}
+            title={info.title}
+            meta={info.description}
+            accessibilityLabel={`${info.title}${info.isNew ? ', novo' : ''}. ${
+              info.description
+            }`}
+          >
+            {info.isNew ? <Tag tone="accent" label="Novo" /> : null}
+          </ListRow>
+        ))}
+      </List>
+    </BottomSheet>
   );
 };
 

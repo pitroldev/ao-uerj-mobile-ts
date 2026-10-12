@@ -1,84 +1,94 @@
 import React from 'react';
-import Modal from 'react-native-modal';
-import { TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
+import { BottomSheet, List, ListRow, StatusLabel } from '@components/ui';
 import { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
 
-import Text from '@atoms/Text';
-import SubjectBox from '@molecules/SubjectBox';
+import {
+  isCanceled,
+  locationLabel,
+  meetingSummary,
+  plural,
+} from '../scheduleFormat';
 
-import { View } from './AttendedClassesBoard.styles';
+type Subject = AttendedClassesSchedule['class'];
 
 type Props = {
-  isVisible: boolean;
-  setVisibility: React.Dispatch<React.SetStateAction<boolean>>;
+  visible: boolean;
+  onClose: () => void;
   data: AttendedClassesSchedule[];
+  /** Disciplina tocada na agenda: aparece destacada na lista. */
+  focusId?: string | null;
 };
 
-const AttendedClassesBoard = ({ isVisible, setVisibility, data }: Props) => {
+/**
+ * Folha "Disciplinas em Curso": as disciplinas da grade (ativas primeiro e,
+ * no fim, as canceladas com o rótulo), com turma, horários, sala e sala
+ * virtual. Tocar numa disciplina abre a Pesquisa de Disciplinas.
+ */
+const AttendedClassesBoard = ({ visible, onClose, data, focusId }: Props) => {
   const navigation = useNavigation();
+  const safeData = data ?? [];
 
-  if (!data) {
-    return null;
-  }
-
-  const subjects = data.reduce((acc, c) => {
-    const alreadyHasSubject = acc.some(s => s.id === c.class.id);
-    if (!alreadyHasSubject) {
+  const subjects = safeData.reduce((acc, c) => {
+    if (c.class && !acc.some(s => s.id === c.class.id)) {
       acc.push(c.class);
     }
     return acc;
-  }, [] as AttendedClassesSchedule['class'][]);
+  }, [] as Subject[]);
+  const active = subjects.filter(s => s.status !== 'CANCELED');
+  const canceled = subjects.filter(s => s.status === 'CANCELED');
 
-  function handleOnPress(item: AttendedClassesSchedule['class']) {
-    setVisibility(false);
+  function handleOnPress(item: Subject) {
+    onClose();
     navigation.navigate('Pesquisa de Disciplinas', {
       subjectId: item.id,
       sourceRoute: 'Início',
     });
   }
 
-  function renderItem(item: AttendedClassesSchedule['class']) {
-    const { id, name, status, uerjLocation } = item;
-
-    const isCanceled = status === 'CANCELED';
-    const hasLocal = !!uerjLocation;
-    const parsedLocal = hasLocal ? `- ${uerjLocation}` : '';
+  function renderItem(item: Subject) {
+    const { id, name } = item;
+    const meetings = safeData.filter(c => c.class?.id === id && !isCanceled(c));
+    const isItemCanceled = item.status === 'CANCELED';
+    const meta = isItemCanceled
+      ? undefined
+      : [
+          ...meetingSummary(meetings),
+          locationLabel(item.uerjLocation),
+          ...(item.avaLocation
+            ? [`Sala virtual (AVA): ${item.avaLocation}`]
+            : []),
+        ];
     return (
-      <TouchableOpacity key={id} onPress={() => handleOnPress(item)}>
-        <SubjectBox
-          key={id}
-          topLeftInfo={id}
-          topRightInfo={
-            isCanceled ? 'Cancelada' : `Turma ${item.class} ${parsedLocal}`
-          }
-          name={name}
-          boldOptions={{ topLeft: true }}
-          color={isCanceled ? 'CANCELED' : undefined}
-        />
-      </TouchableOpacity>
+      <ListRow
+        key={id}
+        title={name}
+        code={id}
+        subtitle={`Turma ${item.class}`}
+        meta={meta}
+        facts={
+          isItemCanceled ? (
+            <StatusLabel tone="neutral" icon="block" label="Cancelada" />
+          ) : undefined
+        }
+        highlighted={focusId === id}
+        chevron
+        onPress={() => handleOnPress(item)}
+        accessibilityHint="Abre a Pesquisa de Disciplinas"
+      />
     );
   }
 
   return (
-    <Modal
-      isVisible={isVisible}
-      onBackdropPress={() => setVisibility(false)}
-      onBackButtonPress={() => setVisibility(false)}
-      useNativeDriver
-      animationIn={'fadeInDown'}
-      animationInTiming={150}
-      animationOut={'fadeOutUp'}
-      animationOutTiming={150}
+    <BottomSheet
+      visible={visible}
+      onClose={onClose}
+      title="Disciplinas em Curso"
+      meta={plural(active.length, 'ativa', 'ativas')}
     >
-      <View>
-        <Text weight="bold" alignSelf="center" marginBottom="8px">
-          Disciplinas em Curso
-        </Text>
-        {subjects.map(renderItem)}
-      </View>
-    </Modal>
+      <List>{[...active, ...canceled].map(renderItem)}</List>
+    </BottomSheet>
   );
 };
 

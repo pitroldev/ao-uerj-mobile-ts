@@ -1,23 +1,21 @@
 import React from 'react';
 
-import Text from '@atoms/Text';
-import { MainContainer } from './Loading.styles';
+import { AoLogo, LoadingBar } from '@components/ui';
+import { MainContainer, Message } from './Loading.styles';
 
-import Spinner from '@root/components/atoms/Spinner';
-
+/** Carregamento (restaurando a sessão): logo, aviso e barra indeterminada. */
 const LoadingPage = () => {
   return (
     <MainContainer>
-      <Spinner size={64} />
-      <Text
-        weight="bold"
-        size="LG"
-        alignSelf="center"
-        textAlign="center"
-        marginTop="32px"
+      <AoLogo width={150} />
+      <Message
+        tone="onBrandMuted"
+        align="center"
+        accessibilityLiveRegion="polite"
       >
         Aguarde um momento enquanto carregamos os dados...
-      </Text>
+      </Message>
+      <LoadingBar tone="onBrand" width={120} />
     </MainContainer>
   );
 };

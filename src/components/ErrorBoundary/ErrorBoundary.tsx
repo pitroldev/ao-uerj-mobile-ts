@@ -1,6 +1,11 @@
 import React, { Component, ReactNode } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { StatusBar, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThemeProvider } from 'styled-components/native';
+
 import { LIGHT } from '@root/themes';
+import { ErrorState } from '@components/ui/Feedback';
+import { Text } from '@components/ui/Text';
 
 interface Props {
   children: ReactNode;
@@ -12,6 +17,8 @@ interface State {
   error?: Error;
   errorInfo?: string;
 }
+
+const TOP_EDGE = ['top'] as const;
 
 class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
@@ -47,26 +54,31 @@ class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
+      // Fica fora dos provedores do app: traz o próprio tema. A faixa da barra
+      // de status é azul, como no resto do app, para os ícones claros
+      // continuarem visíveis (no Android 15+ e no iOS o conteúdo passa por
+      // baixo da barra).
       return (
-        <View style={styles.container}>
-          <Text style={styles.title} accessibilityRole="header">
-            Oops! Algo deu errado
-          </Text>
-          <Text style={styles.description}>
-            Ocorreu um erro inesperado. Tente novamente ou reinicie o
-            aplicativo.
-          </Text>
-          {__DEV__ && this.state.error && (
-            <Text style={styles.error}>{this.state.error.message}</Text>
-          )}
-          <TouchableOpacity
-            onPress={this.handleResetError}
-            accessibilityRole="button"
-            style={styles.button}
-          >
-            <Text style={styles.buttonLabel}>Tentar Novamente</Text>
-          </TouchableOpacity>
-        </View>
+        <ThemeProvider theme={LIGHT}>
+          <SafeAreaView edges={TOP_EDGE} style={styles.root}>
+            <StatusBar
+              barStyle="light-content"
+              backgroundColor={LIGHT.colors.brand}
+            />
+            <View style={styles.page}>
+              <ErrorState
+                title="Oops! Algo deu errado"
+                message="Ocorreu um erro inesperado. Tente novamente ou reinicie o aplicativo."
+                onRetry={this.handleResetError}
+              />
+              {__DEV__ && this.state.error ? (
+                <Text variant="caption" weight="regular" tone="bad" selectable>
+                  {this.state.error.message}
+                </Text>
+              ) : null}
+            </View>
+          </SafeAreaView>
+        </ThemeProvider>
       );
     }
 
@@ -75,44 +87,12 @@ class ErrorBoundary extends Component<Props, State> {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: { flex: 1, backgroundColor: LIGHT.colors.brand },
+  page: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: LIGHT.COLORS.BACKGROUND,
-  },
-  title: {
-    color: LIGHT.COLORS.TEXT_PRIMARY,
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  description: {
-    color: LIGHT.COLORS.TEXT_PRIMARY,
-    fontSize: 13,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  error: {
-    color: LIGHT.COLORS.ERROR,
-    fontSize: 12,
-    marginBottom: 16,
-  },
-  button: {
-    padding: 8,
-    minHeight: 44,
-    minWidth: 150,
-    borderRadius: 5,
-    backgroundColor: LIGHT.COLORS.PRIMARY,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonLabel: {
-    color: LIGHT.COLORS.TEXT_SECONDARY,
-    fontSize: 12,
-    fontWeight: 'bold',
+    paddingHorizontal: LIGHT.layout.gutter,
+    backgroundColor: LIGHT.colors.surface,
   },
 });
 

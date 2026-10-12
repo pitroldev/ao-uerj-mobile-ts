@@ -1,6 +1,7 @@
 import React from 'react';
 import { BackHandler } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { headerStore } from '@templates/Header/headerStore';
 import MessageBoard from '../MessageBoard';
 
 jest.mock('@react-navigation/native', () => {
@@ -19,8 +20,6 @@ jest.mock('@react-navigation/native', () => {
 });
 jest.mock('@features/MessageBoard/SubjectList', () => 'SubjectList');
 jest.mock('@features/MessageBoard/SubjectChat', () => 'SubjectChat');
-jest.mock('@atoms/Text', () => 'Text');
-jest.mock('../MessageBoard.styles', () => ({ MainContainer: 'MainContainer' }));
 const { FocusContext } = jest.requireMock('@react-navigation/native');
 
 describe('message board hardware back', () => {
@@ -48,6 +47,7 @@ describe('message board hardware back', () => {
   afterEach(async () => {
     await act(async () => renderer.unmount());
     expect(handlers.size).toBe(0);
+    expect(headerStore.getSnapshot().onBack).toBeNull();
     subscription.mockRestore();
   });
   const openChat = async () => {
@@ -94,5 +94,15 @@ describe('message board hardware back', () => {
     });
     expect(consumed).toBe(true);
     expect(renderer.root.findAllByType('SubjectList' as never)).toHaveLength(1);
+  });
+
+  it('shows the header back arrow only while a chat is open and closes it from there', async () => {
+    expect(headerStore.getSnapshot().onBack).toBeNull();
+    await openChat();
+    const onBack = headerStore.getSnapshot().onBack;
+    expect(onBack).toEqual(expect.any(Function));
+    await act(async () => onBack?.());
+    expect(renderer.root.findAllByType('SubjectList' as never)).toHaveLength(1);
+    expect(headerStore.getSnapshot().onBack).toBeNull();
   });
 });

@@ -3,12 +3,12 @@ import { useForm, FormProvider } from 'react-hook-form';
 
 import StepsProvider, { useSteps } from '@hooks/useSteps';
 
-import SubjectAmountStep from '@features/ScheduleSimulator/steps/SubjectAmountStep';
 import {
   ScheduleCreationParams,
   createScheduleDraft,
 } from '@root/modules/planning/domain/models';
 
+import SubjectAmountStep from '@features/ScheduleSimulator/steps/SubjectAmountStep';
 import BusyHoursStep from '@features/ScheduleSimulator/steps/BusyHoursStep';
 import PriorityStep from '@features/ScheduleSimulator/steps/PriorityStep';
 import SubjectsStep from '@features/ScheduleSimulator/steps/SubjectsStep';
@@ -16,48 +16,18 @@ import FetchDataStep from '@features/ScheduleSimulator/steps/FetchDataStep';
 import ClassesStep from '@features/ScheduleSimulator/steps/ClassesStep';
 import GenerationStep from '@features/ScheduleSimulator/steps/GenerationStep';
 
-import { Container } from './ScheduleSimulator.styles';
-import StepHeader from '@features/ScheduleSimulator/StepHeader/StepHeader';
-
+/**
+ * Cada passo desenha o próprio painel (`GeneratorStep`): trilho de passos no
+ * topo, conteúdo e rodapé Anterior/Próximo.
+ */
 const steps = [
-  {
-    name: 'SubjectAmountStep',
-    component: () => <SubjectAmountStep />,
-  },
-  {
-    name: 'BusyHoursStep',
-    component: () => <BusyHoursStep />,
-  },
-  {
-    name: 'PriorityStep',
-    component: () => <PriorityStep />,
-  },
-  {
-    name: 'SubjectsStep',
-    component: () => <SubjectsStep />,
-  },
-  {
-    name: 'FetchDataStep',
-    component: () => <FetchDataStep />,
-  },
-  {
-    name: 'ClassesStep',
-    component: () => <ClassesStep />,
-  },
-  {
-    name: 'GenerationStep',
-    component: () => <GenerationStep />,
-  },
-];
-
-const stepLabels = [
-  'Qtd. Disciplinas',
-  'Horários Ocupados',
-  'Prioridades',
-  'Selecionar Disciplinas',
-  'Carregar Dados',
-  'Turmas',
-  'Gerar Grade',
+  SubjectAmountStep,
+  BusyHoursStep,
+  PriorityStep,
+  SubjectsStep,
+  FetchDataStep,
+  ClassesStep,
+  GenerationStep,
 ];
 
 const ScheduleCreationPage = () => {
@@ -71,21 +41,12 @@ const ScheduleCreationPage = () => {
     maxStep: steps.length - 1,
   });
 
-  const CurrentStep = steps[step]?.component ?? null;
+  const CurrentStep = steps[step] ?? null;
 
   return (
     <FormProvider {...methods}>
       <StepsProvider values={{ step, nextStep, prevStep, setStep }}>
-        <Container>
-          <StepHeader
-            labels={stepLabels}
-            current={step}
-            onStepPress={(index: number) => {
-              if (index <= step) setStep(index);
-            }}
-          />
-          {CurrentStep && <CurrentStep />}
-        </Container>
+        {CurrentStep && <CurrentStep />}
       </StepsProvider>
     </FormProvider>
   );

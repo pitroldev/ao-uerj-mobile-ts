@@ -1,5 +1,8 @@
 import styled from 'styled-components/native';
 
-export const Container = styled.ScrollView`
-  padding: 10px;
+import { Text } from '@components/ui';
+
+/** ".lead": frase de orientação acima da lista. */
+export const Lead = styled(Text)`
+  margin-bottom: 8px;
 `;

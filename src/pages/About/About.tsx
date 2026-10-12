@@ -1,22 +1,30 @@
 import React, { useState } from 'react';
-import { Linking } from 'react-native';
+import { Linking, useWindowDimensions } from 'react-native';
+import Toast from 'react-native-toast-message';
+import { useTheme } from 'styled-components/native';
 
 import ErrorReportModal from '@features/ErrorReport/ErrorReportModal';
-
-import RoundedButton from '@atoms/RoundedButton';
-import Text from '@atoms/Text';
 import {
-  Column,
-  Icon,
-  MainContainer,
-  Row,
-  AOUerjLogo,
-  AOLogoContainer,
-  SectionContainer,
-  ActionButton,
-  Divider,
-  ButtonIcon,
-  ButtonContent,
+  AoLogo,
+  Avatar,
+  Button,
+  IconTile,
+  List,
+  ListRow,
+  Section,
+  Text,
+  type IconName,
+} from '@components/ui';
+import ScreenPanel from '@templates/ScreenPanel';
+
+import {
+  AppName,
+  Callout,
+  DevLink,
+  DevLinks,
+  Developer,
+  Hero,
+  Version,
 } from './About.styles';
 
 import { version } from '@/package.json';
@@ -24,184 +32,122 @@ import { version } from '@/package.json';
 const LINKEDIN_PROFILE_URL = 'https://www.linkedin.com/in/petrocardoso/';
 const GITHUB_REPO_URL = 'https://github.com/pitroldev/ao-uerj-mobile-ts';
 const CREATOR_EMAIL = 'mailto:contato@pitrol.dev?subject=AO UERJ';
+const DEVELOPER = 'Petro Cardoso';
+
+const DEV_LINKS: { label: string; icon: IconName; url: string }[] = [
+  { label: 'GitHub', icon: 'code', url: GITHUB_REPO_URL },
+  { label: 'LinkedIn', icon: 'work', url: LINKEDIN_PROFILE_URL },
+  { label: 'Email', icon: 'mail', url: CREATOR_EMAIL },
+];
+
+/** Largura base de cada link do desenvolvedor (3 lado a lado no tamanho padrão). */
+const DEV_LINK_BASIS = 96;
 
 const AboutPage = () => {
+  const theme = useTheme();
+  const { fontScale } = useWindowDimensions();
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
 
-  const handleBtnPress = (url: string) => {
-    Linking.openURL(url).catch((err: Error) =>
-      console.log('AboutOpenURL error', err),
-    );
+  const openUrl = (url: string) => {
+    Linking.openURL(url).catch((err: Error) => {
+      console.log('AboutOpenURL error', err);
+      Toast.show({ type: 'error', text1: 'Não foi possível abrir este link.' });
+    });
   };
 
   return (
-    <MainContainer>
+    <ScreenPanel>
       <ErrorReportModal
         visible={isErrorModalOpen}
         setVisibility={setIsErrorModalOpen}
       />
 
-      <SectionContainer>
-        <AOLogoContainer>
-          <AOUerjLogo />
-        </AOLogoContainer>
-        <Text
-          weight="bold"
-          size="XXL"
-          alignSelf="center"
-          textAlign="center"
-          marginBottom="4px"
-        >
+      <Hero>
+        <AoLogo
+          width={108}
+          color={theme.colors.logo}
+          accessibilityLabel={null}
+        />
+        <AppName variant="titleL" align="center" accessibilityRole="header">
           AO UERJ
-        </Text>
-        <Text
-          weight="300"
-          size="SM"
-          alignSelf="center"
-          textAlign="center"
-          marginBottom="8px"
-        >
+        </AppName>
+        <Version tone="muted" align="center">
           Versão {version}
-        </Text>
-      </SectionContainer>
+        </Version>
+      </Hero>
 
-      <Divider />
+      <Callout
+        tone="neutral"
+        icon="info"
+        iconColor={theme.colors.accent}
+        text="Aplicativo não oficial e de código aberto. A UERJ não mantém este app; ele apenas lê o Aluno Online com a sua conta."
+      />
 
-      <SectionContainer>
-        <Text
-          weight="bold"
-          size="LG"
-          alignSelf="center"
-          textAlign="center"
-          marginBottom="12px"
-        >
-          Suporte
-        </Text>
+      <Section title="Suporte">
+        <List>
+          <ListRow
+            leading={<IconTile icon="bug_report" />}
+            title="Reportar problema"
+            meta="Conte o que aconteceu e em qual tela"
+            chevron
+            onPress={() => setIsErrorModalOpen(true)}
+          />
+          <ListRow
+            leading={<IconTile icon="lightbulb" />}
+            title="Sugerir melhoria"
+            meta="Abre as sugestões no GitHub"
+            external
+            accessibilityRole="link"
+            accessibilityHint="Abre no navegador"
+            onPress={() => openUrl(`${GITHUB_REPO_URL}/issues`)}
+          />
+        </List>
+      </Section>
 
-        <Row>
-          <ActionButton onPress={() => setIsErrorModalOpen(true)}>
-            <ButtonContent>
-              <ButtonIcon name="bug" />
-              <Text
-                weight="600"
-                size="SM"
-                alignSelf="center"
-                textAlign="center"
-              >
-                Reportar Problema
-              </Text>
-            </ButtonContent>
-          </ActionButton>
+      <Section
+        title="Contribua"
+        description="Este projeto é open source e aceita contribuições!"
+      >
+        <List>
+          <ListRow
+            leading={<IconTile icon="code" />}
+            title="Ver repositório"
+            meta="github.com/pitroldev/ao-uerj-mobile-ts"
+            external
+            accessibilityRole="link"
+            accessibilityHint="Abre no navegador"
+            onPress={() => openUrl(GITHUB_REPO_URL)}
+          />
+        </List>
+      </Section>
 
-          <ActionButton
-            onPress={() => handleBtnPress(`${GITHUB_REPO_URL}/issues`)}
-          >
-            <ButtonContent>
-              <ButtonIcon name="lightbulb-o" />
-              <Text
-                weight="600"
-                size="SM"
-                alignSelf="center"
-                textAlign="center"
-              >
-                Sugerir Melhoria
-              </Text>
-            </ButtonContent>
-          </ActionButton>
-        </Row>
-      </SectionContainer>
-
-      <Divider />
-
-      <SectionContainer>
-        <Text
-          weight="bold"
-          size="LG"
-          alignSelf="center"
-          textAlign="center"
-          marginBottom="4px"
-        >
-          Contribua
-        </Text>
-        <Text
-          weight="300"
-          size="SM"
-          alignSelf="center"
-          textAlign="center"
-          marginBottom="12px"
-        >
-          Este projeto é open source e aceita contribuições!
-        </Text>
-
-        <ActionButton onPress={() => handleBtnPress(GITHUB_REPO_URL)}>
-          <ButtonContent>
-            <ButtonIcon name="github" />
-            <Text weight="600" size="SM" alignSelf="center" textAlign="center">
-              Ver Repositório
-            </Text>
-          </ButtonContent>
-        </ActionButton>
-      </SectionContainer>
-
-      <Divider />
-
-      <SectionContainer>
-        <Text
-          weight="bold"
-          size="LG"
-          alignSelf="center"
-          textAlign="center"
-          marginBottom="4px"
-        >
-          Desenvolvedor
-        </Text>
-        <Text
-          weight="300"
-          size="MD"
-          alignSelf="center"
-          textAlign="center"
-          marginBottom="12px"
-        >
-          Petro Cardoso
-        </Text>
-
-        <Row>
-          <Column>
-            <RoundedButton
-              variant="TEXT_PRIMARY"
-              onPress={() => handleBtnPress(GITHUB_REPO_URL)}
+      <Section title="Desenvolvedor">
+        <Developer>
+          <Avatar name={DEVELOPER} />
+          <Text variant="body" weight="semibold">
+            {DEVELOPER}
+          </Text>
+        </Developer>
+        <DevLinks>
+          {DEV_LINKS.map(link => (
+            <DevLink
+              key={link.label}
+              $basis={Math.round(DEV_LINK_BASIS * Math.max(1, fontScale))}
             >
-              <Icon name="github-alt" />
-            </RoundedButton>
-            <Text weight="bold" size="XS" alignSelf="center" textAlign="center">
-              Github
-            </Text>
-          </Column>
-          <Column>
-            <RoundedButton
-              variant="TEXT_PRIMARY"
-              onPress={() => handleBtnPress(LINKEDIN_PROFILE_URL)}
-            >
-              <Icon name="linkedin" />
-            </RoundedButton>
-            <Text weight="bold" size="XS" alignSelf="center" textAlign="center">
-              LinkedIn
-            </Text>
-          </Column>
-          <Column>
-            <RoundedButton
-              variant="TEXT_PRIMARY"
-              onPress={() => handleBtnPress(CREATOR_EMAIL)}
-            >
-              <Icon name="envelope" />
-            </RoundedButton>
-            <Text weight="bold" size="XS" alignSelf="center" textAlign="center">
-              Email
-            </Text>
-          </Column>
-        </Row>
-      </SectionContainer>
-    </MainContainer>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={link.icon}
+                label={link.label}
+                accessibilityRole="link"
+                accessibilityHint="Abre fora do app"
+                onPress={() => openUrl(link.url)}
+              />
+            </DevLink>
+          ))}
+        </DevLinks>
+      </Section>
+    </ScreenPanel>
   );
 };
 

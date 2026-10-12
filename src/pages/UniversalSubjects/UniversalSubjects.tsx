@@ -1,137 +1,99 @@
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import type { FlatList, ListRenderItemInfo } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import styled from 'styled-components/native';
+
 import {
   useUniversalSubjects,
   isPortalBlocked,
 } from '@root/modules/academics/presentation/queries';
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
-import React, { useState, useRef } from 'react';
-import { ListRenderItemInfo } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { FlatList } from 'react-native-gesture-handler';
-import { useNavigation } from '@react-navigation/native';
-import { FontAwesome } from '@react-native-vector-icons/fontawesome';
+import type { UniversalSubject } from '@root/modules/academics/domain/models';
 
-import { normalizeText } from '@utils/normalize';
-import { UERJ_UNIT_OPTIONS } from '@root/utils/constants/unitOptions';
+import { SearchField, SelectField } from '@components/ui';
+import {
+  UniversalSubjectRow,
+  buildDepartmentOptions,
+} from '@features/UniversalSubjects';
+import {
+  SUBJECT_LIST_COPY,
+  ShowingCount,
+  SubjectListFallback,
+  SubjectListPanel,
+  matchesSubjectSearch,
+  showsCount,
+  subjectListPhase,
+} from '@features/SubjectsToTake';
 
-import { UniversalSubject } from '@root/modules/academics/domain/models';
+const ALL_DEPARTMENTS = '';
+const NO_SUBJECTS: UniversalSubject[] = [];
 
-import Spinner from '@atoms/Spinner';
-import StyledPicker from '@atoms/Picker';
-import TextInput from '@atoms/TextInput';
-import SubjectBox from '@molecules/SubjectBox';
-import DummyMessage from '@molecules/DummyMessage';
-import SmallDummyMessage from '@molecules/SmallDummyMessage';
-
-import { Container } from './UniversalSubjects.styles';
+/** 10 entre o seletor e a busca (".field" margin-top 10). */
+const Spaced = styled.View`
+  margin-top: 10px;
+`;
 
 const UniversalSubjects = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDepartment, setSelectedDepartment] = useState<
-    string | undefined
-  >(undefined);
+  const [selectedDepartment, setSelectedDepartment] = useState(ALL_DEPARTMENTS);
 
   const query = useUniversalSubjects();
-  const { data: subjects = [], isLoading: loading, error, refetch } = query;
-  const isBlocked = isPortalBlocked(error);
+  const { error, refetch } = query;
+  const subjects = query.data ?? NO_SUBJECTS;
 
-  const departmentOptions = subjects
-    .reduce(
-      (acc, subject) => {
-        const [departmentCode] = subject.id.split('-');
-        const onlyLettersDepartmentCode = departmentCode.replace(/\d/g, '');
-
-        const alreadyHasDepartment = acc.some(({ value }) =>
-          value.includes(onlyLettersDepartmentCode),
-        );
-        if (alreadyHasDepartment) {
-          return acc;
-        }
-
-        const label =
-          UERJ_UNIT_OPTIONS.find(({ text }) =>
-            text.includes(onlyLettersDepartmentCode),
-          )?.text || departmentCode;
-
-        return [...acc, { value: onlyLettersDepartmentCode, label }];
-      },
-      [] as {
-        value: string;
-        label: string;
-      }[],
-    )
-    .sort((a, b) => a.label.localeCompare(b.label));
+  const departmentOptions = useMemo(
+    () => [
+      { value: ALL_DEPARTMENTS, label: 'Todos os departamentos' },
+      ...buildDepartmentOptions(subjects),
+    ],
+    [subjects],
+  );
 
   const navigation = useNavigation();
+  const listRef = useRef<FlatList<UniversalSubject>>(null);
 
-  const ref = useRef<FlatList>(null);
-
-  const handleOptionChange = (value: string) => {
+  const handleDepartmentChange = (value: string) => {
     setSelectedDepartment(value);
+    listRef.current?.scrollToOffset({ animated: true, offset: 0 });
   };
 
-  const handleSubjectPress = (subject: UniversalSubject) => {
-    navigation.navigate('Pesquisa de Disciplinas', {
-      subjectId: subject.id,
-      sourceRoute: 'Disciplinas Universais',
-    });
+  const clearFilters = () => {
+    setSelectedDepartment(ALL_DEPARTMENTS);
+    setSearchQuery('');
   };
 
-  const renderSubjects = ({
-    item: subject,
-  }: ListRenderItemInfo<UniversalSubject>) => {
-    if (!subject) {
-      return null;
-    }
+  const handleSubjectPress = useCallback(
+    (subject: UniversalSubject) => {
+      navigation.navigate('Pesquisa de Disciplinas', {
+        subjectId: subject.id,
+        sourceRoute: 'Disciplinas Universais',
+      });
+    },
+    [navigation],
+  );
 
-    const { workload, id, credits, name } = subject;
+  const renderSubject = useCallback(
+    ({ item }: ListRenderItemInfo<UniversalSubject>) =>
+      item ? (
+        <UniversalSubjectRow subject={item} onPress={handleSubjectPress} />
+      ) : null,
+    [handleSubjectPress],
+  );
 
-    const creditText = credits ? `${credits} créditos` : '';
-    const workloadText = workload !== null ? `${workload} horas` : '';
+  const filteredSubjects = subjects.filter(
+    subject =>
+      (!selectedDepartment || subject.id.includes(selectedDepartment)) &&
+      matchesSubjectSearch(searchQuery, subject),
+  );
 
-    return (
-      <SubjectBox
-        key={id}
-        topLeftInfo={id}
-        topRightInfo={'Universal'}
-        name={name}
-        bottomLeftInfo={creditText}
-        bottomRightInfo={workloadText}
-        boldOptions={{
-          topLeft: true,
-          name: true,
-        }}
-        onPress={() => handleSubjectPress(subject)}
-      />
-    );
-  };
-
-  const filteredSubjects = subjects?.filter(({ name, id }) => {
-    const hasDepartmentMatch =
-      !selectedDepartment || id.includes(selectedDepartment);
-    const hasSearchQuery: boolean =
-      !searchQuery || normalizeText(name).includes(normalizeText(searchQuery));
-
-    return hasSearchQuery && hasDepartmentMatch;
+  const phase = subjectListPhase(query, {
+    hasData: query.data !== undefined,
+    blocked: isPortalBlocked(error),
   });
+  const hasFilters = Boolean(selectedDepartment || searchQuery);
 
-  const isEmpty = filteredSubjects?.length === 0;
-  const showList = !isEmpty;
-  const showSpinner = isEmpty && loading;
-
-  if (isBlocked && !subjects.length) {
-    return (
-      <Container>
-        <DummyMessage
-          type="BLOCK"
-          text="Parece que o Aluno Online está temporariamente bloqueado. Tente novamente mais tarde."
-          onPress={refetch}
-        />
-      </Container>
-    );
-  }
-
-  return (
-    <Container>
+  const header = (
+    <>
       <QueryNotice
         dataUpdatedAt={query.dataUpdatedAt}
         isPaused={query.isPaused}
@@ -140,54 +102,52 @@ const UniversalSubjects = () => {
         hasData={query.data !== undefined}
         retry={refetch}
       />
-      <StyledPicker
-        selectedValue={selectedDepartment}
-        onValueChange={s => handleOptionChange(s as string)}
-        loading={loading}
-        enabled={!loading}
-      >
-        <Picker.Item value={undefined} label="Todos os departamentos" />
-        {departmentOptions.map(({ value, label }) => {
-          return <Picker.Item value={value} key={value} label={label} />;
-        })}
-      </StyledPicker>
-      <TextInput
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        placeholder="Pesquise pelo nome da disciplina"
-        icon={<FontAwesome name="search" size={15} />}
+      <SelectField
+        label="Departamento"
+        icon="apartment"
+        options={departmentOptions}
+        value={selectedDepartment}
+        onChange={handleDepartmentChange}
+        disabled={subjects.length === 0}
       />
-      {isBlocked && showList && (
-        <SmallDummyMessage
-          type="BLOCK"
-          text="O Aluno Online está temporariamente bloqueado."
-          onPress={refetch}
+      <Spaced>
+        <SearchField
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder={SUBJECT_LIST_COPY.searchPlaceholder}
         />
-      )}
-      {showSpinner && <Spinner size={40} />}
-      {!loading && !!error && !isBlocked && !subjects.length && (
-        <DummyMessage
-          type="ERROR"
-          onPress={refetch}
-          text="Ops, ocorreu um erro ao buscar as disciplinas. Toque aqui para tentar novamente."
+      </Spaced>
+      {showsCount(phase) ? (
+        <ShowingCount count={filteredSubjects.length} />
+      ) : null}
+    </>
+  );
+
+  return (
+    <SubjectListPanel
+      listRef={listRef}
+      header={header}
+      items={filteredSubjects}
+      renderItem={renderSubject}
+      keyExtractor={(item, index) => `${item.id}-${index}`}
+      fallback={
+        <SubjectListFallback
+          phase={phase}
+          onRetry={refetch}
+          empty={{
+            icon: 'search_off',
+            text: SUBJECT_LIST_COPY.filterEmpty,
+            action: hasFilters
+              ? {
+                  label: 'Limpar filtros',
+                  icon: 'filter_alt_off',
+                  onPress: clearFilters,
+                }
+              : undefined,
+          }}
         />
-      )}
-      {!loading && !query.isPaused && !error && isEmpty && (
-        <DummyMessage
-          type="EMPTY"
-          text="Nenhuma disciplina encontrada com os filtros selecionados."
-        />
-      )}
-      {showList && (
-        <FlatList
-          ref={ref}
-          data={filteredSubjects || []}
-          renderItem={renderSubjects}
-          showsVerticalScrollIndicator={false}
-          keyExtractor={item => item?.id}
-        />
-      )}
-    </Container>
+      }
+    />
   );
 };
 

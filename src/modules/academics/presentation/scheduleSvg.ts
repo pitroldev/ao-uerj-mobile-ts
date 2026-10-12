@@ -2,28 +2,37 @@ import { Buffer } from 'buffer';
 import { TIME_VALUES } from '@utils/constants/time';
 import { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
 
+/** Cores da imagem da semana, vindas do tema (`theme.colors` e `theme.shift`). */
 export type SvgThemeColors = {
-  BACKGROUND: string;
-  BACKGROUND_400?: string;
-  TEXT_PRIMARY: string;
-  TEXT_SECONDARY?: string;
-  PRIMARY: string;
-  MORNING: string;
-  AFTERNOON: string;
-  NIGHT: string;
+  /** Fundo da imagem. */
+  background: string;
+  /** Fundo do card de cada dia. */
+  card: string;
+  /** Fio dos cards e dos blocos de aula. */
+  rule: string;
+  /** Texto. */
+  ink: string;
+  /** Faixa do topo. */
+  brand: string;
+  /** Texto sobre a faixa do topo. */
+  onBrand: string;
+  /** Fundo dos blocos por turno. */
+  morning: string;
+  afternoon: string;
+  night: string;
 };
 
 const sanitize = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-const getBoxColorKey = (start: number): keyof SvgThemeColors => {
+const getBoxColorKey = (start: number): 'morning' | 'afternoon' | 'night' => {
   if (start < 740) {
-    return 'MORNING';
+    return 'morning';
   }
   if (start < 1070) {
-    return 'AFTERNOON';
+    return 'afternoon';
   }
-  return 'NIGHT';
+  return 'night';
 };
 
 export const buildWeekSvgDataUri = (
@@ -50,12 +59,12 @@ export const buildWeekSvgDataUri = (
   const boxHeight = 68;
   const itemSpacing = 12;
   const containerWidth = width - marginX * 2;
-  const bg = colors.BACKGROUND;
-  const cardFill = '#ffffff';
-  const cardStroke = colors.BACKGROUND_400 || '#bbb';
-  const textPrimary = colors.TEXT_PRIMARY;
-  const primary = colors.PRIMARY;
-  const textOnPrimary = colors.TEXT_SECONDARY || '#ffffff';
+  const bg = colors.background;
+  const cardFill = colors.card;
+  const cardStroke = colors.rule;
+  const textPrimary = colors.ink;
+  const primary = colors.brand;
+  const textOnPrimary = colors.onBrand;
 
   // Branded header
   const appHeaderHeight = 84;
@@ -109,7 +118,7 @@ export const buildWeekSvgDataUri = (
       const { periodAlias: endPeriod, endTimeAlias } =
         TIME_VALUES.find(t => t.end_time_in_minutes === end_time_in_minutes) ??
         ({ periodAlias: '??', endTimeAlias: '??' } as any);
-      const fill = colors[getBoxColorKey(start_time_in_minutes)] as string;
+      const fill = colors[getBoxColorKey(start_time_in_minutes)];
       sections.push(`
           <rect
             x="${marginX + 12}"

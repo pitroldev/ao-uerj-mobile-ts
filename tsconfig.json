@@ -20,8 +20,6 @@
     "paths": {
       "@root/*": ["./src/*"],
       "@components/*": ["./src/components/*"],
-      "@atoms/*": ["./src/components/atoms/*"],
-      "@molecules/*": ["./src/components/molecules/*"],
       "@templates/*": ["./src/components/templates/*"],
       "@themes/*": ["./src/themes/*"],
       "@config/*": ["./src/config/*"],

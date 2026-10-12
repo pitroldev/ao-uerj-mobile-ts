@@ -1,27 +1,78 @@
 import React from 'react';
-import { useTheme } from 'styled-components/native';
 import { useFormContext, useWatch } from 'react-hook-form';
-import { AntDesign as Icon } from '@react-native-vector-icons/ant-design';
+import styled, { useTheme } from 'styled-components/native';
+
 import { useStepsContext } from '@hooks/useSteps';
 import { useHistory } from '@root/modules/academics/presentation/queries';
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
 import { usePlanningSubjects } from '@root/modules/planning/presentation/usePlanningSubjects';
 import { ScheduleCreationParams } from '@root/modules/planning/domain/models';
 import { availableClasses } from '@root/modules/planning/domain/rules';
-import Text from '@atoms/Text';
-import Button from '@atoms/Button';
-import Spinner from '@atoms/Spinner';
-import DummyMessage from '@molecules/DummyMessage';
+import type { PlanningSubjectResult } from '@root/modules/planning/application/LoadPlanningSubjects';
 import {
-  Container,
-  ContentContainer,
-  ButtonsRow,
-  InfoRow,
-  ScrollView,
-} from './FetchDataStep.styles';
+  EmptyState,
+  ErrorState,
+  Icon,
+  List,
+  ListRow,
+  Notice,
+  ProgressBar,
+  Spinner,
+  Text,
+} from '@components/ui';
+
+import { GeneratorStep, StepIntro } from '../../layout';
+import {
+  BLOCKED_TEXT,
+  isPortalBlocked,
+  lowerFirst,
+  plural,
+} from '../../format';
+
+const Progress = styled.View`
+  margin: 18px 0px 6px;
+`;
+
+const ProgressText = styled(Text)`
+  margin-top: 8px;
+`;
+
+const RetryNotice = styled(Notice)`
+  margin: 10px 0px 6px;
+`;
+
+/** Ícone de status com a largura do ".ic" (22). */
+const StatusIcon = styled.View`
+  width: 22px;
+  align-items: center;
+`;
+
+type RowState = 'ok' | 'refused' | 'failed' | 'loading' | 'waiting';
+
+/** Texto de cada linha; o ícone ao lado repete o status (nunca só a cor). */
+const STATUS_TEXT: Record<
+  RowState,
+  (id: string, reason?: string | null) => string
+> = {
+  ok: id => `${id} · dados carregados`,
+  refused: (_id, reason) =>
+    reason ? `Recusada: ${lowerFirst(reason)}` : 'Recusada',
+  failed: () => 'Falha ao carregar.',
+  loading: () => 'Buscando…',
+  waiting: () => 'Aguardando…',
+};
+
+function rowState(
+  result: PlanningSubjectResult | undefined,
+  busy: boolean,
+): RowState {
+  if (!result) return busy ? 'loading' : 'waiting';
+  if (result.error) return 'failed';
+  return result.eligible ? 'ok' : 'refused';
+}
 
 const FetchDataStep = () => {
-  const { COLORS } = useTheme();
+  const theme = useTheme();
   const { nextStep, prevStep } = useStepsContext();
   const { control, setValue, getValues } =
     useFormContext<ScheduleCreationParams>();
@@ -47,84 +98,170 @@ const FetchDataStep = () => {
     );
     nextStep();
   };
+
+  const historyFailed = Boolean(history.error) && !history.data;
+  const busy = progress.loading || history.isLoading || history.isFetching;
+  const total = selectedSubjects.length;
+  const available = progress.results.filter(r => r.eligible).length;
+  const refused = progress.results.filter(r => !r.eligible && !r.error).length;
+  const failed = progress.results.filter(r => r.error).length;
+  const byId = new Map(progress.results.map(r => [r.subject.id, r]));
+  const subjects = [...new Map(selectedSubjects.map(s => [s.id, s])).values()];
+
+  const summary = complete
+    ? [
+        plural(available, 'disponível', 'disponíveis'),
+        plural(refused, 'recusada', 'recusadas'),
+        failed ? `${failed} com falha` : null,
+      ]
+        .filter(Boolean)
+        .join(', ')
+    : '';
+
+  const renderStatus = (state: RowState) => {
+    switch (state) {
+      case 'ok':
+        return (
+          <Icon
+            name="check_circle"
+            filled
+            size={theme.sizes.icon.xl}
+            color={theme.status.good.ink}
+          />
+        );
+      case 'refused':
+        return (
+          <Icon
+            name="block"
+            size={theme.sizes.icon.xl}
+            color={theme.status.bad.ink}
+          />
+        );
+      case 'failed':
+        return (
+          <Icon
+            name="error"
+            filled
+            size={theme.sizes.icon.xl}
+            color={theme.status.bad.ink}
+          />
+        );
+      case 'loading':
+        return (
+          <Spinner size={theme.sizes.icon.xl} color={theme.colors.inkMuted} />
+        );
+      default:
+        return (
+          <Icon
+            name="schedule"
+            size={theme.sizes.icon.xl}
+            color={theme.colors.inkMuted}
+          />
+        );
+    }
+  };
+
   return (
-    <Container>
-      <ContentContainer>
-        <Text weight="bold" size="LG" alignSelf="center" marginBottom="10px">
-          {complete && !hasErrors
+    <GeneratorStep
+      footer={{
+        onPrev: prevStep,
+        next: {
+          label: 'Próximo',
+          icon: 'arrow_forward',
+          iconPosition: 'end',
+          onPress: handleNext,
+          disabled:
+            !complete ||
+            hasErrors ||
+            !progress.results.some(result => result.eligible),
+        },
+      }}
+    >
+      <QueryNotice
+        dataUpdatedAt={history.dataUpdatedAt}
+        isPaused={history.isPaused}
+        isFetching={history.isFetching}
+        error={history.error}
+        hasData={history.data !== undefined}
+        retry={history.refetch}
+      />
+      <StepIntro
+        live
+        title={
+          complete && !hasErrors
             ? 'Dados carregados com sucesso!'
             : complete
             ? 'Busca concluída com falhas'
-            : 'Buscando dados das disciplinas'}
-        </Text>
-        <QueryNotice
-          dataUpdatedAt={history.dataUpdatedAt}
-          isPaused={history.isPaused}
-          isFetching={history.isFetching}
-          error={history.error}
-          hasData={history.data !== undefined}
-          retry={history.refetch}
+            : 'Buscando dados das disciplinas'
+        }
+      />
+
+      {historyFailed && isPortalBlocked(history.error) ? (
+        <EmptyState
+          icon="lock"
+          tone="bad"
+          text={BLOCKED_TEXT}
+          action={{
+            label: 'Tentar novamente',
+            icon: 'refresh',
+            onPress: history.refetch,
+          }}
         />
-        {history.error && !history.data && (
-          <DummyMessage
-            type="ERROR"
-            text="Não foi possível carregar o histórico. Toque para tentar novamente."
-            onPress={history.refetch}
-          />
-        )}
-        <Text size="SM" alignSelf="center">
-          {progress.completed} de {selectedSubjects.length} disciplinas
-          processadas
-        </Text>
-        {(progress.loading || history.isLoading) && <Spinner size={28} />}
-        <ScrollView>
-          {progress.results.map(result => (
-            <InfoRow key={result.subject.id}>
-              <Icon
-                name={
-                  result.error || !result.eligible
-                    ? 'close-circle'
-                    : 'check-circle'
-                }
-                color={
-                  result.error || !result.eligible
-                    ? COLORS.ERROR
-                    : COLORS.SUCCESS
-                }
-                size={20}
-              />
-              <Text weight="500" size="SM" marginLeft="8px">
-                {result.subject.name}
-                {result.error
-                  ? ': falha ao carregar.'
-                  : result.reason
-                  ? `: ${result.reason}`
-                  : ''}
-              </Text>
-            </InfoRow>
-          ))}
-        </ScrollView>
-        {hasErrors && !progress.loading && (
-          <Button onPress={progress.retry}>Tentar novamente</Button>
-        )}
-      </ContentContainer>
-      <ButtonsRow>
-        <Button onPress={prevStep} size="small">
-          Anterior
-        </Button>
-        <Button
-          onPress={handleNext}
-          size="small"
-          disabled={
-            !complete ||
-            hasErrors ||
-            !progress.results.some(result => result.eligible)
-          }
-        >
-          Próximo
-        </Button>
-      </ButtonsRow>
-    </Container>
+      ) : historyFailed ? (
+        <ErrorState
+          message="Não foi possível carregar o histórico. Toque para tentar novamente."
+          onRetry={history.refetch}
+        />
+      ) : (
+        <>
+          <Progress>
+            <ProgressBar
+              value={total ? progress.completed / total : 0}
+              accessibilityLabel={`Disciplinas processadas: ${progress.completed} de ${total}`}
+            />
+            <ProgressText variant="meta" tone="muted">
+              {progress.completed} de {total} disciplinas processadas
+              {summary ? ` · ${summary}` : ''}
+            </ProgressText>
+          </Progress>
+
+          {hasErrors && !progress.loading ? (
+            <RetryNotice
+              tone="warn"
+              icon="sync_problem"
+              text="Não foi possível carregar algumas disciplinas."
+              onRetry={progress.retry}
+            />
+          ) : null}
+
+          <List>
+            {subjects.map(subject => {
+              const result = byId.get(subject.id);
+              const state = rowState(result, busy);
+              const status = STATUS_TEXT[state](subject.id, result?.reason);
+              const bad = state === 'refused' || state === 'failed';
+              return (
+                <ListRow
+                  key={subject.id}
+                  title={subject.name}
+                  meta={
+                    bad ? (
+                      <Text variant="meta" tone="bad">
+                        {status}
+                      </Text>
+                    ) : (
+                      status
+                    )
+                  }
+                  leading={<StatusIcon>{renderStatus(state)}</StatusIcon>}
+                  accessibilityLabel={`${subject.name}, ${status}`}
+                />
+              );
+            })}
+          </List>
+        </>
+      )}
+    </GeneratorStep>
   );
 };
 export default FetchDataStep;

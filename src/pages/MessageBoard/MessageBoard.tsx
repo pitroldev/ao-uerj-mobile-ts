@@ -1,36 +1,29 @@
 import React, { useState } from 'react';
 
 import { useBackHandler } from '@hooks/useBackHandler';
+import { useHeaderBack } from '@templates/Header/headerStore';
 
 import type { AttendedSubjectInfo } from '@root/modules/academics/domain/models';
 import SubjectList from '@features/MessageBoard/SubjectList';
 import SubjectChat from '@features/MessageBoard/SubjectChat';
 
-import Text from '@atoms/Text';
-
-import { MainContainer } from './MessageBoard.styles';
-
+/**
+ * Mural de Mensagens: lista das disciplinas em curso e, ao tocar numa delas,
+ * a conversa da turma. A seta do cabeçalho e o voltar do Android fecham a
+ * conversa.
+ */
 const MessageBoard = () => {
   const [subject, setSubject] = useState<AttendedSubjectInfo | null>(null);
+  const closeChat = () => setSubject(null);
 
-  useBackHandler(() => setSubject(null), Boolean(subject));
+  useBackHandler(closeChat, Boolean(subject));
+  useHeaderBack(subject ? closeChat : null, 'Voltar para as disciplinas');
 
   if (subject) {
-    return (
-      <MainContainer>
-        <SubjectChat {...subject} />
-      </MainContainer>
-    );
+    return <SubjectChat {...subject} />;
   }
 
-  return (
-    <MainContainer>
-      <Text weight="bold" marginLeft="16px" marginBottom="2px">
-        Disciplinas em Curso
-      </Text>
-      <SubjectList onSubjectPress={setSubject} />
-    </MainContainer>
-  );
+  return <SubjectList onSubjectPress={setSubject} />;
 };
 
 export default MessageBoard;

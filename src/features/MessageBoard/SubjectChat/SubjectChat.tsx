@@ -1,50 +1,78 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 import Toast from 'react-native-toast-message';
-import { FontAwesome as Icon } from '@react-native-vector-icons/fontawesome';
-import { Picker } from '@react-native-picker/picker';
 import { useQuery, useMutation } from '@tanstack/react-query';
+
 import {
   useAppServices,
   useIdentity,
 } from '@root/app/providers/AppServicesProvider';
 import { errorMessage, isTransientError } from '@root/shared/errors/AppError';
-import ChatBubble from '@features/MessageBoard/ChatBubble';
 import type { AttendedSubjectInfo } from '@root/modules/academics/domain/models';
+import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
+import { useOnlineStatus } from '@root/modules/academics/presentation/useOnlineStatus';
 import { communityKeys } from '@root/modules/community/presentation/queryKeys';
 import { MAX_MESSAGE_LENGTH } from '@root/modules/community/domain/models';
-import Text from '@atoms/Text';
-import Spinner from '@atoms/Spinner';
-import TextArea from '@atoms/TextArea';
-import StyledPicker from '@atoms/Picker';
-import RoundedButton from '@atoms/RoundedButton';
-import DummyMessage from '@molecules/DummyMessage';
-import { Row, InputRow, ScrollView } from './SubjectChat.styles';
+import {
+  ErrorState,
+  Icon,
+  IconButton,
+  SelectField,
+  Text,
+  TextField,
+} from '@components/ui';
+import ScreenPanel from '@templates/ScreenPanel';
 
+import { ChatMessages, ChatSkeleton } from '../ChatMessages';
+import { groupByDay, isOwnMessage } from '../chatFormat';
+import {
+  messagePeriodOptions,
+  portalPeriod,
+  suggestedPeriod,
+} from '../messagePeriod';
+import {
+  ChatMeta,
+  Composer,
+  Hint,
+  HintText,
+  NoticeSlot,
+  styles,
+} from './SubjectChat.styles';
+import { useKeyboardInset } from './useKeyboardInset';
+
+const HINT =
+  'Compartilhe informações da turma, como grupos, links, materiais e datas de prova.';
+
+/**
+ * Conversa da turma no mural: nome e código · turma no topo fixo, seletor do
+ * período, mensagens agrupadas por dia e o compositor fixo no rodapé.
+ */
 const SubjectChat = (subject: AttendedSubjectInfo) => {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const keyboardInset = useKeyboardInset(insets.bottom);
   const [text, setText] = useState('');
+  const [sentCount, setSentCount] = useState(0);
   const { community } = useAppServices();
   const { account } = useIdentity();
-  const { COLORS } = useTheme();
+  const online = useOnlineStatus();
   const now = new Date();
-  const suggestedPeriod = `${now.getFullYear()}.${
-    now.getMonth() < 6 ? '1' : '2'
-  }`;
-  const portalHasPeriod = /^\d{4}\.[12]$/.test(account?.period ?? '');
-  const [period, setPeriod] = useState(
-    portalHasPeriod ? account!.period : suggestedPeriod,
-  );
-  const periodOptions = [
-    ...new Set([
-      period,
-      ...Array.from({ length: 6 }, (_, index) => {
-        const year = now.getFullYear() - Math.floor(index / 2);
-        return `${year}.${index % 2 === 0 ? '2' : '1'}`;
-      }),
-    ]),
-  ]
-    .sort()
-    .reverse();
+  const fromPortal = portalPeriod(account);
+  const suggested = suggestedPeriod(now);
+  const [period, setPeriod] = useState(fromPortal ?? suggested);
+  const periodOptions = messagePeriodOptions(period, now).map(value => ({
+    value,
+    label: value,
+    aside:
+      value === fromPortal
+        ? 'Atual'
+        : !fromPortal && value === suggested
+        ? 'Sugestão'
+        : undefined,
+  }));
+  const isSuggestion = !fromPortal && period === suggested;
   const thread = {
     subjectId: subject.id,
     classNumber: String(subject.class),
@@ -61,6 +89,8 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
       community.postMessage(thread, messageText),
     onSuccess: () => {
       setText('');
+      // a conversa volta ao fim e acompanha a mensagem nova quando ela chegar
+      setSentCount(count => count + 1);
       void query.refetch();
     },
     onError: error => Toast.show({ type: 'error', text1: errorMessage(error) }),
@@ -68,69 +98,122 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
   const handleSendMessage = () => {
     if (text.trim() && !sending) mutate(text);
   };
-  const messages = query.data ?? [];
+  const retry = () => {
+    void query.refetch();
+  };
+
+  const messages = query.data;
+  const hasData = messages !== undefined;
+  const groups = useMemo(
+    () => groupByDay(messages ?? [], new Date()),
+    [messages],
+  );
+  const isMine = (message: { authorName: string }) =>
+    isOwnMessage(message, account?.name);
+
+  const showNotice =
+    query.isPaused || !online || (Boolean(query.error) && hasData);
+
+  let placeholder: React.ReactNode;
+  if (!hasData) {
+    if (query.isError) {
+      placeholder = (
+        <ErrorState message={errorMessage(query.error)} onRetry={retry} />
+      );
+    } else if (query.fetchStatus === 'fetching') {
+      placeholder = <ChatSkeleton />;
+    } else {
+      // sem conexão (o aviso acima explica) ou sem conta
+      placeholder = null;
+    }
+  } else if (messages.length === 0) {
+    placeholder = (
+      <Hint dashed padding={14}>
+        <Icon name="lightbulb" color={theme.colors.accent} />
+        <HintText tone="muted">{HINT}</HintText>
+      </Hint>
+    );
+  }
+
+  const header = (
+    <>
+      <Text variant="titleS" accessibilityRole="header">
+        {subject.name}
+      </Text>
+      <ChatMeta variant="meta" tone="muted">
+        {subject.id} · Turma {subject.class ?? '(?)'}
+      </ChatMeta>
+      <SelectField
+        label="Período das mensagens"
+        icon="date_range"
+        options={periodOptions}
+        value={period}
+        valueLabel={period}
+        aside={isSuggestion ? 'Sugestão' : ''}
+        onChange={setPeriod}
+        disabled={sending}
+        accessibilityLabel={`Período das mensagens: ${period}${
+          isSuggestion ? ', sugestão pelo calendário; confirme o período' : ''
+        }. Trocar`}
+      />
+    </>
+  );
+
+  const composer = (
+    <Composer>
+      <TextField
+        multiline
+        onChangeText={setText}
+        value={text}
+        maxLength={MAX_MESSAGE_LENGTH}
+        placeholder="Digite aqui sua mensagem"
+        accessibilityLabel="Mensagem"
+        editable={!sending}
+        onSubmitEditing={handleSendMessage}
+        containerStyle={styles.composerField}
+        inputStyle={styles.composerInput}
+      />
+      <IconButton
+        variant="filled"
+        icon="send"
+        accessibilityLabel="Enviar mensagem"
+        onPress={handleSendMessage}
+        loading={sending}
+        disabled={!text.trim()}
+      />
+    </Composer>
+  );
 
   return (
-    <>
-      <Row>
-        <Text weight="bold">{subject.name}</Text>
-        <Text size="XS" italic>
-          Turma {subject.class ?? '(?)'}
-        </Text>
-      </Row>
-      <Text size="XS">
-        Período das mensagens
-        {portalHasPeriod ? '' : ' — sugestão pelo calendário; confirme abaixo'}
-      </Text>
-      <StyledPicker
-        selectedValue={period}
-        onValueChange={value => setPeriod(String(value))}
-        enabled={!sending}
+    // o compositor sobe com o teclado (a janela não encolhe no edge-to-edge)
+    <View style={[styles.flex, { paddingBottom: keyboardInset }]}>
+      <ScreenPanel
+        scroll={false}
+        header={header}
+        headerStyle={styles.header}
+        footer={composer}
+        updating={hasData && query.isFetching}
       >
-        {periodOptions.map(value => (
-          <Picker.Item key={value} value={value} label={value} />
-        ))}
-      </StyledPicker>
-      <ScrollView>
-        {query.isLoading && <Spinner loading size="large" />}
-        {!!query.error && (
-          <DummyMessage
-            type="ERROR"
-            text={errorMessage(query.error)}
-            onPress={() => {
-              void query.refetch();
-            }}
-          />
-        )}
-        {!query.isLoading && !query.error && messages.length === 0 && (
-          <DummyMessage
-            type="INFO"
-            text="Compartilhe informações da turma, como grupos, links, materiais e datas de prova."
-          />
-        )}
-        {messages.map(message => (
-          <ChatBubble {...message} key={message.id} />
-        ))}
-      </ScrollView>
-      <InputRow>
-        <TextArea
-          multiline
-          onChangeText={setText}
-          value={text}
-          maxLength={MAX_MESSAGE_LENGTH}
-          placeholder="Digite aqui sua mensagem"
-          editable={!sending}
-          onSubmitEditing={handleSendMessage}
+        {showNotice ? (
+          <NoticeSlot>
+            <QueryNotice
+              isPaused={query.isPaused}
+              isFetching={false}
+              error={query.error}
+              hasData={hasData}
+              retry={retry}
+              dataUpdatedAt={query.dataUpdatedAt || undefined}
+            />
+          </NoticeSlot>
+        ) : null}
+        <ChatMessages
+          groups={groups}
+          isMine={isMine}
+          placeholder={placeholder}
+          followKey={`${period}:${sentCount}`}
         />
-        <RoundedButton
-          onPress={handleSendMessage}
-          loading={sending}
-          disabled={!text.trim()}
-        >
-          <Icon name="send" color={COLORS.BACKGROUND} size={25} />
-        </RoundedButton>
-      </InputRow>
-    </>
+      </ScreenPanel>
+    </View>
   );
 };
 

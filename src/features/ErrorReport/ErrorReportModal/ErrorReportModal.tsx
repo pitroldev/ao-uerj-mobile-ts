@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import Modal from 'react-native-modal';
 import Toast from 'react-native-toast-message';
+
 import { useAppServices } from '@root/app/providers/AppServicesProvider';
 import { errorMessage } from '@root/shared/errors/AppError';
 import type { ErrorReportDraft } from '@root/modules/support/application/ports';
+import { BottomSheet, Button } from '@components/ui';
+
 import FeatureSelectionStep from '../FeatureSelectionStep';
 import ExplanationStep from '../ExplanationStep';
-import Text from '@atoms/Text';
-import Spinner from '@atoms/Spinner';
-import { Container } from './ErrorReportModal.styles';
+import { SUBJECT_PAGE, isValidSubjectCode } from '../reportPages';
 
 type Props = {
   visible: boolean;
@@ -16,16 +16,27 @@ type Props = {
 };
 const emptyDraft = (): ErrorReportDraft => ({ page: '', description: '' });
 
+/**
+ * Folha "Reportar problema" em 2 passos: onde o erro aconteceu (com o código
+ * da disciplina, quando for o caso) e a descrição. O relato só é enviado com
+ * o rascunho completo; uma falha mantém o texto para tentar de novo.
+ */
 const ErrorReportModal = ({ visible, setVisibility }: Props) => {
   const { support } = useAppServices();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(0);
   const [body, setBody] = useState(emptyDraft);
+  const [page, setPage] = useState('');
+  const [subjectCode, setSubjectCode] = useState('');
+  const [description, setDescription] = useState('');
   useEffect(() => {
     if (visible) {
       setLoading(false);
       setStep(0);
       setBody(emptyDraft());
+      setPage('');
+      setSubjectCode('');
+      setDescription('');
     }
   }, [visible]);
   const sendReport = async (draft: ErrorReportDraft) => {
@@ -49,30 +60,70 @@ const ErrorReportModal = ({ visible, setVisibility }: Props) => {
   const close = () => {
     if (!loading) setVisibility(false);
   };
+
+  const withCodeInput = page === SUBJECT_PAGE;
+  const canAdvance =
+    Boolean(page) && (!withCodeInput || isValidSubjectCode(subjectCode));
+  const code = withCodeInput ? subjectCode.trim().toUpperCase() : undefined;
+
+  const footer =
+    step === 0
+      ? [
+          <Button
+            key="next"
+            label="Próximo"
+            icon="arrow_forward"
+            iconPosition="end"
+            disabled={!canAdvance}
+            onPress={() => nextStep({ page, subjectCode: code })}
+          />,
+        ]
+      : [
+          <Button
+            key="back"
+            variant="outline"
+            label="Voltar"
+            icon="arrow_back"
+            disabled={loading}
+            onPress={() => setStep(0)}
+          />,
+          <Button
+            key="send"
+            label="Enviar relato"
+            icon="send"
+            loading={loading}
+            loadingLabel="Enviando…"
+            disabled={!description.trim()}
+            onPress={() => nextStep({ description })}
+          />,
+        ];
+
   return (
-    <Modal
-      isVisible={visible}
-      onBackdropPress={close}
-      onBackButtonPress={close}
-      useNativeDriver
-      animationIn="fadeInDown"
-      animationInTiming={150}
-      animationOut="fadeOutUp"
-      animationOutTiming={150}
+    <BottomSheet
+      visible={visible}
+      onClose={close}
+      swipeToClose={!loading}
+      title="Reportar problema"
+      meta={`Passo ${step + 1} de 2`}
+      footer={footer}
     >
-      <Container>
-        <Text weight="bold" alignSelf="center" textAlign="center">
-          Reportar problema
-        </Text>
-        {loading ? (
-          <Spinner loading size="large" />
-        ) : step === 0 ? (
-          <FeatureSelectionStep body={body} nextStep={nextStep} />
-        ) : (
-          <ExplanationStep body={body} nextStep={nextStep} />
-        )}
-      </Container>
-    </Modal>
+      {step === 0 ? (
+        <FeatureSelectionStep
+          page={page}
+          subjectCode={subjectCode}
+          onChangePage={setPage}
+          onChangeSubjectCode={setSubjectCode}
+        />
+      ) : (
+        <ExplanationStep
+          page={body.page}
+          subjectCode={body.subjectCode}
+          description={description}
+          onChangeDescription={setDescription}
+          editable={!loading}
+        />
+      )}
+    </BottomSheet>
   );
 };
 

@@ -1,91 +1,127 @@
-import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
-import { Animated, LayoutChangeEvent, StyleSheet } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Easing, type LayoutChangeEvent } from 'react-native';
 import { DrawerContentComponentProps } from '@react-navigation/drawer';
+import Toast from 'react-native-toast-message';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from 'styled-components/native';
 
 import {
   useAppServices,
   useIdentity,
 } from '@root/app/providers/AppServicesProvider';
-import Toast from 'react-native-toast-message';
 import { errorMessage } from '@root/shared/errors/AppError';
-
-import { LIGHT } from '@root/themes';
+import { version } from '@/package.json';
+import { Avatar, Icon, Text, useReducedMotion } from '@components/ui';
+import type { IconName } from '@components/ui';
 
 import {
   Container,
-  Text,
-  Button,
-  ButtonLogout,
-  ScrollView,
+  Footer,
+  GroupLabel,
+  Highlight,
+  Item,
+  ItemLabel,
+  Nav,
+  Separator,
+  User,
+  UserText,
+  Version,
 } from './CustomDrawerNavigator.styles';
+
+type NavGroup = { label: string | null; items: [string, IconName][] };
+
+/** Agrupamento e ícones do menu (rotas sem entrada aqui vão para Ferramentas). */
+const NAV: NavGroup[] = [
+  {
+    label: 'Acadêmico',
+    items: [
+      ['Início', 'home'],
+      ['Meu Progresso', 'monitoring'],
+      ['Disciplinas Realizadas', 'task_alt'],
+      ['Disciplinas do Currículo', 'account_tree'],
+      ['Disciplinas Universais', 'public'],
+      ['Pesquisa de Disciplinas', 'search'],
+    ],
+  },
+  {
+    label: 'Ferramentas',
+    items: [
+      ['Gerador de Grade', 'edit_calendar'],
+      ['Mural de Mensagens', 'forum'],
+      ['Pesquisa de Professores', 'person_search'],
+    ],
+  },
+  { label: null, items: [['Sobre', 'info']] },
+];
+
+const HIDDEN_ROUTES = ['Login', 'Loading', 'Informações da Disciplina'];
+const KNOWN = new Set(NAV.flatMap(g => g.items.map(([name]) => name)));
 
 const DrawerNavigator = ({
   state,
   navigation,
 }: DrawerContentComponentProps) => {
-  const [highlighterHeight, setHeight] = useState(34);
-
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const reduced = useReducedMotion();
   const { identity } = useAppServices();
   const { account } = useIdentity();
   const isSignedIn = Boolean(account);
 
   const { routeNames } = state;
-  const highlighterPositionY = useRef(new Animated.Value(61)).current;
-  const routePositions = useRef([]).current as unknown as Partial<
-    LayoutChangeEvent['nativeEvent']['layout']
-  >[];
-
-  const visibleRoutes = useMemo(
-    () => routeNames.filter(route => route !== 'Informações da Disciplina'),
-    [routeNames],
-  );
   const currentRouteName = routeNames[state.index];
 
-  useLayoutEffect(() => {
-    const visibleIndex = visibleRoutes.findIndex(
-      route => route === currentRouteName,
+  const groups = useMemo(() => {
+    const available = new Set(routeNames);
+    const extras = routeNames.filter(
+      name => !KNOWN.has(name) && !HIDDEN_ROUTES.includes(name),
     );
+    return NAV.map(group => ({
+      label: group.label,
+      items: [
+        ...group.items.filter(([name]) => available.has(name)),
+        ...(group.label === 'Ferramentas'
+          ? extras.map(name => [name, 'chevron_right'] as [string, IconName])
+          : []),
+      ],
+    })).filter(group => group.items.length > 0);
+  }, [routeNames]);
 
-    if (visibleIndex !== -1) {
-      const layout = routePositions[visibleIndex];
-      if (layout) {
-        setHeight(layout.height as number);
-        Animated.timing(highlighterPositionY, {
-          toValue: layout ? (layout.y as number) : 61.1429,
-          duration: 150,
-          useNativeDriver: true,
-        }).start();
-      }
+  const [frames, setFrames] = useState<
+    Record<string, { y: number; height: number }>
+  >({});
+  const highlightY = useRef(new Animated.Value(0)).current;
+  const placed = useRef(false);
+  const activeY = frames[currentRouteName]?.y;
+  const activeHeight = frames[currentRouteName]?.height ?? theme.sizes.touch;
+
+  useEffect(() => {
+    if (activeY == null) return;
+    if (!placed.current || reduced) {
+      placed.current = true;
+      highlightY.setValue(activeY);
+      return;
     }
-  }, [
-    state,
-    highlighterPositionY,
-    routePositions,
-    currentRouteName,
-    visibleRoutes,
-  ]);
+    Animated.timing(highlightY, {
+      toValue: activeY,
+      duration: theme.motion.base,
+      easing: Easing.bezier(...theme.motion.easing),
+      useNativeDriver: true,
+    }).start();
+  }, [activeY, highlightY, reduced, theme.motion]);
 
   if (!isSignedIn) {
-    return <Container />;
+    return <Container $bottom={0} />;
   }
 
-  function onLayout(event: LayoutChangeEvent, key: number) {
+  const onItemLayout = (route: string) => (event: LayoutChangeEvent) => {
     const { y, height } = event.nativeEvent.layout;
-
-    routePositions[key] = { y, height };
-
-    const currentVisibleIndex = visibleRoutes.findIndex(
-      route => route === currentRouteName,
+    setFrames(prev =>
+      prev[route]?.y === y && prev[route]?.height === height
+        ? prev
+        : { ...prev, [route]: { y, height } },
     );
-    if (key === 0 || key === currentVisibleIndex) {
-      setHeight(height);
-      Animated.timing(highlighterPositionY, {
-        toValue: y,
-        duration: key === 0 ? 0 : 150,
-        useNativeDriver: true,
-      }).start();
-    }
-  }
+  };
 
   function handleLogout() {
     navigation.closeDrawer();
@@ -96,43 +132,104 @@ const DrawerNavigator = ({
       );
   }
 
+  const c = theme.colors;
+
   return (
-    <Container>
-      <ScrollView>
-        <Animated.View
-          style={[
-            styles.highlighter,
-            {
-              transform: [{ translateY: highlighterPositionY }],
-              height: highlighterHeight,
-            },
-          ]}
-        />
-        {visibleRoutes.map((route: string, key: number) => {
-          return (
-            <Button
-              key={route}
-              onLayout={event => onLayout(event, key)}
-              onPress={() => navigation.navigate(route)}
-            >
-              <Text>{route}</Text>
-            </Button>
-          );
-        })}
-      </ScrollView>
-      <ButtonLogout onPress={handleLogout}>
-        <Text>Sair</Text>
-      </ButtonLogout>
+    <Container $bottom={22 + insets.bottom}>
+      <User>
+        <Avatar name={account!.name} tone="brand" />
+        <UserText>
+          <Text variant="body" weight="semibold" tone="onBrand">
+            {account!.name}
+          </Text>
+          <Text variant="meta" tone="onBrandMuted">
+            {`Matrícula ${account!.matricula}`}
+          </Text>
+        </UserText>
+      </User>
+
+      <Nav accessibilityRole="menu" accessibilityLabel="Menu principal">
+        {activeY != null ? (
+          <Highlight
+            pointerEvents="none"
+            $height={activeHeight}
+            style={{ transform: [{ translateY: highlightY }] }}
+          />
+        ) : null}
+        {groups.map((group, gi) =>
+          [
+            group.label ? (
+              <GroupLabel
+                key={`g-${group.label}`}
+                variant="meta"
+                weight="medium"
+                tone="onBrandMuted"
+                accessibilityRole="header"
+              >
+                {group.label}
+              </GroupLabel>
+            ) : (
+              <Separator key={`sep-${gi}`} />
+            ),
+          ].concat(
+            group.items.map(([route, icon]) => {
+              const active = route === currentRouteName;
+              return (
+                <Item
+                  key={route}
+                  onLayout={onItemLayout(route)}
+                  onPress={() => navigation.navigate(route)}
+                  accessibilityRole="menuitem"
+                  accessibilityLabel={route}
+                  accessibilityState={{ selected: active }}
+                  style={({ pressed }) =>
+                    pressed && !active && { backgroundColor: c.brandRule }
+                  }
+                >
+                  <Icon
+                    name={icon}
+                    filled={active}
+                    color={active ? c.onBrand : c.onBrandMuted}
+                  />
+                  <ItemLabel
+                    variant="body"
+                    weight={active ? 'semibold' : 'regular'}
+                    tone="onBrand"
+                    numberOfLines={2}
+                  >
+                    {route}
+                  </ItemLabel>
+                </Item>
+              );
+            }),
+          ),
+        )}
+      </Nav>
+
+      <Footer>
+        <Item
+          $auto
+          onPress={handleLogout}
+          accessibilityRole="button"
+          accessibilityLabel="Sair"
+          style={({ pressed }) => pressed && { backgroundColor: c.brandRule }}
+        >
+          <Icon name="logout" color={c.onBrandMuted} />
+          <Text variant="body" tone="onBrand">
+            Sair
+          </Text>
+        </Item>
+        <Version
+          variant="caption"
+          weight="regular"
+          tone="onBrandMuted"
+          align="right"
+        >
+          {`Versão ${version}`}
+        </Version>
+      </Footer>
     </Container>
   );
 };
 
 export default DrawerNavigator;
-
-const styles = StyleSheet.create({
-  highlighter: {
-    backgroundColor: LIGHT.COLORS.SECONDARY,
-    width: 600,
-    position: 'absolute',
-  },
-});

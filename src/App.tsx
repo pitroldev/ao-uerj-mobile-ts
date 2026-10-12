@@ -16,13 +16,16 @@ import { navigationRef } from '@services/rootNavigation';
 import ErrorBoundary from '@components/ErrorBoundary';
 import { createAppServices } from './app/composition/createAppServices';
 import { AppServicesProvider } from './app/providers/AppServicesProvider';
+import { loadDevLinking } from './app/dev';
 import MainRoutes from './routes';
 import Header from '@components/templates/Header/Header';
+import { toastConfig } from '@components/ui/Snackbar';
 
 const services = createAppServices();
+const devLinking = loadDevLinking(services);
 const navTheme = {
   ...DefaultTheme,
-  colors: { ...DefaultTheme.colors, background: LIGHT.COLORS.PRIMARY },
+  colors: { ...DefaultTheme.colors, background: LIGHT.colors.brand },
 };
 
 enableScreens(true);
@@ -52,13 +55,19 @@ const App = () => {
               {isReady && <Header navigationState={navigationState} />}
               <NavigationContainer
                 theme={navTheme}
+                linking={devLinking}
                 ref={navigationRef}
                 onReady={onNavigationReady}
                 onStateChange={onNavigationStateChange}
               >
                 <MainRoutes />
               </NavigationContainer>
-              <Toast position="bottom" autoHide visibilityTime={10000} />
+              <Toast
+                config={toastConfig}
+                position="bottom"
+                autoHide
+                visibilityTime={10000}
+              />
             </ThemeProvider>
           </SafeAreaProvider>
         </QueryClientProvider>

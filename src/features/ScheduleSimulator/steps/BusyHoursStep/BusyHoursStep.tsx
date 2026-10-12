@@ -1,121 +1,178 @@
 import { academicWeekdayToPlanningDay } from '@root/modules/planning/domain/rules';
-import React from 'react';
-import { TouchableOpacity } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
+import { useTheme } from 'styled-components/native';
 
 import { useStepsContext } from '@hooks/useSteps';
+import { Button, Text } from '@components/ui';
 
-import { TIME_VALUES, WEEKDAY_DICTIONARY } from '@utils/constants/time';
-
-import { ScheduleCreationParams } from '@root/modules/planning/domain/models';
-
-import Text from '@atoms/Text';
-import Button from '@atoms/Button';
+import { WEEKDAY_DICTIONARY } from '@utils/constants/time';
 
 import {
-  Header,
-  Container,
-  Row,
-  ScheduleItem,
-  ScrollContainer,
-  Square,
-  ButtonsRow,
-  ContentContainer,
-  ChipsContainer,
-  ChipItem,
-  ChipRow,
-} from './BusyHoursStep.styles';
+  Schedule,
+  ScheduleCreationParams,
+} from '@root/modules/planning/domain/models';
 
-const UERJ_WEEK_DAYS = [1, 2, 3, 4, 5, 6] as Array<
-  keyof typeof WEEKDAY_DICTIONARY
->;
+import { GeneratorStep, StepIntro } from '../../layout';
+import { TIME_SLOTS, plural, slotRange, type TimeSlot } from '../../format';
+
+import {
+  BusyCell,
+  ClearSlot,
+  DayHead,
+  GridBody,
+  GridHead,
+  HeadSpacer,
+  Legend,
+  LegendBar,
+  LegendItem,
+  LegendLabel,
+  LegendSquare,
+  RowTime,
+  ShiftBand,
+  ShiftRow,
+  Tools,
+  ToolsGroup,
+  ToolsLabel,
+  Top,
+  useTimeColumnWidth,
+} from './BusyHoursStep.parts';
+
+type WeekDayNumber = keyof typeof WEEKDAY_DICTIONARY;
+
+const UERJ_WEEK_DAYS = [1, 2, 3, 4, 5, 6] as WeekDayNumber[];
+
+const VALID_SCHEDULES = TIME_SLOTS;
+
+const PERIOD_GROUPS = {
+  M: VALID_SCHEDULES.filter(t => t.periodAlias.startsWith('M')),
+  T: VALID_SCHEDULES.filter(t => t.periodAlias.startsWith('T')),
+  N: VALID_SCHEDULES.filter(t => t.periodAlias.startsWith('N')),
+} as const;
+
+type PeriodGroup = keyof typeof PERIOD_GROUPS;
+
+const SHIFT_GROUPS: { key: PeriodGroup; label: string; busyLabel: string }[] = [
+  { key: 'M', label: 'Manhã', busyLabel: 'Manhã ocupada' },
+  { key: 'T', label: 'Tarde', busyLabel: 'Tarde ocupada' },
+  { key: 'N', label: 'Noite', busyLabel: 'Noite ocupada' },
+];
+
+const slotKey = (weekDay: number, start: number, end: number) =>
+  `${weekDay}-${start}-${end}`;
+
+/** O cabeçalho dos dias fica preso no topo ao rolar (".busy-head" sticky). */
+const STICKY_HEAD = { stickyHeaderIndices: [1] };
 
 const BusyHoursStep = () => {
+  const theme = useTheme();
+  const timeColumn = useTimeColumnWidth();
   const { nextStep, prevStep } = useStepsContext();
 
-  const { handleSubmit, setValue, control } =
+  const { handleSubmit, setValue, getValues, control } =
     useFormContext<ScheduleCreationParams>();
 
-  const busy_schedules = useWatch({ control, name: 'busy_schedules' }) ?? [];
+  const watched = useWatch({ control, name: 'busy_schedules' });
+  const busySchedules = useMemo(() => watched ?? [], [watched]);
+
+  const busySet = useMemo(
+    () =>
+      new Set(
+        busySchedules.map(b =>
+          slotKey(b.week_day, b.start_time_in_minutes, b.end_time_in_minutes),
+        ),
+      ),
+    [busySchedules],
+  );
 
   const handleNextPress = handleSubmit(nextStep);
 
-  const handleScheduleItemPress = (
-    weekDay: keyof typeof WEEKDAY_DICTIONARY,
-    time: (typeof TIME_VALUES)[number],
-  ) => {
-    const isAlreadySelected = busy_schedules.some(
-      busyHour =>
-        busyHour.week_day === academicWeekdayToPlanningDay(weekDay) &&
-        busyHour.start_time_in_minutes === time.start_time_in_minutes &&
-        busyHour.end_time_in_minutes === time.end_time_in_minutes,
-    );
+  /** Lê o valor atual do formulário (os callbacks ficam estáveis). */
+  const current = useCallback(
+    (): Schedule[] => getValues('busy_schedules') ?? [],
+    [getValues],
+  );
 
-    if (isAlreadySelected) {
-      const newBusySchedules = busy_schedules.filter(
+  const handleScheduleItemPress = useCallback(
+    (weekDay: WeekDayNumber, time: TimeSlot) => {
+      const busy_schedules = current();
+      const isAlreadySelected = busy_schedules.some(
         busyHour =>
-          busyHour.week_day !== academicWeekdayToPlanningDay(weekDay) ||
-          busyHour.start_time_in_minutes !== time.start_time_in_minutes ||
-          busyHour.end_time_in_minutes !== time.end_time_in_minutes,
+          busyHour.week_day === academicWeekdayToPlanningDay(weekDay) &&
+          busyHour.start_time_in_minutes === time.start_time_in_minutes &&
+          busyHour.end_time_in_minutes === time.end_time_in_minutes,
       );
 
-      setValue('busy_schedules', newBusySchedules);
-      return;
-    }
+      if (isAlreadySelected) {
+        const newBusySchedules = busy_schedules.filter(
+          busyHour =>
+            busyHour.week_day !== academicWeekdayToPlanningDay(weekDay) ||
+            busyHour.start_time_in_minutes !== time.start_time_in_minutes ||
+            busyHour.end_time_in_minutes !== time.end_time_in_minutes,
+        );
 
-    const newBusySchedule = {
-      week_day: academicWeekdayToPlanningDay(weekDay),
-      start_time_in_minutes: time.start_time_in_minutes,
-      end_time_in_minutes: time.end_time_in_minutes,
-    };
+        setValue('busy_schedules', newBusySchedules);
+        return;
+      }
 
-    setValue('busy_schedules', [...busy_schedules, newBusySchedule]);
-  };
+      const newBusySchedule = {
+        week_day: academicWeekdayToPlanningDay(weekDay),
+        start_time_in_minutes: time.start_time_in_minutes,
+        end_time_in_minutes: time.end_time_in_minutes,
+      };
 
-  const handleLongPress = (time: (typeof TIME_VALUES)[number]) => {
-    const { start_time_in_minutes, end_time_in_minutes } = time;
+      setValue('busy_schedules', [...busy_schedules, newBusySchedule]);
+    },
+    [current, setValue],
+  );
 
-    const filteredBusySchedules = busy_schedules.filter(
-      busyHour =>
-        busyHour.start_time_in_minutes !== start_time_in_minutes ||
-        busyHour.end_time_in_minutes !== end_time_in_minutes,
+  const handleLongPress = useCallback(
+    (time: TimeSlot) => {
+      const busy_schedules = current();
+      const { start_time_in_minutes, end_time_in_minutes } = time;
+
+      const filteredBusySchedules = busy_schedules.filter(
+        busyHour =>
+          busyHour.start_time_in_minutes !== start_time_in_minutes ||
+          busyHour.end_time_in_minutes !== end_time_in_minutes,
+      );
+
+      const isAlreadySelected = busy_schedules.some(
+        busyHour =>
+          busyHour.start_time_in_minutes === start_time_in_minutes &&
+          busyHour.end_time_in_minutes === end_time_in_minutes,
+      );
+
+      if (isAlreadySelected) {
+        setValue('busy_schedules', filteredBusySchedules);
+        return;
+      }
+
+      const busyRowTImes = UERJ_WEEK_DAYS.map(weekDay => ({
+        week_day: academicWeekdayToPlanningDay(weekDay),
+        start_time_in_minutes,
+        end_time_in_minutes,
+      }));
+
+      setValue('busy_schedules', [...filteredBusySchedules, ...busyRowTImes]);
+    },
+    [current, setValue],
+  );
+
+  const isSlotSelected = (weekDay: WeekDayNumber, time: TimeSlot) =>
+    busySet.has(
+      slotKey(
+        academicWeekdayToPlanningDay(weekDay),
+        time.start_time_in_minutes,
+        time.end_time_in_minutes,
+      ),
     );
 
-    const isAlreadySelected = busy_schedules.some(
-      busyHour =>
-        busyHour.start_time_in_minutes === start_time_in_minutes &&
-        busyHour.end_time_in_minutes === end_time_in_minutes,
-    );
+  const isWeekdayFull = (weekDay: WeekDayNumber) =>
+    VALID_SCHEDULES.every(t => isSlotSelected(weekDay, t));
 
-    if (isAlreadySelected) {
-      setValue('busy_schedules', filteredBusySchedules);
-      return;
-    }
-
-    const busyRowTImes = UERJ_WEEK_DAYS.map(weekDay => ({
-      week_day: academicWeekdayToPlanningDay(weekDay),
-      start_time_in_minutes,
-      end_time_in_minutes,
-    }));
-
-    setValue('busy_schedules', [...filteredBusySchedules, ...busyRowTImes]);
-  };
-
-  const isSlotSelected = (
-    weekDay: keyof typeof WEEKDAY_DICTIONARY,
-    time: (typeof TIME_VALUES)[number],
-  ) =>
-    busy_schedules.some(
-      b =>
-        b.week_day === academicWeekdayToPlanningDay(weekDay) &&
-        b.start_time_in_minutes === time.start_time_in_minutes &&
-        b.end_time_in_minutes === time.end_time_in_minutes,
-    );
-
-  const toggleWeekdayFull = (
-    weekDay: keyof typeof WEEKDAY_DICTIONARY,
-    times: (typeof TIME_VALUES)[number][],
-  ) => {
+  const toggleWeekdayFull = (weekDay: WeekDayNumber, times: TimeSlot[]) => {
+    const busy_schedules = current();
     const allSelected = times.every(t => isSlotSelected(weekDay, t));
     if (allSelected) {
       const filtered = busy_schedules.filter(
@@ -134,22 +191,13 @@ const BusyHoursStep = () => {
     setValue('busy_schedules', [...busy_schedules, ...toAdd]);
   };
 
-  const VALID_SCHEDULES = TIME_VALUES.filter(
-    time => time.start_time_in_minutes > 0,
-  );
-
-  const PERIOD_GROUPS = {
-    M: VALID_SCHEDULES.filter(t => t.periodAlias.startsWith('M')),
-    T: VALID_SCHEDULES.filter(t => t.periodAlias.startsWith('T')),
-    N: VALID_SCHEDULES.filter(t => t.periodAlias.startsWith('N')),
-  } as const;
-
-  const isGroupFullySelected = (group: keyof typeof PERIOD_GROUPS) =>
+  const isGroupFullySelected = (group: PeriodGroup) =>
     UERJ_WEEK_DAYS.every(weekDay =>
       PERIOD_GROUPS[group].every(t => isSlotSelected(weekDay, t)),
     );
 
-  const toggleGroupAcrossWeek = (group: keyof typeof PERIOD_GROUPS) => {
+  const toggleGroupAcrossWeek = (group: PeriodGroup) => {
+    const busy_schedules = current();
     const times = PERIOD_GROUPS[group];
     const allSelected = UERJ_WEEK_DAYS.every(weekDay =>
       times.every(t => isSlotSelected(weekDay, t)),
@@ -180,154 +228,157 @@ const BusyHoursStep = () => {
 
   const clearAll = () => setValue('busy_schedules', []);
 
-  const renderScheduleRow = (time: (typeof TIME_VALUES)[number]) => {
-    const {
-      start_time_in_minutes,
-      end_time_in_minutes,
-      startTimeAlias,
-      endTimeAlias,
-      periodAlias,
-    } = time;
-
-    return (
-      <Row key={`row-${periodAlias}`}>
-        {UERJ_WEEK_DAYS.map(weekDay => {
-          const isAlreadySelected = busy_schedules.some(
-            busyHour =>
-              busyHour.week_day === academicWeekdayToPlanningDay(weekDay) &&
-              busyHour.start_time_in_minutes === start_time_in_minutes &&
-              busyHour.end_time_in_minutes === end_time_in_minutes,
-          );
-          const color = isAlreadySelected ? 'BUSY' : 'FREE';
-
-          return (
-            <ScheduleItem
-              key={`cell-${weekDay}-${periodAlias}`}
-              color={color}
-              onPress={() => handleScheduleItemPress(weekDay, time)}
-              onLongPress={() => handleLongPress(time)}
-              delayLongPress={500}
-            >
-              <Text size="SM" weight="500" alignSelf="center">
-                {startTimeAlias}
-              </Text>
-              <Text size="SM" weight="500" alignSelf="center">
-                {endTimeAlias}
-              </Text>
-            </ScheduleItem>
-          );
-        })}
-      </Row>
-    );
-  };
+  const busyCount = busySchedules.length
+    ? plural(busySchedules.length, 'tempo', 'tempos')
+    : 'nenhum tempo';
 
   return (
-    <Container>
-      <ContentContainer>
-        <Text weight="bold" size="LG" alignSelf="center" marginBottom="10px">
-          Quando você está ocupado?
-        </Text>
-        <Text
-          size="XS"
-          alignSelf="center"
-          marginBottom="6px"
-          color="BACKGROUND_700"
-        >
-          Dica: toque para marcar, toque e segure para o período do dia. Você
-          também pode usar os atalhos abaixo.
-        </Text>
+    <GeneratorStep
+      scrollProps={STICKY_HEAD}
+      footer={{
+        onPrev: prevStep,
+        next: {
+          label: 'Próximo',
+          icon: 'arrow_forward',
+          iconPosition: 'end',
+          onPress: handleNextPress,
+        },
+      }}
+    >
+      <Top>
+        <StepIntro
+          title="Quando você está ocupado?"
+          description="Dica: toque para marcar, toque e segure para o período do dia. Você também pode usar os atalhos abaixo."
+        />
 
-        <ChipsContainer>
-          <ChipRow>
-            <ChipItem>
-              <Button
-                size="small"
-                width="auto"
-                variant={
-                  isGroupFullySelected('M') ? 'SECONDARY' : 'BACKGROUND_500'
-                }
-                onPress={() => toggleGroupAcrossWeek('M')}
-              >
-                Manhã ocupada
-              </Button>
-            </ChipItem>
-            <ChipItem>
-              <Button
-                size="small"
-                width="auto"
-                variant={
-                  isGroupFullySelected('T') ? 'SECONDARY' : 'BACKGROUND_500'
-                }
-                onPress={() => toggleGroupAcrossWeek('T')}
-              >
-                Tarde ocupada
-              </Button>
-            </ChipItem>
-            <ChipItem>
-              <Button
-                size="small"
-                width="auto"
-                variant={
-                  isGroupFullySelected('N') ? 'SECONDARY' : 'BACKGROUND_500'
-                }
-                onPress={() => toggleGroupAcrossWeek('N')}
-              >
-                Noite ocupada
-              </Button>
-            </ChipItem>
-          </ChipRow>
-          <Button
-            size="small"
-            fullWidth
-            variant="BACKGROUND_400"
-            onPress={clearAll}
-          >
-            Limpar tudo
-          </Button>
-        </ChipsContainer>
-        <Header>
-          <Header>
-            <Square color="BUSY" />
-            <Text size="SM" weight="500" alignSelf="center">
-              Ocupado
-            </Text>
-          </Header>
+        <Tools accessibilityRole="toolbar">
+          <ToolsLabel variant="meta" tone="muted">
+            Turno inteiro ocupado
+          </ToolsLabel>
+          <ToolsGroup>
+            {SHIFT_GROUPS.map(group => {
+              const on = isGroupFullySelected(group.key);
+              return (
+                <Button
+                  key={group.key}
+                  variant="text"
+                  size="sm"
+                  label={group.label}
+                  icon={on ? 'check' : undefined}
+                  selected={on}
+                  accessibilityRole="togglebutton"
+                  accessibilityLabel={group.busyLabel}
+                  accessibilityState={{ checked: on }}
+                  onPress={() => toggleGroupAcrossWeek(group.key)}
+                />
+              );
+            })}
+          </ToolsGroup>
+        </Tools>
 
-          <Header>
-            <Square color="FREE" />
-            <Text size="SM" weight="500" alignSelf="center">
-              Livre
-            </Text>
-          </Header>
-        </Header>
+        <LegendBar>
+          <Legend>
+            <LegendItem>
+              <LegendSquare $busy />
+              <LegendLabel
+                variant="meta"
+                tone="muted"
+                accessibilityLiveRegion="polite"
+              >
+                Ocupado: {busyCount}
+              </LegendLabel>
+            </LegendItem>
+            <LegendItem>
+              <LegendSquare $busy={false} />
+              <LegendLabel variant="meta" tone="muted">
+                Livre
+              </LegendLabel>
+            </LegendItem>
+          </Legend>
+          <ClearSlot>
+            <Button
+              variant="text"
+              size="sm"
+              icon="delete_sweep"
+              label="Limpar tudo"
+              onPress={clearAll}
+            />
+          </ClearSlot>
+        </LegendBar>
+      </Top>
 
-        <Header>
-          {UERJ_WEEK_DAYS.map(weekDay => (
-            <TouchableOpacity
+      <GridHead>
+        <HeadSpacer $width={timeColumn} />
+        {UERJ_WEEK_DAYS.map(weekDay => {
+          const { name, shortName } = WEEKDAY_DICTIONARY[weekDay];
+          const full = isWeekdayFull(weekDay);
+          return (
+            <DayHead
               key={weekDay}
               onPress={() => toggleWeekdayFull(weekDay, VALID_SCHEDULES)}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel={
+                full
+                  ? `${name}: desmarcar o dia inteiro`
+                  : `${name}: marcar o dia inteiro como ocupado`
+              }
+              style={({ pressed }) =>
+                pressed && { backgroundColor: theme.colors.surfaceMuted }
+              }
             >
-              <Text size="SM" weight="500" alignSelf="center">
-                {WEEKDAY_DICTIONARY[weekDay].shortName}
+              <Text variant="caption" weight="semibold" tone="muted">
+                {shortName}
               </Text>
-            </TouchableOpacity>
-          ))}
-        </Header>
+            </DayHead>
+          );
+        })}
+      </GridHead>
 
-        <ScrollContainer>
-          {VALID_SCHEDULES.map(renderScheduleRow)}
-        </ScrollContainer>
-      </ContentContainer>
-
-      <ButtonsRow>
-        <Button onPress={prevStep} size="small">
-          Anterior
-        </Button>
-        <Button onPress={handleNextPress} size="small">
-          Próximo
-        </Button>
-      </ButtonsRow>
-    </Container>
+      <GridBody>
+        {SHIFT_GROUPS.map((group, groupIndex) => {
+          const times = PERIOD_GROUPS[group.key];
+          return (
+            <React.Fragment key={group.key}>
+              <ShiftBand $first={groupIndex === 0}>
+                <Text
+                  variant="meta"
+                  weight="semibold"
+                  accessibilityRole="header"
+                >
+                  {group.label}
+                </Text>
+                <Text variant="meta" tone="muted">
+                  {slotRange(
+                    times[0].periodAlias,
+                    times[times.length - 1].periodAlias,
+                  )}
+                </Text>
+              </ShiftBand>
+              {times.map(time => (
+                <ShiftRow key={time.periodAlias}>
+                  <RowTime
+                    alias={time.periodAlias}
+                    start={time.startTimeAlias}
+                    width={timeColumn}
+                  />
+                  {UERJ_WEEK_DAYS.map(weekDay => (
+                    <BusyCell
+                      key={weekDay}
+                      weekDay={weekDay}
+                      time={time}
+                      selected={isSlotSelected(weekDay, time)}
+                      onToggle={handleScheduleItemPress}
+                      onToggleRow={handleLongPress}
+                    />
+                  ))}
+                </ShiftRow>
+              ))}
+            </React.Fragment>
+          );
+        })}
+      </GridBody>
+    </GeneratorStep>
   );
 };
 

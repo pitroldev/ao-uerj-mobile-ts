@@ -18,7 +18,7 @@ jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useIdentity: () => mockIdentity,
   useAppServices: () => ({ academicRecords: mockRecords }),
 }));
-jest.mock('@molecules/SmallDummyMessage', () => 'SmallDummyMessage');
+jest.mock('@components/ui/Notice', () => ({ Notice: 'Notice' }));
 
 const account = (scope: string) => ({
   scope,
@@ -204,8 +204,7 @@ it('announces cached offline and background errors without hiding the data', asy
     );
   });
   expect(
-    renderer!.root.findByType('SmallDummyMessage' as React.ElementType).props
-      .text,
+    renderer!.root.findByType('Notice' as React.ElementType).props.text,
   ).toContain('últimos dados salvos');
   await act(async () => {
     renderer!.update(
@@ -219,9 +218,25 @@ it('announces cached offline and background errors without hiding the data', asy
     );
   });
   expect(
-    renderer!.root.findByType('SmallDummyMessage' as React.ElementType).props
-      .text,
+    renderer!.root.findByType('Notice' as React.ElementType).props.text,
   ).toContain('Não foi possível atualizar');
+  await act(async () => {
+    renderer!.update(
+      <QueryNotice
+        isPaused={false}
+        isFetching={false}
+        hasData
+        error={new AppError('POSSIBLY_BLOCKED')}
+        retry={() => undefined}
+      />,
+    );
+  });
+  const blocked = renderer!.root.findByType('Notice' as React.ElementType);
+  expect(blocked.props.kind).toBe('blocked');
+  expect(blocked.props.text).toContain(
+    'O Aluno Online está temporariamente bloqueado.',
+  );
+  expect(blocked.props.text).toContain('últimos dados salvos');
 });
 it('announces offline mode even when a fresh cached query has no paused request', async () => {
   onlineManager.setOnline(false);
@@ -237,9 +252,8 @@ it('announces offline mode even when a fresh cached query has no paused request'
       />,
     );
   });
-  const text = renderer!.root.findByType(
-    'SmallDummyMessage' as React.ElementType,
-  ).props.text;
+  const text = renderer!.root.findByType('Notice' as React.ElementType).props
+    .text;
   expect(text).toContain('Sem conexão');
   expect(text).toContain('Última atualização:');
 });

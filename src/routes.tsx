@@ -4,6 +4,7 @@ import {
   type DrawerContentComponentProps,
 } from '@react-navigation/drawer';
 import { useIdentity } from '@root/app/providers/AppServicesProvider';
+import { LIGHT } from '@root/themes';
 
 import CustomDrawerNavigator from '@root/components/templates/CustomDrawerNavigator';
 
@@ -59,6 +60,10 @@ const MainRoutes = () => {
       screenOptions={{
         headerShown: false,
         drawerType: 'back',
+        drawerStyle: {
+          width: LIGHT.layout.drawerWidth,
+          backgroundColor: LIGHT.colors.brand,
+        },
         overlayColor: 'transparent',
         swipeEnabled: isSignedIn,
       }}

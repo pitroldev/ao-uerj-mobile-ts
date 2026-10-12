@@ -8,6 +8,7 @@ import {
   calculateAcademicProgress,
   calculateCraProgression,
 } from '@root/modules/academics/domain/rules/progress';
+import { crChartPoints } from './crChartModel';
 
 export function useMyProgress() {
   const subjectsTakenQuery = useHistory();
@@ -26,12 +27,17 @@ export function useMyProgress() {
     () => calculateCraProgression(subjectsTakenQuery.data ?? []),
     [subjectsTakenQuery.data],
   );
+  const crPoints = useMemo(
+    () => crChartPoints(cra.pointsOverTime, subjectsTakenQuery.data ?? []),
+    [cra.pointsOverTime, subjectsTakenQuery.data],
+  );
   return {
     initialLoading: subjectsTakenQuery.isLoading || curriculumQuery.isLoading,
     isEmpty: !subjectsTakenQuery.data?.length && !curriculumQuery.data?.length,
     curriculumAvailable: curriculumQuery.data !== undefined,
     ...progress,
     ...cra,
+    crPoints,
     electiveCreditsHook,
     dataUpdatedAt: Math.min(
       subjectsTakenQuery.dataUpdatedAt,

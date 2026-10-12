@@ -1,121 +1,111 @@
+import React, { useCallback, useRef, useState } from 'react';
+import type { FlatList, ListRenderItemInfo } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import styled from 'styled-components/native';
+
 import {
   useCurriculum,
   isPortalBlocked,
 } from '@root/modules/academics/presentation/queries';
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
-import React, { useState, useRef } from 'react';
-import { ListRenderItemInfo } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { Picker } from '@react-native-picker/picker';
-import { FlatList } from 'react-native-gesture-handler';
-import { FontAwesome } from '@react-native-vector-icons/fontawesome';
+import type { CurriculumSubject } from '@root/modules/academics/domain/models';
 
-import { SUBJECT_TYPE } from '@utils/constants/subjectDictionary';
-import { normalizeText } from '@utils/normalize';
+import {
+  ChipGroup,
+  FilterChip,
+  SearchField,
+  SegmentedControl,
+} from '@components/ui';
+import {
+  CURRICULUM_TYPE_FILTERS,
+  CurriculumSubjectRow,
+} from '@features/CurriculumSubjects';
+import {
+  SUBJECT_LIST_COPY,
+  ShowingCount,
+  SubjectListFallback,
+  SubjectListPanel,
+  matchesSubjectSearch,
+  showsCount,
+  subjectListPhase,
+} from '@features/SubjectsToTake';
 
-import { CurriculumSubject } from '@root/modules/academics/domain/models';
+type TypeFilter = (typeof CURRICULUM_TYPE_FILTERS)[number]['value'];
+type TakenFilter = 'pending' | 'taken';
 
-import Spinner from '@atoms/Spinner';
-import StyledPicker from '@atoms/Picker';
-import TextInput from '@atoms/TextInput';
-import Text from '@atoms/Text';
-import SubjectBox from '@molecules/SubjectBox';
-import DummyMessage from '@molecules/DummyMessage';
-import SmallDummyMessage from '@molecules/SmallDummyMessage';
+const TAKEN_OPTIONS = [
+  { value: 'pending' as const, label: 'Não atendidas' },
+  { value: 'taken' as const, label: 'Atendidas' },
+];
 
-import { Container, Row, View } from './CurriculumSubjects.styles';
+const NO_SUBJECTS: CurriculumSubject[] = [];
+
+/** 10 entre os filtros (".segm"/".field" margin-top 10). */
+const Spaced = styled.View`
+  margin-top: 10px;
+`;
 
 const CurriculumSubjects = () => {
-  const [subjectAlreadyTaken, setSubjectAlreadyTaken] = useState(false);
-  const [subjectType, setSubjectType] = useState('');
+  const [taken, setTaken] = useState<TakenFilter>('pending');
+  const [subjectType, setSubjectType] = useState<TypeFilter>('');
   const [searchQuery, setSearchQuery] = useState('');
 
   const query = useCurriculum();
-  const { data = [], isLoading: loading, error, refetch } = query;
-  const isBlocked = isPortalBlocked(error);
+  const { error, refetch } = query;
+  const data = query.data ?? NO_SUBJECTS;
 
   const navigation = useNavigation();
+  const listRef = useRef<FlatList<CurriculumSubject>>(null);
 
-  const ref = useRef<FlatList>(null);
+  const scrollToTop = () =>
+    listRef.current?.scrollToOffset({ animated: true, offset: 0 });
 
-  const handleSubjectTypeChange = (value: string) => {
+  const handleSubjectTypeChange = (value: TypeFilter) => {
     setSubjectType(value);
-    ref.current?.scrollToOffset({ animated: true, offset: 0 });
+    scrollToTop();
   };
 
-  const handleSubjectPress = (subject: CurriculumSubject) => {
-    navigation.navigate('Pesquisa de Disciplinas', {
-      subjectId: subject.id,
-      sourceRoute: 'Disciplinas do Currículo',
-    });
+  const handleTakenChange = (value: TakenFilter) => {
+    setTaken(value);
+    scrollToTop();
   };
 
-  const renderSubjects = ({
-    item: subject,
-  }: ListRenderItemInfo<CurriculumSubject>) => {
-    if (!subject) {
-      return null;
-    }
+  const handleSubjectPress = useCallback(
+    (subject: CurriculumSubject) => {
+      navigation.navigate('Pesquisa de Disciplinas', {
+        subjectId: subject.id,
+        sourceRoute: 'Disciplinas do Currículo',
+      });
+    },
+    [navigation],
+  );
 
-    const { name, id, type, credits, workload, branch, period, alreadyTaken } =
-      subject;
-    const creditText = credits ? `${credits} créditos` : '';
-    const workloadText = workload !== null ? `${workload} horas` : '';
+  const renderSubject = useCallback(
+    ({ item }: ListRenderItemInfo<CurriculumSubject>) =>
+      item ? (
+        <CurriculumSubjectRow subject={item} onPress={handleSubjectPress} />
+      ) : null,
+    [handleSubjectPress],
+  );
 
-    const periodText = period ? `${period}º Período` : '';
-
-    const ramificationText = branch
-      ? `${periodText ? ' - ' : ''}Ramificação ${branch}`
-      : '';
-
-    const description = `${periodText}${ramificationText}`;
-
-    return (
-      <SubjectBox
-        topLeftInfo={id}
-        topRightInfo={SUBJECT_TYPE[type] || type}
-        name={name}
-        color={alreadyTaken ? 'GOOD' : undefined}
-        description={description}
-        bottomLeftInfo={creditText}
-        bottomRightInfo={workloadText}
-        boldOptions={{
-          topLeft: true,
-          name: true,
-        }}
-        onPress={() => handleSubjectPress(subject)}
-      />
-    );
-  };
-
-  const filteredData = data.filter(({ type, name, alreadyTaken }) => {
-    const hasSubjectType = !subjectType || type === subjectType;
-    const hasSearchQuery =
-      !searchQuery || normalizeText(name).includes(normalizeText(searchQuery));
+  const filteredData = data.filter(subject => {
+    const hasSubjectType = !subjectType || subject.type === subjectType;
     const hasSubjectAlreadyTaken =
-      subjectAlreadyTaken === Boolean(alreadyTaken);
-
-    return hasSubjectType && hasSearchQuery && hasSubjectAlreadyTaken;
+      (taken === 'taken') === Boolean(subject.alreadyTaken);
+    return (
+      hasSubjectType &&
+      hasSubjectAlreadyTaken &&
+      matchesSubjectSearch(searchQuery, subject)
+    );
   });
 
-  const isEmpty = filteredData.length === 0;
-  const showList = !isEmpty;
-  const showSpinner = isEmpty && loading;
+  const phase = subjectListPhase(query, {
+    hasData: query.data !== undefined,
+    blocked: isPortalBlocked(error),
+  });
 
-  if (isBlocked && !data.length) {
-    return (
-      <Container>
-        <DummyMessage
-          type="BLOCK"
-          text="Parece que o Aluno Online está temporariamente bloqueado. Tente novamente mais tarde."
-          onPress={refetch}
-        />
-      </Container>
-    );
-  }
-
-  return (
-    <Container>
+  const header = (
+    <>
       <QueryNotice
         dataUpdatedAt={query.dataUpdatedAt}
         isPaused={query.isPaused}
@@ -124,73 +114,50 @@ const CurriculumSubjects = () => {
         hasData={query.data !== undefined}
         retry={refetch}
       />
-      <Row>
-        <View>
-          <StyledPicker
-            selectedValue={subjectType}
-            onValueChange={s => handleSubjectTypeChange(s as string)}
-            loading={loading}
-            enabled={!loading}
-          >
-            <Picker.Item label={'Todas as Disciplinas'} value={''} />
-            <Picker.Item
-              label={'Disciplinas Obrigatórias'}
-              value={'MANDATORY'}
-            />
-            <Picker.Item label={'Eletivas Restritas'} value={'RESTRICTED'} />
-            <Picker.Item label={'Eletivas Definidas'} value={'DEFINED'} />
-            <Picker.Item label={'Universais'} value={'UNIVERSAL'} />
-          </StyledPicker>
-        </View>
-        <View>
-          <StyledPicker
-            selectedValue={subjectAlreadyTaken}
-            onValueChange={s => setSubjectAlreadyTaken(s as boolean)}
-            loading={loading}
-            enabled={!loading}
-          >
-            <Picker.Item label={'Não Atendidas'} value={false} />
-            <Picker.Item label={'Atendidas'} value={true} />
-          </StyledPicker>
-        </View>
-      </Row>
-      <TextInput
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        placeholder="Pesquise pelo nome da disciplina"
-        icon={<FontAwesome name="search" size={15} />}
-      />
-      {!loading && !isBlocked && !error && (
-        <Text size="SM" marginTop="8px" marginBottom="8px" marginLeft="5px">
-          Exibindo {filteredData.length} disciplina
-          {filteredData.length === 1 ? '' : 's'}
-        </Text>
-      )}
-      {isBlocked && showList && (
-        <SmallDummyMessage
-          type="BLOCK"
-          text="O Aluno Online está temporariamente bloqueado."
-          onPress={refetch}
+      <ChipGroup layout="scroll" accessibilityLabel="Tipo de disciplina">
+        {CURRICULUM_TYPE_FILTERS.map(({ value, label }) => (
+          <FilterChip
+            key={value || 'all'}
+            label={label}
+            selected={subjectType === value}
+            onPress={() => handleSubjectTypeChange(value)}
+          />
+        ))}
+      </ChipGroup>
+      <Spaced>
+        <SegmentedControl
+          options={TAKEN_OPTIONS}
+          value={taken}
+          onChange={handleTakenChange}
+          accessibilityLabel="Situação"
         />
-      )}
-      {showSpinner && <Spinner size={40} />}
-      {!loading && !!error && !isBlocked && !data.length && (
-        <DummyMessage
-          type="ERROR"
-          onPress={refetch}
-          text="Ops, ocorreu um erro ao buscar as disciplinas. Toque aqui para tentar novamente."
+      </Spaced>
+      <Spaced>
+        <SearchField
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder={SUBJECT_LIST_COPY.searchPlaceholder}
         />
-      )}
-      {showList && (
-        <FlatList
-          ref={ref}
-          data={filteredData}
-          renderItem={renderSubjects}
-          showsVerticalScrollIndicator={false}
-          keyExtractor={(_, index) => index.toString()}
+      </Spaced>
+      {showsCount(phase) ? <ShowingCount count={filteredData.length} /> : null}
+    </>
+  );
+
+  return (
+    <SubjectListPanel
+      listRef={listRef}
+      header={header}
+      items={filteredData}
+      renderItem={renderSubject}
+      keyExtractor={(item, index) => `${item.id}-${index}`}
+      fallback={
+        <SubjectListFallback
+          phase={phase}
+          onRetry={refetch}
+          empty={{ icon: 'search_off', text: SUBJECT_LIST_COPY.filterEmpty }}
         />
-      )}
-    </Container>
+      }
+    />
   );
 };
 

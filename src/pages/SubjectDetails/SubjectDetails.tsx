@@ -4,6 +4,7 @@ import { RootDrawerParamList } from '@root/routes';
 import { normalizeSubjectId } from '@root/modules/academics/domain/rules/subjectId';
 import { useSubjectDetails } from '@root/modules/academics/presentation/queries';
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
+import ScreenPanel from '@templates/ScreenPanel';
 import SubjectSearch from './SubjectSearch';
 import SubjectView from './SubjectView';
 
@@ -24,7 +25,8 @@ const SubjectDetailPage = () => {
   };
   if (!subjectId) return <SubjectSearch searchSubject={searchSubject} />;
   return (
-    <>
+    // a chave volta a rolagem ao topo ao abrir outra disciplina (requisito)
+    <ScreenPanel key={subjectId}>
       <QueryNotice
         dataUpdatedAt={query.dataUpdatedAt}
         isPaused={query.isPaused}
@@ -41,7 +43,7 @@ const SubjectDetailPage = () => {
         error={query.error}
         sourceRoute={route.params?.sourceRoute}
       />
-    </>
+    </ScreenPanel>
   );
 };
 

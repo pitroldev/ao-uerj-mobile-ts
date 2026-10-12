@@ -8,9 +8,13 @@ import {
   createScheduleDraft,
   ScheduleCreationParams,
 } from '@root/modules/planning/domain/models';
-import TextInput from '@atoms/TextInput';
-import Button from '@atoms/Button';
+import { Button, NumberStepper } from '@components/ui';
 import SubjectAmountStep from '../SubjectAmountStep';
+
+jest.mock('react-native-modal', () => 'Modal');
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
 
 const nextStep = jest.fn();
 let renderer: ReactTestRenderer;
@@ -52,8 +56,12 @@ afterEach(async () => {
   await act(async () => renderer.unmount());
 });
 
+const nextButton = () =>
+  renderer.root.find(
+    node => node.type === Button && node.props.label === 'Próximo',
+  );
 const enterAmounts = async (minimum: string, maximum: string) => {
-  const inputs = renderer.root.findAllByType(TextInput);
+  const inputs = renderer.root.findAllByType(NumberStepper);
   await act(async () => {
     inputs[0].props.onChangeText(minimum);
     inputs[1].props.onChangeText(maximum);
@@ -61,24 +69,24 @@ const enterAmounts = async (minimum: string, maximum: string) => {
 };
 const submit = async () => {
   await act(async () => {
-    await renderer.root.findByType(Button).props.onPress();
+    await nextButton().props.onPress();
   });
 };
 
 it('advances when the student wants exactly one subject', async () => {
   await enterAmounts('1', '1');
-  expect(renderer.root.findByType(Button).props.disabled).toBe(false);
+  expect(nextButton().props.disabled).toBe(false);
   await submit();
   expect(nextStep).toHaveBeenCalledTimes(1);
 });
 
 it('clears both initial quantities and replaces them without restoring the previous digits', async () => {
   const inputValues = () =>
-    renderer.root.findAllByType(TextInput).map(input => input.props.value);
+    renderer.root.findAllByType(NumberStepper).map(input => input.props.value);
   expect(inputValues()).toEqual(['3', '3']);
   await enterAmounts('', '');
   expect(inputValues()).toEqual(['', '']);
-  expect(renderer.root.findByType(Button).props.disabled).toBe(true);
+  expect(nextButton().props.disabled).toBe(true);
   await submit();
   expect(nextStep).not.toHaveBeenCalled();
   await enterAmounts('1', '2');
@@ -94,12 +102,20 @@ it.each([
   'rejects a zero quantity (%s to %s) and accepts it after correction',
   async (minimum, maximum) => {
     await enterAmounts(minimum, maximum);
-    expect(renderer.root.findByType(Button).props.disabled).toBe(true);
+    expect(nextButton().props.disabled).toBe(true);
     await submit();
     expect(nextStep).not.toHaveBeenCalled();
     await enterAmounts('1', '2');
-    expect(renderer.root.findByType(Button).props.disabled).toBe(false);
+    expect(nextButton().props.disabled).toBe(false);
     await submit();
     expect(nextStep).toHaveBeenCalledTimes(1);
   },
 );
+
+it('keeps "Anterior" disabled on the first step', () => {
+  const previous = renderer.root.find(
+    node =>
+      node.type === Button && node.props.accessibilityLabel === 'Anterior',
+  );
+  expect(previous.props.disabled).toBe(true);
+});

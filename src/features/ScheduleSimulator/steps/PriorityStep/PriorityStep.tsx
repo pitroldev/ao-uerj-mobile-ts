@@ -1,27 +1,25 @@
 import React from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
+import styled, { useTheme } from 'styled-components/native';
 
 import { useStepsContext } from '@hooks/useSteps';
+import {
+  ChipGroup,
+  FilterChip,
+  Icon,
+  List,
+  ListRow,
+  Switch,
+  Text,
+} from '@components/ui';
 
 import {
   Priority,
   ScheduleCreationParams,
 } from '@root/modules/planning/domain/models';
 
-import Text from '@atoms/Text';
-import Button from '@atoms/Button';
-
-import {
-  Column,
-  Container,
-  Row,
-  Switch,
-  ScrollView,
-  ContentContainer,
-  ButtonsRow,
-  ChipsContainer,
-  ChipItem,
-} from './PriorityStep.styles';
+import { GeneratorStep, StepIntro, SubHeading } from '../../layout';
+import { plural } from '../../format';
 
 const orderedPriorities = [
   'MIN_GAPS',
@@ -63,7 +61,47 @@ const priorities = [
   ],
 ] as const;
 
+type Preset = { label: string; keys: Priority[] };
+const presets: Preset[] = [
+  {
+    label: 'Poucas lacunas (recomendado)',
+    keys: ['MIN_GAPS', 'MANDATORY_CLASSES', 'MOST_SUBJECTS_POSSIBLE'],
+  },
+  {
+    label: 'Moro longe',
+    keys: ['LIVES_FAR_AWAY', 'MIN_GAPS', 'MIN_DAY_WORKLOAD'],
+  },
+  {
+    label: 'Acelerar curso',
+    keys: ['CRITICAL_FIRST', 'MAX_CREDITS', 'MAX_WORKLOAD'],
+  },
+  {
+    label: 'Carga leve no dia',
+    keys: ['MIN_DAY_WORKLOAD', 'MIN_WORKLOAD', 'MIN_GAPS'],
+  },
+];
+
+/** Par de opções excludentes (".pair"): caixa com fio e a nota acima. */
+const Pair = styled.View`
+  margin: 8px ${({ theme }) => theme.layout.gutter}px 0px;
+  border-width: ${({ theme }) => theme.borders.hairline}px;
+  border-color: ${({ theme }) => theme.colors.rule};
+  border-radius: ${({ theme }) => theme.radii.xl}px;
+  border-top-right-radius: 0px;
+  overflow: hidden;
+`;
+
+const PairNote = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px 2px;
+`;
+
+const PAIR_INSET = 14;
+
 const PriorityStep = () => {
+  const theme = useTheme();
   const { nextStep, prevStep } = useStepsContext();
 
   const { control, handleSubmit, setValue } =
@@ -98,89 +136,89 @@ const PriorityStep = () => {
     setValue('priority', newPriority);
   };
 
-  type Preset = { label: string; keys: Priority[] };
-  const presets: Preset[] = [
-    {
-      label: 'Poucas lacunas (recomendado)',
-      keys: ['MIN_GAPS', 'MANDATORY_CLASSES', 'MOST_SUBJECTS_POSSIBLE'],
-    },
-    {
-      label: 'Moro longe',
-      keys: ['LIVES_FAR_AWAY', 'MIN_GAPS', 'MIN_DAY_WORKLOAD'],
-    },
-    {
-      label: 'Acelerar curso',
-      keys: ['CRITICAL_FIRST', 'MAX_CREDITS', 'MAX_WORKLOAD'],
-    },
-    {
-      label: 'Carga leve no dia',
-      keys: ['MIN_DAY_WORKLOAD', 'MIN_WORKLOAD', 'MIN_GAPS'],
-    },
-  ];
-
   const applyPreset = (keys: Priority[]) => {
     const ordered = orderedPriorities.filter(k => keys.includes(k));
     setValue('priority', ordered);
   };
 
+  const renderRow = (
+    { key, label }: { key: Priority; label: string },
+    inPair = false,
+  ) => {
+    const on = priority.includes(key);
+    return (
+      <ListRow
+        key={key}
+        title={label}
+        titleWeight="regular"
+        trailing={<Switch value={on} />}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: on }}
+        onPress={() => handleCheckBoxChange(!on, key)}
+        inset={inPair ? PAIR_INSET : undefined}
+        dense={inPair}
+      />
+    );
+  };
+
   return (
-    <Container>
-      <ContentContainer>
-        <Text weight="bold" size="LG" alignSelf="center" marginBottom="6px">
-          Quais são suas prioridades?
-        </Text>
+    <GeneratorStep
+      footer={{
+        onPrev: prevStep,
+        next: {
+          label: 'Próximo',
+          icon: 'arrow_forward',
+          iconPosition: 'end',
+          onPress: handleNextPress,
+        },
+      }}
+    >
+      <StepIntro
+        title="Quais são suas prioridades?"
+        description="Ligue o que mais importa para você. Os atalhos ligam um conjunto pronto."
+      />
 
-        <Text weight="500" size="SM" marginBottom="6px">
-          Sugestões rápidas
-        </Text>
-        <ChipsContainer>
-          {presets.map(p => (
-            <ChipItem key={p.label}>
-              <Button
-                size="small"
-                variant={
-                  p.keys.every(k => priority.includes(k)) &&
-                  priority.length === p.keys.length
-                    ? 'SECONDARY'
-                    : 'BACKGROUND_400'
-                }
-                onPress={() => applyPreset(p.keys)}
-                width={'auto'}
-              >
-                {p.label}
-              </Button>
-            </ChipItem>
-          ))}
-        </ChipsContainer>
+      <SubHeading title="Sugestões rápidas" />
+      <ChipGroup layout="wrap" accessibilityLabel="Sugestões rápidas">
+        {presets.map(p => (
+          <FilterChip
+            key={p.label}
+            label={p.label}
+            selected={
+              p.keys.every(k => priority.includes(k)) &&
+              priority.length === p.keys.length
+            }
+            onPress={() => applyPreset(p.keys)}
+          />
+        ))}
+      </ChipGroup>
 
-        <ScrollView>
-          {priorities.map((group, index) => (
-            <Column key={index}>
-              {group.map(({ key, label }) => (
-                <Row key={key}>
-                  <Text weight="500" size="SM" marginLeft="5px">
-                    {label}
-                  </Text>
-
-                  <Switch
-                    value={priority.includes(key)}
-                    onValueChange={(v: boolean) => handleCheckBoxChange(v, key)}
-                  />
-                </Row>
-              ))}
-            </Column>
-          ))}
-        </ScrollView>
-      </ContentContainer>
-      <ButtonsRow>
-        <Button onPress={prevStep} size="small">
-          Anterior
-        </Button>
-        <Button onPress={handleNextPress} size="small">
-          Próximo
-        </Button>
-      </ButtonsRow>
-    </Container>
+      <SubHeading
+        title="Prioridades"
+        note={plural(priority.length, 'ligada', 'ligadas')}
+      />
+      <List>
+        {priorities.map(group =>
+          group.length === 1 ? (
+            renderRow(group[0])
+          ) : (
+            <Pair key={group.map(o => o.key).join('|')}>
+              <PairNote>
+                <Icon
+                  name="swap_vert"
+                  size={theme.sizes.icon.sm}
+                  color={theme.colors.inkMuted}
+                />
+                <Text variant="caption" tone="muted">
+                  Só uma destas pode ficar ligada
+                </Text>
+              </PairNote>
+              <List bleed={false}>{group.map(o => renderRow(o, true))}</List>
+            </Pair>
+          ),
+        )}
+      </List>
+    </GeneratorStep>
   );
 };
 

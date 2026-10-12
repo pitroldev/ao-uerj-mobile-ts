@@ -1,21 +1,36 @@
 import React, { useState, useRef } from 'react';
-import { Linking, type TextInput as NativeTextInput } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  type TextInput as NativeTextInput,
+} from 'react-native';
 import { useMutation } from '@tanstack/react-query';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   useAppServices,
   useIdentity,
 } from '@root/app/providers/AppServicesProvider';
 import { errorMessage } from '@root/shared/errors/AppError';
-
-import Text from '@atoms/Text';
-import TextInput from '@atoms/TextInput';
 import {
-  LogoContainer,
-  LogoUERJ,
-  Container,
-  SignInButton,
-  RecoveryPassButton,
+  AoLogo,
+  Button,
+  FieldGroup,
+  FieldGroupRow,
+  Text,
+} from '@components/ui';
+import { version } from '@/package.json';
+
+import {
+  Footer,
+  Panel,
+  RecoveryButton,
+  Root,
+  Subtitle,
+  Top,
 } from './Login.styles';
 
 const PASS_RECOVERY_URL = 'https://www.alunoonline.uerj.br/requisicaoaluno/';
@@ -26,6 +41,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const { identity } = useAppServices();
   const { error: identityError } = useIdentity();
+  const insets = useSafeAreaInsets();
 
   const passwordInputRef = useRef<NativeTextInput>(null);
 
@@ -52,55 +68,88 @@ const LoginPage = () => {
   };
 
   return (
-    <LogoContainer>
-      <LogoUERJ />
-      <Container>
-        <Text weight="500" size="SM" marginLeft="5px">
-          Matrícula
-        </Text>
-        <TextInput
-          placeholder={'Digite sua matrícula'}
-          accessibilityLabel="Matrícula"
-          autoComplete="username"
-          autoCapitalize="none"
-          keyboardType="number-pad"
-          value={matricula}
-          onChangeText={setMatricula}
-          onSubmitEditing={() => passwordInputRef?.current?.focus()}
-        />
-        <Text weight="500" size="SM" marginLeft="5px" marginTop="20px">
-          Senha
-        </Text>
-        <TextInput
-          placeholder={'Digite sua senha'}
-          accessibilityLabel="Senha"
-          autoComplete="password"
-          autoCapitalize="none"
-          secureTextEntry
-          value={password}
-          ref={passwordInputRef}
-          onChangeText={setPassword}
-          onSubmitEditing={() => handleSignInPress()}
-        />
-        <Text size="XS" alignSelf="center" textAlign="center" color="ERROR">
-          {error || identityError || ''}
-        </Text>
-        <SignInButton
-          loading={loading}
-          disabled={loading}
-          onPress={() => handleSignInPress()}
+    <Root>
+      <KeyboardAvoidingView
+        style={styles.fill}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+          showsVerticalScrollIndicator={false}
         >
-          Entrar
-        </SignInButton>
-
-        <RecoveryPassButton onPress={handleRecoveryPassPress}>
-          <Text weight="bold" size="SM" alignSelf="center" textAlign="center">
-            Não possui acesso ou esqueceu a senha?
-          </Text>
-        </RecoveryPassButton>
-      </Container>
-    </LogoContainer>
+          <Top $inset={insets.top}>
+            <AoLogo width={164} />
+          </Top>
+          <Panel $inset={insets.bottom}>
+            <Text variant="titleL" accessibilityRole="header">
+              Entre com sua conta
+            </Text>
+            <Subtitle tone="muted">
+              Use a mesma matrícula e senha do Aluno Online.
+            </Subtitle>
+            <FieldGroup error={error || identityError || ''}>
+              <FieldGroupRow
+                icon="badge"
+                label="Matrícula"
+                placeholder="Digite sua matrícula"
+                accessibilityLabel="Matrícula"
+                autoComplete="username"
+                autoCapitalize="none"
+                keyboardType="number-pad"
+                returnKeyType="next"
+                submitBehavior="submit"
+                clearable
+                value={matricula}
+                onChangeText={setMatricula}
+                onSubmitEditing={() => passwordInputRef?.current?.focus()}
+              />
+              <FieldGroupRow
+                ref={passwordInputRef}
+                icon="lock"
+                label="Senha"
+                placeholder="Digite sua senha"
+                accessibilityLabel="Senha"
+                autoComplete="password"
+                autoCapitalize="none"
+                returnKeyType="go"
+                secureToggle
+                value={password}
+                onChangeText={setPassword}
+                onSubmitEditing={() => handleSignInPress()}
+              />
+            </FieldGroup>
+            <Button
+              label="Entrar"
+              block
+              loading={loading}
+              loadingLabel="Entrando…"
+              onPress={() => handleSignInPress()}
+            />
+            <RecoveryButton
+              variant="link"
+              label="Não possui acesso ou esqueceu a senha?"
+              onPress={handleRecoveryPassPress}
+            />
+            <Footer
+              variant="caption"
+              weight="regular"
+              tone="muted"
+              align="center"
+            >
+              {`Aplicativo não oficial e de código aberto · Versão ${version}`}
+            </Footer>
+          </Panel>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Root>
   );
 };
+
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  scroll: { flexGrow: 1 },
+});
 
 export default LoginPage;

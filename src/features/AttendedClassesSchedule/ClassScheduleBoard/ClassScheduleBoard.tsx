@@ -1,189 +1,292 @@
-import React from 'react';
-import { Alert } from 'react-native';
-import { nextWeekdayIndex } from '@root/modules/academics/domain/rules/schedule';
-import { useScheduleSharing } from '@root/modules/academics/presentation/useScheduleSharing';
-import { TouchableOpacity } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { Animated, Easing, useWindowDimensions } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useTheme } from 'styled-components/native';
-import Carousel from 'react-native-reanimated-carousel';
-import { MaterialDesignIcons as Icon } from '@react-native-vector-icons/material-design-icons';
 import { Buffer } from 'buffer';
 
-import { window } from '@utils/constants/info';
-import { TIME_VALUES } from '@utils/constants/time';
+import {
+  Button,
+  DayTimeline,
+  Section,
+  SHIFT_LABEL,
+  StatusLabel,
+  Tag,
+  Text,
+  useReducedMotion,
+  WeekDaySelector,
+  type TimelineEvent,
+  type WeekDayItem,
+} from '@components/ui';
+import { nextWeekdayIndex } from '@root/modules/academics/domain/rules/schedule';
 import { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
-
-import Text from '@atoms/Text';
-import { buildWeekSvgDataUri } from '@root/modules/academics/presentation/scheduleSvg';
+import { useScheduleSharing } from '@root/modules/academics/presentation/useScheduleSharing';
+import {
+  buildWeekSvgDataUri,
+  type SvgThemeColors,
+} from '@root/modules/academics/presentation/scheduleSvg';
 
 import {
-  TimeInfoColumn,
-  WeekDayContainer,
-  Row,
-  SubjectInfoColumn,
-  ClassBox,
-  CarouselContainer,
-  ActionsRow,
-  ShareButton,
-} from './ClassScheduleBoard.styles';
+  CLASS_DAYS,
+  clockLabel,
+  dateLabel,
+  isCanceled,
+  minutesOfDay,
+  plural,
+  shiftOf,
+  slotRange,
+  splitLocation,
+  timeRange,
+  WEEKDAY_SHORT,
+  weekDates,
+  weekdayOf,
+} from '../scheduleFormat';
+import { DayCount, DayHead, DayView } from './ClassScheduleBoard.styles';
 
 type Props = {
   data: AttendedClassesSchedule[];
-  onSubjectPress: (item?: AttendedClassesSchedule) => void;
+  /** Hora atual (linha de agora, "Hoje", aulas encerradas). */
+  now: Date;
+  /** Toque numa aula: abre "Disciplinas em Curso". */
+  onSubjectPress: (item: AttendedClassesSchedule) => void;
 };
 
-const ClassScheduleBoard = ({ data, onSubjectPress }: Props) => {
+const SVG_PREFIX = 'data:image/svg+xml;base64,';
+
+/** Escala padrão da régua: 48dp por hora. */
+const BASE_PX_PER_MINUTE = 0.8;
+
+/**
+ * Semana: seletor de dias (Seg–Sáb, hoje em acento, ponto nos dias com aula)
+ * e o dia escolhido como régua de horas, com intervalos livres, linha de
+ * agora e aulas encerradas. "Compartilhar grade" gera a imagem da semana.
+ */
+const ClassScheduleBoard = ({ data, now, onSubjectPress }: Props) => {
   const theme = useTheme();
-  const safeData = data ?? [];
+  const reduced = useReducedMotion();
+  const { fontScale } = useWindowDimensions();
+  const safeData = useMemo(() => data ?? [], [data]);
   const { share, exporting, SvgRenderer } = useScheduleSharing();
+  const [pickedDay, setPickedDay] = useState<number | null>(null);
+  const fade = useRef(new Animated.Value(1)).current;
 
-  const weekDays = [] as { number: number; name: string }[];
-  safeData.forEach(
-    c =>
-      !weekDays.some(w => w.number === c.dayNumber) &&
-      weekDays.push({ number: c.dayNumber, name: c.dayAlias }),
+  const svgColors = useMemo<SvgThemeColors>(
+    () => ({
+      background: theme.colors.surface,
+      card: theme.colors.surface,
+      rule: theme.colors.fieldBorder,
+      ink: theme.colors.ink,
+      brand: theme.colors.brand,
+      onBrand: theme.colors.onBrand,
+      morning: theme.shift.morning.bg,
+      afternoon: theme.shift.afternoon.bg,
+      night: theme.shift.night.bg,
+    }),
+    [theme],
+  );
+  const svgDataUri = useMemo(
+    () => buildWeekSvgDataUri(safeData, svgColors),
+    [safeData, svgColors],
+  );
+  const svgString = useMemo(
+    () =>
+      Buffer.from(svgDataUri.replace(SVG_PREFIX, ''), 'base64').toString(
+        'utf8',
+      ),
+    [svgDataUri],
   );
 
-  const getBoxColor = (start: number) => {
-    if (start < 740) {
-      return 'MORNING';
-    }
-    if (start < 1070) {
-      return 'AFTERNOON';
-    }
-    return 'NIGHT';
-  };
+  const today = now.getDay();
+  const isClassDay = today !== 0;
+  const classDays = [...new Set(safeData.map(weekdayOf))].sort((a, b) => a - b);
+  const defaultDay = classDays.length
+    ? classDays[nextWeekdayIndex(classDays, today)]
+    : 1;
+  const selected = pickedDay ?? defaultDay;
 
-  const renderClasses = (item: AttendedClassesSchedule) => {
-    const { start_time_in_minutes, end_time_in_minutes } = item;
-
-    const { periodAlias: startPeriod, startTimeAlias } = TIME_VALUES.find(
-      t => start_time_in_minutes === t.start_time_in_minutes,
-    ) ?? { periodAlias: '??' };
-
-    const { periodAlias: endPeriod, endTimeAlias } = TIME_VALUES.find(
-      t => t.end_time_in_minutes === end_time_in_minutes,
-    ) ?? { periodAlias: '??' };
-
-    const boxColor = getBoxColor(start_time_in_minutes);
-    return (
-      <TouchableOpacity
-        key={`${item.class.id}:${item.start_time_in_minutes}`}
-        onPress={() => onSubjectPress(item)}
-      >
-        <ClassBox color={boxColor}>
-          <Row>
-            <TimeInfoColumn>
-              <Text
-                weight="500"
-                size="XS"
-                italic
-                textAlign="center"
-                alignSelf="center"
-              >
-                {startPeriod} - {endPeriod}
-              </Text>
-              <Text
-                weight="500"
-                size="XS"
-                italic
-                textAlign="center"
-                alignSelf="center"
-              >
-                {startTimeAlias} - {endTimeAlias}
-              </Text>
-            </TimeInfoColumn>
-            <SubjectInfoColumn>
-              <Text size="XS" textAlign="center" alignSelf="center">
-                {item.class.name}
-              </Text>
-            </SubjectInfoColumn>
-          </Row>
-        </ClassBox>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderBoard = (weekDay: string) => {
-    const classesInThisDay = safeData.filter(c => c.dayAlias === weekDay);
-
-    return (
-      <WeekDayContainer>
-        <Text
-          size="LG"
-          textAlign="center"
-          alignSelf="center"
-          weight="300"
-          marginBottom="8px"
-        >
-          {weekDay}
-        </Text>
-        {classesInThisDay.map(renderClasses)}
-      </WeekDayContainer>
-    );
-  };
-
-  weekDays.sort((left, right) => left.number - right.number);
-  const defaultIndex = nextWeekdayIndex(
-    weekDays.map(day => day.number),
-    new Date().getDay(),
+  const fadeStyle = useMemo(
+    () => ({
+      opacity: fade,
+      transform: [
+        {
+          translateY: fade.interpolate({
+            inputRange: [0, 1],
+            outputRange: [4, 0],
+          }),
+        },
+      ],
+    }),
+    [fade],
   );
 
-  const qttyItemsPerWeekDay = weekDays.map(
-    w => safeData.filter(c => c.dayAlias === w.name).length,
+  // Troca de dia pelo aluno: o conteúdo entra com um leve esmaecer. Só no
+  // toque — a chegada dos dados (que muda o dia padrão) não anima. Roda em JS:
+  // com o driver nativo no Fabric o valor final às vezes não chegava à view,
+  // e a linha do tempo ficava invisível.
+  const handleSelect = useCallback(
+    (day: number) => {
+      setPickedDay(day);
+      if (reduced) return;
+      fade.setValue(0);
+      Animated.timing(fade, {
+        toValue: 1,
+        duration: theme.motion.fast,
+        easing: Easing.bezier(...theme.motion.easing),
+        useNativeDriver: false,
+      }).start();
+    },
+    [fade, reduced, theme.motion],
   );
-  const maxQttyOfItemsInAWeekDay = Math.max(0, ...qttyItemsPerWeekDay);
-  const maxPossibleHeight =
-    60 * maxQttyOfItemsInAWeekDay + 12 * maxQttyOfItemsInAWeekDay + 80;
 
-  const handleExport = async () => {
-    try {
-      await share(buildWeekSvgDataUri(safeData, theme.COLORS));
-    } catch {
-      Alert.alert(
-        'Compartilhamento',
-        'Não foi possível compartilhar a grade. Tente novamente.',
-      );
-    }
-  };
-
-  if (weekDays.length === 0) {
+  if (classDays.length === 0) {
     return null;
   }
 
-  const svgDataUri = buildWeekSvgDataUri(safeData, theme.COLORS);
-  const base64Svg = svgDataUri.replace('data:image/svg+xml;base64,', '');
-  const svgString = Buffer.from(base64Svg, 'base64').toString('utf8');
+  const dates = weekDates(now);
+  const days: WeekDayItem[] = CLASS_DAYS.map(day => {
+    const date = dates.get(day) as Date;
+    const hasEvents = safeData.some(item => weekdayOf(item) === day);
+    const isToday = isClassDay && day === today;
+    return {
+      key: day,
+      short: WEEKDAY_SHORT[day],
+      date: date.getDate(),
+      hasEvents,
+      isToday,
+      accessibilityLabel: `${dateLabel(date)}${isToday ? ', hoje' : ''}${
+        hasEvents ? '' : ', sem aulas'
+      }`,
+    };
+  });
+
+  const selectedDate = dates.get(selected) ?? now;
+  const selectedIsToday = isClassDay && selected === today;
+  const nowMinutes = minutesOfDay(now);
+  const dayItems = safeData
+    .filter(item => weekdayOf(item) === selected)
+    .sort((a, b) => a.start_time_in_minutes - b.start_time_in_minutes);
+
+  // Aulas de um tempo só (50 min) precisam de mais altura para as duas
+  // linhas; a escala cresce também com o tamanho de fonte do sistema.
+  const durations = safeData
+    .map(item => item.end_time_in_minutes - item.start_time_in_minutes)
+    .filter(d => d > 0);
+  const shortest = durations.length ? Math.min(...durations) : 0;
+  const needed = 22 + 38 * Math.min(fontScale || 1, 2);
+  const pxPerMinute = shortest
+    ? Math.max(BASE_PX_PER_MINUTE, needed / shortest)
+    : BASE_PX_PER_MINUTE;
+
+  const events: TimelineEvent[] = dayItems.map(item => {
+    const start = item.start_time_in_minutes;
+    const end = item.end_time_in_minutes;
+    const canceled = isCanceled(item);
+    const past = !canceled && selectedIsToday && end <= nowMinutes;
+    const live =
+      !canceled && selectedIsToday && start <= nowMinutes && end > nowMinutes;
+    const shift = shiftOf(start);
+    const { room } = splitLocation(item.class?.uerjLocation);
+    const slots = slotRange(item);
+
+    let status: React.ReactNode;
+    let statusText: string;
+    if (canceled) {
+      status = <StatusLabel tone="neutral" icon="block" label="Cancelada" />;
+      statusText = 'cancelada';
+    } else if (past) {
+      status = <StatusLabel tone="neutral" icon="check" label="Encerrada" />;
+      statusText = 'encerrada';
+    } else if (live) {
+      status = <StatusLabel tone="accent" label="Agora" />;
+      statusText = 'agora';
+    } else {
+      status = <StatusLabel tone={shift} label={SHIFT_LABEL[shift]} />;
+      statusText = SHIFT_LABEL[shift];
+    }
+
+    return {
+      key: `${item.class?.id ?? item.subject_id}:${start}`,
+      start,
+      end,
+      title: item.class?.name ?? item.subject_id,
+      meta: canceled
+        ? `${timeRange(item)} · ${slots}`
+        : `${timeRange(item)} · ${slots} · ${room}`,
+      status,
+      state: canceled || past ? 'past' : live ? 'live' : 'upcoming',
+      onPress: () => onSubjectPress(item),
+      accessibilityLabel: [
+        item.class?.name ?? item.subject_id,
+        `${item.startTimeAlias} às ${item.endTimeAlias}`,
+        slots,
+        canceled ? null : room,
+        statusText,
+      ]
+        .filter(Boolean)
+        .join(', '),
+    };
+  });
+
+  const handleExport = async () => {
+    try {
+      await share(svgDataUri);
+    } catch {
+      Toast.show({
+        type: 'error',
+        text1: 'Não foi possível compartilhar a grade.',
+        text2: 'Tente novamente.',
+      });
+    }
+  };
 
   return (
-    <>
-      <CarouselContainer>
-        <ActionsRow>
-          <ShareButton
-            onPress={handleExport}
-            accessibilityRole="button"
-            accessibilityLabel="Compartilhar grade da semana"
-            disabled={exporting}
-          >
-            <Icon
-              name="share-variant"
-              size={18}
-              color={theme.COLORS.TEXT_PRIMARY}
-            />
-          </ShareButton>
-        </ActionsRow>
-        <Carousel
-          loop
-          defaultIndex={defaultIndex}
-          width={window.width}
-          height={maxPossibleHeight}
-          data={weekDays.map(w => w.name)}
-          scrollAnimationDuration={500}
-          renderItem={({ item }) => renderBoard(item)}
+    <Section
+      title="Semana"
+      action={
+        <Button
+          variant="text"
+          size="sm"
+          icon="share"
+          label="Compartilhar grade"
+          accessibilityLabel="Compartilhar grade da semana"
+          loading={exporting}
+          onPress={handleExport}
         />
-      </CarouselContainer>
-
+      }
+    >
+      <WeekDaySelector
+        days={days}
+        selected={selected}
+        onSelect={handleSelect}
+      />
+      <DayView>
+        <Animated.View style={fadeStyle}>
+          <DayHead>
+            <Text weight="semibold">{dateLabel(selectedDate)}</Text>
+            {selectedIsToday ? <Tag tone="accent" label="Hoje" /> : null}
+            {dayItems.length ? (
+              <DayCount>
+                <Text tone="muted">
+                  {plural(dayItems.length, 'aula', 'aulas')}
+                </Text>
+              </DayCount>
+            ) : null}
+          </DayHead>
+          <DayTimeline
+            events={events}
+            pxPerMinute={pxPerMinute}
+            now={
+              selectedIsToday
+                ? { minutes: nowMinutes, label: clockLabel(now) }
+                : undefined
+            }
+            emptyText={
+              selected === 6 ? 'Sem aulas no sábado.' : 'Sem aulas neste dia.'
+            }
+          />
+        </Animated.View>
+      </DayView>
       <SvgRenderer svgString={svgString} />
-    </>
+    </Section>
   );
 };
 

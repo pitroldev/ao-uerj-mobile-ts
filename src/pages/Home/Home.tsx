@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import parser from '@services/parser';
 import { useIdentity } from '@root/app/providers/AppServicesProvider';
 import {
@@ -9,28 +9,24 @@ import {
 } from '@root/modules/academics/presentation/queries';
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
 import { useOnlineStatus } from '@root/modules/academics/presentation/useOnlineStatus';
+import type { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
+
+import ScreenPanel from '@templates/ScreenPanel';
+import { BlockedState, EmptyState, ErrorState, Notice } from '@components/ui';
 
 import AppInfoModal from '@features/AppInfoModal';
 import RIDBoard from '@features/PartialRID/RIDBoard';
 import GradeBoard from '@features/ClassGrades/GradeBoard';
+import NextClassCard from '@features/AttendedClassesSchedule/NextClassCard';
 import ClassScheduleBoard from '@features/AttendedClassesSchedule/ClassScheduleBoard';
 import AttendedClassesBoard from '@features/AttendedClassesSchedule/AttendedClassesBoard';
+import { dateLabel } from '@features/AttendedClassesSchedule/scheduleFormat';
+import { useNow } from '@features/AttendedClassesSchedule/useNow';
 
-import Text from '@atoms/Text';
-import Spinner from '@atoms/Spinner';
-import DummyMessage from '@molecules/DummyMessage';
-import SmallDummyMessage from '@molecules/SmallDummyMessage';
-
-import {
-  MainContainer,
-  ScrollContainer,
-  Row,
-  Column,
-  TooManyErrorsView,
-  TooManyErrorsWarning,
-  TooManyErrorsBulletItem,
-  TooManyErrorsBulletDescription,
-} from './Home.styles';
+import HomeGreeting from './components/HomeGreeting';
+import HomeHelp from './components/HomeHelp';
+import HomeSkeleton from './components/HomeSkeleton';
+import { styles } from './Home.styles';
 
 type ErrorControl = {
   key: string;
@@ -38,8 +34,17 @@ type ErrorControl = {
   callback: () => unknown;
 };
 
+type ClassesSheet = { visible: boolean; focusId: string | null };
+
+const NOT_STARTED_TEXT = 'Parece que o período não se iniciou ainda.';
+
 const HomePage = () => {
-  const [attendedModalVisibility, setAttendedModalVisibility] = useState(false);
+  const [classesSheet, setClassesSheet] = useState<ClassesSheet>({
+    visible: false,
+    focusId: null,
+  });
+  const [refreshing, setRefreshing] = useState(false);
+  const now = useNow();
 
   const { account } = useIdentity();
   const online = useOnlineStatus();
@@ -72,7 +77,12 @@ const HomePage = () => {
   const isBlocked = [scheduleError, gradesError, ridError].some(
     isPortalBlocked,
   );
-  const parsedName = parser.parseName(account?.name ?? '', false);
+  const firstName =
+    parser.parseName(account?.name ?? '', true).split(' ')[0] ?? '';
+  const period =
+    account?.period && account.period !== 'current'
+      ? account.period
+      : undefined;
 
   const isLoading = loadingSchedule || loadingGrades || loadingRID;
   const isPaused =
@@ -125,111 +135,133 @@ const HomePage = () => {
   const errorsCallback = async () =>
     await Promise.all(errors.map(e => e.callback()));
 
+  const queries = [scheduleQuery, gradesQuery, ridQuery];
+  /** Tenta de novo tudo o que falhou (com ou sem dados salvos). */
+  const retryFailed = async () =>
+    await Promise.all(queries.filter(q => q.error).map(q => q.refetch()));
+  const refetchAll = async () =>
+    await Promise.all(queries.map(q => q.refetch()));
+
+  const onRefresh = async () => {
+    // Sem conexão o React Query pausa as consultas e o refetch só termina
+    // quando a rede volta: dispara sem esperar e deixa o aviso do topo explicar.
+    if (!online) {
+      void refetchAll();
+      return;
+    }
+    setRefreshing(true);
+    try {
+      await refetchAll();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const openClasses = useCallback((item?: AttendedClassesSchedule) => {
+    setClassesSheet({ visible: true, focusId: item?.class?.id ?? null });
+  }, []);
+  const closeClasses = useCallback(() => {
+    setClassesSheet(sheet => ({ ...sheet, visible: false }));
+  }, []);
+
+  const greeting = <HomeGreeting firstName={firstName} date={dateLabel(now)} />;
+
   if (isBlocked && !hasSomethingAvailable) {
     return (
-      <MainContainer>
-        <Row>
-          <Column>
-            <Text weight="300" size="MD">
-              Olá,
-            </Text>
-            <Text weight="bold" size="LG">
-              {parsedName}
-            </Text>
-          </Column>
-        </Row>
-        <DummyMessage
-          type="BLOCK"
-          text="Parece que o Aluno Online está temporariamente bloqueado. Tente novamente mais tarde."
-          onPress={errorsCallback}
-        />
-      </MainContainer>
+      <ScreenPanel>
+        {greeting}
+        <BlockedState onRetry={retryFailed} />
+      </ScreenPanel>
     );
   }
 
+  // Um único aviso de estado no topo (e não um por consulta): sem conexão,
+  // portal bloqueado, falha ao atualizar ou a barra de "atualizando".
+  const withData = queries.filter(q => q.data !== undefined);
+  const updatedAts = withData.map(q => q.dataUpdatedAt).filter(Boolean);
+  const oldestUpdate = updatedAts.length ? Math.min(...updatedAts) : undefined;
+  const failedWithData = withData.find(q => q.error);
+  let notice: React.ReactNode;
+  if (isPaused) {
+    notice = (
+      <QueryNotice
+        isPaused
+        isFetching={false}
+        error={null}
+        hasData={withData.length > 0}
+        dataUpdatedAt={oldestUpdate}
+        retry={refetchAll}
+      />
+    );
+  } else if (isBlocked) {
+    notice = (
+      <Notice kind="blocked" onRetry={retryFailed} style={styles.notice} />
+    );
+  } else {
+    notice = (
+      <QueryNotice
+        isPaused={false}
+        isFetching={!refreshing && withData.some(q => q.isFetching)}
+        error={failedWithData?.error ?? null}
+        hasData={withData.length > 0}
+        dataUpdatedAt={failedWithData?.dataUpdatedAt || oldestUpdate}
+        retry={failedWithData ? failedWithData.refetch : refetchAll}
+      />
+    );
+  }
+
+  const showSkeleton = !hasSomethingAvailable && isLoading;
+  const showError = hasAnyError && !isLoading;
+  const showNotStarted =
+    !hasSomethingAvailable && !hasAnyError && !isLoading && !isPaused;
+
   return (
-    <MainContainer>
+    <>
       <AppInfoModal />
-      <Row>
-        <Column>
-          <Text weight="300" size="MD">
-            Olá,
-          </Text>
-          <Text weight="bold" size="LG">
-            {parsedName}
-          </Text>
-        </Column>
-        {!hasSomethingAvailable && isLoading && (
-          <Spinner loading size="large" />
-        )}
-      </Row>
-      {hasTooManyErrors && (
-        <TooManyErrorsView>
-          <TooManyErrorsWarning>Caso o erro persista</TooManyErrorsWarning>
-          <TooManyErrorsBulletItem>
-            1. Verifique se o aplicativo está atualizado
-          </TooManyErrorsBulletItem>
-          <TooManyErrorsBulletItem>
-            2. Saia e entre novamente no aplicativo
-          </TooManyErrorsBulletItem>
-          <TooManyErrorsBulletItem>
-            3. Tente novamente mais tarde
-          </TooManyErrorsBulletItem>
-          <TooManyErrorsBulletDescription>
-            As vezes a UERJ atualiza o sistema e isso pode causar problemas no
-            aplicativo. Normalmente esses problemas são resolvidos em pouco
-            tempo, mas caso continue vendo essa mensagem contate-nos pela página
-            Sobre.
-          </TooManyErrorsBulletDescription>
-        </TooManyErrorsView>
-      )}
-      {isBlocked && (
-        <SmallDummyMessage
-          type="BLOCK"
-          text="O Aluno Online está temporariamente bloqueado."
-          onPress={errorsCallback}
-        />
-      )}
-      {!hasSomethingAvailable && !hasAnyError && !isLoading && !isPaused && (
-        <DummyMessage
-          type="EMPTY"
-          text="Parece que o período não se iniciou ainda."
-        />
-      )}
-      <ScrollContainer>
-        {[scheduleQuery, gradesQuery, ridQuery].map((query, index) => (
-          <QueryNotice
-            key={index}
-            dataUpdatedAt={query.dataUpdatedAt}
-            isPaused={query.isPaused}
-            isFetching={query.isFetching}
-            error={query.error}
-            hasData={query.data !== undefined}
-            retry={query.refetch}
+      <ScreenPanel refreshing={refreshing && !isPaused} onRefresh={onRefresh}>
+        {notice}
+        {greeting}
+        {showSkeleton ? <HomeSkeleton /> : null}
+        {showError ? (
+          <>
+            <ErrorState
+              variant="card"
+              message={errorText}
+              onRetry={errorsCallback}
+              style={styles.errorCard}
+            />
+            {hasTooManyErrors ? <HomeHelp /> : null}
+          </>
+        ) : null}
+        {showNotStarted ? (
+          <EmptyState icon="event_upcoming" text={NOT_STARTED_TEXT} />
+        ) : null}
+        {isScheduleAvailable ? (
+          <NextClassCard
+            data={currentSchedule}
+            now={now}
+            onPress={openClasses}
           />
-        ))}
-        {isClassGradesAvailable && <GradeBoard data={classGrades} />}
+        ) : null}
+        {isClassGradesAvailable ? (
+          <GradeBoard data={classGrades} period={period} />
+        ) : null}
         <ClassScheduleBoard
           data={currentSchedule}
-          onSubjectPress={() => setAttendedModalVisibility(true)}
+          now={now}
+          onSubjectPress={openClasses}
         />
-        {!isScheduleAvailable && isPartialRidAvailable && (
+        {!isScheduleAvailable && isPartialRidAvailable ? (
           <RIDBoard data={partialRID} />
-        )}
-        <AttendedClassesBoard
-          isVisible={attendedModalVisibility}
-          setVisibility={setAttendedModalVisibility}
-          data={currentSchedule}
-        />
-        {hasAnyError && !isLoading && (
-          <DummyMessage
-            type="ERROR"
-            text={errorText}
-            onPress={errorsCallback}
-          />
-        )}
-      </ScrollContainer>
-    </MainContainer>
+        ) : null}
+      </ScreenPanel>
+      <AttendedClassesBoard
+        visible={classesSheet.visible}
+        focusId={classesSheet.focusId}
+        onClose={closeClasses}
+        data={currentSchedule}
+      />
+    </>
   );
 };
 
