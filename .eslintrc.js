@@ -3,7 +3,12 @@ module.exports = {
   extends: ['@react-native', 'plugin:prettier/recommended'],
   parser: '@typescript-eslint/parser',
   plugins: ['@typescript-eslint', 'prettier'],
-  ignorePatterns: ['android/**', 'ios/**', 'coverage/**'],
+  ignorePatterns: [
+    'android/**',
+    'ios/**',
+    'coverage/**',
+    'docs/design-proposals/**',
+  ],
   overrides: [
     {
       files: ['*.js', '*.cjs'],

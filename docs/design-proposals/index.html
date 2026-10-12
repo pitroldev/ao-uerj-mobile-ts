@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AO UERJ · Três variantes visuais</title>
+<style>
+  :root {
+    --bg: #ECEBE8;
+    --ink: #17181A;
+    --ink-2: #55575C;
+    --rule: #CFCDC8;
+    --chip: #FFFFFF;
+    --focus: #17181A;
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --bg: #151617;
+    --ink: #EDECE9;
+    --ink-2: #A3A4A8;
+    --rule: #2E3033;
+    --chip: #1F2123;
+    --focus: #EDECE9;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+  }
+  ::selection { background: var(--ink); color: var(--bg); }
+  a { color: inherit; text-underline-offset: 3px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  header {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px;
+    padding: 16px 24px 12px;
+    border-bottom: 1px solid var(--rule);
+  }
+  h1 { font-size: 18px; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
+  h1 span { font-weight: 400; color: var(--ink-2); }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-left: auto; }
+  label.sel { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2); }
+  select, .seg button {
+    font: inherit; color: var(--ink); background: var(--chip);
+    border: 1px solid var(--rule); border-radius: 8px; min-height: 36px; padding: 0 10px;
+  }
+  .seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+  main {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    justify-content: center;
+    gap: 28px;
+    padding: 20px 24px 32px;
+  }
+  .col { display: flex; flex-direction: column; gap: 12px; width: var(--w); }
+  .viewport {
+    width: var(--w); height: var(--h);
+    border-radius: calc(28px * var(--s));
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 12px 32px -12px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.12);
+  }
+  .viewport iframe {
+    width: 412px; height: 892px; border: 0; display: block;
+    transform: scale(var(--s)); transform-origin: 0 0;
+  }
+  .meta h2 { margin: 0; font-size: 16px; font-weight: 650; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .meta h2 a { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+  .meta p { margin: 4px 0 0; color: var(--ink-2); max-width: 46ch; }
+    .swatches { display: flex; gap: 4px; margin-top: 8px; }
+  .swatches i { width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--rule); display: block; }
+  footer { padding: 0 24px 24px; color: var(--ink-2); text-align: center; }
+
+  @media (max-width: 1100px) {
+    main { grid-template-columns: 1fr; justify-items: center; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>AO UERJ <span>· três variantes do visual atual</span></h1>
+  <div class="controls">
+    <label class="sel">Tela
+      <select id="route" aria-label="Tela exibida nas três versões">
+        <option value="home">Início</option>
+        <option value="home?state=rid">Início · período de inscrição (RID)</option>
+        <option value="home?state=offline">Início · sem conexão</option>
+        <option value="home?state=blocked">Início · portal bloqueado</option>
+        <option value="home?state=loading">Início · carregando</option>
+        <option value="home?sheet=classes">Início · disciplinas em curso</option>
+        <option value="home?sheet=whatsnew">Início · novidades</option>
+        <option value="progress">Progresso</option>
+        <option value="progress?sheet=credits">Progresso · configurar créditos</option>
+        <option value="generator?step=1">Gerador · 1 quantidade</option>
+        <option value="generator?step=2">Gerador · 2 horários ocupados</option>
+        <option value="generator?step=3">Gerador · 3 prioridades</option>
+        <option value="generator?step=4">Gerador · 4 disciplinas</option>
+        <option value="generator?step=5">Gerador · 5 carregar dados</option>
+        <option value="generator?step=6">Gerador · 6 turmas</option>
+        <option value="generator?step=7">Gerador · 7 grades geradas</option>
+        <option value="board">Mural</option>
+        <option value="board-chat">Mural · conversa</option>
+        <option value="realizadas">Disciplinas Realizadas</option>
+        <option value="curriculo">Disciplinas do Currículo</option>
+        <option value="universais">Disciplinas Universais</option>
+        <option value="pesquisa">Pesquisa de Disciplinas</option>
+        <option value="subject">Detalhe da disciplina</option>
+        <option value="about">Sobre</option>
+        <option value="about?sheet=report">Sobre · reportar problema</option>
+        <option value="home?drawer=1">Menu lateral aberto</option>
+        <option value="login">Login</option>
+        <option value="login?state=error">Login · erro</option>
+        <option value="splash">Carregamento</option>
+      </select>
+    </label>
+    <div class="seg" role="group" aria-label="Tema">
+      <button type="button" data-theme-btn="light" aria-pressed="true">Claro</button>
+      <button type="button" data-theme-btn="dark" aria-pressed="false">Escuro</button>
+    </div>
+  </div>
+</header>
+
+<main id="board">
+  <section class="col" aria-labelledby="t1">
+    <div class="viewport"><iframe title="Variante 1, Material" data-file="v1-material.html"></iframe></div>
+    <div class="meta">
+      <h2 id="t1">1 · Material <a href="v1-material.html">abrir variante</a></h2>
+      <p>Inspirada nos apps do Google no Android (Agenda, Classroom). A mais próxima do app atual: mesma estrutura, componentes Material 3 caprichados e tons derivados do azul UERJ.</p>
+      <div class="swatches" aria-hidden="true"><i style="background:#003468"></i><i style="background:#1F5BA3"></i><i style="background:#D6E3FF"></i><i style="background:#F8F9FD"></i><i style="background:#FBF3C8"></i><i style="background:#D7F2DE"></i></div>
+    </div>
+  </section>
+
+  <section class="col" aria-labelledby="t2">
+    <div class="viewport"><iframe title="Variante 2, Banco digital" data-file="v2-banco.html"></iframe></div>
+    <div class="meta">
+      <h2 id="t2">2 · Banco digital <a href="v2-banco.html">abrir variante</a></h2>
+      <p>Inspirada em Nubank, Inter e C6: o cabeçalho azul vira um resumo (próxima aula e CR, com opção de ocultar), atalhos circulares e listas limpas com divisores.</p>
+      <div class="swatches" aria-hidden="true"><i style="background:#003468"></i><i style="background:#016BA5"></i><i style="background:#F3F5F9"></i><i style="background:#FFFFFF"></i><i style="background:#0F1B2D"></i></div>
+    </div>
+  </section>
+
+  <section class="col" aria-labelledby="t3">
+    <div class="viewport"><iframe title="Variante 3, Agenda limpa" data-file="v3-agenda.html"></iframe></div>
+    <div class="meta">
+      <h2 id="t3">3 · Agenda limpa <a href="v3-agenda.html">abrir variante</a></h2>
+      <p>Inspirada em Notion Calendar, Todoist e Apple Calendário: tipografia clara, fios finos, menos cards e a semana como linha do tempo, com o azul UERJ como cabeçalho e acento.</p>
+      <div class="swatches" aria-hidden="true"><i style="background:#003468"></i><i style="background:#004891"></i><i style="background:#FFFFFF"></i><i style="background:#E4E7EC"></i><i style="background:#101828"></i></div>
+    </div>
+  </section>
+</main>
+
+<footer>Dados fictícios para demonstração. Cada variante abre sozinha com todas as telas, estados e o alternador de tema no painel lateral.</footer>
+
+<script>
+(function () {
+  var frames = Array.prototype.slice.call(document.querySelectorAll('iframe[data-file]'));
+  var routeSel = document.getElementById('route');
+  var themeBtns = Array.prototype.slice.call(document.querySelectorAll('[data-theme-btn]'));
+  var state = { route: 'home', theme: 'light' };
+
+  function readHash() {
+    var h = location.hash.replace(/^#/, '');
+    if (!h) return;
+    var p = new URLSearchParams(h);
+    if (p.get('route')) state.route = p.get('route');
+    if (p.get('theme') === 'dark' || p.get('theme') === 'light') state.theme = p.get('theme');
+  }
+
+  function writeHash() {
+    var p = new URLSearchParams({ route: state.route, theme: state.theme });
+    history.replaceState(null, '', '#' + p.toString());
+  }
+
+  function srcFor(file) {
+    var r = state.route;
+    var sep = r.indexOf('?') >= 0 ? '&' : '?';
+    return file + '#/' + r + sep + 'theme=' + state.theme + '&embed=1';
+  }
+
+  function apply() {
+    document.documentElement.dataset.theme = state.theme;
+    routeSel.value = state.route;
+    themeBtns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.themeBtn === state.theme)); });
+    frames.forEach(function (f) { f.src = srcFor(f.dataset.file); });
+    writeHash();
+  }
+
+  function fit() {
+    var board = document.getElementById('board');
+    var stacked = window.innerWidth <= 1100;
+    var headerH = document.querySelector('header').offsetHeight;
+    var availH = window.innerHeight - headerH - 200;
+    var availW = stacked ? window.innerWidth - 48 : (window.innerWidth - 48 - 56) / 3;
+    var s = Math.min(1, Math.max(0.5, Math.min(availH / 892, availW / 412)));
+    if (stacked) s = Math.min(1, (window.innerWidth - 48) / 412);
+    board.style.setProperty('--s', s.toFixed(3));
+    board.style.setProperty('--w', Math.round(412 * s) + 'px');
+    board.style.setProperty('--h', Math.round(892 * s) + 'px');
+  }
+
+  routeSel.addEventListener('change', function () { state.route = routeSel.value; apply(); });
+  themeBtns.forEach(function (b) {
+    b.addEventListener('click', function () { state.theme = b.dataset.themeBtn; apply(); });
+  });
+  window.addEventListener('resize', fit);
+
+  readHash();
+  fit();
+  apply();
+})();
+</script>
+</body>
+</html>
