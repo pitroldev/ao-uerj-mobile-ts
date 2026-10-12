@@ -1,6 +1,6 @@
 import Share from 'react-native-share';
 import { captureRef } from 'react-native-view-shot';
-import type { View } from 'react-native';
+import type { ViewInstance } from 'react-native';
 import type {
   ScheduleImage,
   ScheduleSharingPort,
@@ -8,7 +8,7 @@ import type {
 
 export class NativeScheduleSharing implements ScheduleSharingPort {
   capturePng(target: object): Promise<string> {
-    return captureRef(target as View, { format: 'png', quality: 1 });
+    return captureRef(target as ViewInstance, { format: 'png', quality: 1 });
   }
 
   async share(image: ScheduleImage): Promise<void> {

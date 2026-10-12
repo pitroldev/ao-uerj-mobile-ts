@@ -53,8 +53,8 @@ function AmountQuestion({
         const message = !error
           ? null
           : error.type === 'required'
-          ? requiredMessage
-          : RANGE_MESSAGE;
+            ? requiredMessage
+            : RANGE_MESSAGE;
         return (
           <Question>
             <Label variant="body" weight="medium">

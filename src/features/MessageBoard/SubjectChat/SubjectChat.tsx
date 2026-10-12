@@ -69,8 +69,8 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
       value === fromPortal
         ? 'Atual'
         : !fromPortal && value === suggested
-        ? 'Sugestão'
-        : undefined,
+          ? 'Sugestão'
+          : undefined,
   }));
   const isSuggestion = !fromPortal && period === suggested;
   const thread = {

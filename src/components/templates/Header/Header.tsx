@@ -51,13 +51,9 @@ const Header = ({ navigationState }: Props) => {
       : account?.period
     : currentRoute;
 
-  const statusBar = (
-    <StatusBar
-      barStyle="light-content"
-      backgroundColor={theme.colors.brand}
-      animated
-    />
-  );
+  // A cor da barra vem do tema nativo (statusBarColor em styles.xml) até o
+  // Android 14; no Android 15+ e no iOS o cabeçalho pinta o inset do topo.
+  const statusBar = <StatusBar barStyle="light-content" animated />;
 
   if (!isSignedIn) {
     return statusBar;

@@ -15,10 +15,13 @@ export function useNow(): Date {
       const current = new Date();
       const msToNextMinute =
         (60 - current.getSeconds()) * 1000 - current.getMilliseconds();
-      timer = setTimeout(() => {
-        setNow(new Date());
-        schedule();
-      }, Math.max(1000, msToNextMinute));
+      timer = setTimeout(
+        () => {
+          setNow(new Date());
+          schedule();
+        },
+        Math.max(1000, msToNextMinute),
+      );
     };
     schedule();
     const subscription = AppState.addEventListener('change', state => {

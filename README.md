@@ -1,17 +1,17 @@
 # AO UERJ
 
-Aplicativo não oficial do Aluno Online da UERJ, em React Native 0.83.1, React 19.2 e TypeScript. Consulta notas, histórico, currículo, disciplinas, RID e horários, além de oferecer progresso acadêmico, geração de grades e mural de mensagens.
+Aplicativo não oficial do Aluno Online da UERJ, em React Native 0.87.1, React 19.2 e TypeScript. Consulta notas, histórico, currículo, disciplinas, RID e horários, além de oferecer progresso acadêmico, geração de grades e mural de mensagens.
 
 [Google Play](https://play.google.com/store/apps/details?id=com.aouerjmobile) · [Licença GPLv3](LICENSE)
 
 ## Desenvolvimento
 
-- Node 22.21.1 (`.node-version`); mínimo suportado 20.19.4.
-- pnpm 9.10.0, definido em `packageManager`.
-- Android: JDK 17, SDK 36, Build Tools 36.0.0 e NDK 27.1.12297006.
+- Node 22.21.1 (`.node-version`); suportados ^22.13.0, ^24.3.0 ou >=26.0.0 (os mesmos do React Native).
+- pnpm 12.11.2, definido em `packageManager`; as configurações do pnpm ficam em `pnpm-workspace.yaml`.
+- Android: JDK 17, SDK 37, Build Tools 37.0.0 e NDK 27.1.12297006.
 - iOS: macOS, Xcode, Ruby/Bundler e CocoaPods. Não é possível compilar iOS no Windows.
 
-Use pnpm 9.10.0 para instalar dependências. Se a versão global for diferente, execute `npx --yes pnpm@9.10.0 install --frozen-lockfile`; o campo `packageManager` registra a versão esperada pelo projeto e pelo CI.
+Use pnpm 12.11.2 para instalar dependências (pelo Corepack, é preciso Corepack 0.34.5 ou mais novo: `npm install -g corepack@latest`). Se a versão global for diferente, execute `npx --yes pnpm@12.11.2 install --frozen-lockfile`; o campo `packageManager` registra a versão esperada pelo projeto e pelo CI.
 
 ```sh
 pnpm install --frozen-lockfile
@@ -33,7 +33,6 @@ pnpm ios
 ```sh
 pnpm build:debug
 pnpm build:debug -PreactNativeArchitectures=x86_64
-pnpm check:patches
 pnpm lint
 pnpm type-check
 pnpm test:ci
@@ -42,7 +41,7 @@ pnpm test:tooling
 
 Os scripts Gradle funcionam no Windows, Linux e macOS. Debug não exige assinatura de publicação. `pnpm build` e `pnpm bundle` exigem `android/keystore.properties` com `keyAlias`, `keyPassword`, `storeFile` e `storePassword`; `storeFile` é relativo a `android/app` ou um caminho absoluto. Esses segredos ficam fora do Git.
 
-O `postinstall` substitui `jcenter()` por `mavenCentral()` no Gradle de `@react-native-cookies/cookies` 6.2.1. A operação é idempotente; `check:patches` falha se o arquivo estiver ausente, o formato esperado não for reconhecido ou o patch ainda estiver pendente. O CI executa instalação congelada, lint, TypeScript, testes e build Android. O workflow iOS é acionado manualmente em macOS. A existência de um workflow não equivale à sua execução: consulte as [evidências da refatoração](docs/refactor-progress.md).
+`pnpm type-check` usa o TypeScript 7 nativo (`@typescript/native`). O pacote `typescript` é o alias `@typescript/typescript6`, que mantém a API JS do TypeScript 6 para o typescript-eslint e para o editor. O CI executa instalação congelada, lint, TypeScript, testes e build Android. O workflow iOS é acionado manualmente em macOS. A existência de um workflow não equivale à sua execução: consulte as [evidências da refatoração](docs/refactor-progress.md).
 
 ## Arquitetura
 

@@ -56,7 +56,7 @@ const render = async (child: React.ReactElement = <HistoryProbe />) => {
 };
 const settle = () =>
   act(async () => {
-    await new Promise(resolve => setTimeout(resolve, 5));
+    await new Promise<void>(resolve => setTimeout(resolve, 5));
   });
 
 beforeEach(() => {

@@ -66,8 +66,8 @@ export function Snackbar({
     kind === 'success'
       ? c.snackbarSuccess
       : kind === 'error'
-      ? c.snackbarError
-      : c.onSnackbar;
+        ? c.snackbarError
+        : c.onSnackbar;
   return (
     <Outer>
       <Bar

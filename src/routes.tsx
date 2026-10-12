@@ -29,8 +29,7 @@ export type RootDrawerParamList = {
   'Disciplinas do Currículo': undefined;
   'Disciplinas Universais': undefined;
   'Pesquisa de Disciplinas':
-    | { subjectId?: string; sourceRoute?: keyof RootDrawerParamList }
-    | undefined;
+    { subjectId?: string; sourceRoute?: keyof RootDrawerParamList } | undefined;
   'Pesquisa de Professores': undefined;
   'Gerador de Grade': undefined;
   'Meu Progresso': undefined;

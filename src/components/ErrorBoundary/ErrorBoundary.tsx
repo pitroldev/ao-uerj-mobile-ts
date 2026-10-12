@@ -56,15 +56,13 @@ class ErrorBoundary extends Component<Props, State> {
 
       // Fica fora dos provedores do app: traz o próprio tema. A faixa da barra
       // de status é azul, como no resto do app, para os ícones claros
-      // continuarem visíveis (no Android 15+ e no iOS o conteúdo passa por
-      // baixo da barra).
+      // continuarem visíveis: até o Android 14 a cor vem do tema nativo
+      // (statusBarColor em styles.xml); no Android 15+ e no iOS o conteúdo
+      // passa por baixo da barra e o fundo azul da raiz aparece.
       return (
         <ThemeProvider theme={LIGHT}>
           <SafeAreaView edges={TOP_EDGE} style={styles.root}>
-            <StatusBar
-              barStyle="light-content"
-              backgroundColor={LIGHT.colors.brand}
-            />
+            <StatusBar barStyle="light-content" />
             <View style={styles.page}>
               <ErrorState
                 title="Oops! Algo deu errado"

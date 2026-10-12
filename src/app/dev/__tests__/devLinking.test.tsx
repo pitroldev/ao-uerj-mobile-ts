@@ -25,9 +25,11 @@ function setup({
   const services = {
     initialize: jest.fn(async () => null),
     identity: {
-      getSnapshot: jest.fn(
-        (): IdentityState => ({ status, account: null, error: null }),
-      ),
+      getSnapshot: jest.fn((): IdentityState => ({
+        status,
+        account: null,
+        error: null,
+      })),
       signIn: jest.fn(async () => undefined),
     },
     demo: { activeScenario: jest.fn(() => activeScenario) },
@@ -41,7 +43,7 @@ function setup({
   return { linking, services, open, listeners };
 }
 
-const flush = () => new Promise(resolve => setImmediate(resolve));
+const flush = () => new Promise<void>(resolve => setImmediate(resolve));
 const screens = devLinkingConfig!.screens as Record<
   string,
   string | { path: string; parse: { subjectId: (value: string) => string } }

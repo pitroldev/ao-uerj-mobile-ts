@@ -20,7 +20,7 @@ export function getVacancieHealth(
       return { status: 'BAD', percentage };
     }
     return { status: 'GOOD', percentage };
-  } catch (err) {
+  } catch {
     return { status: 'GOOD', percentage: -1 };
   }
 }

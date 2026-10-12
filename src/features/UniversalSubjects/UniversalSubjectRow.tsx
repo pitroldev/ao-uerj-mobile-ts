@@ -20,7 +20,7 @@ export type UniversalSubjectRowProps = {
  * Disciplina universal: nome; código, créditos e horas; unidade que a
  * oferece. Toque abre a disciplina.
  */
-export const UniversalSubjectRow = memo(function UniversalSubjectRow({
+export const UniversalSubjectRow = memo(function ({
   subject,
   onPress,
 }: UniversalSubjectRowProps) {
@@ -49,5 +49,6 @@ export const UniversalSubjectRow = memo(function UniversalSubjectRow({
     />
   );
 });
+UniversalSubjectRow.displayName = 'UniversalSubjectRow';
 
 export default UniversalSubjectRow;

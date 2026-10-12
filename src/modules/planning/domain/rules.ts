@@ -119,8 +119,8 @@ export function subjectEligibility(
     reason: !hasPrerequisites
       ? 'Você não possui os pré-requisitos necessários.'
       : !hasCredits
-      ? 'Você não possui créditos suficientes.'
-      : null,
+        ? 'Você não possui créditos suficientes.'
+        : null,
   };
 }
 

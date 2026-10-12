@@ -4,6 +4,7 @@ import {
   StyleSheet,
   View,
   type LayoutChangeEvent,
+  type ScrollViewInstance,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -56,14 +57,14 @@ const StepNumber = styled.View<{ $done: boolean; $current: boolean }>`
     $current
       ? theme.colors.accent
       : $done
-      ? theme.colors.accentLine
-      : theme.colors.ruleStrong};
+        ? theme.colors.accentLine
+        : theme.colors.ruleStrong};
   background-color: ${({ theme, $done, $current }) =>
     $current
       ? theme.colors.accent
       : $done
-      ? theme.colors.accentSoft
-      : 'transparent'};
+        ? theme.colors.accentSoft
+        : 'transparent'};
   align-items: center;
   justify-content: center;
 `;
@@ -81,7 +82,7 @@ export function Stepper({
 }: StepperProps) {
   const theme = useTheme();
   const c = theme.colors;
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ScrollViewInstance>(null);
   const [xs, setXs] = useState<number[]>([]);
 
   useEffect(() => {

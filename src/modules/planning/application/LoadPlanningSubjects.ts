@@ -80,8 +80,8 @@ export class LoadPlanningSubjects {
         worker,
       ),
     );
-    return unique.map(
-      subject => results.find(result => result.subject.id === subject.id)!,
+    return unique.map(subject =>
+      results.find(result => result.subject.id === subject.id)!,
     );
   }
 }

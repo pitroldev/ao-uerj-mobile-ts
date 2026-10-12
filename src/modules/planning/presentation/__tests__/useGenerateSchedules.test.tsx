@@ -27,7 +27,7 @@ let renderer: ReactTestRenderer;
 let client: QueryClient;
 const settle = () =>
   act(async () => {
-    await new Promise(resolve => setTimeout(resolve, 5));
+    await new Promise<void>(resolve => setTimeout(resolve, 5));
   });
 beforeEach(async () => {
   mockScope = 'account-a';

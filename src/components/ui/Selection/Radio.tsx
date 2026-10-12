@@ -18,8 +18,8 @@ const color = ({
   $disabled
     ? theme.colors.ruleStrong
     : $selected
-    ? theme.colors.accent
-    : theme.colors.inkMuted;
+      ? theme.colors.accent
+      : theme.colors.inkMuted;
 
 const Ring = styled.View<State>`
   width: 20px;

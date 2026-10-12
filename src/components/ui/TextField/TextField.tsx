@@ -2,6 +2,7 @@ import React, { forwardRef, useState } from 'react';
 import {
   StyleSheet,
   TextInput as RNTextInput,
+  type TextInputInstance,
   type StyleProp,
   type TextInputProps,
   type TextStyle,
@@ -84,8 +85,8 @@ const Box = styled.View<BoxProps>`
     $invalid
       ? theme.status.bad.ink
       : $focused
-      ? theme.colors.accent
-      : theme.colors.fieldBorder};
+        ? theme.colors.accent
+        : theme.colors.fieldBorder};
   border-radius: ${({ theme }) => theme.radii.lg}px;
   border-top-right-radius: 0px;
   background-color: ${({ theme, $editable }) =>
@@ -125,8 +126,8 @@ const Shrink = styled(Text)`
  * Campo de texto (".field"): borda de 1px com canto cortado, ícone opcional,
  * botão de limpar, mostrar senha e erro. `multiline` vira a área de texto.
  */
-export const TextField = forwardRef<RNTextInput, TextFieldProps>(
-  function TextField(
+export const TextField = forwardRef<TextInputInstance, TextFieldProps>(
+  function (
     {
       label,
       leadingIcon,
@@ -247,6 +248,7 @@ export const TextField = forwardRef<RNTextInput, TextFieldProps>(
     );
   },
 );
+TextField.displayName = 'TextField';
 
 /** Mensagem de erro de campo (".err"): ícone + texto vermelho, anunciada. */
 export function FieldError({
@@ -281,8 +283,8 @@ export type SearchFieldProps = Omit<
 >;
 
 /** Campo de busca: lupa, botão de limpar e tecla "pesquisar". */
-export const SearchField = forwardRef<RNTextInput, SearchFieldProps>(
-  function SearchField(
+export const SearchField = forwardRef<TextInputInstance, SearchFieldProps>(
+  function (
     { clearLabel = 'Limpar busca', accessibilityLabel, placeholder, ...rest },
     ref,
   ) {
@@ -301,6 +303,7 @@ export const SearchField = forwardRef<RNTextInput, SearchFieldProps>(
     );
   },
 );
+SearchField.displayName = 'SearchField';
 
 const styles = StyleSheet.create({
   // ref no TextInput exige o componente puro (o styled não repassa ref no React 19)

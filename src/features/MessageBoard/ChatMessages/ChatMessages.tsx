@@ -5,6 +5,7 @@ import {
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  type ScrollViewInstance,
 } from 'react-native';
 import { useTheme } from 'styled-components/native';
 
@@ -122,7 +123,7 @@ export function ChatMessages({
   followKey,
 }: Props) {
   const theme = useTheme();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const pinned = useRef(true);
   const offset = useRef(0);
   const layouts = useRef(new Map<string, { y: number; height: number }>());

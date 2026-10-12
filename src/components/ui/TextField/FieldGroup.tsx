@@ -8,6 +8,7 @@ import React, {
 import {
   StyleSheet,
   TextInput as RNTextInput,
+  type TextInputInstance,
   type StyleProp,
   type TextInputProps,
   type ViewStyle,
@@ -52,8 +53,8 @@ const Group = styled.View<{
     $invalid
       ? theme.status.bad.ink
       : $focused
-      ? theme.colors.accent
-      : theme.colors.fieldBorder};
+        ? theme.colors.accent
+        : theme.colors.fieldBorder};
   border-radius: ${({ theme }) => theme.radii.xl}px;
   border-top-right-radius: 0px;
   background-color: ${({ theme }) => theme.colors.surface};
@@ -154,8 +155,8 @@ export type FieldGroupRowProps = Omit<TextInputProps, 'style'> & {
 };
 
 /** Linha do `FieldGroup`: ícone, rótulo à esquerda, campo e ação. */
-export const FieldGroupRow = forwardRef<RNTextInput, FieldGroupRowProps>(
-  function FieldGroupRow(
+export const FieldGroupRow = forwardRef<TextInputInstance, FieldGroupRowProps>(
+  function (
     {
       icon,
       label,
@@ -242,6 +243,7 @@ export const FieldGroupRow = forwardRef<RNTextInput, FieldGroupRowProps>(
     );
   },
 );
+FieldGroupRow.displayName = 'FieldGroupRow';
 
 const styles = StyleSheet.create({
   // ref no TextInput exige o componente puro (o styled não repassa ref no React 19)

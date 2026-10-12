@@ -392,9 +392,9 @@ async function mapLimit(items, limit, fn) {
   return out;
 }
 
-function format(source) {
+async function format(source) {
   const prettier = require('prettier');
-  const options = prettier.resolveConfig.sync(GLYPHS_FILE) || {};
+  const options = (await prettier.resolveConfig(GLYPHS_FILE)) || {};
   return prettier.format(source, { ...options, parser: 'typescript' });
 }
 
@@ -436,7 +436,7 @@ export const FILLED_GLYPHS: Partial<Record<IconName, string>> = {
 ${objectLiteral(f)}
 };
 `;
-  fs.writeFileSync(GLYPHS_FILE, format(source));
+  fs.writeFileSync(GLYPHS_FILE, await format(source));
   console.log(`OK: ${path.relative(ROOT, GLYPHS_FILE)}`);
 }
 
@@ -452,7 +452,7 @@ function polygonToPath(points) {
   return `M${pairs.join('L')}Z`;
 }
 
-function writeLogo() {
+async function writeLogo() {
   const svg = fs.readFileSync(LOGO_SOURCE, 'utf8');
   const viewBox = /viewBox="([^"]+)"/.exec(svg)[1];
   const shapes = [];
@@ -474,14 +474,14 @@ export const AO_LOGO_VIEWBOX = ${JSON.stringify(viewBox)};
 export const AO_LOGO_PATHS: readonly string[] = ${JSON.stringify(shapes)};
 `;
   fs.mkdirSync(path.dirname(LOGO_FILE), { recursive: true });
-  fs.writeFileSync(LOGO_FILE, format(source));
+  fs.writeFileSync(LOGO_FILE, await format(source));
   console.log(
     `OK: ${path.relative(ROOT, LOGO_FILE)} (${shapes.length} formas)`,
   );
 }
 
 async function main() {
-  writeLogo();
+  await writeLogo();
   if (process.argv.includes('--logo')) return;
   await writeGlyphs();
 }

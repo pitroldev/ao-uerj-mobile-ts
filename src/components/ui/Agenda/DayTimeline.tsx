@@ -148,8 +148,8 @@ const Event = styled.Pressable<{
     $past
       ? theme.colors.rule
       : $live
-      ? theme.colors.accentLine
-      : theme.colors.ruleStrong};
+        ? theme.colors.accentLine
+        : theme.colors.ruleStrong};
   border-radius: ${({ theme }) => theme.radii.xl}px;
   border-top-right-radius: 0px;
   background-color: ${({ theme, $past }) =>

@@ -103,7 +103,7 @@ let client: QueryClient;
 let renderer: ReactTestRenderer;
 const settle = () =>
   act(async () => {
-    await new Promise(resolve => setTimeout(resolve, 5));
+    await new Promise<void>(resolve => setTimeout(resolve, 5));
   });
 const render = async (node: React.ReactElement) => {
   await act(async () => {
@@ -119,8 +119,8 @@ const flatten = (children: unknown): string =>
   Array.isArray(children)
     ? children.map(flatten).join('')
     : typeof children === 'string' || typeof children === 'number'
-    ? String(children)
-    : '';
+      ? String(children)
+      : '';
 const texts = (root = renderer.root) =>
   root.findAllByType(RNText).map(t => flatten(t.props.children));
 const byLabel = (label: string) =>

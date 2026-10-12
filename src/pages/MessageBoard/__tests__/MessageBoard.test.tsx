@@ -22,11 +22,15 @@ jest.mock('@features/MessageBoard/SubjectList', () => 'SubjectList');
 jest.mock('@features/MessageBoard/SubjectChat', () => 'SubjectChat');
 const { FocusContext } = jest.requireMock('@react-navigation/native');
 
+type BackPressHandler = Parameters<typeof BackHandler.addEventListener>[1];
+const BACK_PRESS = { type: 'hardwareBackPress', timeStamp: 0 };
+
 describe('message board hardware back', () => {
   let renderer: ReactTestRenderer;
   let subscription: jest.SpyInstance;
-  const handlers = new Set<() => boolean | null | undefined>();
-  const pressBack = () => [...handlers].reverse().some(handler => handler());
+  const handlers = new Set<BackPressHandler>();
+  const pressBack = () =>
+    [...handlers].reverse().some(handler => handler(BACK_PRESS));
   const screen = (focused: boolean) => (
     <FocusContext.Provider value={focused}>
       <MessageBoard />

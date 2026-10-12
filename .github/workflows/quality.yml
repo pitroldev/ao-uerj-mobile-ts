@@ -18,14 +18,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # v6.1.0 explícito: a tag v6 ainda aponta para v6.0.10, sem suporte nativo ao pnpm 12
+      # (pnpm/action-setup#289). Fica antes do setup-node, cujo `cache: pnpm` roda `pnpm store path`.
+      - uses: pnpm/action-setup@v6.1.0
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm check:patches
       - run: pnpm lint
       - run: pnpm type-check
       - run: pnpm test:tooling
@@ -35,23 +38,30 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6.1.0
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
           cache: pnpm
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - uses: gradle/actions/setup-gradle@v4
-      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.1.12297006' 'cmake;3.22.1'
+      - uses: android-actions/setup-android@v4
+      # `basic`: cache MIT via @actions/cache. O padrão (`enhanced`) usa um componente
+      # proprietário sob os Terms of Use da Gradle (gratuito para repositório público).
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+      - run: sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0' 'ndk;27.1.12297006' 'cmake;3.22.1'
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:debug --no-daemon -PreactNativeArchitectures=x86_64
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: android-debug
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 7
+          if-no-files-found: error

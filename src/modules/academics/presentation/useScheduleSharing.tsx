@@ -1,12 +1,12 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, type ViewInstance } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { useAppServices } from '@root/app/providers/AppServicesProvider';
 import { ShareSchedule } from '../application/use-cases/ShareSchedule';
 
 export function useScheduleSharing() {
   const { scheduleSharing } = useAppServices();
-  const imageRef = useRef<View>(null);
+  const imageRef = useRef<ViewInstance>(null);
   const ready = useRef(false);
   const pending = useRef(false);
   const [exporting, setExporting] = useState(false);

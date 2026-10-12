@@ -20,11 +20,11 @@ const flatten = (children: unknown): string =>
   Array.isArray(children)
     ? children.map(flatten).join('')
     : typeof children === 'string' || typeof children === 'number'
-    ? String(children)
-    : '';
+      ? String(children)
+      : '';
 
 beforeEach(async () => {
-  jest.mocked(Linking.openURL).mockReset().mockResolvedValue(true);
+  jest.mocked(Linking.openURL).mockReset().mockResolvedValue(undefined);
   await act(async () => {
     renderer = create(
       <ThemeProvider theme={LIGHT}>

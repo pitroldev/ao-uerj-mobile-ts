@@ -135,8 +135,8 @@ export function Button({
     size === 'md' && variant !== 'link'
       ? 'button'
       : size === 'xs'
-      ? 'meta'
-      : 'buttonSmall';
+        ? 'meta'
+        : 'buttonSmall';
   const iconSize = size === 'md' ? theme.sizes.icon.lg : theme.sizes.icon.md;
   const shownLabel = loading && loadingLabel ? loadingLabel : label;
   const colorsFor = (pressed: boolean) =>

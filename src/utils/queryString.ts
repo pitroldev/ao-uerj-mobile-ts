@@ -5,7 +5,7 @@ export function formDataToJSON(form: FormData): { [key: string]: string } {
       json[part.fieldName] = part.string;
     }
     return json;
-  } catch (e) {
+  } catch {
     return {};
   }
 }

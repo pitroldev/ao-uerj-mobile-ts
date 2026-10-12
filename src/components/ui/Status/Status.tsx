@@ -170,7 +170,7 @@ export function GradeCell({
   const empty = value == null || Number.isNaN(value);
   const health = empty
     ? null
-    : tone ?? healthTone(numberToColor(value as number, 10));
+    : (tone ?? healthTone(numberToColor(value as number, 10)));
   const t = health ? toneColors(theme, health) : null;
   const text = empty ? '–' : formatGrade(value as number, decimals);
   return (

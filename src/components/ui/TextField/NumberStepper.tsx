@@ -47,8 +47,8 @@ const NumberInput = styled.TextInput<{
     $invalid
       ? theme.status.bad.ink
       : $focused
-      ? theme.colors.accent
-      : theme.colors.fieldBorder};
+        ? theme.colors.accent
+        : theme.colors.fieldBorder};
   border-radius: ${({ theme }) => theme.radii.lg}px;
   border-top-right-radius: 0px;
   background-color: ${({ theme }) => theme.colors.surface};

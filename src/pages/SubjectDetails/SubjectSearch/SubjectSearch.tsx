@@ -52,7 +52,7 @@ const SubjectSearch = ({ searchSubject }: Props) => {
   const handleSearch = () => {
     try {
       searchSubject(subjectCode);
-    } catch (err) {
+    } catch {
       Toast.show({
         type: 'error',
         text1: 'Parece que esse código não é válido :(',

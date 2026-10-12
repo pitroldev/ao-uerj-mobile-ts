@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Keyboard } from 'react-native';
 
 function currentHeight(): number {
-  return Keyboard.isVisible?.() ? Keyboard.metrics?.()?.height ?? 0 : 0;
+  return Keyboard.isVisible?.() ? (Keyboard.metrics?.()?.height ?? 0) : 0;
 }
 
 /**

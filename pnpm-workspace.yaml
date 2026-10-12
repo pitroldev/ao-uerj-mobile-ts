@@ -1,0 +1,25 @@
+# pnpm settings (pnpm 11+ no longer reads the "pnpm" field of package.json
+# nor non-registry settings from .npmrc).
+
+# React Native tooling (Metro, Gradle autolinking, CocoaPods) expects a flat
+# node_modules.
+nodeLinker: hoisted
+
+# Dependencies whose install scripts may run.
+allowBuilds:
+  '@parcel/watcher': true
+  unrs-resolver: true
+
+# ESLint 10 is newer than these legacy plugins declare. eslint.config.js
+# adapts them (@eslint/compat) or drops them (Babel parser, Flow plugin).
+peerDependencyRules:
+  allowedVersions:
+    '@react-native/eslint-config>eslint': '10'
+    eslint-plugin-react>eslint: '10'
+    eslint-plugin-react-native>eslint: '10'
+    eslint-plugin-ft-flow>eslint: '10'
+    '@babel/eslint-parser>eslint': '10'
+
+patchedDependencies:
+  # Removes InteractionManager, which React Native 0.87 removed.
+  react-native-modal@14.0.0-rc.1: patches/react-native-modal@14.0.0-rc.1.patch

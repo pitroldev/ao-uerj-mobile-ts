@@ -3,7 +3,7 @@ export function parseSubjectID(text: string) {
     const regex = /\w+-[0-9]+/g;
     const [codigo] = regex.exec(text) ?? [text];
     return codigo;
-  } catch (e) {
+  } catch {
     return text;
   }
 }
@@ -13,7 +13,7 @@ export function parseSubjectCode(text: string) {
     const regex = /\b[0-9]+/g;
     const [codigo] = regex.exec(text) ?? [text];
     return parseInt(codigo, 10);
-  } catch (e) {
+  } catch {
     return text;
   }
 }
@@ -30,7 +30,7 @@ export function parseSimNaoToBoolean(text: string) {
       return true;
     }
     return false;
-  } catch (e) {
+  } catch {
     return text;
   }
 }
@@ -56,7 +56,7 @@ export function parseName(name: string, NomeCompleto = true) {
     } else {
       return `${separado[0]}`;
     }
-  } catch (e) {
+  } catch {
     return name;
   }
 }
@@ -68,7 +68,7 @@ export function parseUnidadeAcademica(unidadeName: string) {
     const parsedName = `${sigla} - ${parseName(nome)}`;
 
     return parsedName;
-  } catch (e) {
+  } catch {
     return unidadeName;
   }
 }
@@ -105,7 +105,7 @@ export function parseTeacherName(name: string) {
     const cleanedString = splitStr.filter(string => string && string);
 
     return cleanedString.join(' ');
-  } catch (e) {
+  } catch {
     return name;
   }
 }
@@ -152,7 +152,7 @@ export function parseSubjectName(text: string, isClean = false) {
 
     const parsedName = splittedText.join(' ').replace(/^-/g, '').trim();
     return parsedName;
-  } catch (e) {
+  } catch {
     return text;
   }
 }
@@ -164,7 +164,7 @@ export function parseNumber(strNumber: string) {
     }
     const parsedNumber = parseFloat(strNumber.trim().replace(',', '.'));
     return parsedNumber;
-  } catch (e) {
+  } catch {
     return '-';
   }
 }

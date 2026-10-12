@@ -241,7 +241,7 @@ export default function parseSubjectClassesSchedule(html: string) {
     });
 
     return turmasArray;
-  } catch (err) {
+  } catch {
     throw new Error('ParseError');
   }
 }

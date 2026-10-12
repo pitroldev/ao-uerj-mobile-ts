@@ -29,7 +29,7 @@ export default function parseLoginInfo(data: string) {
       const possiblePeriodText = text.replace(/\s/g, '').replace('/', '.');
       const isPeriod = PERIODO_REGEX.test(possiblePeriodText);
       info.periodo = isPeriod
-        ? possiblePeriodText.match(PERIODO_REGEX)?.[0] ?? ''
+        ? (possiblePeriodText.match(PERIODO_REGEX)?.[0] ?? '')
         : '';
     }
   });

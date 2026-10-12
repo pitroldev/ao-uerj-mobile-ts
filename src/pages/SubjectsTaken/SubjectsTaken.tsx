@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import type { ScrollView } from 'react-native';
+import type { ScrollViewInstance } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import {
@@ -32,13 +32,13 @@ const SubjectsTakenScreen = () => {
   const periodOptions = useMemo(() => buildPeriodOptions(data), [data]);
 
   const navigation = useNavigation();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   const activePeriod = periodOptions.some(
     option => option.value === selectedPeriod,
   )
     ? selectedPeriod
-    : periodOptions[0]?.value ?? '';
+    : (periodOptions[0]?.value ?? '');
 
   const subjects = data.filter(({ period }) => period === activePeriod);
   const phase = subjectListPhase(query, {

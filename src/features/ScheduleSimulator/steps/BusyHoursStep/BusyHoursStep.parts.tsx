@@ -239,7 +239,7 @@ const ROW_ACTION = [
  * Célula da tabela (".cell"): 48dp, só a ocupada é preenchida, com o ícone
  * "block" para não depender só da cor.
  */
-export const BusyCell = memo(function BusyCell({
+export const BusyCell = memo(function ({
   weekDay,
   time,
   selected,
@@ -276,3 +276,4 @@ export const BusyCell = memo(function BusyCell({
     </Cell>
   );
 });
+BusyCell.displayName = 'BusyCell';

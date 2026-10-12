@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Text as RNText,
+  type TextInstance,
   type TextProps as RNTextProps,
   type TextStyle,
 } from 'react-native';
@@ -99,7 +100,7 @@ const TABULAR: TextStyle['fontVariant'] = ['tabular-nums'];
  * Texto do design system. Respeita o tamanho de fonte do sistema (não
  * desligue `allowFontScaling`). O peso vem da família; não use `fontWeight`.
  */
-export const Text = React.forwardRef<RNText, TextProps>(function Text(
+export const Text = React.forwardRef<TextInstance, TextProps>(function (
   {
     variant = 'callout',
     weight,
@@ -127,5 +128,6 @@ export const Text = React.forwardRef<RNText, TextProps>(function Text(
     />
   );
 });
+Text.displayName = 'Text';
 
 export default Text;

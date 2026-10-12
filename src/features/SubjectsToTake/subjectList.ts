@@ -12,12 +12,7 @@ import { PORTAL_BLOCKED_FULL_TEXT } from '@components/ui/Feedback/blockedText';
  * - `empty`: sem resultado e sem busca em andamento (consulta desativada).
  */
 export type SubjectListPhase =
-  | 'ready'
-  | 'loading'
-  | 'blocked'
-  | 'error'
-  | 'offline'
-  | 'empty';
+  'ready' | 'loading' | 'blocked' | 'error' | 'offline' | 'empty';
 
 export type SubjectListQueryState = {
   isLoading: boolean;

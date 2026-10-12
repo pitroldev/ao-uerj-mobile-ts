@@ -122,7 +122,7 @@ const render = async () => {
 const flush = async () => {
   for (let i = 0; i < 3; i++) {
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise<void>(resolve => setTimeout(resolve, 0));
     });
   }
 };

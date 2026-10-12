@@ -191,8 +191,8 @@ const FetchDataStep = () => {
           complete && !hasErrors
             ? 'Dados carregados com sucesso!'
             : complete
-            ? 'Busca concluída com falhas'
-            : 'Buscando dados das disciplinas'
+              ? 'Busca concluída com falhas'
+              : 'Buscando dados das disciplinas'
         }
       />
 

@@ -55,7 +55,7 @@ type RowProps = {
   onToggle: (item: SubjectClasses) => void;
 };
 
-const ClassRow = memo(function ClassRow({
+const ClassRow = memo(function ({
   item,
   subject,
   selected,
@@ -84,6 +84,7 @@ const ClassRow = memo(function ClassRow({
     />
   );
 });
+ClassRow.displayName = 'ClassRow';
 
 const ClassesStep = () => {
   const [teacher, setTeacher] = useState(ALL_TEACHERS);

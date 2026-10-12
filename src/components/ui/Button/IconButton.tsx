@@ -85,8 +85,8 @@ export function IconButton({
       return isDisabled
         ? c.surfaceStrong
         : pressed
-        ? c.accentPressed
-        : c.accent;
+          ? c.accentPressed
+          : c.accent;
     }
     if (variant === 'outlined') return pressed ? c.accentSoft : c.surface;
     return pressed ? pressedOverlay : 'transparent';
@@ -98,9 +98,13 @@ export function IconButton({
         ? c.inkMuted
         : c.onAccent
       : isDisabled
-      ? c.ruleStrong
-      : color ??
-        (onBrand ? c.onBrand : variant === 'outlined' ? c.accent : c.inkMuted);
+        ? c.ruleStrong
+        : (color ??
+          (onBrand
+            ? c.onBrand
+            : variant === 'outlined'
+              ? c.accent
+              : c.inkMuted));
 
   return (
     <Root

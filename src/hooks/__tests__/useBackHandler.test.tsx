@@ -32,11 +32,15 @@ function Listener({
   return null;
 }
 
+type BackPressHandler = Parameters<typeof BackHandler.addEventListener>[1];
+const BACK_PRESS = { type: 'hardwareBackPress', timeStamp: 0 };
+
 describe('focused hardware back handling', () => {
   let renderer: ReactTestRenderer;
   let subscription: jest.SpyInstance;
-  const handlers = new Set<() => boolean | null | undefined>();
-  const pressBack = () => [...handlers].reverse().some(handler => handler());
+  const handlers = new Set<BackPressHandler>();
+  const pressBack = () =>
+    [...handlers].reverse().some(handler => handler(BACK_PRESS));
   beforeEach(() => {
     handlers.clear();
     subscription = jest

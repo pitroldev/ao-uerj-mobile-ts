@@ -104,10 +104,10 @@ describe('LoadPlanningSubjects', () => {
     );
     expect(records.getSubjectDetails).toHaveBeenCalledTimes(2);
     pending.get(selected[1].id)!.resolve({ ...details, id: selected[1].id });
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
     expect(records.getSubjectDetails).toHaveBeenCalledTimes(3);
     pending.get(selected[0].id)!.reject(new Error('network'));
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
     expect(records.getSubjectDetails).toHaveBeenCalledTimes(4);
     pending.get(selected[2].id)!.resolve({ ...details, id: selected[2].id });
     pending.get(selected[3].id)!.resolve({ ...details, id: selected[3].id });

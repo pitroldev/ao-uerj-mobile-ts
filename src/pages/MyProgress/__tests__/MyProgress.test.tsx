@@ -88,8 +88,8 @@ const flatten = (children: unknown): string =>
   Array.isArray(children)
     ? children.map(flatten).join('')
     : typeof children === 'string' || typeof children === 'number'
-    ? String(children)
-    : '';
+      ? String(children)
+      : '';
 const textContent = () =>
   renderer.root
     .findAllByType(Text)

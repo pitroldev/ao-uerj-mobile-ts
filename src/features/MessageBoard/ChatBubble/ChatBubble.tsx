@@ -81,8 +81,8 @@ const ChatBubble = ({ message, mine = false }: Props) => {
               ? theme.colors.selection
               : theme.colors.accentSoft
             : pressed
-            ? theme.colors.surfaceStrong
-            : theme.colors.surfaceMuted,
+              ? theme.colors.surfaceStrong
+              : theme.colors.surfaceMuted,
         })}
       >
         <Head>

@@ -41,7 +41,7 @@ export type CurriculumSubjectRowProps = {
  * créditos e horas; "Atendida" com ponto; "Trava de N créditos" quando há
  * mínimo de créditos. Toque abre a disciplina.
  */
-export const CurriculumSubjectRow = memo(function CurriculumSubjectRow({
+export const CurriculumSubjectRow = memo(function ({
   subject,
   onPress,
 }: CurriculumSubjectRowProps) {
@@ -87,5 +87,6 @@ export const CurriculumSubjectRow = memo(function CurriculumSubjectRow({
     </ListRow>
   );
 });
+CurriculumSubjectRow.displayName = 'CurriculumSubjectRow';
 
 export default CurriculumSubjectRow;

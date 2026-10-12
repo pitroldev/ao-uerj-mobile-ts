@@ -80,8 +80,8 @@ export function WeekDaySelector<K extends string | number = number>({
         const fgSmall = isSelected
           ? c.onAccent
           : day.isToday
-          ? c.accent
-          : c.inkMuted;
+            ? c.accent
+            : c.inkMuted;
         const label =
           day.accessibilityLabel ??
           [

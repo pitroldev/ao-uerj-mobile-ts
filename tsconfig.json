@@ -12,11 +12,9 @@
   "compilerOptions": {
     "types": ["jest"],
     "target": "esnext",
-    "lib": ["es2017"],
     "jsx": "react-native",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "baseUrl": ".",
     "paths": {
       "@root/*": ["./src/*"],
       "@components/*": ["./src/components/*"],
@@ -42,7 +40,7 @@
     "skipLibCheck": true,
     "plugins": [
       {
-        "name": "typescript-styled-plugin",
+        "name": "@styled/typescript-styled-plugin",
         "lint": {
           "validProperties": [
             "shadow-color",

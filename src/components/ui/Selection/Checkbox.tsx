@@ -26,8 +26,8 @@ const Box = styled.View<{ $checked: boolean; $disabled: boolean }>`
     $disabled
       ? theme.colors.ruleStrong
       : $checked
-      ? theme.colors.accent
-      : theme.colors.inkMuted};
+        ? theme.colors.accent
+        : theme.colors.inkMuted};
   background-color: ${({ theme, $checked, $disabled }) =>
     $checked
       ? $disabled

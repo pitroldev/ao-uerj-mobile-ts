@@ -26,7 +26,7 @@ const message = (id: string, createdAt: string, authorName = 'Beatriz Nunes') =>
     period: '2026.2',
     text: `Mensagem ${id}`,
     createdAt,
-  } satisfies Message);
+  }) satisfies Message;
 
 describe('chat formatting', () => {
   it('labels days like a conversation app', () => {

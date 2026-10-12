@@ -3,6 +3,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  type ScrollViewInstance,
   type ScrollViewProps,
   type StyleProp,
   type ViewStyle,
@@ -39,7 +40,7 @@ export type ScreenPanelProps = {
   /** Tira o padding padrão (32 / 20 / 40) do conteúdo. */
   padded?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
-  scrollRef?: React.Ref<ScrollView>;
+  scrollRef?: React.Ref<ScrollViewInstance>;
   /** Props extras do ScrollView (onScroll, keyboardShouldPersistTaps…). */
   scrollProps?: Omit<
     ScrollViewProps,

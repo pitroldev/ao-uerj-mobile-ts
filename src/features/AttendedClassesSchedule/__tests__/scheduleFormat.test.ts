@@ -92,7 +92,11 @@ it('formats slots, durations, dates and the week', () => {
   expect(week.get(1)?.getDate()).toBe(12);
   expect(week.get(6)?.getDate()).toBe(17);
   // domingo mostra a semana que começa no dia seguinte
-  expect(weekDates(at(10, 0, 18)).get(1)?.getDate()).toBe(19);
+  expect(
+    weekDates(at(10, 0, 18))
+      .get(1)
+      ?.getDate(),
+  ).toBe(19);
 });
 
 it('splits the room from the rest of the place', () => {

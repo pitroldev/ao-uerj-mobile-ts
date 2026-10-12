@@ -13,7 +13,10 @@ export type ErrorCode =
   | 'INVALID_INPUT';
 
 export class AppError extends Error {
-  constructor(readonly code: ErrorCode, message: string = code) {
+  constructor(
+    readonly code: ErrorCode,
+    message: string = code,
+  ) {
     super(message);
     this.name = 'AppError';
   }

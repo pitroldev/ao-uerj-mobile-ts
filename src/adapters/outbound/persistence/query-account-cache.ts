@@ -41,6 +41,7 @@ export function createQueryAccountCache(
     state.queries = state.queries.map(query => ({
       queryKey: query.queryKey,
       queryHash: query.queryHash,
+      dehydratedAt: query.dehydratedAt,
       state: {
         ...query.state,
         status: 'success',

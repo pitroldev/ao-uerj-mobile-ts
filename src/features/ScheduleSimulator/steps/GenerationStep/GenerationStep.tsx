@@ -95,18 +95,18 @@ const GenerationStep = () => {
   const next: StepAction = generation.isIdle
     ? { label: 'Gerar grades', icon: 'auto_awesome', onPress: handleGenerate }
     : loading
-    ? { label: 'Gerar grades', loading: true, loadingLabel: 'Gerando…' }
-    : {
-        label: 'Gerar outra grade',
-        icon: 'restart_alt',
-        onPress: handleResetPress,
-      };
+      ? { label: 'Gerar grades', loading: true, loadingLabel: 'Gerando…' }
+      : {
+          label: 'Gerar outra grade',
+          icon: 'restart_alt',
+          onPress: handleResetPress,
+        };
 
   const title = loading
     ? 'Aguarde enquanto geramos sua grade'
     : generation.isIdle
-    ? 'Tudo pronto para gerar sua grade'
-    : 'Veja abaixo as grades geradas';
+      ? 'Tudo pronto para gerar sua grade'
+      : 'Veja abaixo as grades geradas';
 
   const minimum = body.min_subject_amount;
   const maximum = body.max_subject_amount;

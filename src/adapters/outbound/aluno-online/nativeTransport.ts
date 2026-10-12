@@ -1,7 +1,7 @@
 import axios from 'axios';
 import iconv from 'iconv-lite';
 import { Buffer } from 'buffer';
-import CookieManager from '@react-native-cookies/cookies';
+import CookieManager from '@preeternal/react-native-cookie-manager';
 import { AppError } from '@root/shared/errors/AppError';
 import type {
   PortalCookieJar,

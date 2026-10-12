@@ -1,12 +1,12 @@
 import axios from 'axios';
-import CookieManager from '@react-native-cookies/cookies';
+import CookieManager from '@preeternal/react-native-cookie-manager';
 import {
   createNativePortalTransport,
   createNativeCookieJar,
 } from '../nativeTransport';
 
 jest.mock('axios', () => ({ create: jest.fn() }));
-jest.mock('@react-native-cookies/cookies', () => ({
+jest.mock('@preeternal/react-native-cookie-manager', () => ({
   clearAll: jest.fn(async () => true),
 }));
 

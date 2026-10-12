@@ -140,7 +140,7 @@ export function SubjectListPanel<T>({
         keyExtractor={keyExtractor}
         ItemSeparatorComponent={ListSeparator}
         ListHeaderComponent={<Gutter>{header}</Gutter>}
-        ListEmptyComponent={fallback ? <Gutter>{fallback}</Gutter> : null}
+        ListEmptyComponent={fallback ? <Gutter>{fallback}</Gutter> : undefined}
         contentContainerStyle={contentStyle}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"

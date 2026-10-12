@@ -1,11 +1,5 @@
 export type WeekDay =
-  | 'Segunda'
-  | 'Terça'
-  | 'Quarta'
-  | 'Quinta'
-  | 'Sexta'
-  | 'Sábado'
-  | 'Domingo';
+  'Segunda' | 'Terça' | 'Quarta' | 'Quinta' | 'Sexta' | 'Sábado' | 'Domingo';
 
 export type Turno =
   | 'M1'

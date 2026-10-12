@@ -61,7 +61,7 @@ type RowProps = {
   onToggle: (subject: CurriculumSubject) => void;
 };
 
-const SubjectRow = memo(function SubjectRow({
+const SubjectRow = memo(function ({
   subject,
   selected,
   last,
@@ -106,6 +106,7 @@ const SubjectRow = memo(function SubjectRow({
     </ListRow>
   );
 });
+SubjectRow.displayName = 'SubjectRow';
 
 const SubjectsStep = () => {
   const [searchQuery, setSearchQuery] = useState('');

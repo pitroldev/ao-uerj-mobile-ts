@@ -5,7 +5,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  type TextInput as NativeTextInput,
+  type TextInputInstance,
 } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -43,7 +43,7 @@ const LoginPage = () => {
   const { error: identityError } = useIdentity();
   const insets = useSafeAreaInsets();
 
-  const passwordInputRef = useRef<NativeTextInput>(null);
+  const passwordInputRef = useRef<TextInputInstance>(null);
 
   const { isPending: loading, mutate: login } = useMutation({
     mutationFn: () =>
