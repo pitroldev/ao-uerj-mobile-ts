@@ -1,5 +1,9 @@
 import { AppError } from '@root/shared/errors/AppError';
-import type { ErrorReportDraft, ErrorReporterPort } from './ports';
+import type {
+  ErrorMonitorPort,
+  ErrorReportDraft,
+  ErrorReporterPort,
+} from './ports';
 import { sanitizeDescription } from './sanitizeDescription';
 
 type ReporterAccount = { scope: string; name: string; matricula: string };
@@ -9,6 +13,7 @@ export class SubmitErrorReport {
     private readonly reporter: ErrorReporterPort,
     private readonly version: { appVersion: string; parserVersion: string },
     private readonly currentAccount: () => ReporterAccount | null,
+    private readonly monitor?: ErrorMonitorPort,
   ) {}
 
   execute = async (draft: ErrorReportDraft): Promise<void> => {
@@ -26,15 +31,20 @@ export class SubmitErrorReport {
     const subjectCode = draft.subjectCode?.trim().toUpperCase();
     if (subjectCode && !/^[A-Z][A-Z0-9]{1,7}-\d{3,8}$/.test(subjectCode))
       throw new AppError('INVALID_INPUT');
+    const category = draft.category ?? 'USER_REPORT';
+    // Antes do envio, para o id ir junto no relato. Uma nova tentativa depois
+    // de falha de rede registra outro evento.
+    const eventId = this.monitor?.linkReport({ operation, category });
     await this.reporter.submit({
       page: operation,
       description,
       diagnostic: {
         schemaVersion: 1,
         operation,
-        category: draft.category ?? 'USER_REPORT',
+        category,
         ...this.version,
         ...(subjectCode ? { subjectCode } : {}),
+        ...(eventId ? { eventId } : {}),
       },
     });
     if (this.currentAccount()?.scope !== account.scope)

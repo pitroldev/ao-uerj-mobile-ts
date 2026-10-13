@@ -8,7 +8,7 @@ import { Updated } from './TeacherView.styles';
  * Detalhe do professor (conteúdo do painel): nome, data da atualização e as
  * turmas ministradas, cada uma levando ao detalhe da disciplina.
  */
-const TeacherView = ({ name, updatedAt, subjects }: Teacher) => {
+export const TeacherView = ({ name, updatedAt, subjects }: Teacher) => {
   const navigation = useNavigation();
   return (
     <>
@@ -43,5 +43,3 @@ const TeacherView = ({ name, updatedAt, subjects }: Teacher) => {
     </>
   );
 };
-
-export default TeacherView;

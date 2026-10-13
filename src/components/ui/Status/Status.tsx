@@ -168,11 +168,9 @@ export function GradeCell({
   const box =
     size === 'lg' ? theme.sizes.gradeCellLarge : theme.sizes.gradeCell;
   const empty = value == null || Number.isNaN(value);
-  const health = empty
-    ? null
-    : (tone ?? healthTone(numberToColor(value as number, 10)));
+  const health = empty ? null : (tone ?? healthTone(numberToColor(value, 10)));
   const t = health ? toneColors(theme, health) : null;
-  const text = empty ? '–' : formatGrade(value as number, decimals);
+  const text = empty ? '–' : formatGrade(value, decimals);
   return (
     <GradeBox
       $w={box.width}

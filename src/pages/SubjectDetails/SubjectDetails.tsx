@@ -4,11 +4,11 @@ import { RootDrawerParamList } from '@root/routes';
 import { normalizeSubjectId } from '@root/modules/academics/domain/rules/subjectId';
 import { useSubjectDetails } from '@root/modules/academics/presentation/queries';
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
-import ScreenPanel from '@templates/ScreenPanel';
-import SubjectSearch from './SubjectSearch';
-import SubjectView from './SubjectView';
+import { ScreenPanel } from '@templates/ScreenPanel';
+import { SubjectSearch } from './SubjectSearch';
+import { SubjectView } from './SubjectView';
 
-const SubjectDetailPage = () => {
+export const SubjectDetailPage = () => {
   const route =
     useRoute<RouteProp<RootDrawerParamList, 'Pesquisa de Disciplinas'>>();
   const navigation = useNavigation();
@@ -46,5 +46,3 @@ const SubjectDetailPage = () => {
     </ScreenPanel>
   );
 };
-
-export default SubjectDetailPage;

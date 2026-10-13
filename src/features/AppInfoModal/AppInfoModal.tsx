@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import Toast from 'react-native-toast-message';
 import {
   useAppServices,
   useIdentity,
@@ -12,6 +11,7 @@ import {
   List,
   ListRow,
   Tag,
+  snackbar,
 } from '@components/ui';
 
 import { APP_INFO } from './info';
@@ -21,18 +21,19 @@ import { Description } from './AppInfoModal.styles';
  * Folha "Funcionalidades exclusivas", mostrada uma vez por versão do app:
  * o que o AO UERJ faz além do Aluno Online.
  */
-const AppInfoModal = () => {
+export const AppInfoModal = () => {
   const { preferences } = useAppServices();
   const { account } = useIdentity();
-  const [visible, setVisible] = useState(false);
+  // Conta para a qual a folha foi aberta: trocar de conta já a esconde.
+  const [shownFor, setShownFor] = useState<typeof account>(null);
+  const visible = account != null && shownFor === account;
   useEffect(() => {
     let active = true;
-    setVisible(false);
     if (account)
       void preferences
         .read<string>(account.scope, 'app-info-version')
         .then(seenVersion => {
-          if (active) setVisible(seenVersion !== version);
+          if (active) setShownFor(seenVersion !== version ? account : null);
         })
         .catch(() => undefined);
     return () => {
@@ -40,15 +41,12 @@ const AppInfoModal = () => {
     };
   }, [account, preferences]);
   const handleClose = () => {
-    setVisible(false);
+    setShownFor(null);
     if (account)
       void preferences
         .write(account.scope, 'app-info-version', version)
         .catch(() =>
-          Toast.show({
-            type: 'error',
-            text1: 'Não foi possível salvar esta preferência.',
-          }),
+          snackbar.error('Não foi possível salvar esta preferência.'),
         );
   };
   return (
@@ -79,5 +77,3 @@ const AppInfoModal = () => {
     </BottomSheet>
   );
 };
-
-export default AppInfoModal;

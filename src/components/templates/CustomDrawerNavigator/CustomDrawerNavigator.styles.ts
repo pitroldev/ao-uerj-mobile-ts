@@ -86,7 +86,7 @@ export const Footer = styled.View`
   border-top-color: ${({ theme }) => theme.colors.brandRule};
 `;
 
+/** ".dr-ver": encosta no botão de tema, à direita. */
 export const Version = styled(Text)`
   flex: 1;
-  padding-right: 12px;
 `;

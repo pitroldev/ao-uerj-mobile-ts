@@ -16,20 +16,35 @@ type Props = {
   navigationState?: NavigationState;
 };
 
+type RouteLike = {
+  name: string;
+  state?: { index?: number; routes: RouteLike[] };
+};
+
+/** Nome da rota ativa (a mais interna), como `getCurrentRoute()`. */
+function activeRouteName(state: NavigationState | undefined) {
+  let route: RouteLike | undefined = state?.routes[state.index];
+  while (route?.state) {
+    route = route.state.routes[route.state.index ?? 0];
+  }
+  return route?.name;
+}
+
 /**
  * Cabeçalho global azul (fora do navegador: fica parado enquanto o conteúdo
  * desliza com o menu). Menu ou voltar à esquerda, título centralizado (no
  * Início, o período) e o logo AO à direita, que abre "Sobre".
  */
-const Header = ({ navigationState }: Props) => {
+export const Header = ({ navigationState }: Props) => {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const { account } = useIdentity();
   const { onBack, backLabel } = useHeaderState();
 
-  const currentRoute = RootNavigation.isNavigationReady()
-    ? RootNavigation.getCurrentRouteName()
-    : undefined;
+  // Vem do estado recebido por props, e não da ref do container: o React
+  // Compiler memoriza chamadas sem dependências reativas, e o título ficava
+  // preso na primeira rota ("Loading" ou "Login").
+  const currentRoute = activeRouteName(navigationState);
 
   const isSignedIn =
     Boolean(account) && currentRoute !== 'Login' && Boolean(currentRoute);
@@ -51,8 +66,9 @@ const Header = ({ navigationState }: Props) => {
       : account?.period
     : currentRoute;
 
-  // A cor da barra vem do tema nativo (statusBarColor em styles.xml) até o
-  // Android 14; no Android 15+ e no iOS o cabeçalho pinta o inset do topo.
+  // A barra de status é transparente (de ponta a ponta em todas as versões):
+  // o azul por trás dela é o deste cabeçalho, ou o topo do Login e do
+  // Carregando antes de entrar. Por isso os ícones ficam sempre claros.
   const statusBar = <StatusBar barStyle="light-content" animated />;
 
   if (!isSignedIn) {
@@ -108,5 +124,3 @@ const Header = ({ navigationState }: Props) => {
     </Container>
   );
 };
-
-export default Header;

@@ -1,2 +1,1 @@
-import MyProgress from './MyProgress';
-export default MyProgress;
+export { MyProgressPage } from './MyProgress';

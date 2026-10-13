@@ -1,2 +1,2 @@
-export { default } from './Header';
-export { useHeaderBack, useHeaderState, headerStore } from './headerStore';
+export { Header } from './Header';
+export { useHeaderBack, headerStore } from './headerStore';

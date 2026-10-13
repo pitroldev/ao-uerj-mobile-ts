@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, type LayoutChangeEvent } from 'react-native';
+import {
+  Animated,
+  Easing,
+  useAnimatedValue,
+  type LayoutChangeEvent,
+} from 'react-native';
 import { DrawerContentComponentProps } from '@react-navigation/drawer';
-import Toast from 'react-native-toast-message';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 
@@ -10,8 +14,21 @@ import {
   useIdentity,
 } from '@root/app/providers/AppServicesProvider';
 import { errorMessage } from '@root/shared/errors/AppError';
+import { useDisabledRoutes } from '@root/modules/delivery/presentation/FeatureGate';
+import {
+  THEME_PREFERENCE_LABEL,
+  ThemePreferenceSheet,
+} from '@root/modules/appearance/presentation/ThemePreferenceSheet';
+import { useThemePreference } from '@root/modules/appearance/presentation/useThemePreference';
 import { version } from '@/package.json';
-import { Avatar, Icon, Text, useReducedMotion } from '@components/ui';
+import {
+  Avatar,
+  Icon,
+  IconButton,
+  Text,
+  snackbar,
+  useReducedMotion,
+} from '@components/ui';
 import type { IconName } from '@components/ui';
 
 import {
@@ -57,7 +74,7 @@ const NAV: NavGroup[] = [
 const HIDDEN_ROUTES = ['Login', 'Loading', 'Informações da Disciplina'];
 const KNOWN = new Set(NAV.flatMap(g => g.items.map(([name]) => name)));
 
-const DrawerNavigator = ({
+export const DrawerNavigator = ({
   state,
   navigation,
 }: DrawerContentComponentProps) => {
@@ -66,6 +83,9 @@ const DrawerNavigator = ({
   const reduced = useReducedMotion();
   const { identity } = useAppServices();
   const { account } = useIdentity();
+  const disabledRoutes = useDisabledRoutes();
+  const { preference } = useThemePreference();
+  const [themeSheetOpen, setThemeSheetOpen] = useState(false);
   const isSignedIn = Boolean(account);
 
   const { routeNames } = state;
@@ -90,7 +110,7 @@ const DrawerNavigator = ({
   const [frames, setFrames] = useState<
     Record<string, { y: number; height: number }>
   >({});
-  const highlightY = useRef(new Animated.Value(0)).current;
+  const highlightY = useAnimatedValue(0);
   const placed = useRef(false);
   const activeY = frames[currentRouteName]?.y;
   const activeHeight = frames[currentRouteName]?.height ?? theme.sizes.touch;
@@ -125,11 +145,7 @@ const DrawerNavigator = ({
 
   function handleLogout() {
     navigation.closeDrawer();
-    void identity
-      .signOut()
-      .catch(error =>
-        Toast.show({ type: 'error', text1: errorMessage(error) }),
-      );
+    void identity.signOut().catch(error => snackbar.error(errorMessage(error)));
   }
 
   const c = theme.colors;
@@ -151,6 +167,7 @@ const DrawerNavigator = ({
       <Nav accessibilityRole="menu" accessibilityLabel="Menu principal">
         {activeY != null ? (
           <Highlight
+            testID="drawer-highlight"
             pointerEvents="none"
             $height={activeHeight}
             style={{ transform: [{ translateY: highlightY }] }}
@@ -174,13 +191,15 @@ const DrawerNavigator = ({
           ].concat(
             group.items.map(([route, icon]) => {
               const active = route === currentRouteName;
+              // desativado pelo aviso remoto: a tela explica o motivo
+              const off = disabledRoutes.has(route);
               return (
                 <Item
                   key={route}
                   onLayout={onItemLayout(route)}
                   onPress={() => navigation.navigate(route)}
                   accessibilityRole="menuitem"
-                  accessibilityLabel={route}
+                  accessibilityLabel={off ? `${route}, indisponível` : route}
                   accessibilityState={{ selected: active }}
                   style={({ pressed }) =>
                     pressed && !active && { backgroundColor: c.brandRule }
@@ -199,6 +218,11 @@ const DrawerNavigator = ({
                   >
                     {route}
                   </ItemLabel>
+                  {off ? (
+                    <Text variant="caption" tone="onBrandMuted">
+                      Indisponível
+                    </Text>
+                  ) : null}
                 </Item>
               );
             }),
@@ -227,9 +251,18 @@ const DrawerNavigator = ({
         >
           {`Versão ${version}`}
         </Version>
+        <IconButton
+          icon={theme.name === 'dark' ? 'dark_mode' : 'light_mode'}
+          onBrand
+          accessibilityLabel={`Tema: ${THEME_PREFERENCE_LABEL[preference]}`}
+          accessibilityHint="Abre as opções de tema"
+          onPress={() => setThemeSheetOpen(true)}
+        />
       </Footer>
+      <ThemePreferenceSheet
+        visible={themeSheetOpen}
+        onClose={() => setThemeSheetOpen(false)}
+      />
     </Container>
   );
 };
-
-export default DrawerNavigator;

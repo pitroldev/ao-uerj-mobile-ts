@@ -52,7 +52,7 @@ export const StickySlot = styled.View`
   align-items: center;
   padding-top: ${STICKY_TOP}px;
   padding-bottom: ${STICKY_GAP}px;
-  background-color: ${({ theme }) => theme.colors.surface};
+  background-color: ${({ theme }) => theme.colors.background};
 `;
 
 /** Etiqueta da data grudada no topo (12/16, fio forte, 20 de altura). */
@@ -63,7 +63,7 @@ export const StickyPill = styled.View`
   border-width: ${({ theme }) => theme.borders.hairline}px;
   border-color: ${({ theme }) => theme.colors.ruleStrong};
   border-radius: ${({ theme }) => theme.radii.pill}px;
-  background-color: ${({ theme }) => theme.colors.surface};
+  background-color: ${({ theme }) => theme.colors.float};
 `;
 
 /** Esqueleto de um balão enquanto a conversa carrega. */

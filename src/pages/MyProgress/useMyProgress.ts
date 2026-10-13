@@ -46,7 +46,11 @@ export function useMyProgress() {
     error: subjectsTakenQuery.error || curriculumQuery.error,
     isPaused: subjectsTakenQuery.isPaused || curriculumQuery.isPaused,
     isFetching: subjectsTakenQuery.isFetching || curriculumQuery.isFetching,
-    retry: () =>
-      Promise.all([subjectsTakenQuery.refetch(), curriculumQuery.refetch()]),
+    retry: () => {
+      void Promise.all([
+        subjectsTakenQuery.refetch(),
+        curriculumQuery.refetch(),
+      ]);
+    },
   };
 }

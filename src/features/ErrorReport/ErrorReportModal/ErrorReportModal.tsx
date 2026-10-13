@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import Toast from 'react-native-toast-message';
+import React, { useState } from 'react';
 
 import { useAppServices } from '@root/app/providers/AppServicesProvider';
 import { errorMessage } from '@root/shared/errors/AppError';
 import type { ErrorReportDraft } from '@root/modules/support/application/ports';
-import { BottomSheet, Button } from '@components/ui';
+import { BottomSheet, Button, snackbar } from '@components/ui';
 
-import FeatureSelectionStep from '../FeatureSelectionStep';
-import ExplanationStep from '../ExplanationStep';
+import { FeatureSelectionStep } from '../FeatureSelectionStep';
+import { ExplanationStep } from '../ExplanationStep';
 import { SUBJECT_PAGE, isValidSubjectCode } from '../reportPages';
 
 type Props = {
@@ -21,7 +20,7 @@ const emptyDraft = (): ErrorReportDraft => ({ page: '', description: '' });
  * da disciplina, quando for o caso) e a descrição. O relato só é enviado com
  * o rascunho completo; uma falha mantém o texto para tentar de novo.
  */
-const ErrorReportModal = ({ visible, setVisibility }: Props) => {
+export const ErrorReportModal = ({ visible, setVisibility }: Props) => {
   const { support } = useAppServices();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(0);
@@ -29,7 +28,10 @@ const ErrorReportModal = ({ visible, setVisibility }: Props) => {
   const [page, setPage] = useState('');
   const [subjectCode, setSubjectCode] = useState('');
   const [description, setDescription] = useState('');
-  useEffect(() => {
+  // Cada abertura começa um relato novo; o ajuste é feito no render.
+  const [wasVisible, setWasVisible] = useState(visible);
+  if (visible !== wasVisible) {
+    setWasVisible(visible);
     if (visible) {
       setLoading(false);
       setStep(0);
@@ -38,18 +40,19 @@ const ErrorReportModal = ({ visible, setVisibility }: Props) => {
       setSubjectCode('');
       setDescription('');
     }
-  }, [visible]);
+  }
+  // Sem `finally`: o React Compiler 1.0 não compila try/finally, e o catch
+  // já trata qualquer falha.
   const sendReport = async (draft: ErrorReportDraft) => {
     setLoading(true);
     try {
       await support.execute(draft);
       setVisibility(false);
-      Toast.show({ type: 'success', text1: 'Relato enviado. Obrigado!' });
+      snackbar.success('Relato enviado. Obrigado!');
     } catch (error) {
-      Toast.show({ type: 'error', text1: errorMessage(error) });
-    } finally {
-      setLoading(false);
+      snackbar.error(errorMessage(error));
     }
+    setLoading(false);
   };
   const nextStep = (updates: Partial<ErrorReportDraft>) => {
     const draft = { ...body, ...updates };
@@ -126,5 +129,3 @@ const ErrorReportModal = ({ visible, setVisibility }: Props) => {
     </BottomSheet>
   );
 };
-
-export default ErrorReportModal;

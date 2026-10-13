@@ -23,8 +23,8 @@ import {
   createScheduleDraft,
 } from '@root/modules/planning/domain/models';
 
-import ScheduleVisualizer from '../../ScheduleVisualizer';
-import ScheduleInfo from '../../ScheduleInfo';
+import { ScheduleVisualizer } from '../../ScheduleVisualizer';
+import { ScheduleInfo } from '../../ScheduleInfo';
 import { GeneratorStep, StepIntro, type StepAction } from '../../layout';
 import { plural } from '../../format';
 
@@ -63,7 +63,7 @@ function SummaryItem({ value, label }: { value: number; label: string }) {
   );
 }
 
-const GenerationStep = () => {
+export const GenerationStep = () => {
   const theme = useTheme();
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [currentTab, setCurrentTab] = React.useState<Tab>('INFO');
@@ -274,5 +274,3 @@ const styles = StyleSheet.create({
   chips: { marginTop: 10 },
   tabs: { marginTop: 20, marginBottom: 4 },
 });
-
-export default GenerationStep;

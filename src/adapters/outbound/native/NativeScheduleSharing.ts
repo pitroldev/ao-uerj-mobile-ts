@@ -11,7 +11,8 @@ export class NativeScheduleSharing implements ScheduleSharingPort {
     return captureRef(target as ViewInstance, { format: 'png', quality: 1 });
   }
 
-  async share(image: ScheduleImage): Promise<void> {
-    await Share.open({ ...image, failOnCancel: false });
+  async share(image: ScheduleImage): Promise<boolean> {
+    const result = await Share.open({ ...image, failOnCancel: false });
+    return result.success === true;
   }
 }

@@ -1,15 +1,12 @@
 import type { UniversalSubject } from '@root/modules/academics/domain/models';
+import type { CheerioAPI } from '../html';
 import { parseSubjectName } from './values';
 import { optionalNumber, requireStructure, subjectIdPattern } from './contract';
-const cheerio = require('react-native-cheerio');
-export default function parseUniversalSubjects(
-  html: string,
-): UniversalSubject[] {
-  const $ = cheerio.load(html);
+export function parseUniversalSubjects($: CheerioAPI): UniversalSubject[] {
   requireStructure($('.divContentBoxBody table').length > 0);
   requireStructure(/disciplina/i.test($('.divContentBoxBody table').text()));
   const subjects: UniversalSubject[] = [];
-  $('.divContentBoxBody tr').each((_index: number, row: any) => {
+  $('.divContentBoxBody tr').each((_index, row) => {
     const cells = $(row).children('td');
     const subject = cells.eq(0).text().trim();
     const id = subject.match(subjectIdPattern)?.[0];

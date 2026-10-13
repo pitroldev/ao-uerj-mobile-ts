@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import parser from '@services/parser';
+import { parseName } from '@services/parser';
 import { useIdentity } from '@root/app/providers/AppServicesProvider';
 import {
   useGrades,
@@ -9,23 +9,24 @@ import {
 } from '@root/modules/academics/presentation/queries';
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
 import { useOnlineStatus } from '@root/modules/academics/presentation/useOnlineStatus';
+import { RemoteNotices } from '@root/modules/delivery/presentation/RemoteNotices';
 import type { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
 
-import ScreenPanel from '@templates/ScreenPanel';
+import { ScreenPanel } from '@templates/ScreenPanel';
 import { BlockedState, EmptyState, ErrorState, Notice } from '@components/ui';
 
-import AppInfoModal from '@features/AppInfoModal';
-import RIDBoard from '@features/PartialRID/RIDBoard';
-import GradeBoard from '@features/ClassGrades/GradeBoard';
-import NextClassCard from '@features/AttendedClassesSchedule/NextClassCard';
-import ClassScheduleBoard from '@features/AttendedClassesSchedule/ClassScheduleBoard';
-import AttendedClassesBoard from '@features/AttendedClassesSchedule/AttendedClassesBoard';
+import { AppInfoModal } from '@features/AppInfoModal';
+import { RIDBoard } from '@features/PartialRID/RIDBoard';
+import { GradeBoard } from '@features/ClassGrades/GradeBoard';
+import { NextClassCard } from '@features/AttendedClassesSchedule/NextClassCard';
+import { ClassScheduleBoard } from '@features/AttendedClassesSchedule/ClassScheduleBoard';
+import { AttendedClassesBoard } from '@features/AttendedClassesSchedule/AttendedClassesBoard';
 import { dateLabel } from '@features/AttendedClassesSchedule/scheduleFormat';
 import { useNow } from '@features/AttendedClassesSchedule/useNow';
 
-import HomeGreeting from './components/HomeGreeting';
-import HomeHelp from './components/HomeHelp';
-import HomeSkeleton from './components/HomeSkeleton';
+import { HomeGreeting } from './components/HomeGreeting';
+import { HomeHelp } from './components/HomeHelp';
+import { HomeSkeleton } from './components/HomeSkeleton';
 import { styles } from './Home.styles';
 
 type ErrorControl = {
@@ -38,7 +39,7 @@ type ClassesSheet = { visible: boolean; focusId: string | null };
 
 const NOT_STARTED_TEXT = 'Parece que o período não se iniciou ainda.';
 
-const HomePage = () => {
+export const HomePage = () => {
   const [classesSheet, setClassesSheet] = useState<ClassesSheet>({
     visible: false,
     focusId: null,
@@ -77,8 +78,7 @@ const HomePage = () => {
   const isBlocked = [scheduleError, gradesError, ridError].some(
     isPortalBlocked,
   );
-  const firstName =
-    parser.parseName(account?.name ?? '', true).split(' ')[0] ?? '';
+  const firstName = parseName(account?.name ?? '', true).split(' ')[0] ?? '';
   const period =
     account?.period && account.period !== 'current'
       ? account.period
@@ -132,17 +132,19 @@ const HomePage = () => {
     .map(e => e.label)
     .join(', ')}. Toque aqui para tentar novamente.`;
 
-  const errorsCallback = async () =>
-    await Promise.all(errors.map(e => e.callback()));
+  const errorsCallback = () => {
+    void Promise.all(errors.map(e => e.callback()));
+  };
 
   const queries = [scheduleQuery, gradesQuery, ridQuery];
   /** Tenta de novo tudo o que falhou (com ou sem dados salvos). */
-  const retryFailed = async () =>
-    await Promise.all(queries.filter(q => q.error).map(q => q.refetch()));
+  const retryFailed = () => {
+    void Promise.all(queries.filter(q => q.error).map(q => q.refetch()));
+  };
   const refetchAll = async () =>
     await Promise.all(queries.map(q => q.refetch()));
 
-  const onRefresh = async () => {
+  const onRefresh = () => {
     // Sem conexão o React Query pausa as consultas e o refetch só termina
     // quando a rede volta: dispara sem esperar e deixa o aviso do topo explicar.
     if (!online) {
@@ -150,11 +152,8 @@ const HomePage = () => {
       return;
     }
     setRefreshing(true);
-    try {
-      await refetchAll();
-    } finally {
-      setRefreshing(false);
-    }
+    // `.finally` da promessa: o React Compiler 1.0 não compila try/finally.
+    void refetchAll().finally(() => setRefreshing(false));
   };
 
   const openClasses = useCallback((item?: AttendedClassesSchedule) => {
@@ -169,6 +168,7 @@ const HomePage = () => {
   if (isBlocked && !hasSomethingAvailable) {
     return (
       <ScreenPanel>
+        <RemoteNotices style={styles.notice} />
         {greeting}
         <BlockedState onRetry={retryFailed} />
       </ScreenPanel>
@@ -219,6 +219,7 @@ const HomePage = () => {
     <>
       <AppInfoModal />
       <ScreenPanel refreshing={refreshing && !isPaused} onRefresh={onRefresh}>
+        <RemoteNotices style={styles.notice} />
         {notice}
         {greeting}
         {showSkeleton ? <HomeSkeleton /> : null}
@@ -264,5 +265,3 @@ const HomePage = () => {
     </>
   );
 };
-
-export default HomePage;

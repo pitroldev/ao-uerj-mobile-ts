@@ -1,1 +1,1 @@
-export { default } from './PriorityStep';
+export { PriorityStep } from './PriorityStep';

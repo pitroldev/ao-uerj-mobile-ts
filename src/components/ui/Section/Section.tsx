@@ -5,7 +5,7 @@ import styled, { useTheme } from 'styled-components/native';
 import { Icon, type IconName } from '../Icon';
 import { Text } from '../Text';
 
-export type SectionHeaderProps = {
+type SectionHeaderProps = {
   title: string;
   /**
    * Elemento à direita: normalmente um `Button variant="text" size="sm"`
@@ -62,7 +62,7 @@ const Description = styled(Text)`
 `;
 
 /** Título de seção (17/24 semibold) com ação ou nota à direita. */
-export function SectionHeader({
+function SectionHeader({
   title,
   action,
   note,
@@ -127,5 +127,3 @@ export function Section({
     </SectionRoot>
   );
 }
-
-export default Section;

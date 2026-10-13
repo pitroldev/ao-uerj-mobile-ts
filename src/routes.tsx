@@ -1,24 +1,27 @@
 import React from 'react';
+import { StyleSheet, View } from 'react-native';
 import {
   createDrawerNavigator,
   type DrawerContentComponentProps,
 } from '@react-navigation/drawer';
+import { useTheme } from 'styled-components/native';
 import { useIdentity } from '@root/app/providers/AppServicesProvider';
-import { LIGHT } from '@root/themes';
 
-import CustomDrawerNavigator from '@root/components/templates/CustomDrawerNavigator';
+import { DrawerNavigator } from '@root/components/templates/CustomDrawerNavigator';
+import { FeatureGate } from '@root/modules/delivery/presentation/FeatureGate';
+import { hideSplash } from '@root/app/splash';
 
-import CurriculumSubjects from '@root/pages/CurriculumSubjects';
-import UniversalSubjects from '@root/pages/UniversalSubjects';
-import SubjectsTaken from '@root/pages/SubjectsTaken';
-import SubjectDetails from '@root/pages/SubjectDetails';
-import Home from '@root/pages/Home';
-import Login from '@root/pages/Login';
-import MessageBoard from '@root/pages/MessageBoard';
-import About from '@root/pages/About';
-import ScheduleSimulator from '@root/pages/ScheduleSimulator';
-import MyProgress from '@root/pages/MyProgress';
-import Loading from './pages/Loading';
+import { CurriculumSubjects } from '@root/pages/CurriculumSubjects';
+import { UniversalSubjects } from '@root/pages/UniversalSubjects';
+import { SubjectsTakenScreen } from '@root/pages/SubjectsTaken';
+import { SubjectDetailPage } from '@root/pages/SubjectDetails';
+import { HomePage } from '@root/pages/Home';
+import { LoginPage } from '@root/pages/Login';
+import { MessageBoard } from '@root/pages/MessageBoard';
+import { AboutPage } from '@root/pages/About';
+import { ScheduleCreationPage } from '@root/pages/ScheduleSimulator';
+import { MyProgressPage } from '@root/pages/MyProgress';
+import { LoadingPage } from './pages/Loading';
 
 export type RootDrawerParamList = {
   Login: undefined;
@@ -41,10 +44,25 @@ export type RootDrawerParamList = {
 const Drawer = createDrawerNavigator<RootDrawerParamList>();
 
 const renderDrawerContent = (props: DrawerContentComponentProps) => (
-  <CustomDrawerNavigator {...props} />
+  <DrawerNavigator {...props} />
 );
 
-const MainRoutes = () => {
+// recursos desativados pelo aviso remoto viram um estado de indisponível; o
+// primeiro layout de tela tira o splash nativo (a tela já está desenhada)
+const renderScreenLayout = ({
+  route,
+  children,
+}: {
+  route: { name: string };
+  children: React.ReactElement;
+}) => (
+  <View style={styles.screen} onLayout={hideSplash}>
+    <FeatureGate routeName={route.name}>{children}</FeatureGate>
+  </View>
+);
+
+export const MainRoutes = () => {
+  const theme = useTheme();
   const { account, status } = useIdentity();
   const showLoading = status === 'restoring';
   const isSignedIn =
@@ -53,6 +71,7 @@ const MainRoutes = () => {
   return (
     <Drawer.Navigator
       drawerContent={renderDrawerContent}
+      screenLayout={renderScreenLayout}
       initialRouteName={
         showLoading ? 'Loading' : isSignedIn ? 'Início' : 'Login'
       }
@@ -60,8 +79,8 @@ const MainRoutes = () => {
         headerShown: false,
         drawerType: 'back',
         drawerStyle: {
-          width: LIGHT.layout.drawerWidth,
-          backgroundColor: LIGHT.colors.brand,
+          width: theme.layout.drawerWidth,
+          backgroundColor: theme.colors.brand,
         },
         overlayColor: 'transparent',
         swipeEnabled: isSignedIn,
@@ -69,21 +88,21 @@ const MainRoutes = () => {
     >
       {showLoading && (
         <Drawer.Group navigationKey="restoring">
-          <Drawer.Screen name="Loading" component={Loading} />
+          <Drawer.Screen name="Loading" component={LoadingPage} />
         </Drawer.Group>
       )}
       {!showLoading && isSignedIn && (
         <Drawer.Group navigationKey={account!.scope}>
-          <Drawer.Screen name="Início" component={Home} />
-          <Drawer.Screen name="Meu Progresso" component={MyProgress} />
+          <Drawer.Screen name="Início" component={HomePage} />
+          <Drawer.Screen name="Meu Progresso" component={MyProgressPage} />
           <Drawer.Screen
             name="Gerador de Grade"
-            component={ScheduleSimulator}
+            component={ScheduleCreationPage}
           />
           <Drawer.Screen name="Mural de Mensagens" component={MessageBoard} />
           <Drawer.Screen
             name="Disciplinas Realizadas"
-            component={SubjectsTaken}
+            component={SubjectsTakenScreen}
           />
           <Drawer.Screen
             name="Disciplinas do Currículo"
@@ -95,22 +114,22 @@ const MainRoutes = () => {
           />
           <Drawer.Screen
             name="Pesquisa de Disciplinas"
-            component={SubjectDetails}
+            component={SubjectDetailPage}
           />
           {/* <Drawer.Screen
             name="Pesquisa de Professores"
             component={TeacherSearch}
           /> */}
-          <Drawer.Screen name="Sobre" component={About} />
+          <Drawer.Screen name="Sobre" component={AboutPage} />
         </Drawer.Group>
       )}
       {!showLoading && !isSignedIn && (
         <Drawer.Group navigationKey="signed-out">
-          <Drawer.Screen name="Login" component={Login} />
+          <Drawer.Screen name="Login" component={LoginPage} />
         </Drawer.Group>
       )}
     </Drawer.Navigator>
   );
 };
 
-export default MainRoutes;
+const styles = StyleSheet.create({ screen: { flex: 1 } });

@@ -1,47 +1,71 @@
 import 'react-native-gesture-handler';
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { LogBox } from 'react-native';
 import { enableScreens } from 'react-native-screens';
 import {
-  DefaultTheme,
   NavigationContainer,
+  type NavigationContainerRef,
   type NavigationState,
 } from '@react-navigation/native';
 import { ThemeProvider } from 'styled-components/native';
-import Toast from 'react-native-toast-message';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import {
+  initialWindowMetrics,
+  SafeAreaProvider,
+} from 'react-native-safe-area-context';
 
-import { LIGHT } from '@root/themes';
-import { navigationRef } from '@services/rootNavigation';
-import ErrorBoundary from '@components/ErrorBoundary';
+import { registerNavigationContainer } from '@services/rootNavigation';
+import { resetSplash } from '@root/app/splash';
+import { ErrorBoundary } from '@components/ErrorBoundary';
 import { createAppServices } from './app/composition/createAppServices';
 import { AppServicesProvider } from './app/providers/AppServicesProvider';
+import { recordScreen } from './app/observability';
 import { loadDevLinking } from './app/dev';
-import MainRoutes from './routes';
-import Header from '@components/templates/Header/Header';
-import { toastConfig } from '@components/ui/Snackbar';
+import { DeliveryProvider } from './modules/delivery/presentation/DeliveryProvider';
+import { useActiveTheme } from './modules/appearance/presentation/useActiveTheme';
+import { navigationTheme } from './modules/appearance/presentation/navigationTheme';
+import { MainRoutes, type RootDrawerParamList } from './routes';
+import { Header } from '@components/templates/Header/Header';
+import { SnackbarHost } from '@components/ui/Snackbar';
 
 const services = createAppServices();
 const devLinking = loadDevLinking(services);
-const navTheme = {
-  ...DefaultTheme,
-  colors: { ...DefaultTheme.colors, background: LIGHT.colors.brand },
-};
 
 enableScreens(true);
 
-const App = () => {
+if (__DEV__) {
+  // O KeyboardAvoidingView do react-native-keyboard-controller 1.22.7 passa
+  // dependências aos hooks do Reanimated 4.7, que avisa no debug. O aviso
+  // continua no console; só sai do LogBox, cujo balão cobria o pé da tela
+  // (e os toques dos testes E2E).
+  LogBox.ignoreLogs([
+    '[Reanimated] Dependencies should only be used on the web',
+  ]);
+}
+
+export const App = () => {
   const [navigationState, setNavigationState] = useState<NavigationState>();
   const [isReady, setIsReady] = useState(false);
+  const theme = useActiveTheme(services.appearance);
+  // Uma ref por raiz: recriar a atividade pode montar a raiz nova antes de
+  // desmontar a antiga (ver registerNavigationContainer).
+  const navigationRef =
+    useRef<NavigationContainerRef<RootDrawerParamList>>(null);
+  useLayoutEffect(() => registerNavigationContainer(navigationRef), []);
+  // o splash nativo sai no primeiro layout de tela (ver routes.tsx)
+  useLayoutEffect(resetSplash, []);
 
   const onNavigationReady = useCallback(() => {
     setNavigationState(navigationRef.current?.getRootState());
     setIsReady(true);
+    recordScreen(navigationRef.current?.getCurrentRoute()?.name);
   }, []);
 
   const onNavigationStateChange = useCallback(
     (state: NavigationState | undefined) => {
       setNavigationState(state);
+      recordScreen(navigationRef.current?.getCurrentRoute()?.name);
     },
     [],
   );
@@ -50,24 +74,26 @@ const App = () => {
     <ErrorBoundary>
       <AppServicesProvider services={services}>
         <QueryClientProvider client={services.queryClient}>
-          <SafeAreaProvider>
-            <ThemeProvider theme={LIGHT}>
-              {isReady && <Header navigationState={navigationState} />}
-              <NavigationContainer
-                theme={navTheme}
-                linking={devLinking}
-                ref={navigationRef}
-                onReady={onNavigationReady}
-                onStateChange={onNavigationStateChange}
-              >
-                <MainRoutes />
-              </NavigationContainer>
-              <Toast
-                config={toastConfig}
-                position="bottom"
-                autoHide
-                visibilityTime={10000}
-              />
+          <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+            <ThemeProvider theme={theme}>
+              <KeyboardProvider>
+                {isReady && <Header navigationState={navigationState} />}
+                <NavigationContainer
+                  theme={navigationTheme(theme)}
+                  linking={devLinking}
+                  ref={navigationRef}
+                  onReady={onNavigationReady}
+                  onStateChange={onNavigationStateChange}
+                >
+                  <DeliveryProvider
+                    delivery={services.delivery}
+                    ready={isReady}
+                  >
+                    <MainRoutes />
+                  </DeliveryProvider>
+                </NavigationContainer>
+                <SnackbarHost />
+              </KeyboardProvider>
             </ThemeProvider>
           </SafeAreaProvider>
         </QueryClientProvider>
@@ -75,5 +101,3 @@ const App = () => {
     </ErrorBoundary>
   );
 };
-
-export default App;

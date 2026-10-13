@@ -57,5 +57,3 @@ export function IconTile({
     </Tile>
   );
 }
-
-export default IconTile;

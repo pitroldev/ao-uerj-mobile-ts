@@ -82,11 +82,7 @@ export function IconButton({
 
   const background = (pressed: boolean) => {
     if (variant === 'filled') {
-      return isDisabled
-        ? c.surfaceStrong
-        : pressed
-          ? c.accentPressed
-          : c.accent;
+      return isDisabled ? c.surfaceStrong : pressed ? c.fillPressed : c.fill;
     }
     if (variant === 'outlined') return pressed ? c.accentSoft : c.surface;
     return pressed ? pressedOverlay : 'transparent';
@@ -96,7 +92,7 @@ export function IconButton({
     variant === 'filled'
       ? isDisabled
         ? c.inkMuted
-        : c.onAccent
+        : c.onFill
       : isDisabled
         ? c.ruleStrong
         : (color ??
@@ -126,7 +122,7 @@ export function IconButton({
       {loading ? (
         <Spinner
           size={glyph}
-          color={variant === 'filled' ? c.onAccent : c.accent}
+          color={variant === 'filled' ? c.onFill : c.accent}
         />
       ) : (
         <Icon name={icon} size={glyph} filled={filledIcon} color={iconColor} />
@@ -134,5 +130,3 @@ export function IconButton({
     </Root>
   );
 }
-
-export default IconButton;

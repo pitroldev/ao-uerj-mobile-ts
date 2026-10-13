@@ -1,9 +1,11 @@
 import React, { Component, ReactNode } from 'react';
-import { StatusBar, StyleSheet, View } from 'react-native';
+import { StatusBar, useColorScheme } from 'react-native';
+import BootSplash from 'react-native-bootsplash';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ThemeProvider } from 'styled-components/native';
+import styled, { ThemeProvider } from 'styled-components/native';
 
-import { LIGHT } from '@root/themes';
+import { themes } from '@root/themes';
+import { reportRenderError } from '@root/app/observability';
 import { ErrorState } from '@components/ui/Feedback';
 import { Text } from '@components/ui/Text';
 
@@ -20,7 +22,47 @@ interface State {
 
 const TOP_EDGE = ['top'] as const;
 
-class ErrorBoundary extends Component<Props, State> {
+const Root = styled(SafeAreaView)`
+  flex: 1;
+  background-color: ${({ theme }) => theme.colors.brand};
+`;
+
+const Page = styled.View`
+  flex: 1;
+  justify-content: center;
+  padding: 0px ${({ theme }) => theme.layout.gutter}px;
+  background-color: ${({ theme }) => theme.colors.background};
+`;
+
+/**
+ * Fica fora dos provedores do app: traz o próprio tema, no esquema que o app
+ * usa (a escolha do usuário chega ao `useColorScheme` pelo `Appearance`). O
+ * topo é azul nos dois temas, então os ícones da barra de status são claros.
+ */
+function Fallback({ error, onRetry }: { error?: Error; onRetry: () => void }) {
+  const scheme = useColorScheme();
+  return (
+    <ThemeProvider theme={themes[scheme === 'dark' ? 'dark' : 'light']}>
+      <Root edges={TOP_EDGE}>
+        <StatusBar barStyle="light-content" />
+        <Page>
+          <ErrorState
+            title="Oops! Algo deu errado"
+            message="Ocorreu um erro inesperado. Tente novamente ou reinicie o aplicativo."
+            onRetry={onRetry}
+          />
+          {__DEV__ && error ? (
+            <Text variant="caption" weight="regular" tone="bad" selectable>
+              {error.message}
+            </Text>
+          ) : null}
+        </Page>
+      </Root>
+    </ThemeProvider>
+  );
+}
+
+export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false };
@@ -37,6 +79,9 @@ class ErrorBoundary extends Component<Props, State> {
     if (__DEV__) {
       console.error('ErrorBoundary caught an error:', error, errorInfo);
     }
+    reportRenderError(error, errorInfo.componentStack);
+    // Um erro antes do onReady da navegação deixaria o splash nativo por cima.
+    BootSplash.hide({ fade: true }).catch(() => undefined);
 
     this.setState({
       error,
@@ -54,44 +99,11 @@ class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
-      // Fica fora dos provedores do app: traz o próprio tema. A faixa da barra
-      // de status é azul, como no resto do app, para os ícones claros
-      // continuarem visíveis: até o Android 14 a cor vem do tema nativo
-      // (statusBarColor em styles.xml); no Android 15+ e no iOS o conteúdo
-      // passa por baixo da barra e o fundo azul da raiz aparece.
       return (
-        <ThemeProvider theme={LIGHT}>
-          <SafeAreaView edges={TOP_EDGE} style={styles.root}>
-            <StatusBar barStyle="light-content" />
-            <View style={styles.page}>
-              <ErrorState
-                title="Oops! Algo deu errado"
-                message="Ocorreu um erro inesperado. Tente novamente ou reinicie o aplicativo."
-                onRetry={this.handleResetError}
-              />
-              {__DEV__ && this.state.error ? (
-                <Text variant="caption" weight="regular" tone="bad" selectable>
-                  {this.state.error.message}
-                </Text>
-              ) : null}
-            </View>
-          </SafeAreaView>
-        </ThemeProvider>
+        <Fallback error={this.state.error} onRetry={this.handleResetError} />
       );
     }
 
     return this.props.children;
   }
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: LIGHT.colors.brand },
-  page: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: LIGHT.layout.gutter,
-    backgroundColor: LIGHT.colors.surface,
-  },
-});
-
-export default ErrorBoundary;

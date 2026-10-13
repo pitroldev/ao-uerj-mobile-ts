@@ -37,5 +37,3 @@ export function BlockedState({
     />
   );
 }
-
-export default BlockedState;

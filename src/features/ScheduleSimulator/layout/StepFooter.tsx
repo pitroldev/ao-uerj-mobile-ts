@@ -122,5 +122,3 @@ export function StepFooter(props: StepFooterProps) {
 const styles = StyleSheet.create({
   natural: { flexGrow: 0, flexShrink: 0 },
 });
-
-export default StepFooter;

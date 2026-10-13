@@ -40,4 +40,3 @@ export * from './Agenda';
 export * from './EdgeFade';
 export * from './tones';
 export { useReducedMotion } from './hooks/useReducedMotion';
-export { useKeyboardHeight } from './hooks/useKeyboardHeight';

@@ -7,7 +7,7 @@ import React, {
 import { AppState } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { focusManager, onlineManager } from '@tanstack/react-query';
-import Toast from 'react-native-toast-message';
+import { snackbar } from '@components/ui/Snackbar';
 import type { AppServices } from '../composition/createAppServices';
 
 const ServicesContext = createContext<AppServices | null>(null);
@@ -18,7 +18,7 @@ export function AppServicesProvider({
 }: React.PropsWithChildren<{ services: AppServices }>) {
   useEffect(() => {
     void services.initialize().then(warning => {
-      if (warning) Toast.show({ type: 'error', text1: warning });
+      if (warning) snackbar.error(warning);
     });
     const unsubscribe = NetInfo.addEventListener(state => {
       onlineManager.setOnline(

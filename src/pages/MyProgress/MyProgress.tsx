@@ -13,17 +13,17 @@ import {
   StatGroup,
   Text,
 } from '@components/ui';
-import ScreenPanel from '@templates/ScreenPanel';
+import { ScreenPanel } from '@templates/ScreenPanel';
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
 import { AppError } from '@root/shared/errors/AppError';
 import { ElectiveCreditsConfig } from '@hooks/useElectiveCreditsConfig';
 
 import { useMyProgress } from './useMyProgress';
-import CrChart from './CrChart';
+import { CrChart } from './CrChart';
 import { formatCr } from './crChartModel';
-import CurriculumPath, { pathGoal } from './CurriculumPath';
-import CreditsSheet from './CreditsSheet';
-import ProgressSkeleton from './ProgressSkeleton';
+import { CurriculumPath, pathGoal } from './CurriculumPath';
+import { CreditsSheet } from './CreditsSheet';
+import { ProgressSkeleton } from './ProgressSkeleton';
 import { ChartCard, Legend, LegendItem, NoticeSlot } from './MyProgress.styles';
 
 const COPY = {
@@ -55,7 +55,7 @@ function LegendSwatch({ dashed }: { dashed?: boolean }) {
   );
 }
 
-export default function MyProgressPage() {
+export function MyProgressPage() {
   const [sheetVisible, setSheetVisible] = useState(false);
 
   const {

@@ -1,9 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Alert } from 'react-native';
-import Toast from 'react-native-toast-message';
 import styled from 'styled-components/native';
 
-import { BottomSheet, Button, NumberStepper, Text } from '@components/ui';
+import {
+  BottomSheet,
+  Button,
+  NumberStepper,
+  Text,
+  snackbar,
+} from '@components/ui';
 import { SUBJECT_TYPE } from '@utils/constants/subjectDictionary';
 import type {
   ElectiveCreditsConfig,
@@ -61,7 +66,7 @@ type Props = {
  * Folha "Configurar créditos exigidos": total de créditos de cada tipo de
  * eletiva, com Resetar (pede confirmação) e Salvar.
  */
-export default function CreditsSheet({
+export function CreditsSheet({
   visible,
   onClose,
   onSave,
@@ -70,32 +75,31 @@ export default function CreditsSheet({
   const [draft, setDraft] = useState<Draft>(() => toDraft(initialConfig));
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (visible) {
-      setDraft(toDraft(initialConfig));
-    }
-  }, [visible, initialConfig]);
+  // Abrir a folha (ou receber outra configuração com ela aberta) recomeça o
+  // rascunho; o ajuste é feito no render.
+  const [source, setSource] = useState({ visible, initialConfig });
+  if (source.visible !== visible || source.initialConfig !== initialConfig) {
+    setSource({ visible, initialConfig });
+    if (visible) setDraft(toDraft(initialConfig));
+  }
 
+  // Sem `finally`: o React Compiler 1.0 não compila try/finally, e o catch
+  // já trata qualquer falha.
   const saveConfig = async () => {
     try {
       setSaving(true);
       const success = await onSave(fromDraft(draft));
       if (success) {
         onClose();
-        Toast.show({
-          type: 'success',
-          text1: 'Créditos salvos',
-          text2: 'O progresso foi recalculado.',
-        });
+        snackbar.success('Créditos salvos', 'O progresso foi recalculado.');
       } else {
         Alert.alert('Erro', 'Não foi possível salvar as configurações');
       }
     } catch (error) {
       console.error('Erro ao salvar configuração de créditos:', error);
       Alert.alert('Erro', 'Não foi possível salvar as configurações');
-    } finally {
-      setSaving(false);
     }
+    setSaving(false);
   };
 
   const resetConfig = () => {
@@ -132,7 +136,9 @@ export default function CreditsSheet({
           label="Salvar"
           loading={saving}
           loadingLabel="Salvando…"
-          onPress={saveConfig}
+          onPress={() => {
+            void saveConfig();
+          }}
         />,
       ]}
     >

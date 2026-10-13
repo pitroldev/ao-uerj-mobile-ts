@@ -70,4 +70,3 @@ function IconBase({
 }
 
 export const Icon = memo(IconBase);
-export default Icon;

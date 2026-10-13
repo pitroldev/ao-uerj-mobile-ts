@@ -33,12 +33,15 @@ const Spaced = styled.View`
   margin-top: 10px;
 `;
 
-const UniversalSubjects = () => {
+export const UniversalSubjects = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState(ALL_DEPARTMENTS);
 
   const query = useUniversalSubjects();
   const { error, refetch } = query;
+  const retry = () => {
+    void refetch();
+  };
   const subjects = query.data ?? NO_SUBJECTS;
 
   const departmentOptions = useMemo(
@@ -133,7 +136,7 @@ const UniversalSubjects = () => {
       fallback={
         <SubjectListFallback
           phase={phase}
-          onRetry={refetch}
+          onRetry={retry}
           empty={{
             icon: 'search_off',
             text: SUBJECT_LIST_COPY.filterEmpty,
@@ -150,5 +153,3 @@ const UniversalSubjects = () => {
     />
   );
 };
-
-export default UniversalSubjects;

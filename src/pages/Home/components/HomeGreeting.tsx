@@ -15,7 +15,7 @@ const DateText = styled(Text)`
 `;
 
 /** ".greet": "Olá, Marina" (24/30) e a data de hoje. */
-const HomeGreeting = ({ firstName, date }: Props) => (
+export const HomeGreeting = ({ firstName, date }: Props) => (
   <>
     <Text variant="titleXL" accessibilityRole="header">
       {firstName ? `Olá, ${firstName}` : 'Olá'}
@@ -23,5 +23,3 @@ const HomeGreeting = ({ firstName, date }: Props) => (
     <DateText tone="muted">{date}</DateText>
   </>
 );
-
-export default HomeGreeting;

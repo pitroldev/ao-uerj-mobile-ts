@@ -45,13 +45,16 @@ const Spaced = styled.View`
   margin-top: 10px;
 `;
 
-const CurriculumSubjects = () => {
+export const CurriculumSubjects = () => {
   const [taken, setTaken] = useState<TakenFilter>('pending');
   const [subjectType, setSubjectType] = useState<TypeFilter>('');
   const [searchQuery, setSearchQuery] = useState('');
 
   const query = useCurriculum();
   const { error, refetch } = query;
+  const retry = () => {
+    void refetch();
+  };
   const data = query.data ?? NO_SUBJECTS;
 
   const navigation = useNavigation();
@@ -153,12 +156,10 @@ const CurriculumSubjects = () => {
       fallback={
         <SubjectListFallback
           phase={phase}
-          onRetry={refetch}
+          onRetry={retry}
           empty={{ icon: 'search_off', text: SUBJECT_LIST_COPY.filterEmpty }}
         />
       }
     />
   );
 };
-
-export default CurriculumSubjects;

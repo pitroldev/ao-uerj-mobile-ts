@@ -1,2 +1,2 @@
-export { AoLogo, default } from './AoLogo';
+export { AoLogo } from './AoLogo';
 export type { AoLogoProps } from './AoLogo';

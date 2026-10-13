@@ -84,7 +84,10 @@ function latestGrade(grades: Grade): { value: number; name: string } | null {
  * espremeria o nome (fonte grande ou tela estreita), cada linha passa a
  * mostrar as notas embaixo do nome, com o rótulo de cada uma.
  */
-const GradeBoard = ({ data, period }: Props) => {
+export const GradeBoard = React.memo(function GradeBoard({
+  data,
+  period,
+}: Props) {
   const rows = data ?? [];
   const theme = useTheme();
   const { width: windowWidth, fontScale } = useWindowDimensions();
@@ -139,9 +142,7 @@ const GradeBoard = ({ data, period }: Props) => {
             const values = GRADE_KEYS.map(
               ([key, label]) =>
                 `${label} ${
-                  isGrade(grades[key])
-                    ? formatGrade(grades[key] as number)
-                    : 'sem nota'
+                  isGrade(grades[key]) ? formatGrade(grades[key]) : 'sem nota'
                 }`,
             ).join(', ');
             const nameCell = (
@@ -154,7 +155,7 @@ const GradeBoard = ({ data, period }: Props) => {
               const cell = (
                 <GradeCell
                   key={key}
-                  value={isGrade(grades[key]) ? (grades[key] as number) : null}
+                  value={isGrade(grades[key]) ? grades[key] : null}
                 />
               );
               return stacked ? (
@@ -193,6 +194,4 @@ const GradeBoard = ({ data, period }: Props) => {
       </Legend>
     </Section>
   );
-};
-
-export default React.memo(GradeBoard);
+});

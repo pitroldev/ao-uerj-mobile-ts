@@ -1,1 +1,1 @@
-export { default } from './FetchDataStep';
+export { FetchDataStep } from './FetchDataStep';

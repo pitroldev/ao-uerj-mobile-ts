@@ -1,4 +1,2 @@
-export { UniversalSubjectRow, default } from './UniversalSubjectRow';
-export type { UniversalSubjectRowProps } from './UniversalSubjectRow';
-export { buildDepartmentOptions, departmentOf } from './departments';
-export type { DepartmentOption } from './departments';
+export { UniversalSubjectRow } from './UniversalSubjectRow';
+export { buildDepartmentOptions } from './departments';

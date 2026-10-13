@@ -1,8 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
-import Toast from 'react-native-toast-message';
 import { useQuery, useMutation } from '@tanstack/react-query';
 
 import {
@@ -22,8 +19,9 @@ import {
   SelectField,
   Text,
   TextField,
+  snackbar,
 } from '@components/ui';
-import ScreenPanel from '@templates/ScreenPanel';
+import { ScreenPanel } from '@templates/ScreenPanel';
 
 import { ChatMessages, ChatSkeleton } from '../ChatMessages';
 import { groupByDay, isOwnMessage } from '../chatFormat';
@@ -32,6 +30,7 @@ import {
   portalPeriod,
   suggestedPeriod,
 } from '../messagePeriod';
+import { useToday } from '../useToday';
 import {
   ChatMeta,
   Composer,
@@ -40,7 +39,6 @@ import {
   NoticeSlot,
   styles,
 } from './SubjectChat.styles';
-import { useKeyboardInset } from './useKeyboardInset';
 
 const HINT =
   'Compartilhe informações da turma, como grupos, links, materiais e datas de prova.';
@@ -49,20 +47,19 @@ const HINT =
  * Conversa da turma no mural: nome e código · turma no topo fixo, seletor do
  * período, mensagens agrupadas por dia e o compositor fixo no rodapé.
  */
-const SubjectChat = (subject: AttendedSubjectInfo) => {
+export const SubjectChat = (subject: AttendedSubjectInfo) => {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
-  const keyboardInset = useKeyboardInset(insets.bottom);
   const [text, setText] = useState('');
   const [sentCount, setSentCount] = useState(0);
   const { community } = useAppServices();
   const { account } = useIdentity();
   const online = useOnlineStatus();
-  const now = new Date();
+  // muda na virada do dia: a conversa pode ficar aberta de um dia para o outro
+  const today = useToday();
   const fromPortal = portalPeriod(account);
-  const suggested = suggestedPeriod(now);
+  const suggested = suggestedPeriod(today);
   const [period, setPeriod] = useState(fromPortal ?? suggested);
-  const periodOptions = messagePeriodOptions(period, now).map(value => ({
+  const periodOptions = messagePeriodOptions(period, today).map(value => ({
     value,
     label: value,
     aside:
@@ -87,14 +84,21 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
   const { mutate, isPending: sending } = useMutation({
     mutationFn: (messageText: string) =>
       community.postMessage(thread, messageText),
-    onSuccess: () => {
-      setText('');
+    onSuccess: (_, sentText) => {
+      // o campo segue editável durante o envio: sai do campo só o texto
+      // enviado, e o que foi digitado nesse meio-tempo fica
+      setText(current =>
+        current.startsWith(sentText) ? current.slice(sentText.length) : current,
+      );
       // a conversa volta ao fim e acompanha a mensagem nova quando ela chegar
       setSentCount(count => count + 1);
       void query.refetch();
     },
-    onError: error => Toast.show({ type: 'error', text1: errorMessage(error) }),
+    onError: error => snackbar.error(errorMessage(error)),
   });
+  // Contra o envio duplo, o botão fica em carregamento (desabilitado) e esta
+  // checagem ignora outro envio; o campo não é desabilitado, o que tiraria o
+  // foco e fecharia o teclado a cada mensagem.
   const handleSendMessage = () => {
     if (text.trim() && !sending) mutate(text);
   };
@@ -105,8 +109,8 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
   const messages = query.data;
   const hasData = messages !== undefined;
   const groups = useMemo(
-    () => groupByDay(messages ?? [], new Date()),
-    [messages],
+    () => groupByDay(messages ?? [], today),
+    [messages, today],
   );
   const isMine = (message: { authorName: string }) =>
     isOwnMessage(message, account?.name);
@@ -168,7 +172,6 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
         maxLength={MAX_MESSAGE_LENGTH}
         placeholder="Digite aqui sua mensagem"
         accessibilityLabel="Mensagem"
-        editable={!sending}
         onSubmitEditing={handleSendMessage}
         containerStyle={styles.composerField}
         inputStyle={styles.composerInput}
@@ -185,36 +188,32 @@ const SubjectChat = (subject: AttendedSubjectInfo) => {
   );
 
   return (
-    // o compositor sobe com o teclado (a janela não encolhe no edge-to-edge)
-    <View style={[styles.flex, { paddingBottom: keyboardInset }]}>
-      <ScreenPanel
-        scroll={false}
-        header={header}
-        headerStyle={styles.header}
-        footer={composer}
-        updating={hasData && query.isFetching}
-      >
-        {showNotice ? (
-          <NoticeSlot>
-            <QueryNotice
-              isPaused={query.isPaused}
-              isFetching={false}
-              error={query.error}
-              hasData={hasData}
-              retry={retry}
-              dataUpdatedAt={query.dataUpdatedAt || undefined}
-            />
-          </NoticeSlot>
-        ) : null}
-        <ChatMessages
-          groups={groups}
-          isMine={isMine}
-          placeholder={placeholder}
-          followKey={`${period}:${sentCount}`}
-        />
-      </ScreenPanel>
-    </View>
+    // o compositor sobe com o teclado junto com o rodapé do painel
+    <ScreenPanel
+      scroll={false}
+      header={header}
+      headerStyle={styles.header}
+      footer={composer}
+      updating={hasData && query.isFetching}
+    >
+      {showNotice ? (
+        <NoticeSlot>
+          <QueryNotice
+            isPaused={query.isPaused}
+            isFetching={false}
+            error={query.error}
+            hasData={hasData}
+            retry={retry}
+            dataUpdatedAt={query.dataUpdatedAt || undefined}
+          />
+        </NoticeSlot>
+      ) : null}
+      <ChatMessages
+        groups={groups}
+        isMine={isMine}
+        placeholder={placeholder}
+        followKey={`${period}:${sentCount}`}
+      />
+    </ScreenPanel>
   );
 };
-
-export default SubjectChat;

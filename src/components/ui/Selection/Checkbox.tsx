@@ -26,13 +26,13 @@ const Box = styled.View<{ $checked: boolean; $disabled: boolean }>`
     $disabled
       ? theme.colors.ruleStrong
       : $checked
-        ? theme.colors.accent
+        ? theme.colors.fill
         : theme.colors.inkMuted};
   background-color: ${({ theme, $checked, $disabled }) =>
     $checked
       ? $disabled
         ? theme.colors.ruleStrong
-        : theme.colors.accent
+        : theme.colors.fill
       : 'transparent'};
   border-radius: ${({ theme }) => theme.radii.checkbox}px;
   border-top-right-radius: 0px;
@@ -68,7 +68,7 @@ export function Checkbox({
         <Icon
           name="check"
           size={theme.sizes.icon.sm}
-          color={theme.colors.onAccent}
+          color={theme.colors.onFill}
         />
       ) : null}
     </Box>
@@ -87,5 +87,3 @@ export function Checkbox({
     </Target>
   );
 }
-
-export default Checkbox;

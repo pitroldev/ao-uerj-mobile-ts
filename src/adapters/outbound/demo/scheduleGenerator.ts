@@ -93,7 +93,7 @@ const comparators: Record<Priority, (a: Ranked, b: Ranked) => number> = {
 };
 
 /** Local, deterministic stand-in for the remote generator (demo only). */
-export function generateDemoSchedules(
+function generateDemoSchedules(
   request: ScheduleGenerationRequest,
 ): GeneratedSchedule[] {
   const payload = toGeneratorPayload(request);

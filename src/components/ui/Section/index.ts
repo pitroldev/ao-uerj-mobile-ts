@@ -1,2 +1,2 @@
-export { Section, SectionHeader, default } from './Section';
-export type { SectionProps, SectionHeaderProps } from './Section';
+export { Section } from './Section';
+export type { SectionProps } from './Section';

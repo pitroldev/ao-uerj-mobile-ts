@@ -1,1 +1,1 @@
-export { default } from './AppInfoModal';
+export { AppInfoModal } from './AppInfoModal';

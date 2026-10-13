@@ -1,11 +1,6 @@
-const cheerio = require('react-native-cheerio');
+import type { CheerioAPI } from '../html';
 
-export default async function parseLoginReqId(data: string) {
-  if (!data) {
-    throw new Error('LOGIN_REQ_ID_NOT_FOUND');
-  }
-
-  const $ = cheerio.load(data);
+export async function parseLoginReqId($: CheerioAPI) {
   const loginReqId = $('input[name="requisicao"]')
     .first()
     .attr('value')

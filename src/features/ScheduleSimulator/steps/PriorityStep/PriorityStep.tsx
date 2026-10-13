@@ -100,7 +100,7 @@ const PairNote = styled.View`
 
 const PAIR_INSET = 14;
 
-const PriorityStep = () => {
+export const PriorityStep = () => {
   const theme = useTheme();
   const { nextStep, prevStep } = useStepsContext();
 
@@ -221,5 +221,3 @@ const PriorityStep = () => {
     </GeneratorStep>
   );
 };
-
-export default PriorityStep;

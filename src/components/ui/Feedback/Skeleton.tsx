@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import {
   Animated,
   Easing,
+  useAnimatedValue,
   type DimensionValue,
   type StyleProp,
   type ViewStyle,
@@ -39,7 +40,7 @@ export function Skeleton({
   style,
 }: SkeletonProps) {
   const reduced = useReducedMotion();
-  const pulse = useRef(new Animated.Value(1)).current;
+  const pulse = useAnimatedValue(1);
 
   useEffect(() => {
     if (reduced) return;
@@ -47,6 +48,8 @@ export function Skeleton({
       Animated.timing(pulse, {
         toValue,
         duration: 700,
+        // Os tipos do RN declaram o Easing com métodos; as curvas não usam this.
+        // oxlint-disable-next-line typescript/unbound-method
         easing: Easing.inOut(Easing.ease),
         useNativeDriver: true,
       });
@@ -108,5 +111,3 @@ export function SkeletonList({
     </Wrapper>
   );
 }
-
-export default Skeleton;

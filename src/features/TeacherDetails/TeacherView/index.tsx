@@ -1,1 +1,1 @@
-export { default } from './TeacherView';
+export { TeacherView } from './TeacherView';

@@ -29,7 +29,7 @@ const Box = styled.View<{ $h: number }>`
 `;
 
 /** Rótulo acessível do gráfico (o desenho em si é decorativo). */
-export function crChartLabel(points: CrPoint[]) {
+function crChartLabel(points: CrPoint[]) {
   if (!points.length) return '';
   const first = points[0];
   const last = points[points.length - 1];
@@ -217,5 +217,3 @@ export function CrChart({ points, height = 200 }: Props) {
     </Box>
   );
 }
-
-export default CrChart;

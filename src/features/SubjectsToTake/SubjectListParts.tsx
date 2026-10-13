@@ -10,7 +10,7 @@ import {
   Text,
   type EmptyStateProps,
 } from '@components/ui';
-import ScreenPanel, { usePanelContentStyle } from '@templates/ScreenPanel';
+import { ScreenPanel, usePanelContentStyle } from '@templates/ScreenPanel';
 
 import {
   SUBJECT_LIST_COPY,

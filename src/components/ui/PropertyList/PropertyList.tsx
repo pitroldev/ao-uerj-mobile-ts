@@ -59,16 +59,14 @@ export function PropertyList({
   return (
     <Root style={style}>
       {items.map(item => {
-        const plain =
-          typeof item.value === 'string' || typeof item.value === 'number';
+        const { value } = item;
+        const plain = typeof value === 'string' || typeof value === 'number';
         return (
           <Row
             key={item.label}
             $spread={spread}
             accessible={plain || undefined}
-            accessibilityLabel={
-              plain ? `${item.label}: ${item.value}` : undefined
-            }
+            accessibilityLabel={plain ? `${item.label}: ${value}` : undefined}
           >
             <Label tone="muted" $spread={spread}>
               {item.label}
@@ -184,5 +182,3 @@ export function FootNote({
     </Note>
   );
 }
-
-export default PropertyList;

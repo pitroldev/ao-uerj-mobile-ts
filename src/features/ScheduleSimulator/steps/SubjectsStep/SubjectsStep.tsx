@@ -108,7 +108,7 @@ const SubjectRow = memo(function ({
 });
 SubjectRow.displayName = 'SubjectRow';
 
-const SubjectsStep = () => {
+export const SubjectsStep = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [subjectType, setSubjectType] = useState<TypeFilter>('');
   const listStyle = useStepListStyle();
@@ -117,6 +117,9 @@ const SubjectsStep = () => {
 
   const query = useCurriculum();
   const { data = [], error, refetch, isLoading: loading } = query;
+  const retry = () => {
+    void refetch();
+  };
 
   const { handleSubmit, setValue, getValues, control } =
     useFormContext<ScheduleCreationParams>();
@@ -254,13 +257,13 @@ const SubjectsStep = () => {
           action={{
             label: 'Tentar novamente',
             icon: 'refresh',
-            onPress: refetch,
+            onPress: retry,
           }}
         />
       ) : failed ? (
         <ErrorState
           message="Ops, ocorreu um erro ao buscar as disciplinas. Toque aqui para tentar novamente."
-          onRetry={refetch}
+          onRetry={retry}
         />
       ) : null}
       {showList && !query.isPaused && isEmpty ? (
@@ -306,5 +309,3 @@ const SubjectsStep = () => {
 const styles = StyleSheet.create({
   chips: { marginTop: 12 },
 });
-
-export default SubjectsStep;

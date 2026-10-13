@@ -1,11 +1,4 @@
-export {
-  TextField,
-  SearchField,
-  FieldError,
-  inputColors,
-  inputTextStyle,
-  default,
-} from './TextField';
+export { TextField, SearchField, FieldError } from './TextField';
 export type { TextFieldProps, SearchFieldProps } from './TextField';
 export { FieldGroup, FieldGroupRow } from './FieldGroup';
 export type { FieldGroupProps, FieldGroupRowProps } from './FieldGroup';

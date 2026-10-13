@@ -160,5 +160,3 @@ export function ErrorState({
     />
   );
 }
-
-export default EmptyState;

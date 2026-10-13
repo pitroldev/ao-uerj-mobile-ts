@@ -8,8 +8,8 @@ import {
 import { errorMessage, isTransientError } from '@root/shared/errors/AppError';
 import { useBackHandler } from '@hooks/useBackHandler';
 import { communityKeys } from '@root/modules/community/presentation/queryKeys';
-import TeacherView from '@features/TeacherDetails/TeacherView';
-import ScreenPanel from '@templates/ScreenPanel';
+import { TeacherView } from '@features/TeacherDetails/TeacherView';
+import { ScreenPanel } from '@templates/ScreenPanel';
 import { useHeaderBack } from '@templates/Header';
 import {
   EmptyState,
@@ -25,7 +25,7 @@ import {
   useListContentStyle,
 } from './TeacherSearch.styles';
 
-const TeacherSearch = () => {
+export const TeacherSearch = () => {
   const [search, setSearch] = useState('');
   const [selectedTeacher, setSelectedTeacher] = useState('');
   const { community } = useAppServices();
@@ -136,5 +136,3 @@ const TeacherSearch = () => {
     </ScreenPanel>
   );
 };
-
-export default TeacherSearch;

@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useSyncExternalStore,
+} from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 
 /**
@@ -22,7 +28,7 @@ function emit() {
 
 export const headerStore = {
   getSnapshot: () => state,
-  subscribe(listener: () => void) {
+  subscribe: (listener: () => void) => {
     listeners.add(listener);
     return () => {
       listeners.delete(listener);
@@ -56,7 +62,9 @@ export function useHeaderBack(
   backLabel = 'Voltar',
 ) {
   const latest = useRef(onBack);
-  latest.current = onBack;
+  useLayoutEffect(() => {
+    latest.current = onBack;
+  });
   const enabled = Boolean(onBack);
   const stableBack = useCallback(() => latest.current?.(), []);
 

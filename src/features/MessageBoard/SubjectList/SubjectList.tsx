@@ -22,10 +22,11 @@ import {
   ListRow,
   SkeletonList,
 } from '@components/ui';
-import ScreenPanel from '@templates/ScreenPanel';
+import { ScreenPanel } from '@templates/ScreenPanel';
 
 import { threadSummary } from '../chatFormat';
 import { defaultMessagePeriod } from '../messagePeriod';
+import { useToday } from '../useToday';
 import { Lead } from './SubjectList.styles';
 
 type Props = { onSubjectPress: (item: AttendedSubjectInfo) => void };
@@ -55,7 +56,9 @@ function attendedSubjects(
 function useCachedSummaries(subjects: AttendedSubjectInfo[]) {
   const { community } = useAppServices();
   const { account } = useIdentity();
-  const period = defaultMessagePeriod(account, new Date());
+  // o período sugerido acompanha a virada do dia, como na conversa
+  const today = useToday();
+  const period = defaultMessagePeriod(account, today);
   return useQueries({
     queries: subjects.map(subject => {
       const thread = {
@@ -77,7 +80,7 @@ function useCachedSummaries(subjects: AttendedSubjectInfo[]) {
 }
 
 /** Lista do mural: escolha a disciplina para abrir a conversa da turma. */
-const SubjectList = ({ onSubjectPress }: Props) => {
+export const SubjectList = ({ onSubjectPress }: Props) => {
   const query = useSchedule();
   const online = useOnlineStatus();
   const [pulling, setPulling] = useState(false);
@@ -164,5 +167,3 @@ const SubjectList = ({ onSubjectPress }: Props) => {
     </ScreenPanel>
   );
 };
-
-export default SubjectList;

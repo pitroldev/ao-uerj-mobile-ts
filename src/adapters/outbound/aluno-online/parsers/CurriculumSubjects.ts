@@ -1,15 +1,12 @@
 import type { CurriculumSubject } from '@root/modules/academics/domain/models';
+import type { CheerioAPI } from '../html';
 import { parseSubjectName, parseSubjectType } from './values';
 import { optionalNumber, requireStructure, subjectIdPattern } from './contract';
-const cheerio = require('react-native-cheerio');
-export default function parseCurriculumSubjects(
-  html: string,
-): CurriculumSubject[] {
-  const $ = cheerio.load(html);
+export function parseCurriculumSubjects($: CheerioAPI): CurriculumSubject[] {
   requireStructure($('.divContentBoxBody table').length > 0);
   requireStructure(/disciplina/i.test($('.divContentBoxBody table').text()));
   const subjects: CurriculumSubject[] = [];
-  $('.divContentBoxBody tr').each((_index: number, row: any) => {
+  $('.divContentBoxBody tr').each((_index, row) => {
     const cells = $(row).children('td');
     const subject = cells.eq(0).text().trim();
     const id = subject.match(subjectIdPattern)?.[0];

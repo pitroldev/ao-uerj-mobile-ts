@@ -30,10 +30,8 @@ type StepsProviderProps = {
   values: StepsContextType;
 };
 
-const StepsProvider = ({ children, values }: StepsProviderProps) => {
+export const StepsProvider = ({ children, values }: StepsProviderProps) => {
   return (
     <StepsContext.Provider value={values}>{children}</StepsContext.Provider>
   );
 };
-
-export default StepsProvider;

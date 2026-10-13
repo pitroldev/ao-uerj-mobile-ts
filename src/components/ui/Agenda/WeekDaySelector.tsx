@@ -43,7 +43,7 @@ const Day = styled.Pressable<{ $selected: boolean; $first: boolean }>`
     $first ? 0 : theme.borders.hairline}px;
   border-left-color: ${({ theme }) => theme.colors.rule};
   background-color: ${({ theme, $selected }) =>
-    $selected ? theme.colors.accent : theme.colors.surface};
+    $selected ? theme.colors.fill : theme.colors.surface};
 `;
 
 const Dot = styled.View<{ $color: string }>`
@@ -76,9 +76,9 @@ export function WeekDaySelector<K extends string | number = number>({
     >
       {days.map((day, i) => {
         const isSelected = day.key === selected;
-        const fg = isSelected ? c.onAccent : day.isToday ? c.accent : c.ink;
+        const fg = isSelected ? c.onFill : day.isToday ? c.accent : c.ink;
         const fgSmall = isSelected
-          ? c.onAccent
+          ? c.onFill
           : day.isToday
             ? c.accent
             : c.inkMuted;
@@ -101,7 +101,7 @@ export function WeekDaySelector<K extends string | number = number>({
             accessibilityLabel={label}
             accessibilityState={{ selected: isSelected }}
             style={({ pressed }) =>
-              pressed && !isSelected && { backgroundColor: c.surfaceMuted }
+              pressed && !isSelected && { backgroundColor: c.surfacePressed }
             }
           >
             {day.date != null ? (
@@ -122,7 +122,7 @@ export function WeekDaySelector<K extends string | number = number>({
               $color={
                 day.hasEvents
                   ? isSelected
-                    ? c.onAccent
+                    ? c.onFill
                     : c.inkSubtle
                   : 'transparent'
               }
@@ -133,5 +133,3 @@ export function WeekDaySelector<K extends string | number = number>({
     </Strip>
   );
 }
-
-export default WeekDaySelector;

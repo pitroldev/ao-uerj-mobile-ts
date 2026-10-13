@@ -2,10 +2,12 @@ import React, { useCallback, useRef, useState } from 'react';
 import { View, StyleSheet, type ViewInstance } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { useAppServices } from '@root/app/providers/AppServicesProvider';
+import { usePositiveMoment } from '@root/modules/delivery/presentation/DeliveryProvider';
 import { ShareSchedule } from '../application/use-cases/ShareSchedule';
 
 export function useScheduleSharing() {
   const { scheduleSharing } = useAppServices();
+  const positiveMoment = usePositiveMoment();
   const imageRef = useRef<ViewInstance>(null);
   const ready = useRef(false);
   const pending = useRef(false);
@@ -14,15 +16,14 @@ export function useScheduleSharing() {
     if (pending.current) return;
     pending.current = true;
     setExporting(true);
-    try {
-      await new ShareSchedule(scheduleSharing).execute(
-        ready.current ? imageRef.current : null,
-        svgUri,
-      );
-    } finally {
-      pending.current = false;
-      setExporting(false);
-    }
+    // `.finally` da promessa: o React Compiler 1.0 não compila try/finally.
+    const shared = await new ShareSchedule(scheduleSharing)
+      .execute(ready.current ? imageRef.current : null, svgUri)
+      .finally(() => {
+        pending.current = false;
+        setExporting(false);
+      });
+    if (shared) positiveMoment();
   };
   const SvgRenderer = useCallback(
     ({ svgString }: { svgString: string }) => (

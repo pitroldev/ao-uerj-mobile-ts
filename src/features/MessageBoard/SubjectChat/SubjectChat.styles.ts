@@ -36,7 +36,6 @@ export const Composer = styled.View`
 export const styles = StyleSheet.create({
   /** ".panel.chat .panel-top": 22 no topo, 20 nas laterais, 12 embaixo. */
   header: { paddingTop: 22, paddingHorizontal: 20, paddingBottom: 12 },
-  flex: { flex: 1 },
   composerField: { flex: 1, minWidth: 0 },
   /** Uma linha como o campo do protótipo; cresce com o texto até ~5 linhas. */
   composerInput: { minHeight: 0, maxHeight: 128 },

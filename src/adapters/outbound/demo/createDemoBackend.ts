@@ -50,7 +50,7 @@ export type DemoBackend = {
   ports(scenario: DemoScenario): DemoPorts;
 };
 
-export type DemoBackendOptions = {
+type DemoBackendOptions = {
   /** Simulated portal latency (ms). */
   latencyMs?: number;
   /** Latency of the "lento" scenario (ms). */

@@ -86,7 +86,7 @@ const ClassRow = memo(function ({
 });
 ClassRow.displayName = 'ClassRow';
 
-const ClassesStep = () => {
+export const ClassesStep = () => {
   const [teacher, setTeacher] = useState(ALL_TEACHERS);
   const listStyle = useStepListStyle();
 
@@ -247,5 +247,3 @@ const ClassesStep = () => {
     </GeneratorStep>
   );
 };
-
-export default ClassesStep;

@@ -115,5 +115,3 @@ export function Divider({
     />
   );
 }
-
-export default Divider;

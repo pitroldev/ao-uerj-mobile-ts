@@ -19,6 +19,8 @@ type Dependencies = {
   createScope: () => string;
 };
 
+// Only these erase the saved access. ACCOUNT_UNAVAILABLE stays out: the portal
+// uses the same warning for a maintenance window.
 function isAccessRejected(error: unknown): boolean {
   return (
     error instanceof AppError &&

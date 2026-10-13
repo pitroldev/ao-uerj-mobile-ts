@@ -1,5 +1,11 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, type StyleProp, type ViewStyle } from 'react-native';
+import React, { useEffect } from 'react';
+import {
+  Animated,
+  Easing,
+  useAnimatedValue,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import styled, { useTheme } from 'styled-components/native';
 
 import { useReducedMotion } from '../hooks/useReducedMotion';
@@ -24,9 +30,9 @@ const Track = styled.View<{ $on: boolean; $disabled: boolean }>`
   border-radius: 16px;
   border-width: 2px;
   border-color: ${({ theme, $on }) =>
-    $on ? theme.colors.accent : theme.colors.fieldBorder};
+    $on ? theme.colors.fill : theme.colors.fieldBorder};
   background-color: ${({ theme, $on }) =>
-    $on ? theme.colors.accent : theme.colors.surfaceStrong};
+    $on ? theme.colors.fill : theme.colors.surfaceStrong};
   opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
 `;
 
@@ -38,7 +44,7 @@ const Thumb = styled(Animated.View)<{ $on: boolean }>`
   height: 24px;
   border-radius: 12px;
   background-color: ${({ theme, $on }) =>
-    $on ? theme.colors.onAccent : theme.colors.inkMuted};
+    $on ? theme.colors.onFill : theme.colors.inkMuted};
 `;
 
 const Target = styled.Pressable`
@@ -58,7 +64,7 @@ export function Switch({
 }: SwitchProps) {
   const theme = useTheme();
   const reduced = useReducedMotion();
-  const anim = useRef(new Animated.Value(value ? 1 : 0)).current;
+  const anim = useAnimatedValue(value ? 1 : 0);
 
   useEffect(() => {
     if (reduced) {
@@ -114,5 +120,3 @@ export function Switch({
     </Target>
   );
 }
-
-export default Switch;

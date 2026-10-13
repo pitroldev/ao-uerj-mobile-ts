@@ -105,6 +105,8 @@ export function NumberStepper({
         }
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
+        // o valor fica selecionado ao focar: digitar substitui o número
+        selectTextOnFocus
         keyboardType="number-pad"
         inputMode="numeric"
         maxLength={maxLength}
@@ -127,5 +129,3 @@ export function NumberStepper({
     </Root>
   );
 }
-
-export default NumberStepper;

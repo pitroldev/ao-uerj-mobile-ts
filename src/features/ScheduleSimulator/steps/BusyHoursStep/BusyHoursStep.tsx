@@ -64,7 +64,7 @@ const slotKey = (weekDay: number, start: number, end: number) =>
 /** O cabeçalho dos dias fica preso no topo ao rolar (".busy-head" sticky). */
 const STICKY_HEAD = { stickyHeaderIndices: [1] };
 
-const BusyHoursStep = () => {
+export const BusyHoursStep = () => {
   const theme = useTheme();
   const timeColumn = useTimeColumnWidth();
   const { nextStep, prevStep } = useStepsContext();
@@ -381,5 +381,3 @@ const BusyHoursStep = () => {
     </GeneratorStep>
   );
 };
-
-export default BusyHoursStep;

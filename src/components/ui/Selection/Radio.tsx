@@ -56,5 +56,3 @@ export function Radio({ selected, disabled = false, style }: RadioProps) {
     </Ring>
   );
 }
-
-export default Radio;

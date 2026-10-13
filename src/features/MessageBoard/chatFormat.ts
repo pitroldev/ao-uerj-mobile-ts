@@ -40,7 +40,7 @@ export function timeLabel(date: Date | null): string {
 }
 
 /** "12/10/2026". */
-export function shortDate(date: Date): string {
+function shortDate(date: Date): string {
   return `${pad(date.getDate())}/${pad(
     date.getMonth() + 1,
   )}/${date.getFullYear()}`;

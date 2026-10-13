@@ -47,12 +47,12 @@ export function useElectiveCreditsConfig() {
     );
     try {
       await preferences.write(scope, STORAGE_KEY, next);
-      if (identity.getSnapshot().account?.scope !== scope) return false;
-      queryClient.setQueryData(queryKey, next);
-      return true;
     } catch {
       return false;
     }
+    if (identity.getSnapshot().account?.scope !== scope) return false;
+    queryClient.setQueryData(queryKey, next);
+    return true;
   };
 
   return {

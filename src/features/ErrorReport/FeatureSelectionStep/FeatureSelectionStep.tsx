@@ -15,7 +15,7 @@ const CodeField = styled.View`
 const QUESTION = 'Onde o erro aconteceu?';
 
 /** Passo 1 do relato: a tela do problema, como uma lista de rádios. */
-const FeatureSelectionStep = ({
+export const FeatureSelectionStep = ({
   page,
   subjectCode,
   onChangePage,
@@ -57,5 +57,3 @@ const FeatureSelectionStep = ({
     </List>
   </>
 );
-
-export default FeatureSelectionStep;

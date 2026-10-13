@@ -1,2 +1,2 @@
-export { ScreenPanel, usePanelContentStyle, default } from './ScreenPanel';
+export { ScreenPanel, usePanelContentStyle } from './ScreenPanel';
 export type { ScreenPanelProps } from './ScreenPanel';

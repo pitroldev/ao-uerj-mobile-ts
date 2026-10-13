@@ -63,7 +63,7 @@ export function FilterChip({
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ checked: selected, disabled }}
       style={({ pressed }) => [
-        pressed && !selected && { backgroundColor: c.surfaceMuted },
+        pressed && !selected && { backgroundColor: c.surfacePressed },
         style,
       ]}
     >
@@ -86,7 +86,7 @@ export type ChipGroupProps = {
   layout?: 'scroll' | 'wrap';
   /**
    * Cor do fundo atrás da linha rolável, para o esmaecimento das bordas.
-   * Padrão `theme.colors.surface`.
+   * Padrão `theme.colors.background`.
    */
   fadeColor?: string;
   accessibilityLabel?: string;
@@ -145,5 +145,3 @@ export function ChipGroup({
     </Wrap>
   );
 }
-
-export default FilterChip;

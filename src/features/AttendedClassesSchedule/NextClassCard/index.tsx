@@ -1,1 +1,1 @@
-export { default } from './NextClassCard';
+export { NextClassCard } from './NextClassCard';

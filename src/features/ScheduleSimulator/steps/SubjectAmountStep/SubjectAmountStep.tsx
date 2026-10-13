@@ -1,5 +1,5 @@
 import React from 'react';
-import { useFormContext, Controller } from 'react-hook-form';
+import { useFormContext, useFormState, Controller } from 'react-hook-form';
 import styled from 'styled-components/native';
 
 import { useStepsContext } from '@hooks/useSteps';
@@ -84,14 +84,15 @@ function AmountQuestion({
   );
 }
 
-const SubjectAmountStep = () => {
+export const SubjectAmountStep = () => {
   const { nextStep } = useStepsContext();
 
-  const {
-    formState: { errors },
-    handleSubmit,
-    setValue,
-  } = useFormContext<ScheduleCreationParams>();
+  const { control, handleSubmit, setValue } =
+    useFormContext<ScheduleCreationParams>();
+  // O `useForm` devolve sempre o mesmo objeto e troca o `formState` por
+  // dentro; com o React Compiler, o `formState` do contexto fica velho.
+  // `useFormState` assina os erros direto no formulário.
+  const { errors } = useFormState({ control });
 
   const handleNextPress = handleSubmit(data => {
     const { min_subject_amount, max_subject_amount } = data;
@@ -143,5 +144,3 @@ const SubjectAmountStep = () => {
     </GeneratorStep>
   );
 };
-
-export default SubjectAmountStep;

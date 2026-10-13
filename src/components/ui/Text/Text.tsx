@@ -14,7 +14,7 @@ export type TextTone =
   | 'muted'
   | 'subtle'
   | 'accent'
-  | 'onAccent'
+  | 'onFill'
   | 'onBrand'
   | 'onBrandMuted'
   | 'good'
@@ -36,7 +36,7 @@ export type TextProps = RNTextProps & {
   align?: TextStyle['textAlign'];
 };
 
-export function toneColor(theme: DefaultTheme, tone: TextTone): string {
+function toneColor(theme: DefaultTheme, tone: TextTone): string {
   switch (tone) {
     case 'muted':
       return theme.colors.inkMuted;
@@ -44,8 +44,8 @@ export function toneColor(theme: DefaultTheme, tone: TextTone): string {
       return theme.colors.inkSubtle;
     case 'accent':
       return theme.colors.accent;
-    case 'onAccent':
-      return theme.colors.onAccent;
+    case 'onFill':
+      return theme.colors.onFill;
     case 'onBrand':
       return theme.colors.onBrand;
     case 'onBrandMuted':
@@ -84,16 +84,6 @@ export function typeStyle(
   };
 }
 
-/** Mesma coisa que `typeStyle`, em CSS, para usar dentro de styled-components. */
-export function typeCss(
-  theme: DefaultTheme,
-  variant: TypeVariantName = 'callout',
-  weight?: FontWeightName,
-): string {
-  const s = typeStyle(theme, variant, weight);
-  return `font-family: ${s.fontFamily}; font-size: ${s.fontSize}px; line-height: ${s.lineHeight}px; letter-spacing: ${s.letterSpacing}px;`;
-}
-
 const TABULAR: TextStyle['fontVariant'] = ['tabular-nums'];
 
 /**
@@ -129,5 +119,3 @@ export const Text = React.forwardRef<TextInstance, TextProps>(function (
   );
 });
 Text.displayName = 'Text';
-
-export default Text;

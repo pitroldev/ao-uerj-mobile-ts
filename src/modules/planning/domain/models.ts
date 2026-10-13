@@ -39,7 +39,7 @@ export type ScheduleCreationParams = {
   selectedClasses: SubjectClasses[];
 };
 
-export type GeneratedSubject = {
+type GeneratedSubject = {
   id: string;
   name: string;
   type: string;
@@ -71,15 +71,6 @@ export type GeneratedSchedule = {
   total_credits: number;
   total_workload: number;
   hash: string;
-};
-
-export type RenderedSchedule = {
-  [weekDay: string]: {
-    start_time_in_minutes: number;
-    end_time_in_minutes: number;
-    subject: GeneratedClassWithSubject;
-    class_id: string;
-  }[];
 };
 
 export const createScheduleDraft = (): ScheduleCreationParams => ({

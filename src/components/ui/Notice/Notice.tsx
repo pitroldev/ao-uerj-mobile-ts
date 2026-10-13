@@ -116,12 +116,21 @@ export function Notice({
   const act =
     action ??
     (onRetry ? { label: 'Tentar novamente', onPress: onRetry } : undefined);
+  // no escuro a ação dos avisos quentes segue o tom; sublinhada, continua
+  // lida como link sem o azul
+  const actionColor =
+    tone === 'warn'
+      ? theme.colors.noticeWarnAction
+      : tone === 'bad'
+        ? theme.colors.noticeBadAction
+        : theme.colors.accent;
+  const tinted = actionColor !== theme.colors.accent;
 
   return (
     <Box
       testID={testID}
-      $bg={neutral ? theme.colors.surfaceMuted : t.bg}
-      $border={neutral ? theme.colors.rule : t.line}
+      $bg={neutral ? theme.colors.surfaceMuted : t.wash}
+      $border={neutral ? theme.colors.rule : t.washLine}
       style={style}
     >
       <Glyph>
@@ -151,6 +160,8 @@ export function Notice({
             label={act.label}
             accessibilityLabel={act.accessibilityLabel}
             onPress={act.onPress}
+            color={tinted ? actionColor : undefined}
+            underline={tinted}
             style={ACTION_STYLE}
           />
         ) : null}
@@ -158,5 +169,3 @@ export function Notice({
     </Box>
   );
 }
-
-export default Notice;

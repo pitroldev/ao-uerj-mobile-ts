@@ -71,7 +71,7 @@ function rowState(
   return result.eligible ? 'ok' : 'refused';
 }
 
-const FetchDataStep = () => {
+export const FetchDataStep = () => {
   const theme = useTheme();
   const { nextStep, prevStep } = useStepsContext();
   const { control, setValue, getValues } =
@@ -100,6 +100,9 @@ const FetchDataStep = () => {
   };
 
   const historyFailed = Boolean(history.error) && !history.data;
+  const retryHistory = () => {
+    void history.refetch();
+  };
   const busy = progress.loading || history.isLoading || history.isFetching;
   const total = selectedSubjects.length;
   const available = progress.results.filter(r => r.eligible).length;
@@ -204,13 +207,13 @@ const FetchDataStep = () => {
           action={{
             label: 'Tentar novamente',
             icon: 'refresh',
-            onPress: history.refetch,
+            onPress: retryHistory,
           }}
         />
       ) : historyFailed ? (
         <ErrorState
           message="Não foi possível carregar o histórico. Toque para tentar novamente."
-          onRetry={history.refetch}
+          onRetry={retryHistory}
         />
       ) : (
         <>
@@ -264,4 +267,3 @@ const FetchDataStep = () => {
     </GeneratorStep>
   );
 };
-export default FetchDataStep;

@@ -23,22 +23,34 @@ export function usePlanningSubjects(
   const { account } = useIdentity();
   const queryClient = useQueryClient();
   const [attempt, setAttempt] = useState(0);
+  const scope = account?.scope;
+  const period = account?.period;
+  const canLoad = Boolean(scope && period && history);
   const [progress, setProgress] = useState<PlanningLoadProgress>({
     completed: 0,
     total: subjects.length,
     results: [],
   });
-  const [loading, setLoading] = useState(false);
-  const scope = account?.scope;
-  const period = account?.period;
-  useEffect(() => {
-    const controller = new AbortController();
+  const [loading, setLoading] = useState(canLoad);
+  // Uma carga nova zera o progresso já no render; o efeito só busca.
+  const inputs = [
+    academicRecords,
+    queryClient,
+    scope,
+    period,
+    subjects,
+    history,
+    attempt,
+  ];
+  const [loadedFor, setLoadedFor] = useState(inputs);
+  if (inputs.some((input, i) => input !== loadedFor[i])) {
+    setLoadedFor(inputs);
     setProgress({ completed: 0, total: subjects.length, results: [] });
-    if (!scope || !period || !history) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
+    setLoading(canLoad);
+  }
+  useEffect(() => {
+    if (!scope || !period || !history) return;
+    const controller = new AbortController();
     const loader = new LoadPlanningSubjects({
       getSubjectDetails: (subjectId, options) =>
         queryClient.fetchQuery({

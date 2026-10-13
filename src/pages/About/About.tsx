@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { Linking, useWindowDimensions } from 'react-native';
-import Toast from 'react-native-toast-message';
 import { useTheme } from 'styled-components/native';
 
-import ErrorReportModal from '@features/ErrorReport/ErrorReportModal';
+import { ErrorReportModal } from '@features/ErrorReport/ErrorReportModal';
 import {
   AoLogo,
   Avatar,
@@ -13,9 +12,10 @@ import {
   ListRow,
   Section,
   Text,
+  snackbar,
   type IconName,
 } from '@components/ui';
-import ScreenPanel from '@templates/ScreenPanel';
+import { ScreenPanel } from '@templates/ScreenPanel';
 
 import {
   AppName,
@@ -43,7 +43,7 @@ const DEV_LINKS: { label: string; icon: IconName; url: string }[] = [
 /** Largura base de cada link do desenvolvedor (3 lado a lado no tamanho padrão). */
 const DEV_LINK_BASIS = 96;
 
-const AboutPage = () => {
+export const AboutPage = () => {
   const theme = useTheme();
   const { fontScale } = useWindowDimensions();
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
@@ -51,7 +51,7 @@ const AboutPage = () => {
   const openUrl = (url: string) => {
     Linking.openURL(url).catch((err: Error) => {
       console.log('AboutOpenURL error', err);
-      Toast.show({ type: 'error', text1: 'Não foi possível abrir este link.' });
+      snackbar.error('Não foi possível abrir este link.');
     });
   };
 
@@ -150,5 +150,3 @@ const AboutPage = () => {
     </ScreenPanel>
   );
 };
-
-export default AboutPage;

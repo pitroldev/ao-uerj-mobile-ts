@@ -91,7 +91,7 @@ export type Horario = {
   [weekDay in WeekDay]?: Turno[][];
 };
 
-export type VacanciesType = {
+type VacanciesType = {
   available: number;
   taken: number;
   requestedAvailable: number;
@@ -99,7 +99,7 @@ export type VacanciesType = {
   preferential: number;
 };
 
-export type ClassVacancies = {
+type ClassVacancies = {
   uerj: Partial<VacanciesType>;
   freshman: Partial<VacanciesType>;
 };

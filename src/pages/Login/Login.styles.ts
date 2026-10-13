@@ -16,12 +16,12 @@ export const Top = styled.View<{ $inset: number }>`
   justify-content: center;
 `;
 
-/** ".login-panel": painel claro com o canto superior esquerdo de 48. */
+/** ".login-panel": o painel de conteúdo, com o canto superior esquerdo de 48. */
 export const Panel = styled.View<{ $inset: number }>`
   flex-grow: 1;
   padding: 36px 24px ${({ $inset }) => 28 + $inset}px 24px;
   border-top-left-radius: ${({ theme }) => theme.layout.panelRadius}px;
-  background-color: ${({ theme }) => theme.colors.surface};
+  background-color: ${({ theme }) => theme.colors.background};
 `;
 
 export const Subtitle = styled(Text)`

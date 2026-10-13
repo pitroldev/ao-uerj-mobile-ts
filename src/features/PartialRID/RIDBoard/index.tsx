@@ -1,1 +1,1 @@
-export { default } from './RIDBoard';
+export { RIDBoard } from './RIDBoard';

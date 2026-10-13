@@ -1,7 +1,7 @@
 import type { SubjectsTaken } from '@root/modules/academics/domain/models';
+import type { CheerioAPI } from '../html';
 import { parseSubjectName, parseSubjectType } from './values';
 import { optionalNumber, requireStructure, subjectIdPattern } from './contract';
-const cheerio = require('react-native-cheerio');
 function parseStatus(text: string): SubjectsTaken['status'] {
   if (/preparo/i.test(text)) return 'IN_PROGRESS';
   if (/cancel/i.test(text)) return 'CANCELED';
@@ -11,15 +11,14 @@ function parseStatus(text: string): SubjectsTaken['status'] {
   if (/isent/i.test(text)) return 'EXEMPT';
   requireStructure(false);
 }
-export default function parseSubjectsTaken(html: string): SubjectsTaken[] {
-  const $ = cheerio.load(html);
+export function parseSubjectsTaken($: CheerioAPI): SubjectsTaken[] {
   requireStructure(
     $('.divContentBoxBody table, #titulo + table, div table').length > 0,
   );
   requireStructure(/per[ií]odo/i.test($('div table').text()));
   const subjects: SubjectsTaken[] = [];
   let period = '';
-  $('div tr').each((_index: number, row: any) => {
+  $('div tr').each((_index, row) => {
     const cells = $(row).children('td');
     if (!cells.length) return;
     if (cells.find('table').length) return;

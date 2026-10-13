@@ -1,4 +1,4 @@
-import { optionalNumber, requireStructure, requiredNumber } from './contract';
+import { requireStructure, requiredNumber } from './contract';
 export function parseSubjectID(text: string) {
   try {
     const regex = /\w+-[0-9]+/g;
@@ -19,44 +19,6 @@ export function parseSimNaoToBoolean(text: string): boolean {
   const match = text.match(/(NÃO|SIM)/i)?.[0];
   requireStructure(match);
   return /^sim$/i.test(match);
-}
-
-export function parseName(name: string, NomeCompleto = true) {
-  try {
-    let splitStr = name.trim().toLowerCase().split(' ');
-    for (let i = 0; i < splitStr.length; i++) {
-      splitStr[i] =
-        splitStr[i].charAt(0).toUpperCase() + splitStr[i].substring(1);
-    }
-    name = splitStr.join(' ');
-    if (NomeCompleto === true) {
-      return name;
-    }
-    const separado = name.split(' ');
-    const preposicao = `${separado[1]}`;
-    if (preposicao.length <= 3 && separado[2] !== undefined) {
-      return `${separado[0]} ${separado[1]} ${separado[2]}`;
-    }
-    if (separado[1] !== undefined) {
-      return `${separado[0]} ${separado[1]}`;
-    } else {
-      return `${separado[0]}`;
-    }
-  } catch {
-    return name;
-  }
-}
-
-export function parseUnidadeAcademica(unidadeName: string) {
-  try {
-    const [sigla, nome] = unidadeName.trim().split(' - ');
-
-    const parsedName = `${sigla} - ${parseName(nome)}`;
-
-    return parsedName;
-  } catch {
-    return unidadeName;
-  }
 }
 
 export function parseTeacherName(name: string) {
@@ -88,7 +50,7 @@ export function parseTeacherName(name: string) {
       }
     });
 
-    const cleanedString = splitStr.filter(string => string && string);
+    const cleanedString = splitStr.filter(string => string);
 
     return cleanedString.join(' ');
   } catch {
@@ -143,10 +105,6 @@ export function parseSubjectName(text: string, isClean = false) {
   }
 }
 
-export function parseNumber(strNumber: string) {
-  return optionalNumber(strNumber) ?? '-';
-}
-
 export function parseSubjectType(text: string) {
   const lowerCase = text.toLowerCase();
   if (lowerCase.includes('obri')) {
@@ -163,5 +121,3 @@ export function parseSubjectType(text: string) {
   }
   return text;
 }
-
-export const parseUerjNumber = optionalNumber;

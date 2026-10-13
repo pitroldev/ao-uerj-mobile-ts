@@ -103,7 +103,7 @@ const Block = styled.View<{ $top: number }>`
  * Esqueleto do Início (".sk-*"): próxima aula, quadro de notas e semana com a
  * régua de horas. Substitui o indicador girando enquanto nada foi carregado.
  */
-const HomeSkeleton = () => (
+export const HomeSkeleton = () => (
   <Root
     accessible
     accessibilityLabel="Carregando dados…"
@@ -169,5 +169,3 @@ const HomeSkeleton = () => (
     </Sec>
   </Root>
 );
-
-export default HomeSkeleton;

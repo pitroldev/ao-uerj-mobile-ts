@@ -1,4 +1,5 @@
 import React from 'react';
+// oxlint-disable-next-line no-restricted-imports -- a pasta Snackbar é a única porta para a lib
 import type {
   ToastConfig,
   ToastConfigParams,
@@ -49,10 +50,15 @@ const Detail = styled(Text)`
   opacity: 0.85;
 `;
 
+/** Texto do aviso para leitores de tela: título e detalhe. */
+export function snackbarLabel(title?: string, detail?: string): string {
+  return [title, detail].filter(Boolean).join('. ');
+}
+
 /**
  * Snackbar escuro do sistema (".snack"): ícone de status, título e detalhe,
- * canto cortado. Renderizado pelo react-native-toast-message via
- * `toastConfig`; dispare com `Toast.show({ type, text1, text2 })`.
+ * canto cortado. Desenhado pelo `SnackbarHost` via `toastConfig`; dispare com
+ * `snackbar.success/error/info(título, detalhe)`.
  */
 export function Snackbar({
   kind = 'info',
@@ -74,7 +80,7 @@ export function Snackbar({
         onPress={onPress}
         accessibilityRole={kind === 'error' ? 'alert' : 'text'}
         accessibilityLiveRegion="polite"
-        accessibilityLabel={[title, detail].filter(Boolean).join('. ')}
+        accessibilityLabel={snackbarLabel(title, detail)}
         accessibilityHint={onPress ? 'Toque para dispensar' : undefined}
         style={theme.shadows.snackbar}
       >
@@ -118,13 +124,11 @@ function render(kind: SnackbarKind) {
 }
 
 /**
- * Configuração do `<Toast config={toastConfig} />` no estilo do protótipo.
- * Tipos: `success`, `error` e `info` (os mesmos usados hoje no app).
+ * Configuração do `<Toast config={toastConfig} />` do `SnackbarHost`, no
+ * estilo do protótipo. Tipos: `success`, `error` e `info`.
  */
 export const toastConfig: ToastConfig = {
   success: render('success'),
   error: render('error'),
   info: render('info'),
 };
-
-export default Snackbar;

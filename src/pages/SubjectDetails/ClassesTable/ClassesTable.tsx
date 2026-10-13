@@ -112,7 +112,7 @@ function ClassRow({ item }: { item: SubjectClassesSchedule }) {
  * vagas Solicitadas e Ocupadas (x/y, saúde com ponto + rótulo e barra fina) e,
  * na segunda linha, docentes, Preferencial e horários agrupados.
  */
-const ClassesTable = ({ classes }: Props) => (
+export const ClassesTable = ({ classes }: Props) => (
   <>
     <HeaderRow
       accessibilityElementsHidden
@@ -139,5 +139,3 @@ const ClassesTable = ({ classes }: Props) => (
     ))}
   </>
 );
-
-export default ClassesTable;

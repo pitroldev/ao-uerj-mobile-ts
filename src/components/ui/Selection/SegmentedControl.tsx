@@ -78,7 +78,7 @@ export function SegmentedControl<T extends string>({
             accessibilityLabel={opt.accessibilityLabel ?? opt.label}
             accessibilityState={{ selected }}
             style={({ pressed }) =>
-              pressed && !selected && { backgroundColor: c.surfaceMuted }
+              pressed && !selected && { backgroundColor: c.surfacePressed }
             }
           >
             {glyph ? (
@@ -97,5 +97,3 @@ export function SegmentedControl<T extends string>({
     </Root>
   );
 }
-
-export default SegmentedControl;

@@ -1,1 +1,1 @@
-export { default } from './SubjectsStep';
+export { SubjectsStep } from './SubjectsStep';

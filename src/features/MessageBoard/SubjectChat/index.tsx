@@ -1,1 +1,1 @@
-export { default } from './SubjectChat';
+export { SubjectChat } from './SubjectChat';

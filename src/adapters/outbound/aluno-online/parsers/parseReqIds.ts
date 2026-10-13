@@ -1,4 +1,4 @@
-const cheerio = require('react-native-cheerio');
+import type { CheerioAPI } from '../html';
 
 type ReqIds = {
   dictionary: {
@@ -27,14 +27,13 @@ function translate(name: string) {
   return dictionary[lowerName] || name;
 }
 
-export function getReqIds(data: string): ReqIds {
+export function getReqIds($: CheerioAPI): ReqIds {
   const regex = /\w{20,}/gi;
 
   const dictionary: ReqIds['dictionary'] = {};
   let failed = 0;
 
-  const $ = cheerio.load(data);
-  $('#menu_linha_item a').each((_: Number, node: any) => {
+  $('#menu_linha_item a').each((_index, node) => {
     const cleanedReqID = (node.attribs.onclick ?? '').replace(/[\s']+/gi, '');
     const execReqID = cleanedReqID.match(regex);
 
@@ -44,9 +43,8 @@ export function getReqIds(data: string): ReqIds {
       return;
     }
 
-    const parsedReqID = execReqID.length && execReqID[0];
-    let reqName = '';
-    $(node).text((j: Number, t: string) => (reqName = t.trim()));
+    const [parsedReqID] = execReqID;
+    const reqName = $(node).text().trim();
     if (reqName) {
       dictionary[translate(reqName)] = parsedReqID;
     }

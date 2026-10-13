@@ -1,16 +1,16 @@
 import React, { useMemo } from 'react';
 import {
   Linking,
+  Platform,
   Text as RNText,
   type AccessibilityActionEvent,
 } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
-import Toast from 'react-native-toast-message';
 import Hyperlink from 'react-native-hyperlink';
 import { useTheme } from 'styled-components/native';
 
 import type { Message } from '@root/modules/community/domain/models';
-import { Text, typeStyle } from '@components/ui';
+import { Text, snackbar, typeStyle } from '@components/ui';
 
 import { firstLink, messageDate, timeLabel } from '../chatFormat';
 import { Author, Bubble, Head, Row } from './ChatBubble.styles';
@@ -24,7 +24,7 @@ type Props = {
 const OPEN_LINK = 'openLink';
 
 /** Balão de mensagem do mural. Tocar copia o texto; links abrem no navegador. */
-const ChatBubble = ({ message, mine = false }: Props) => {
+export const ChatBubble = ({ message, mine = false }: Props) => {
   const theme = useTheme();
   const { text, authorName, createdAt } = message;
   const time = timeLabel(messageDate(createdAt));
@@ -45,16 +45,17 @@ const ChatBubble = ({ message, mine = false }: Props) => {
 
   const copyToClipboard = () => {
     Clipboard.setString(text);
-    Toast.show({
-      type: 'success',
-      text1: 'Copiado com sucesso!',
-      text2: 'O texto foi copiado para a área de transferência.',
-    });
+    // A partir do Android 13 (API 33) o próprio sistema confirma a cópia.
+    if (Platform.OS === 'android' && Platform.Version >= 33) return;
+    snackbar.success(
+      'Copiado com sucesso!',
+      'O texto foi copiado para a área de transferência.',
+    );
   };
   const openLink = (url: string) => {
     if (!/^https?:\/\//i.test(url)) return;
     void Linking.openURL(url).catch(() =>
-      Toast.show({ type: 'error', text1: 'Não foi possível abrir este link.' }),
+      snackbar.error('Não foi possível abrir este link.'),
     );
   };
   const onAccessibilityAction = (event: AccessibilityActionEvent) => {
@@ -107,5 +108,3 @@ const ChatBubble = ({ message, mine = false }: Props) => {
     </Row>
   );
 };
-
-export default ChatBubble;

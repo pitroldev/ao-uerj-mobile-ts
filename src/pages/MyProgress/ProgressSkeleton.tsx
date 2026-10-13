@@ -14,7 +14,7 @@ import {
  * Carregando sem dados: o formato da tela (números, gráfico e caminho) em
  * esqueleto, no lugar de um indicador girando.
  */
-export default function ProgressSkeleton() {
+export function ProgressSkeleton() {
   const theme = useTheme();
   return (
     <View

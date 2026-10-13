@@ -1,6 +1,4 @@
 import axios from 'axios';
-import iconv from 'iconv-lite';
-import { Buffer } from 'buffer';
 import CookieManager from '@preeternal/react-native-cookie-manager';
 import { AppError } from '@root/shared/errors/AppError';
 import type {
@@ -8,6 +6,7 @@ import type {
   PortalRequest,
   PortalTransport,
 } from './contracts';
+import { decodeWindows1252 } from './windows1252';
 
 export function createNativePortalTransport(): PortalTransport {
   const http = axios.create({
@@ -17,7 +16,7 @@ export function createNativePortalTransport(): PortalTransport {
     withCredentials: true,
     validateStatus: () => true,
     transformResponse: [
-      value => (value ? iconv.decode(Buffer.from(value), 'iso-8859-1') : ''),
+      value => (value ? decodeWindows1252(new Uint8Array(value)) : ''),
     ],
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -55,7 +54,7 @@ export function createNativePortalTransport(): PortalTransport {
     },
     async cancelAndDrain() {
       generation += 1;
-      await Promise.allSettled([...pending]);
+      await Promise.allSettled(pending);
     },
   };
 }

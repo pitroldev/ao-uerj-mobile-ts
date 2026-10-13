@@ -35,7 +35,7 @@ export function plural(count: number, one: string, many: string): string {
 }
 
 /** "Seg", "Seg e Qua", "Seg, Qua e Sex". */
-export function joinPt(items: string[]): string {
+function joinPt(items: string[]): string {
   if (items.length < 2) return items.join('');
   return `${items.slice(0, -1).join(', ')} e ${items[items.length - 1]}`;
 }

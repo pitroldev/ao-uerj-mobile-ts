@@ -7,12 +7,14 @@ import {
 import { GenerateSchedules } from '../application/GenerateSchedules';
 import { ScheduleCreationParams } from '../domain/models';
 import { AppError } from '@root/shared/errors/AppError';
+import { usePositiveMoment } from '@root/modules/delivery/presentation/DeliveryProvider';
 
 /** Generation runs only in response to an explicit action, never window focus. */
 export function useGenerateSchedules() {
   const { scheduleGenerator, identity } = useAppServices();
   const { account } = useIdentity();
   const pending = useRef<AbortController | null>(null);
+  const positiveMoment = usePositiveMoment();
   const scope = account?.scope;
   useEffect(
     () => () => {
@@ -39,6 +41,9 @@ export function useGenerateSchedules() {
       )
         throw new AppError('CANCELLED');
       return schedules;
+    },
+    onSuccess: schedules => {
+      if (schedules.length > 0) positiveMoment();
     },
   });
   const cancel = useCallback(() => pending.current?.abort(), []);

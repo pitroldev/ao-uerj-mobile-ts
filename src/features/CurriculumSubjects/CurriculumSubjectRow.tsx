@@ -31,7 +31,7 @@ function details({ period, branch, credits, workload }: CurriculumSubject) {
   };
 }
 
-export type CurriculumSubjectRowProps = {
+type CurriculumSubjectRowProps = {
   subject: CurriculumSubject;
   onPress: (subject: CurriculumSubject) => void;
 };
@@ -88,5 +88,3 @@ export const CurriculumSubjectRow = memo(function ({
   );
 });
 CurriculumSubjectRow.displayName = 'CurriculumSubjectRow';
-
-export default CurriculumSubjectRow;

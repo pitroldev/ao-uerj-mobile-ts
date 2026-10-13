@@ -5,5 +5,6 @@ export type ScheduleImage = {
 
 export interface ScheduleSharingPort {
   capturePng(target: object): Promise<string>;
-  share(image: ScheduleImage): Promise<void>;
+  /** `true` quando o aluno escolheu um destino (não cancelou). */
+  share(image: ScheduleImage): Promise<boolean>;
 }

@@ -6,9 +6,10 @@ export type PortalRequest = {
 
 export type PortalResponse = { status: number; body: string };
 
-/** The transport decodes ISO-8859-1 and must settle requests after native
- * cookie processing has finished. cancelAndDrain prevents a late Set-Cookie
- * from reaching the jar after it has been cleared for the next account. */
+/** The transport decodes the declared ISO-8859-1 as windows-1252, as browsers
+ * do, and must settle requests after native cookie processing has finished.
+ * cancelAndDrain prevents a late Set-Cookie from reaching the jar after it
+ * has been cleared for the next account. */
 export interface PortalTransport {
   request(request: PortalRequest): Promise<PortalResponse>;
   cancelAndDrain(): Promise<void>;

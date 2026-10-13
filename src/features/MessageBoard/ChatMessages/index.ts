@@ -1,1 +1,1 @@
-export { default, ChatMessages, ChatSkeleton } from './ChatMessages';
+export { ChatMessages, ChatSkeleton } from './ChatMessages';

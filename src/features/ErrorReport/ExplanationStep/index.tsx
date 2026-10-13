@@ -1,1 +1,1 @@
-export { default } from './ExplanationStep';
+export { ExplanationStep } from './ExplanationStep';

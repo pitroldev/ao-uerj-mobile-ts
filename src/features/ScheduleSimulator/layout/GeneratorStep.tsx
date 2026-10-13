@@ -2,12 +2,12 @@ import React from 'react';
 
 import { useStepsContext } from '@hooks/useSteps';
 import { Stepper } from '@components/ui';
-import ScreenPanel, { type ScreenPanelProps } from '@templates/ScreenPanel';
+import { ScreenPanel, type ScreenPanelProps } from '@templates/ScreenPanel';
 
 import { STEP_LABELS } from '../format';
 import { StepFooter, type StepFooterProps } from './StepFooter';
 
-export type GeneratorStepProps = {
+type GeneratorStepProps = {
   children?: React.ReactNode;
   /** Rodapé fixo: "Anterior" e a ação principal do passo. */
   footer: StepFooterProps;
@@ -50,5 +50,3 @@ export function GeneratorStep({
     </ScreenPanel>
   );
 }
-
-export default GeneratorStep;

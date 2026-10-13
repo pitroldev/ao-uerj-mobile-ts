@@ -1,74 +1,8 @@
 import { Turno } from '@root/types/dateStuff';
-import { TIME_DICTIONARY } from '@utils/constants/time';
-
-export function convertTempoHorario(tempo: string): string[] {
-  if (!TIME_DICTIONARY[tempo]) {
-    return ['??:??', '??:??'];
-  }
-
-  return TIME_DICTIONARY[tempo];
-}
-
-export function minutesToStr(minutes: number) {
-  return `${Math.floor(minutes / 60).toLocaleString('en-US', {
-    minimumIntegerDigits: 2,
-    useGrouping: false,
-  })}:${(minutes % 60).toLocaleString('en-US', {
-    minimumIntegerDigits: 2,
-    useGrouping: false,
-  })}`;
-}
-
-export function strToMinutes(str: string) {
-  const [hours, minutes] = str.split(':').map(Number);
-  return hours * 60 + minutes;
-}
-
-export function convertDayToNumber(day: string): number {
-  switch (day) {
-    case 'Segunda':
-      return 0;
-    case 'Terça':
-      return 1;
-    case 'Quarta':
-      return 2;
-    case 'Quinta':
-      return 3;
-    case 'Sexta':
-      return 4;
-    case 'Sábado':
-      return 5;
-    case 'Domingo':
-      return 6;
-    default:
-      return 7;
-  }
-}
-
-export function convertNumberToDay(number: number) {
-  switch (number) {
-    case 0:
-      return 'Segunda';
-    case 1:
-      return 'Terça';
-    case 2:
-      return 'Quarta';
-    case 3:
-      return 'Quinta';
-    case 4:
-      return 'Sexta';
-    case 5:
-      return 'Sábado';
-    case 6:
-      return 'Domingo';
-    default:
-      return 'Erro';
-  }
-}
 
 export function orderTurnosStringToArray(turnoString: string): any[] {
   let ordered = turnoString.split(/\s/g);
-  ordered = ordered.filter(item => item && item);
+  ordered = ordered.filter(item => item);
   ordered = ordered.map(item => {
     return item.replace(/M/g, 'A').replace(/T/g, 'B').replace(/N/g, 'C').trim();
   });
@@ -80,7 +14,7 @@ export function orderTurnosStringToArray(turnoString: string): any[] {
   return ordered;
 }
 
-export function convertTempoToNumber(tempos: string[]) {
+function convertTempoToNumber(tempos: string[]) {
   const preNumbered = tempos.map(t =>
     t.replace('M', '').replace('T', '6+').replace('N', '12+').split('+'),
   );

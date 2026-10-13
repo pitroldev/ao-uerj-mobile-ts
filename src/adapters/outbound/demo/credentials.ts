@@ -6,7 +6,7 @@ import type { Credentials } from '@root/modules/identity/domain/types';
  * Matrícula "demo" (ou "demo-<cenário>") com senha "demo" ativa os adaptadores
  * fictícios. Qualquer outra combinação segue para o Aluno Online real.
  */
-export const DEMO_PASSWORD = 'demo';
+const DEMO_PASSWORD = 'demo';
 
 export const DEMO_SCENARIOS = [
   /** Período em andamento: grade, notas, RID, histórico, currículo e mural. */

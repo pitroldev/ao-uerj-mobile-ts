@@ -192,5 +192,3 @@ export function SelectField<T extends string = string>({
     </>
   );
 }
-
-export default SelectField;

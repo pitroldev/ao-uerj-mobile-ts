@@ -29,7 +29,7 @@ export const Alert = styled.View`
   padding: 8px 10px;
   border-radius: ${({ theme }) => theme.radii.md}px;
   border-top-right-radius: 0px;
-  background-color: ${({ theme }) => theme.status.bad.bg};
+  background-color: ${({ theme }) => theme.status.bad.wash};
 `;
 
 export const AlertText = styled(Text)`

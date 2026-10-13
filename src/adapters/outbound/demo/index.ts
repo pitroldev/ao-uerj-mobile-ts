@@ -8,11 +8,9 @@
 export {
   createDemoBackend,
   type DemoBackend,
-  type DemoBackendOptions,
   type DemoPorts,
 } from './createDemoBackend';
 export {
-  DEMO_PASSWORD,
   DEMO_SCENARIOS,
   demoCredentials,
   demoScenarioOf,

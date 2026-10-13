@@ -20,7 +20,7 @@ const firstMeeting = (item: GeneratedClassWithSubject) =>
  * Aba "Informações" da grade gerada: uma linha por disciplina com turma,
  * docentes, turno e encontros ("● Manhã  Seg e Qua · M3–M4 · 8:50–10:30").
  */
-const ScheduleInfo = ({ schedule }: Props) => {
+export const ScheduleInfo = ({ schedule }: Props) => {
   const items = [...schedule].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
@@ -57,5 +57,3 @@ const ScheduleInfo = ({ schedule }: Props) => {
     </List>
   );
 };
-
-export default ScheduleInfo;

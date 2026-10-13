@@ -134,7 +134,7 @@ export function TakenSubjectsSummary({
   );
 }
 
-export type TakenSubjectsTableProps = {
+type TakenSubjectsTableProps = {
   period: string;
   subjects: readonly SubjectsTaken[];
   onSubjectPress: (subject: SubjectsTaken) => void;
@@ -195,5 +195,3 @@ export function TakenSubjectsTable({
     </HistoryTable>
   );
 }
-
-export default TakenSubjectsTable;

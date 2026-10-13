@@ -19,7 +19,7 @@ import {
   Text,
 } from '@components/ui';
 
-import ClassesTable from '../ClassesTable';
+import { ClassesTable } from '../ClassesTable';
 import {
   isCreditLock,
   plural,
@@ -88,7 +88,7 @@ function Requirement({
   );
 }
 
-const SubjectView = ({
+export const SubjectView = ({
   searchSubject,
   subject,
   loading,
@@ -235,5 +235,3 @@ const SubjectView = ({
     </>
   );
 };
-
-export default SubjectView;

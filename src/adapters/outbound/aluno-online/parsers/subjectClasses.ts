@@ -1,5 +1,5 @@
 import { optionalNumber } from './contract';
-const cheerio = require('react-native-cheerio');
+import { loadHtml, type Cheerio, type CheerioAPI, type Element } from '../html';
 
 import {
   parseSubjectCode,
@@ -19,70 +19,62 @@ import {
 const parseVacancyNumber = (text: string) => optionalNumber(text) ?? 0;
 
 function parseHorarioArray(horarioString: string) {
-  try {
-    if (!horarioString || typeof horarioString !== 'string') {
-      return [];
-    }
-
-    const regex = /\D{3}\b/g;
-    const splittedString = horarioString.replace('\n', '') || '';
-
-    const dias = splittedString.match(regex) as WeekDay[];
-    if (!dias || !Array.isArray(dias)) {
-      return [];
-    }
-
-    dias.forEach((dia: string, i: number) => {
-      switch (dia) {
-        case 'SEG':
-          dias[i] = 'Segunda';
-          break;
-        case 'TER':
-          dias[i] = 'Terça';
-          break;
-        case 'QUA':
-          dias[i] = 'Quarta';
-          break;
-        case 'QUI':
-          dias[i] = 'Quinta';
-          break;
-        case 'SEX':
-          dias[i] = 'Sexta';
-          break;
-        case 'SAB':
-          dias[i] = 'Sábado';
-          break;
-        case 'DOM':
-          dias[i] = 'Domingo';
-          break;
-        default:
-          dias[i] = dia as any;
-      }
-    });
-
-    let cleanedString = splittedString.split(regex);
-    cleanedString = cleanedString.filter(item => item && item.trim());
-
-    const horariosArray: Horario[] = [];
-    dias.forEach((dia, i) => {
-      if (cleanedString[i]) {
-        horariosArray.push({
-          [dia]: searchForBreakPonts(
-            orderTurnosStringToArray(cleanedString[i]),
-          ),
-        });
-      }
-    });
-
-    return horariosArray;
-  } catch (e) {
-    throw e;
+  if (!horarioString || typeof horarioString !== 'string') {
+    return [];
   }
+
+  const regex = /\D{3}\b/g;
+  const splittedString = horarioString.replace('\n', '') || '';
+
+  const dias = splittedString.match(regex) as WeekDay[];
+  if (!dias || !Array.isArray(dias)) {
+    return [];
+  }
+
+  dias.forEach((dia: string, i: number) => {
+    switch (dia) {
+      case 'SEG':
+        dias[i] = 'Segunda';
+        break;
+      case 'TER':
+        dias[i] = 'Terça';
+        break;
+      case 'QUA':
+        dias[i] = 'Quarta';
+        break;
+      case 'QUI':
+        dias[i] = 'Quinta';
+        break;
+      case 'SEX':
+        dias[i] = 'Sexta';
+        break;
+      case 'SAB':
+        dias[i] = 'Sábado';
+        break;
+      case 'DOM':
+        dias[i] = 'Domingo';
+        break;
+      default:
+        dias[i] = dia as WeekDay;
+    }
+  });
+
+  let cleanedString = splittedString.split(regex);
+  cleanedString = cleanedString.filter(item => item && item.trim());
+
+  const horariosArray: Horario[] = [];
+  dias.forEach((dia, i) => {
+    if (cleanedString[i]) {
+      horariosArray.push({
+        [dia]: searchForBreakPonts(orderTurnosStringToArray(cleanedString[i])),
+      });
+    }
+  });
+
+  return horariosArray;
 }
 
-const getTurmaBasicInfo = (html: string) => {
-  const $ = cheerio.load(html);
-
+const getTurmaBasicInfo = ($: CheerioAPI, turma: Cheerio<Element>) => {
   let turmasObj = {
     vacancies: {
       uerj: {},
@@ -90,8 +82,12 @@ const getTurmaBasicInfo = (html: string) => {
     },
   } as SubjectClassesSchedule;
 
-  // Informações básicas da Turma
-  $('div[style*="width:58%"]').each((infoIndex: number, infoNode: any) => {
+  // Informações básicas da Turma. A busca inclui o próprio nó da turma, como
+  // quando cada turma era carregada como um documento à parte.
+  const infoNodes = turma
+    .find('div[style*="width:58%"]')
+    .addBack('div[style*="width:58%"]');
+  infoNodes.each((infoIndex, infoNode) => {
     const isOutOfRange = infoIndex > 0;
     if (isOutOfRange) {
       return;
@@ -101,7 +97,7 @@ const getTurmaBasicInfo = (html: string) => {
         'div[style*="width:50%;text-align:left;float:left; margin-top: 5px;"]:nth-child(1)',
       )
       .text();
-    turmasObj.classNumber = parseSubjectCode(rawTurmaText) as number;
+    turmasObj.classNumber = parseSubjectCode(rawTurmaText);
 
     const rawPreferencialText = $(infoNode)
       .find(
@@ -109,15 +105,13 @@ const getTurmaBasicInfo = (html: string) => {
       )
       .text();
 
-    turmasObj.hasPreference = parseSimNaoToBoolean(
-      rawPreferencialText,
-    ) as boolean;
+    turmasObj.hasPreference = parseSimNaoToBoolean(rawPreferencialText);
     const rawHorarioItemsText = [] as string[];
     $(infoNode)
       .find('div[style*="width:86%;text-align:left;float:left;"]')
       .first()
       .find('div')
-      .each((horarioIndex: number, horarioNode: any) => {
+      .each((horarioIndex, horarioNode) => {
         const itemText = $(horarioNode).text().trim();
 
         const arrIndex =
@@ -144,8 +138,8 @@ const getTurmaBasicInfo = (html: string) => {
       .eq(1)
       .html()
       ?.split('<br>')
-      .map((c: string) => {
-        const $$ = cheerio.load('<p>' + c + '</p>');
+      .map(c => {
+        const $$ = loadHtml('<p>' + c + '</p>');
         const rawTeacherName = $$('p').text().trim();
 
         return parseTeacherName(rawTeacherName);
@@ -154,12 +148,12 @@ const getTurmaBasicInfo = (html: string) => {
   });
 
   // Vagas Atualizadas da Turma UERJ
-  $(html)
+  turma
     .find('div table:nth-child(1) tr:nth-child(2) td+ td')
-    .text((i: number, text: string) => {
+    .each((i, cell) => {
       const isAvailableType = i === 0;
       const isTakenType = i === 1;
-      const parsedNumber = parseVacancyNumber(text);
+      const parsedNumber = parseVacancyNumber($(cell).text());
 
       if (isAvailableType) {
         turmasObj.vacancies.uerj.available = parsedNumber;
@@ -170,12 +164,12 @@ const getTurmaBasicInfo = (html: string) => {
     });
 
   // Vagas Atualizadas da Turma Vestibular
-  $(html)
+  turma
     .find('div table:nth-child(2) tr:nth-child(3) td+ td')
-    .text((i: number, text: string) => {
+    .each((i, cell) => {
       const isAvailableType = i === 0;
       const isTakenType = i === 1;
-      const parsedNumber = parseVacancyNumber(text);
+      const parsedNumber = parseVacancyNumber($(cell).text());
 
       if (isAvailableType) {
         turmasObj.vacancies.freshman.available = parsedNumber;
@@ -186,13 +180,13 @@ const getTurmaBasicInfo = (html: string) => {
     });
 
   // Vagas para Solicitação de Inscrição UERJ
-  $(html)
+  turma
     .find('div table:nth-child(2) tr:nth-child(3) td+ td')
-    .text((i: number, text: string) => {
+    .each((i, cell) => {
       const isRequestedAvailableType = i === 0;
       const isRequestedTakenType = i === 1;
       const isPreferentialType = i === 2;
-      const parsedNumber = parseVacancyNumber(text);
+      const parsedNumber = parseVacancyNumber($(cell).text());
 
       if (isRequestedAvailableType) {
         turmasObj.vacancies.uerj.requestedAvailable = parsedNumber;
@@ -206,13 +200,13 @@ const getTurmaBasicInfo = (html: string) => {
     });
 
   // Vagas para Solicitação de Inscrição Vestibular
-  $(html)
+  turma
     .find('div table:nth-child(2) tr:nth-child(4) td+ td')
-    .text((i: number, text: string) => {
+    .each((i, cell) => {
       const isRequestedAvailableType = i === 0;
       const isRequestedTakenType = i === 1;
       const isPreferentialType = i === 2;
-      const parsedNumber = parseVacancyNumber(text);
+      const parsedNumber = parseVacancyNumber($(cell).text());
 
       if (isRequestedAvailableType) {
         turmasObj.vacancies.freshman.requestedAvailable = parsedNumber;
@@ -228,15 +222,13 @@ const getTurmaBasicInfo = (html: string) => {
   return turmasObj;
 };
 
-export default function parseSubjectClassesSchedule(html: string) {
+export function parseSubjectClassesSchedule($: CheerioAPI) {
   try {
-    const $ = cheerio.load(html);
-
     const turmasArray: SubjectClassesSchedule[] = [];
     $(
       '.divContentBlock:nth-child(3) .divContentBlockBody > table > tbody > tr > td > div',
-    ).each((_turmaIndex: number, turmaNode: any) => {
-      const turmaBasicInfo = getTurmaBasicInfo(turmaNode);
+    ).each((_turmaIndex, turmaNode) => {
+      const turmaBasicInfo = getTurmaBasicInfo($, $(turmaNode));
       turmasArray.push(turmaBasicInfo);
     });
 

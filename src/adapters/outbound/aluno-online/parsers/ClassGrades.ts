@@ -1,14 +1,13 @@
 import type { ClassGrade } from '@root/modules/academics/domain/models';
+import type { CheerioAPI } from '../html';
 import { parseSubjectName } from './values';
 import { optionalNumber, requireStructure, subjectIdPattern } from './contract';
-const cheerio = require('react-native-cheerio');
 export const parseGrade = optionalNumber;
-export default function parseClassGrades(html: string): ClassGrade[] {
-  const $ = cheerio.load(html);
+export function parseClassGrades($: CheerioAPI): ClassGrade[] {
   requireStructure($('table.reportTable').length > 0);
   requireStructure(/disciplina/i.test($('table.reportTable').text()));
   const grades: ClassGrade[] = [];
-  $('table.reportTable tr').each((_index: number, row: any) => {
+  $('table.reportTable tr').each((_index, row) => {
     const cells = $(row).children('td');
     const subject = cells.eq(0).text().trim();
     const id = subject.match(subjectIdPattern)?.[0];

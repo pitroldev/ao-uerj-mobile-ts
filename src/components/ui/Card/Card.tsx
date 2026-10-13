@@ -78,7 +78,7 @@ export function Card({
       accessibilityRole={accessibilityRole ?? 'button'}
       onPress={onPress}
       style={({ pressed }) => [
-        pressed && { backgroundColor: theme.colors.surfaceMuted },
+        pressed && { backgroundColor: theme.colors.surfacePressed },
         style,
       ]}
       {...rest}
@@ -87,5 +87,3 @@ export function Card({
     </PressableCard>
   );
 }
-
-export default Card;

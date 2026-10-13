@@ -74,5 +74,3 @@ export function ListSeparator({ inset }: { inset?: number }) {
     />
   );
 }
-
-export default List;

@@ -5,7 +5,7 @@ import { List, ListRow, ProgressBar, Tag, Text } from '@components/ui';
 import type { SubjectType } from '@root/modules/academics/domain/rules/progress';
 
 /** Nomes no plural, como o protótipo mostra cada grupo do currículo. */
-export const TYPE_PLURAL: Record<SubjectType, string> = {
+const TYPE_PLURAL: Record<SubjectType, string> = {
   MANDATORY: 'Obrigatórias',
   RESTRICTED: 'Eletivas Restritas',
   DEFINED: 'Eletivas Definidas',
@@ -170,5 +170,3 @@ export function CurriculumPath({
     </List>
   );
 }
-
-export default CurriculumPath;

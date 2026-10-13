@@ -1,8 +1,11 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, useWindowDimensions } from 'react-native';
-import Toast from 'react-native-toast-message';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  Animated,
+  Easing,
+  useAnimatedValue,
+  useWindowDimensions,
+} from 'react-native';
 import { useTheme } from 'styled-components/native';
-import { Buffer } from 'buffer';
 
 import {
   Button,
@@ -12,6 +15,7 @@ import {
   StatusLabel,
   Tag,
   Text,
+  snackbar,
   useReducedMotion,
   WeekDaySelector,
   type TimelineEvent,
@@ -21,8 +25,9 @@ import { nextWeekdayIndex } from '@root/modules/academics/domain/rules/schedule'
 import { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
 import { useScheduleSharing } from '@root/modules/academics/presentation/useScheduleSharing';
 import {
-  buildWeekSvgDataUri,
-  type SvgThemeColors,
+  buildWeekSvg,
+  SHARE_IMAGE_COLORS,
+  toSvgDataUri,
 } from '@root/modules/academics/presentation/scheduleSvg';
 
 import {
@@ -50,8 +55,6 @@ type Props = {
   onSubjectPress: (item: AttendedClassesSchedule) => void;
 };
 
-const SVG_PREFIX = 'data:image/svg+xml;base64,';
-
 /** Escala padrão da régua: 48dp por hora. */
 const BASE_PX_PER_MINUTE = 0.8;
 
@@ -60,40 +63,24 @@ const BASE_PX_PER_MINUTE = 0.8;
  * e o dia escolhido como régua de horas, com intervalos livres, linha de
  * agora e aulas encerradas. "Compartilhar grade" gera a imagem da semana.
  */
-const ClassScheduleBoard = ({ data, now, onSubjectPress }: Props) => {
+export const ClassScheduleBoard = React.memo(function ClassScheduleBoard({
+  data,
+  now,
+  onSubjectPress,
+}: Props) {
   const theme = useTheme();
   const reduced = useReducedMotion();
   const { fontScale } = useWindowDimensions();
   const safeData = useMemo(() => data ?? [], [data]);
   const { share, exporting, SvgRenderer } = useScheduleSharing();
   const [pickedDay, setPickedDay] = useState<number | null>(null);
-  const fade = useRef(new Animated.Value(1)).current;
+  const fade = useAnimatedValue(1);
 
-  const svgColors = useMemo<SvgThemeColors>(
-    () => ({
-      background: theme.colors.surface,
-      card: theme.colors.surface,
-      rule: theme.colors.fieldBorder,
-      ink: theme.colors.ink,
-      brand: theme.colors.brand,
-      onBrand: theme.colors.onBrand,
-      morning: theme.shift.morning.bg,
-      afternoon: theme.shift.afternoon.bg,
-      night: theme.shift.night.bg,
-    }),
-    [theme],
-  );
-  const svgDataUri = useMemo(
-    () => buildWeekSvgDataUri(safeData, svgColors),
-    [safeData, svgColors],
-  );
   const svgString = useMemo(
-    () =>
-      Buffer.from(svgDataUri.replace(SVG_PREFIX, ''), 'base64').toString(
-        'utf8',
-      ),
-    [svgDataUri],
+    () => buildWeekSvg(safeData, SHARE_IMAGE_COLORS),
+    [safeData],
   );
+  const svgDataUri = useMemo(() => toSvgDataUri(svgString), [svgString]);
 
   const today = now.getDay();
   const isClassDay = today !== 0;
@@ -230,11 +217,10 @@ const ClassScheduleBoard = ({ data, now, onSubjectPress }: Props) => {
     try {
       await share(svgDataUri);
     } catch {
-      Toast.show({
-        type: 'error',
-        text1: 'Não foi possível compartilhar a grade.',
-        text2: 'Tente novamente.',
-      });
+      snackbar.error(
+        'Não foi possível compartilhar a grade.',
+        'Tente novamente.',
+      );
     }
   };
 
@@ -249,7 +235,9 @@ const ClassScheduleBoard = ({ data, now, onSubjectPress }: Props) => {
           label="Compartilhar grade"
           accessibilityLabel="Compartilhar grade da semana"
           loading={exporting}
-          onPress={handleExport}
+          onPress={() => {
+            void handleExport();
+          }}
         />
       }
     >
@@ -288,6 +276,4 @@ const ClassScheduleBoard = ({ data, now, onSubjectPress }: Props) => {
       <SvgRenderer svgString={svgString} />
     </Section>
   );
-};
-
-export default React.memo(ClassScheduleBoard);
+});

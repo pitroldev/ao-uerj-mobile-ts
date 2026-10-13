@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -8,10 +8,15 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import {
+  useKeyboardState,
+  useReanimatedKeyboardAnimation,
+} from 'react-native-keyboard-controller';
+import Reanimated, { useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import styled, { useTheme } from 'styled-components/native';
 
-import { LoadingBar } from '@components/ui';
+import { LoadingBar, useSheetOpen } from '@components/ui';
 
 export type ScreenPanelProps = {
   children?: React.ReactNode;
@@ -52,7 +57,7 @@ export type ScreenPanelProps = {
 
 const Panel = styled.View`
   flex: 1;
-  background-color: ${({ theme }) => theme.colors.surface};
+  background-color: ${({ theme }) => theme.colors.background};
   border-top-left-radius: ${({ theme }) => theme.layout.panelRadius}px;
   overflow: hidden;
 `;
@@ -104,7 +109,46 @@ export function usePanelContentStyle(): ViewStyle {
 }
 
 /**
- * Painel claro das telas (assinatura do app): canto superior esquerdo de
+ * O painel acompanha o teclado dos campos dele, não o de uma folha: a folha
+ * sobe sozinha e, se o painel encolhesse por trás dela, ao fechar a folha
+ * sobraria um vão em branco enquanto o teclado desce.
+ */
+function useAvoidKeyboard(): boolean {
+  const sheetOpen = useSheetOpen();
+  const keyboardVisible = useKeyboardState(state => state.isVisible);
+  // o teclado que abriu com uma folha na tela é dela até fechar
+  const [sheetKeyboard, setSheetKeyboard] = useState(false);
+  if (sheetOpen && keyboardVisible && !sheetKeyboard) setSheetKeyboard(true);
+  if (!keyboardVisible && sheetKeyboard) setSheetKeyboard(false);
+  return !sheetOpen && !sheetKeyboard;
+}
+
+/**
+ * A janela é de ponta a ponta e não encolhe com o teclado: o painel, que vai
+ * até o pé da tela, encolhe por conta própria, acompanhando a animação dele,
+ * e assim o rodapé fixo e o fim da rolagem ficam acima do teclado. A área
+ * segura inferior, que rodapé e conteúdo já reservam, fica sob o teclado.
+ *
+ * Lê a altura do teclado do `KeyboardProvider`, e não a de cada instância
+ * (como o `KeyboardAvoidingView` da lib): um painel montado enquanto o
+ * teclado desce (passo seguinte do gerador, detalhe da pesquisa) perdia o fim
+ * da animação e ficava com um vão em branco preso no pé.
+ */
+function useKeyboardInsetStyle() {
+  const insets = useSafeAreaInsets();
+  const avoid = useAvoidKeyboard();
+  const { height } = useReanimatedKeyboardAnimation();
+  const safeBottom = insets.bottom;
+  return useAnimatedStyle(() => {
+    'worklet';
+    return {
+      paddingBottom: avoid ? Math.max(0, -height.value - safeBottom) : 0,
+    };
+  });
+}
+
+/**
+ * Painel das telas (assinatura do app): canto superior esquerdo de
  * 48dp sobre o azul, conteúdo rolável com margens do sistema, puxar para
  * atualizar, topo e rodapé fixos opcionais, área segura respeitada.
  */
@@ -128,48 +172,54 @@ export function ScreenPanel({
   const insets = useSafeAreaInsets();
   const content = usePanelContentStyle();
   const bottom = Math.max(16, insets.bottom + 12);
+  const keyboardInset = useKeyboardInsetStyle();
 
   return (
     <Panel style={style} testID={testID}>
-      {header ? <Top style={headerStyle}>{header}</Top> : null}
-      {scroll ? (
-        <ScrollView
-          ref={scrollRef}
-          style={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={[
-            padded ? content : null,
-            // com rodapé fixo, o fim da rolagem não precisa da área segura
-            padded && footer
-              ? { paddingBottom: theme.layout.panelPaddingBottom }
-              : null,
-            contentContainerStyle,
-          ]}
-          refreshControl={
-            onRefresh ? (
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                colors={[theme.colors.accent]}
-                tintColor={theme.colors.accent}
-                progressBackgroundColor={theme.colors.surface}
-              />
-            ) : undefined
-          }
-          {...scrollProps}
-        >
-          {children}
-        </ScrollView>
-      ) : (
-        <Fixed>{children}</Fixed>
-      )}
-      {footer ? (
-        <Foot $bottom={bottom}>
-          {React.Children.toArray(footer).map((child, i) => (
-            <FootItem key={i}>{child}</FootItem>
-          ))}
-        </Foot>
-      ) : null}
+      <Reanimated.View
+        style={[styles.keyboardArea, keyboardInset]}
+        testID={testID ? `${testID}-keyboard-area` : undefined}
+      >
+        {header ? <Top style={headerStyle}>{header}</Top> : null}
+        {scroll ? (
+          <ScrollView
+            ref={scrollRef}
+            style={styles.scroll}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={[
+              padded ? content : null,
+              // com rodapé fixo, o fim da rolagem não precisa da área segura
+              padded && footer
+                ? { paddingBottom: theme.layout.panelPaddingBottom }
+                : null,
+              contentContainerStyle,
+            ]}
+            refreshControl={
+              onRefresh ? (
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={[theme.colors.accent]}
+                  tintColor={theme.colors.accent}
+                  progressBackgroundColor={theme.colors.surface}
+                />
+              ) : undefined
+            }
+            {...scrollProps}
+          >
+            {children}
+          </ScrollView>
+        ) : (
+          <Fixed>{children}</Fixed>
+        )}
+        {footer ? (
+          <Foot $bottom={bottom}>
+            {React.Children.toArray(footer).map((child, i) => (
+              <FootItem key={i}>{child}</FootItem>
+            ))}
+          </Foot>
+        ) : null}
+      </Reanimated.View>
       {updating ? (
         <UpdatingSlot pointerEvents="none">
           <LoadingBar accessibilityLabel="Atualizando dados…" />
@@ -180,7 +230,6 @@ export function ScreenPanel({
 }
 
 const styles = StyleSheet.create({
+  keyboardArea: { flex: 1 },
   scroll: { flex: 1 },
 });
-
-export default ScreenPanel;

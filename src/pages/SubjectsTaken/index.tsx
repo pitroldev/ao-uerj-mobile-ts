@@ -1,1 +1,1 @@
-export { default } from './SubjectsTaken';
+export { SubjectsTakenScreen } from './SubjectsTaken';

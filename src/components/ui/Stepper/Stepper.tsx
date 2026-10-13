@@ -55,13 +55,13 @@ const StepNumber = styled.View<{ $done: boolean; $current: boolean }>`
   border-width: ${({ theme }) => theme.borders.hairline}px;
   border-color: ${({ theme, $done, $current }) =>
     $current
-      ? theme.colors.accent
+      ? theme.colors.fill
       : $done
         ? theme.colors.accentLine
         : theme.colors.ruleStrong};
   background-color: ${({ theme, $done, $current }) =>
     $current
-      ? theme.colors.accent
+      ? theme.colors.fill
       : $done
         ? theme.colors.accentSoft
         : 'transparent'};
@@ -146,7 +146,7 @@ export function Stepper({
                     <Text
                       variant="caption"
                       weight="semibold"
-                      color={cur ? c.onAccent : c.inkMuted}
+                      color={cur ? c.onFill : c.inkMuted}
                       tabular
                       maxFontSizeMultiplier={1.3}
                     >
@@ -178,5 +178,3 @@ const styles = StyleSheet.create({
   // ScrollView puro: o styled não repassa ref no React 19
   rail: { flexGrow: 0 },
 });
-
-export default Stepper;

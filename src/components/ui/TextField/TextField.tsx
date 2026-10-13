@@ -311,5 +311,3 @@ const styles = StyleSheet.create({
   inputPadRight: { paddingRight: 12 },
   inputMultiline: { minHeight: 132 },
 });
-
-export default TextField;

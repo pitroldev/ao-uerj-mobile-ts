@@ -1,1 +1,1 @@
-export { default } from './ClassesTable';
+export { ClassesTable } from './ClassesTable';

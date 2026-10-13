@@ -26,7 +26,12 @@ type Props = {
  * no fim, as canceladas com o rótulo), com turma, horários, sala e sala
  * virtual. Tocar numa disciplina abre a Pesquisa de Disciplinas.
  */
-const AttendedClassesBoard = ({ visible, onClose, data, focusId }: Props) => {
+export const AttendedClassesBoard = React.memo(function AttendedClassesBoard({
+  visible,
+  onClose,
+  data,
+  focusId,
+}: Props) {
   const navigation = useNavigation();
   const safeData = data ?? [];
 
@@ -90,6 +95,4 @@ const AttendedClassesBoard = ({ visible, onClose, data, focusId }: Props) => {
       <List>{[...active, ...canceled].map(renderItem)}</List>
     </BottomSheet>
   );
-};
-
-export default React.memo(AttendedClassesBoard);
+});

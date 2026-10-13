@@ -6,7 +6,7 @@ import {
 export class ShareSchedule {
   constructor(private readonly sharing: ScheduleSharingPort) {}
 
-  async execute(target: object | null, svgUri: string): Promise<void> {
+  async execute(target: object | null, svgUri: string): Promise<boolean> {
     let image: ScheduleImage = { url: svgUri, type: 'image/svg+xml' };
     if (target) {
       try {
@@ -18,6 +18,6 @@ export class ShareSchedule {
         // SVG remains SVG: relabeling its bytes as PNG produces a corrupt image.
       }
     }
-    await this.sharing.share(image);
+    return this.sharing.share(image);
   }
 }

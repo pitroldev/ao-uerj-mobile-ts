@@ -1,5 +1,6 @@
 export type ErrorCode =
   | 'LOGIN_FAILED'
+  | 'ACCOUNT_UNAVAILABLE'
   | 'NOT_LOGGED_IN'
   | 'SESSION_EXPIRED'
   | 'SESSION_CHANGED'
@@ -34,6 +35,8 @@ export function errorMessage(error: unknown): string {
     return 'Não foi possível concluir. Tente novamente.';
   const messages: Record<ErrorCode, string> = {
     LOGIN_FAILED: 'Matrícula ou senha inválida. Confira seus dados.',
+    ACCOUNT_UNAVAILABLE:
+      'Matrícula inexistente, sem acesso ao Aluno Online ou portal em manutenção. Confira a matrícula ou tente mais tarde.',
     NOT_LOGGED_IN: 'Entre na sua conta para continuar.',
     SESSION_EXPIRED: 'Sua sessão expirou. Entre novamente.',
     SESSION_CHANGED: 'Sua sessão mudou. Tente novamente.',

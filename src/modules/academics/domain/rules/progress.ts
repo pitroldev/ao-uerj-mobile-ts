@@ -1,6 +1,6 @@
 import { CurriculumSubject, SubjectsTaken } from '../models';
 
-export const subjectTypes = [
+const subjectTypes = [
   'MANDATORY',
   'RESTRICTED',
   'DEFINED',
@@ -31,7 +31,7 @@ export function normalizeElectiveCredits(
   };
 }
 
-export function isExemptionPeriod(period: string): boolean {
+function isExemptionPeriod(period: string): boolean {
   return /isent|isenç|isenc/i.test(period);
 }
 

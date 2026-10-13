@@ -1,1 +1,1 @@
-export { default } from './CustomDrawerNavigator';
+export { DrawerNavigator } from './CustomDrawerNavigator';

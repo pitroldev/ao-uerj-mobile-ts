@@ -18,7 +18,7 @@ import type { AppServices } from '../composition/createAppServices';
  */
 export const DEV_LINK_PREFIX = 'aouerj-dev://';
 
-export const DEV_ROUTE_PATHS = {
+const DEV_ROUTE_PATHS = {
   Início: 'inicio',
   'Meu Progresso': 'progresso',
   'Gerador de Grade': 'gerador',
@@ -70,7 +70,7 @@ type LinkSource = Pick<typeof Linking, 'getInitialURL' | 'addEventListener'>;
 type DevLinkServices = Pick<AppServices, 'identity' | 'demo' | 'initialize'>;
 
 /** Signs into the demo account unless that scenario is already signed in. */
-export async function signInDemo(
+async function signInDemo(
   services: DevLinkServices,
   scenario: DemoScenario,
 ): Promise<'signed-in' | 'already-signed-in'> {

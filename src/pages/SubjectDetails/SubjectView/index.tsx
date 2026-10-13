@@ -1,1 +1,1 @@
-export { default } from './SubjectView';
+export { SubjectView } from './SubjectView';

@@ -1,19 +1,35 @@
-import React from 'react';
+import React, {
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
-  Dimensions,
-  Platform,
+  AccessibilityInfo,
+  Animated,
+  Easing,
+  Modal,
+  Pressable,
+  StyleSheet,
+  useAnimatedValue,
   useWindowDimensions,
+  type GestureResponderEvent,
+  type ModalProps,
   type StyleProp,
+  type TextInstance,
   type ViewStyle,
 } from 'react-native';
-import Modal from 'react-native-modal';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import styled, { useTheme } from 'styled-components/native';
+import styled, { ThemeProvider, useTheme } from 'styled-components/native';
 
+import { sheetTheme } from '@root/themes';
 import { IconButton } from '../Button/IconButton';
+import { SnackbarHost } from '../Snackbar/SnackbarHost';
 import { Text } from '../Text';
-import { useKeyboardHeight } from '../hooks/useKeyboardHeight';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import { trackOpenSheet } from './openSheets';
 
 export type BottomSheetProps = {
   visible: boolean;
@@ -40,35 +56,54 @@ export type BottomSheetProps = {
   testID?: string;
 };
 
-const MODAL_STYLE = { margin: 0, justifyContent: 'flex-end' } as const;
-
-/**
- * No Android 15+ (API 35, alvo 36) a atividade é sempre de ponta a ponta: o
- * conteúdo passa por baixo da barra de gestos/navegação. A janela da folha
- * precisa ser também, senão a faixa da barra mostra a tela de baixo sem véu.
- * Nesse modo o sistema não redimensiona a janela com o teclado, e a folha
- * sobe sozinha (`useKeyboardHeight`). Abaixo do Android 15 a barra é opaca e
- * a atividade não passa por baixo dela: só a barra de status fica translúcida
- * (o véu escurece a barra de status em todas as versões).
- */
-const EDGE_TO_EDGE =
-  Platform.OS === 'android' && Number(Platform.Version) >= 35;
-
-/**
- * O react-native-modal 14 repassa props extras ao `Modal` do RN 0.83, mas
- * ainda não tipa `navigationBarTranslucent`.
- */
-const NAV_BAR_PROPS: object = { navigationBarTranslucent: EDGE_TO_EDGE };
-
 /** Folga entre o topo da folha e a barra de status quando o teclado a empurra. */
 const TOP_GAP = 8;
+/** Arrasto mínimo, para baixo, antes de a folha tomar o toque de um filho. */
+const DRAG_SLOP = 8;
+/** Soltar depois de arrastar isso (dp) ou mais rápido que isso (dp/ms) fecha. */
+const CLOSE_DISTANCE = 100;
+const CLOSE_VELOCITY = 1;
 
-const Sheet = styled.View<{ $maxHeight: number; $lift: number }>`
+const ORIENTATIONS: ModalProps['supportedOrientations'] = [
+  'portrait',
+  'landscape',
+];
+
+const Root = styled.View`
+  flex: 1;
+`;
+
+const Scrim = styled(Animated.View)`
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  bottom: 0px;
+  left: 0px;
+  background-color: ${({ theme }) => theme.colors.scrim};
+`;
+
+/** A folha fica no pé da tela e encolhe quando o teclado empurra o fundo. */
+const Avoider = styled(KeyboardAvoidingView)<{ $top: number }>`
+  flex: 1;
+  justify-content: flex-end;
+  padding-top: ${({ $top }) => $top}px;
+`;
+
+const Sheet = styled(Animated.View)<{ $maxHeight: number }>`
   max-height: ${({ $maxHeight }) => $maxHeight}px;
-  margin-bottom: ${({ $lift }) => $lift}px;
+  flex-shrink: 1;
   background-color: ${({ theme }) => theme.colors.sheet};
   border-top-left-radius: ${({ theme }) => theme.radii.sheet}px;
   border-top-right-radius: ${({ theme }) => theme.radii.sheet}px;
+`;
+
+/**
+ * Conteúdo da folha. Fica com o toque que nenhum filho quis (alça, título,
+ * fundo do corpo e do rodapé): sem isso ele vai para o `Modal`, que segura os
+ * toques soltos, e o arrasto nunca chega à folha.
+ */
+const Grip = styled.View`
+  flex-shrink: 1;
 `;
 
 const Handle = styled.View`
@@ -119,8 +154,15 @@ const FootItem = styled.View`
 `;
 
 /**
- * Folha inferior (".sheet") sobre react-native-modal: alça, título, fechar,
- * corpo rolável e rodapé fixo. Substitui os modais centrais.
+ * Folha inferior (".sheet") sobre o `Modal` do React Native: alça, título,
+ * fechar, corpo rolável e rodapé fixo. Substitui os modais centrais.
+ *
+ * A janela da folha é de ponta a ponta como a do app: o véu cobre as barras
+ * do sistema e o rodapé fica acima da área segura inferior. Com o teclado
+ * aberto, a folha sobe junto (`KeyboardAvoidingView` do
+ * react-native-keyboard-controller) e encolhe se faltar altura. A folha
+ * acompanha o dedo; o arrasto vale onde nenhum filho rola (alça, título,
+ * rodapé, corpo curto).
  */
 export function BottomSheet({
   visible,
@@ -140,18 +182,111 @@ export function BottomSheet({
   const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
   const { height } = useWindowDimensions();
-  const screenHeight = Math.max(Dimensions.get('screen').height, height);
-  const keyboard = useKeyboardHeight(EDGE_TO_EDGE && visible);
-  // o teclado do Android já desconta a barra de navegação: soma de volta
-  const lift = keyboard > 0 ? keyboard + insets.bottom : 0;
-  const bottomInset = lift > 0 ? 0 : insets.bottom;
-  const bottomPad = Math.max(footer ? 28 : 20, bottomInset + 12);
-  const maxHeight = Math.min(
-    height * theme.layout.sheetMaxHeight,
-    screenHeight - lift - insets.top - TOP_GAP,
-  );
-  const motion = (ms: number) => (reduced ? 1 : ms);
+  const titleRef = useRef<TextInstance>(null);
 
+  // o Modal continua montado enquanto a folha desce
+  const [mounted, setMounted] = useState(visible);
+  if (visible && !mounted) setMounted(true);
+  useEffect(() => (mounted ? trackOpenSheet() : undefined), [mounted]);
+
+  /** Deslocamento da folha: `height` = fora da tela, 0 = aberta. */
+  const offset = useAnimatedValue(height);
+  const sheetHeight = useAnimatedValue(height);
+  // o véu clareia conforme a folha desce (entrada, saída e arrasto)
+  const scrimOpacity = useMemo(
+    () =>
+      Animated.divide(offset, sheetHeight).interpolate({
+        inputRange: [0, 1],
+        outputRange: [1, 0],
+        extrapolate: 'clamp',
+      }),
+    [offset, sheetHeight],
+  );
+  const easing = Easing.bezier(...theme.motion.easing);
+
+  const finishClosing = useEffectEvent(() => {
+    setMounted(false);
+    onClosed?.();
+  });
+
+  useEffect(() => {
+    if (!mounted) return;
+    const animation = Animated.timing(offset, {
+      toValue: visible ? 0 : height,
+      duration: reduced ? 0 : visible ? theme.motion.slow : theme.motion.base,
+      easing,
+      useNativeDriver: true,
+    });
+    animation.start(({ finished }) => {
+      if (finished && !visible) finishClosing();
+    });
+    return () => animation.stop();
+  }, [visible, mounted]);
+
+  /** Início do toque e velocidade do arrasto (dp/ms). */
+  const drag = useRef({ x: 0, y: 0, lastY: 0, lastTime: 0, velocity: 0 });
+
+  /** Devolve a folha ao lugar depois de um arrasto que não a fechou. */
+  const settle = () => {
+    // fechando: a animação de saída já cuida do deslocamento
+    if (!visible) return;
+    Animated.timing(offset, {
+      toValue: 0,
+      duration: reduced ? 0 : theme.motion.base,
+      easing,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Sistema de responder do RN: toques e rolagem ficam com os filhos, e a
+  // folha só toma o arrasto vertical para baixo que nenhum deles usou.
+  const gesture = {
+    onTouchStart: (event: GestureResponderEvent) => {
+      const { pageX, pageY, timestamp } = event.nativeEvent;
+      drag.current = {
+        x: pageX,
+        y: pageY,
+        lastY: pageY,
+        lastTime: timestamp,
+        velocity: 0,
+      };
+    },
+    onMoveShouldSetResponder: (event: GestureResponderEvent) => {
+      const dy = event.nativeEvent.pageY - drag.current.y;
+      const dx = event.nativeEvent.pageX - drag.current.x;
+      return visible && swipeToClose && dy > DRAG_SLOP && dy > Math.abs(dx);
+    },
+    onResponderGrant: () => offset.stopAnimation(),
+    onResponderMove: (event: GestureResponderEvent) => {
+      const { pageY, timestamp } = event.nativeEvent;
+      const state = drag.current;
+      if (timestamp > state.lastTime) {
+        state.velocity = (pageY - state.lastY) / (timestamp - state.lastTime);
+      }
+      state.lastY = pageY;
+      state.lastTime = timestamp;
+      if (visible) offset.setValue(Math.max(0, pageY - state.y));
+    },
+    onResponderRelease: (event: GestureResponderEvent) => {
+      const dy = event.nativeEvent.pageY - drag.current.y;
+      if (dy > CLOSE_DISTANCE || drag.current.velocity > CLOSE_VELOCITY) {
+        onClose();
+      }
+      // se a folha fechar, a animação de saída substitui esta
+      settle();
+    },
+    onResponderTerminate: settle,
+  };
+
+  const focusTitle = () => {
+    if (titleRef.current) {
+      AccessibilityInfo.sendAccessibilityEvent(titleRef.current, 'focus');
+    }
+  };
+
+  if (!mounted) return null;
+
+  const bottomPad = Math.max(footer ? 28 : 20, insets.bottom + 12);
   const body = (
     <Body $bottom={footer ? 20 : bottomPad} style={bodyStyle}>
       {children}
@@ -160,74 +295,95 @@ export function BottomSheet({
 
   return (
     <Modal
-      isVisible={visible}
-      onBackdropPress={onClose}
-      onBackButtonPress={onClose}
-      onSwipeComplete={onClose}
-      onModalHide={onClosed}
-      swipeDirection={swipeToClose ? 'down' : undefined}
-      propagateSwipe
-      avoidKeyboard
+      visible
+      transparent
+      animationType="none"
       statusBarTranslucent
-      {...NAV_BAR_PROPS}
-      deviceHeight={screenHeight}
-      useNativeDriver
-      useNativeDriverForBackdrop
-      hideModalContentWhileAnimating
-      backdropColor={theme.colors.scrim}
-      backdropOpacity={1}
-      animationIn="slideInUp"
-      animationOut="slideOutDown"
-      animationInTiming={motion(theme.motion.slow)}
-      animationOutTiming={motion(theme.motion.base)}
-      backdropTransitionInTiming={motion(220)}
-      backdropTransitionOutTiming={motion(220)}
-      style={MODAL_STYLE}
+      navigationBarTranslucent
+      supportedOrientations={ORIENTATIONS}
+      onRequestClose={onClose}
+      onShow={focusTitle}
     >
-      <Sheet
-        testID={testID}
-        $maxHeight={maxHeight}
-        $lift={lift}
-        accessibilityViewIsModal
-        style={theme.shadows.sheet}
-      >
-        <Handle
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-        />
-        <Head>
-          <Title variant="titleS" accessibilityRole="header">
-            {title}
-          </Title>
-          {meta ? (
-            <Text variant="meta" tone="muted" numberOfLines={1}>
-              {meta}
-            </Text>
-          ) : null}
-          <IconButton
-            icon="close"
-            color={theme.colors.ink}
-            accessibilityLabel={closeLabel}
-            onPress={onClose}
-          />
-        </Head>
-        {scrollable ? (
-          <Scroll bounces={false} keyboardShouldPersistTaps="handled">
-            {body}
-          </Scroll>
-        ) : (
-          <Static>{body}</Static>
-        )}
-        {footer ? (
-          <Foot $bottom={bottomPad}>
-            {React.Children.toArray(footer).map((child, i) => (
-              <FootItem key={i}>{child}</FootItem>
-            ))}
-          </Foot>
-        ) : null}
-      </Sheet>
+      {/* a folha já é elevada: o que fica nela sobe um degrau (no escuro) */}
+      <ThemeProvider theme={sheetTheme(theme)}>
+        <Root>
+          <Scrim style={{ opacity: scrimOpacity }}>
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Fechar folha"
+            />
+          </Scrim>
+          <Avoider
+            behavior="padding"
+            // a área segura inferior fica sob o teclado: o rodapé já a reserva
+            keyboardVerticalOffset={-insets.bottom}
+            $top={insets.top + TOP_GAP}
+            pointerEvents="box-none"
+          >
+            <Sheet
+              testID={testID}
+              $maxHeight={height * theme.layout.sheetMaxHeight}
+              accessibilityViewIsModal
+              onAccessibilityEscape={onClose}
+              onLayout={event =>
+                sheetHeight.setValue(
+                  Math.max(1, event.nativeEvent.layout.height),
+                )
+              }
+              style={[
+                theme.shadows.sheet,
+                { transform: [{ translateY: offset }] },
+              ]}
+              {...gesture}
+            >
+              <Grip onStartShouldSetResponder={() => visible && swipeToClose}>
+                <Handle
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                />
+                <Head>
+                  <Title
+                    ref={titleRef}
+                    variant="titleS"
+                    accessibilityRole="header"
+                  >
+                    {title}
+                  </Title>
+                  {meta ? (
+                    <Text variant="meta" tone="muted" numberOfLines={1}>
+                      {meta}
+                    </Text>
+                  ) : null}
+                  <IconButton
+                    icon="close"
+                    color={theme.colors.ink}
+                    accessibilityLabel={closeLabel}
+                    onPress={onClose}
+                  />
+                </Head>
+                {scrollable ? (
+                  <Scroll bounces={false} keyboardShouldPersistTaps="handled">
+                    {body}
+                  </Scroll>
+                ) : (
+                  <Static>{body}</Static>
+                )}
+                {footer ? (
+                  <Foot $bottom={bottomPad}>
+                    {React.Children.toArray(footer).map((child, i) => (
+                      <FootItem key={i}>{child}</FootItem>
+                    ))}
+                  </Foot>
+                ) : null}
+              </Grip>
+            </Sheet>
+          </Avoider>
+          {/* avisos por cima da folha; ao fechar, o da raiz assume */}
+          {visible ? <SnackbarHost /> : null}
+        </Root>
+      </ThemeProvider>
     </Modal>
   );
 }
-
-export default BottomSheet;

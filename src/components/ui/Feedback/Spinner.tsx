@@ -1,5 +1,11 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, type StyleProp, type ViewStyle } from 'react-native';
+import React, { useEffect } from 'react';
+import {
+  Animated,
+  Easing,
+  useAnimatedValue,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { useTheme } from 'styled-components/native';
 
 import { Icon } from '../Icon';
@@ -26,7 +32,7 @@ export function Spinner({
   const theme = useTheme();
   const side = size ?? theme.sizes.icon.lg;
   const reduced = useReducedMotion();
-  const turn = useRef(new Animated.Value(0)).current;
+  const turn = useAnimatedValue(0);
 
   useEffect(() => {
     if (reduced) return;
@@ -34,6 +40,8 @@ export function Spinner({
       Animated.timing(turn, {
         toValue: 1,
         duration: 1000,
+        // Os tipos do RN declaram o Easing com métodos; as curvas não usam this.
+        // oxlint-disable-next-line typescript/unbound-method
         easing: Easing.linear,
         useNativeDriver: true,
       }),
@@ -68,5 +76,3 @@ export function Spinner({
     </Animated.View>
   );
 }
-
-export default Spinner;

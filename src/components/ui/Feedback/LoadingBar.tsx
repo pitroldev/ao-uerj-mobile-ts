@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Animated,
   Easing,
+  useAnimatedValue,
   type LayoutChangeEvent,
   type StyleProp,
   type ViewStyle,
@@ -23,6 +24,7 @@ export type LoadingBarProps = {
   /** Rótulo anunciado ("Atualizando dados…"). Sem rótulo é decorativa. */
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
+  testID?: string;
 };
 
 type ToneProps = { $onBrand: boolean; $h: number };
@@ -57,10 +59,11 @@ export function LoadingBar({
   height = 3,
   accessibilityLabel,
   style,
+  testID,
 }: LoadingBarProps) {
   const reduced = useReducedMotion();
   const [trackWidth, setTrackWidth] = useState(width ?? 0);
-  const x = useRef(new Animated.Value(0)).current;
+  const x = useAnimatedValue(0);
 
   useEffect(() => {
     if (reduced || !trackWidth) return;
@@ -94,6 +97,7 @@ export function LoadingBar({
       $h={height}
       $w={width}
       style={style}
+      testID={testID}
       onLayout={onLayout}
       accessible={Boolean(accessibilityLabel)}
       accessibilityRole={accessibilityLabel ? 'progressbar' : undefined}
@@ -130,5 +134,3 @@ export function UpdatingBar({
 }: UpdatingBarProps) {
   return <LoadingBar tone="accent" accessibilityLabel={label} style={style} />;
 }
-
-export default LoadingBar;

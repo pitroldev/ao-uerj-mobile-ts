@@ -7,7 +7,7 @@ export type ErrorReportDraft = {
   subjectCode?: string;
 };
 
-export type DiagnosticReport = {
+type DiagnosticReport = {
   page: string;
   description: string;
   diagnostic: {
@@ -17,9 +17,25 @@ export type DiagnosticReport = {
     appVersion: string;
     parserVersion: string;
     subjectCode?: string;
+    /** Evento do monitoramento de falhas ligado a este relato. */
+    eventId?: string;
   };
 };
 
 export interface ErrorReporterPort {
   submit(report: DiagnosticReport): Promise<void>;
+}
+
+type ReportCategory = DiagnosticReport['diagnostic']['category'];
+
+/**
+ * Monitoramento de falhas. Recebe só a tela e a categoria do relato, nunca a
+ * descrição, que pode ter dados do aluno.
+ */
+export interface ErrorMonitorPort {
+  /** Registra o relato e devolve o id do evento, ou null se estiver desligado. */
+  linkReport(report: {
+    operation: string;
+    category: ReportCategory;
+  }): string | null;
 }

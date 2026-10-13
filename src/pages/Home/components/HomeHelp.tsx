@@ -43,7 +43,7 @@ const Note = styled(Text)`
 `;
 
 /** Ajuda "Caso o erro persista", abaixo do erro do Início. */
-const HomeHelp = () => (
+export const HomeHelp = () => (
   <Root>
     <Title variant="body" weight="semibold" accessibilityRole="header">
       Caso o erro persista
@@ -65,5 +65,3 @@ const HomeHelp = () => (
     </Note>
   </Root>
 );
-
-export default HomeHelp;

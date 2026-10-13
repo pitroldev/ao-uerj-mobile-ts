@@ -1,27 +1,44 @@
-const cheerio = require('react-native-cheerio');
+import type { CheerioAPI } from '../html';
 
 const PERIODO_REGEX = /(\d{4}\.\d)/;
 
-/** Session/CSRF pages and portal warnings are not evidence of a bad password. */
-export function rejectsCredentials(message: string): boolean {
-  const text = message
+function normalize(message: string) {
+  return message
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
-  return /(matricula|senha).*(invalid|incorret|nao confer|nao correspond|inexisten)/.test(
-    text,
+}
+
+/**
+ * The portal answers an unknown registration, an account without Aluno Online
+ * access and a maintenance window with one combined warning ("a matrícula
+ * informada não existe, ou não está habilitada…, ou existe alguma
+ * manutenção…"). It may be temporary, so it must never erase a saved
+ * credential.
+ */
+export function reportsUnavailableAccount(message: string): boolean {
+  return /matricula.*nao existe|nao esta habilitad|manutencao/.test(
+    normalize(message),
   );
 }
 
-export default function parseLoginInfo(data: string) {
+/** Session/CSRF pages and portal warnings are not evidence of a bad password. */
+export function rejectsCredentials(message: string): boolean {
+  if (reportsUnavailableAccount(message)) return false;
+  return /(matricula|senha).*(invalid|incorret|nao confer|nao correspond|inexisten)/.test(
+    normalize(message),
+  );
+}
+
+export function parseLoginInfo($: CheerioAPI) {
   const info = {
     periodo: '',
     nome: '',
     fail_reason: '',
   };
 
-  const $ = cheerio.load(data);
-  $('#divCabecalhoAplicacao font').text((index: number, text: string) => {
+  $('#divCabecalhoAplicacao font').each((index, node) => {
+    const text = $(node).text();
     if (index === 0) {
       info.nome = text.split(' - ').slice(1).join(' - ').trim();
     }
@@ -34,9 +51,9 @@ export default function parseLoginInfo(data: string) {
     }
   });
 
-  $('br+ table font').text((index: number, text: string) => {
+  $('br+ table font').each((index, node) => {
     if (index === 0) {
-      info.fail_reason = text.trim();
+      info.fail_reason = $(node).text().trim();
     }
   });
 

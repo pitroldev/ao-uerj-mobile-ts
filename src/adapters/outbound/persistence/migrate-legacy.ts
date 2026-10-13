@@ -71,7 +71,7 @@ export async function migrateLegacyStorage(
           key =>
             typeof parsed[key] === 'number' &&
             Number.isFinite(parsed[key]) &&
-            (parsed[key] as number) >= 0,
+            parsed[key] >= 0,
         )
       ) {
         await preferences.write(
@@ -93,7 +93,11 @@ export async function migrateLegacyStorage(
       storage.removeItem('persist:root'),
       storage.removeItem('@elective_credits_config'),
     ]);
-    if (removed.some(result => result.status === 'rejected'))
+    if (removed.some(result => result.status === 'rejected')) {
+      // Intentional: a failed removal fails the migration even after a
+      // successful transfer (after a failure, the error code is the same).
+      // oxlint-disable-next-line no-unsafe-finally
       throw new AppError('STORAGE_FAILED');
+    }
   }
 }

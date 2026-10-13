@@ -1,6 +1,10 @@
-const cheerio = require('react-native-cheerio');
+import { loadHtml, type CheerioAPI } from './html';
 
-export function isSessionExpiredResponse(data: unknown): boolean {
+/** `page` is the document already loaded from `data`, which avoids a second parse. */
+export function isSessionExpiredResponse(
+  data: unknown,
+  page?: CheerioAPI,
+): boolean {
   if (typeof data !== 'string') {
     return data === undefined || data === null;
   }
@@ -9,7 +13,7 @@ export function isSessionExpiredResponse(data: unknown): boolean {
     return true;
   }
 
-  const $ = cheerio.load(data);
+  const $ = page ?? loadHtml(data);
   const hasLoginForm =
     $('input[name="matricula"]').length > 0 &&
     $('input[name="senha"]').length > 0;

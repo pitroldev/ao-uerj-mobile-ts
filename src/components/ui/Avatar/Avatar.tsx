@@ -63,5 +63,3 @@ export function Avatar({ name, tone = 'accent', size, style }: AvatarProps) {
     </Circle>
   );
 }
-
-export default Avatar;

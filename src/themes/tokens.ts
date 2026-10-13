@@ -3,9 +3,8 @@
  *
  * Os valores de cor vêm do bloco `:root` (tema claro) do protótipo de
  * referência; tipografia, espaçamentos, raios e alturas vêm do CSS dele.
- * As escalas aqui são independentes de tema; as cores ficam em `light.ts`
- * com nomes semânticos, para que o tema escuro possa ser acrescentado depois
- * apenas com outra paleta.
+ * As escalas aqui são independentes de tema; as cores ficam em `light.ts` e
+ * `dark.ts`, com os mesmos nomes semânticos.
  */
 
 /* ------------------------------------------------------------- tipografia */
@@ -187,7 +186,7 @@ export const layout = {
 
 /**
  * Raios. A assinatura do app é o "canto cortado": o raio vale nos cantos,
- * exceto o superior direito, que é reto (0). Use `cutCorner(r)`.
+ * exceto o superior direito, que é reto (`border-top-right-radius: 0`).
  */
 export const radii = {
   none: 0,
@@ -260,15 +259,3 @@ export const motion = {
   /** cubic-bezier(.2,.8,.2,1) do protótipo. */
   easing: [0.2, 0.8, 0.2, 1] as const,
 } as const;
-
-/* ----------------------------------------------------------------- helpers */
-
-/** Raio com o canto superior direito reto (assinatura do app). */
-export function cutCorner(radius: number) {
-  return { borderRadius: radius, borderTopRightRadius: 0 } as const;
-}
-
-/** Versão CSS de `cutCorner` para styled-components. */
-export function cutCornerCss(radius: number) {
-  return `border-radius: ${radius}px; border-top-right-radius: 0px;`;
-}

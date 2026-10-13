@@ -92,7 +92,7 @@ export function groupSchedule(schedule: Horario[] = []): ScheduleGroup[] {
   });
 }
 
-export type VacancyTone = 'good' | 'warn' | 'bad' | 'neutral';
+type VacancyTone = 'good' | 'warn' | 'bad' | 'neutral';
 
 export type VacancyInfo = {
   /** "38/40" ou "–". */

@@ -1,20 +1,20 @@
 import React from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 
-import StepsProvider, { useSteps } from '@hooks/useSteps';
+import { StepsProvider, useSteps } from '@hooks/useSteps';
 
 import {
   ScheduleCreationParams,
   createScheduleDraft,
 } from '@root/modules/planning/domain/models';
 
-import SubjectAmountStep from '@features/ScheduleSimulator/steps/SubjectAmountStep';
-import BusyHoursStep from '@features/ScheduleSimulator/steps/BusyHoursStep';
-import PriorityStep from '@features/ScheduleSimulator/steps/PriorityStep';
-import SubjectsStep from '@features/ScheduleSimulator/steps/SubjectsStep';
-import FetchDataStep from '@features/ScheduleSimulator/steps/FetchDataStep';
-import ClassesStep from '@features/ScheduleSimulator/steps/ClassesStep';
-import GenerationStep from '@features/ScheduleSimulator/steps/GenerationStep';
+import { SubjectAmountStep } from '@features/ScheduleSimulator/steps/SubjectAmountStep';
+import { BusyHoursStep } from '@features/ScheduleSimulator/steps/BusyHoursStep';
+import { PriorityStep } from '@features/ScheduleSimulator/steps/PriorityStep';
+import { SubjectsStep } from '@features/ScheduleSimulator/steps/SubjectsStep';
+import { FetchDataStep } from '@features/ScheduleSimulator/steps/FetchDataStep';
+import { ClassesStep } from '@features/ScheduleSimulator/steps/ClassesStep';
+import { GenerationStep } from '@features/ScheduleSimulator/steps/GenerationStep';
 
 /**
  * Cada passo desenha o próprio painel (`GeneratorStep`): trilho de passos no
@@ -30,7 +30,7 @@ const steps = [
   GenerationStep,
 ];
 
-const ScheduleCreationPage = () => {
+export const ScheduleCreationPage = () => {
   const methods = useForm<ScheduleCreationParams>({
     mode: 'all',
     defaultValues: createScheduleDraft(),
@@ -51,5 +51,3 @@ const ScheduleCreationPage = () => {
     </FormProvider>
   );
 };
-
-export default ScheduleCreationPage;

@@ -86,5 +86,3 @@ export function Tabs<T extends string>({
     </Root>
   );
 }
-
-export default Tabs;

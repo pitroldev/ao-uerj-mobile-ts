@@ -1,1 +1,1 @@
-export { default } from './SubjectDetails';
+export { SubjectDetailPage } from './SubjectDetails';

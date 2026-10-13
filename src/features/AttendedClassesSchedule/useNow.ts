@@ -35,5 +35,3 @@ export function useNow(): Date {
 
   return now;
 }
-
-export default useNow;

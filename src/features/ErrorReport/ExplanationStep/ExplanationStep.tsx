@@ -8,7 +8,7 @@ import type { ExplanationStepProps } from '../types';
 const QUESTION = 'Descreva o que aconteceu e o resultado esperado';
 
 /** Passo 2 do relato: a descrição livre, com a tela escolhida como contexto. */
-const ExplanationStep = ({
+export const ExplanationStep = ({
   page,
   subjectCode,
   description,
@@ -34,5 +34,3 @@ const ExplanationStep = ({
     />
   </>
 );
-
-export default ExplanationStep;

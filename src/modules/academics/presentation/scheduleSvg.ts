@@ -1,5 +1,5 @@
-import { Buffer } from 'buffer';
 import { TIME_VALUES } from '@utils/constants/time';
+import { LIGHT } from '@root/themes';
 import { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
 
 /** Cores da imagem da semana, vindas do tema (`theme.colors` e `theme.shift`). */
@@ -22,6 +22,23 @@ export type SvgThemeColors = {
   night: string;
 };
 
+/**
+ * A imagem compartilhada usa sempre o tema claro, qualquer que seja o tema do
+ * app: ela sai para conversas, galeria e impressão, onde quem recebe não está
+ * no escuro de quem enviou, e o claro é o mesmo "documento" para todos.
+ */
+export const SHARE_IMAGE_COLORS: SvgThemeColors = {
+  background: LIGHT.colors.surface,
+  card: LIGHT.colors.surface,
+  rule: LIGHT.colors.fieldBorder,
+  ink: LIGHT.colors.ink,
+  brand: LIGHT.colors.brand,
+  onBrand: LIGHT.colors.onBrand,
+  morning: LIGHT.shift.morning.bg,
+  afternoon: LIGHT.shift.afternoon.bg,
+  night: LIGHT.shift.night.bg,
+};
+
 const sanitize = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -35,7 +52,8 @@ const getBoxColorKey = (start: number): 'morning' | 'afternoon' | 'night' => {
   return 'night';
 };
 
-export const buildWeekSvgDataUri = (
+/** SVG da semana, desenhado direto pelo `SvgXml` na captura do PNG. */
+export const buildWeekSvg = (
   data: AttendedClassesSchedule[] = [],
   colors: SvgThemeColors,
 ) => {
@@ -195,13 +213,29 @@ export const buildWeekSvgDataUri = (
       </text>
     `;
 
-  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+  return `<?xml version="1.0" encoding="UTF-8"?>
       <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
         <rect x="0" y="0" width="100%" height="100%" fill="${bg}" />
         ${header}
         ${sections.join('\n')}
       </svg>`;
+};
 
-  const base64 = Buffer.from(svg, 'utf8').toString('base64');
+// O Hermes (RN 0.74+) tem estes globais, mas os tipos do React Native não os
+// declaram.
+declare const TextEncoder: new () => { encode(input: string): Uint8Array };
+declare function btoa(data: string): string;
+
+// Múltiplo de 3: o base64 de cada bloco emenda no seguinte sem padding.
+const BASE64_CHUNK_SIZE = 3 * 4096;
+
+/** Data URI do SVG, compartilhado quando a captura em PNG falha. */
+export const toSvgDataUri = (svg: string) => {
+  const bytes = new TextEncoder().encode(svg);
+  let base64 = '';
+  for (let start = 0; start < bytes.length; start += BASE64_CHUNK_SIZE) {
+    const chunk = bytes.subarray(start, start + BASE64_CHUNK_SIZE);
+    base64 += btoa(String.fromCharCode(...chunk));
+  }
   return `data:image/svg+xml;base64,${base64}`;
 };

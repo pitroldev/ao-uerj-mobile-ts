@@ -1,1 +1,1 @@
-export { default } from './ScheduleInfo';
+export { ScheduleInfo } from './ScheduleInfo';

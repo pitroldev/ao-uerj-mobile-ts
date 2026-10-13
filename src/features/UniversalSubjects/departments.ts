@@ -1,7 +1,7 @@
 import { UERJ_UNIT_OPTIONS } from '@root/utils/constants/unitOptions';
 import type { UniversalSubject } from '@root/modules/academics/domain/models';
 
-export type DepartmentOption = { value: string; label: string };
+type DepartmentOption = { value: string; label: string };
 
 /** Preposições e conjunções que ficam em minúscula fora da primeira palavra. */
 const LOWERCASE_WORDS = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'com']);
@@ -11,7 +11,7 @@ const LOWERCASE_WORDS = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'com']);
  * de unidades vem com toda palavra capitalizada; aqui as preposições voltam
  * à minúscula, exceto na primeira palavra.
  */
-export function formatUnitName(name: string): string {
+function formatUnitName(name: string): string {
   return name
     .split(' ')
     .map((word, index) =>

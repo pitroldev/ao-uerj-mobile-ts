@@ -1,1 +1,1 @@
-export { default } from './GenerationStep';
+export { GenerationStep } from './GenerationStep';

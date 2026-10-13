@@ -53,6 +53,11 @@ export function formatDuration(min: number): string {
   return `${h}h${m ? String(m).padStart(2, '0') : ''}`;
 }
 
+// Fora do componente: o React Compiler não compila funções como valor
+// padrão de props.
+const defaultFreeLabel = (m: number) => `Livre · ${formatDuration(m)}`;
+const defaultHourLabel = (h: number) => `${h}h`;
+
 const Empty = styled.View`
   flex-direction: row;
   align-items: center;
@@ -107,7 +112,7 @@ const NowDot = styled.View`
   height: 9px;
   border-radius: 4.5px;
   border-width: 2px;
-  border-color: ${({ theme }) => theme.colors.surface};
+  border-color: ${({ theme }) => theme.colors.background};
   background-color: ${({ theme }) => theme.colors.accent};
 `;
 
@@ -125,7 +130,7 @@ const Free = styled.View<{ $top: number; $height: number; $justify: string }>`
   border-color: ${({ theme }) => theme.colors.ruleStrong};
   border-radius: ${({ theme }) => theme.radii.xl}px;
   border-top-right-radius: 0px;
-  background-color: ${({ theme }) => theme.colors.surface};
+  background-color: ${({ theme }) => theme.colors.background};
   z-index: 1;
 `;
 
@@ -153,7 +158,7 @@ const Event = styled.Pressable<{
   border-radius: ${({ theme }) => theme.radii.xl}px;
   border-top-right-radius: 0px;
   background-color: ${({ theme, $past }) =>
-    $past ? theme.colors.surface : theme.colors.surfaceMuted};
+    $past ? theme.colors.background : theme.colors.surfaceMuted};
   z-index: 1;
 `;
 
@@ -179,8 +184,8 @@ export function DayTimeline({
   now,
   pxPerMinute = 0.8,
   freeGapMinutes = 40,
-  freeLabel = m => `Livre · ${formatDuration(m)}`,
-  hourLabel = h => `${h}h`,
+  freeLabel = defaultFreeLabel,
+  hourLabel = defaultHourLabel,
   emptyText = 'Sem aulas neste dia.',
   style,
 }: DayTimelineProps) {
@@ -334,5 +339,3 @@ export function DayTimeline({
     </Canvas>
   );
 }
-
-export default DayTimeline;

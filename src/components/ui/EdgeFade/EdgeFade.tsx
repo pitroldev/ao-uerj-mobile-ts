@@ -8,7 +8,7 @@ export type EdgeFadeProps = {
   side: 'start' | 'end';
   /** Largura do esmaecimento em dp. Padrão 20. */
   width?: number;
-  /** Cor do fundo por trás da faixa rolável. Padrão `theme.colors.surface`. */
+  /** Cor do fundo por trás da faixa rolável. Padrão `theme.colors.background`. */
   color?: string;
   style?: StyleProp<ViewStyle>;
 };
@@ -22,7 +22,7 @@ export type EdgeFadeProps = {
  */
 export function EdgeFade({ side, width = 20, color, style }: EdgeFadeProps) {
   const theme = useTheme();
-  const fill = color ?? theme.colors.surface;
+  const fill = color ?? theme.colors.background;
   const id = `edge-fade-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const solidAt = side === 'start' ? 0 : 1;
   return (
@@ -55,5 +55,3 @@ const styles = StyleSheet.create({
   start: { left: 0 },
   end: { right: 0 },
 });
-
-export default EdgeFade;

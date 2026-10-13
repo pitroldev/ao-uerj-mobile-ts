@@ -35,6 +35,13 @@ export type ButtonProps = Omit<PressableProps, 'children' | 'style'> & {
   block?: boolean;
   /** Estado ligado de um botão alternável (atalho "Manhã" no gerador). */
   selected?: boolean;
+  /**
+   * Cor do rótulo nas variantes `text` e `link`, no lugar do acento (ação de
+   * aviso de atenção ou crítico no escuro). O toque passa a ser neutro.
+   */
+  color?: string;
+  /** Rótulo sempre sublinhado (`text` e `link`). */
+  underline?: boolean;
   onPress?: (event: GestureResponderEvent) => void;
   style?: StyleProp<ViewStyle>;
 };
@@ -47,6 +54,7 @@ function palette(
   disabled: boolean,
   pressed: boolean,
   selected: boolean,
+  tint: string | undefined,
 ): Palette {
   const c = theme.colors;
   if (disabled && (variant === 'primary' || variant === 'outline')) {
@@ -55,9 +63,9 @@ function palette(
   switch (variant) {
     case 'primary':
       return {
-        bg: pressed ? c.accentPressed : c.accent,
-        border: pressed ? c.accentPressed : c.accent,
-        fg: c.onAccent,
+        bg: pressed ? c.fillPressed : c.fill,
+        border: pressed ? c.fillPressed : c.fill,
+        fg: c.onFill,
       };
     case 'outline':
       return {
@@ -69,13 +77,18 @@ function palette(
       return {
         bg: 'transparent',
         border: 'transparent',
-        fg: disabled ? c.inkMuted : c.accent,
+        fg: disabled ? c.inkMuted : (tint ?? c.accent),
       };
     default:
       return {
-        bg: pressed || selected ? c.accentSoft : 'transparent',
+        bg:
+          pressed || selected
+            ? tint
+              ? c.pressedOverlay
+              : c.accentSoft
+            : 'transparent',
         border: 'transparent',
-        fg: disabled ? c.inkMuted : c.accent,
+        fg: disabled ? c.inkMuted : (tint ?? c.accent),
       };
   }
 }
@@ -121,6 +134,8 @@ export function Button({
   loadingLabel,
   block = false,
   selected,
+  color,
+  underline = false,
   disabled,
   style,
   accessibilityLabel,
@@ -140,7 +155,7 @@ export function Button({
   const iconSize = size === 'md' ? theme.sizes.icon.lg : theme.sizes.icon.md;
   const shownLabel = loading && loadingLabel ? loadingLabel : label;
   const colorsFor = (pressed: boolean) =>
-    palette(theme, variant, isDisabled, pressed, Boolean(selected));
+    palette(theme, variant, isDisabled, pressed, Boolean(selected), color);
 
   return (
     <Root
@@ -185,7 +200,11 @@ export function Button({
                 color={p.fg}
                 numberOfLines={variant === 'link' ? undefined : 1}
                 align="center"
-                style={variant === 'link' && pressed ? UNDERLINE : undefined}
+                style={
+                  underline || (variant === 'link' && pressed)
+                    ? UNDERLINE
+                    : undefined
+                }
               >
                 {shownLabel}
               </Text>
@@ -199,5 +218,3 @@ export function Button({
     </Root>
   );
 }
-
-export default Button;

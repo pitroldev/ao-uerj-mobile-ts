@@ -15,24 +15,32 @@ import type {
   PortalOperationParams,
   PortalResponse,
 } from './contracts';
+import { loadHtml, type CheerioAPI } from './html';
 import { isSessionExpiredResponse } from './isSessionExpiredResponse';
-import parseLoginReqId from './parsers/parseLoginReqId';
-import parseLoginData, { rejectsCredentials } from './parsers/parseLoginData';
+import { parseLoginReqId } from './parsers/parseLoginReqId';
+import {
+  parseLoginInfo,
+  rejectsCredentials,
+  reportsUnavailableAccount,
+} from './parsers/parseLoginData';
 import { getReqIds } from './parsers/parseReqIds';
-import parseSubjectInfoReqId from './parsers/subjectInfoReqId';
-import parseGrades from './parsers/ClassGrades';
-import parseHistory from './parsers/SubjectsTaken';
-import parseCurriculum from './parsers/CurriculumSubjects';
-import parseSchedule from './parsers/AttendedClassesSchedule';
-import parsePartialRid from './parsers/PartialRID';
-import parseSubjectDetails from './parsers/SubjectInfo';
-import parseUniversalSubjects from './parsers/UniversalSubjects';
+import { parseSubjectInfoReqId } from './parsers/subjectInfoReqId';
+import { parseClassGrades } from './parsers/ClassGrades';
+import { parseSubjectsTaken } from './parsers/SubjectsTaken';
+import { parseCurriculumSubjects } from './parsers/CurriculumSubjects';
+import { parseAttendedClassesSchedule } from './parsers/AttendedClassesSchedule';
+import { parsePartialRID } from './parsers/PartialRID';
+import { parseSubjectInfo } from './parsers/SubjectInfo';
+import { parseUniversalSubjects } from './parsers/UniversalSubjects';
 
 type Dependencies = {
   transport: PortalTransport;
   cookies: PortalCookieJar;
   readCredentials: () => Promise<Credentials | null>;
 };
+
+/** A response loaded once; session detection and the parser share `$`. */
+type PortalPage = { html: string; $: CheerioAPI };
 
 type Session = {
   generation: number;
@@ -57,9 +65,9 @@ function checkStatus(response: PortalResponse) {
   if (response.status >= 400) throw new AppError('PORTAL_LAYOUT_CHANGED');
 }
 
-function parse<T>(parser: (body: string) => T, body: string): T {
+function parse<T>(parser: ($: CheerioAPI) => T, $: CheerioAPI): T {
   try {
-    return parser(body);
+    return parser($);
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new AppError('PORTAL_LAYOUT_CHANGED');
@@ -146,7 +154,7 @@ export function createAlunoOnlineAdapter({
     checkStatus(loginPage);
     let login: { loginReqId: string; _token: string };
     try {
-      login = await parseLoginReqId(loginPage.body);
+      login = await parseLoginReqId(loadHtml(loginPage.body));
     } catch {
       throw new AppError('PORTAL_LAYOUT_CHANGED');
     }
@@ -158,14 +166,18 @@ export function createAlunoOnlineAdapter({
       _token: login._token,
     });
     checkStatus(home);
-    const info = parse(parseLoginData, home.body);
+    const homePage = loadHtml(home.body);
+    const info = parse(parseLoginInfo, homePage);
+    if (!info.nome && reportsUnavailableAccount(info.fail_reason)) {
+      throw new AppError('ACCOUNT_UNAVAILABLE');
+    }
     if (!info.nome && rejectsCredentials(info.fail_reason)) {
       throw new AppError('LOGIN_FAILED');
     }
-    if (isSessionExpiredResponse(home.body))
+    if (isSessionExpiredResponse(home.body, homePage))
       throw new AppError('SESSION_EXPIRED');
     if (!info.nome) throw new AppError('PORTAL_LAYOUT_CHANGED');
-    const { dictionary, failed } = parse(getReqIds, home.body);
+    const { dictionary, failed } = parse(getReqIds, homePage);
     if (failed > 20) throw new AppError('POSSIBLY_BLOCKED');
     if (!Object.keys(dictionary).length)
       throw new AppError('PORTAL_LAYOUT_CHANGED');
@@ -201,7 +213,7 @@ export function createAlunoOnlineAdapter({
       if (!(error instanceof AppError) || error.code !== 'SESSION_EXPIRED') {
         throw error;
       }
-      await Promise.allSettled([...activeRequests]);
+      await Promise.allSettled(activeRequests);
       guard(identity);
       await clearCookies();
       guard(identity);
@@ -225,7 +237,7 @@ export function createAlunoOnlineAdapter({
         // An expired authenticated request can itself set an anonymous cookie.
         // Wait for concurrent responses before bootstrapping a clean login;
         // otherwise their late Set-Cookie can overwrite the new login cookie.
-        await Promise.allSettled([...activeRequests]);
+        await Promise.allSettled(activeRequests);
         guard(identity);
         await clearCookies();
         guard(identity);
@@ -251,7 +263,7 @@ export function createAlunoOnlineAdapter({
     params: PortalOperationParams,
     identity: number,
     signal?: AbortSignal,
-  ): Promise<string> {
+  ): Promise<PortalPage> {
     guard(identity, signal);
     if (inFlightRefresh) {
       await inFlightRefresh;
@@ -276,21 +288,22 @@ export function createAlunoOnlineAdapter({
       signal,
     );
     if (session !== snapshot) throw new AppError('SESSION_CHANGED');
+    const $ = loadHtml(response.body);
     if (
       [401, 403, 419, 500].includes(response.status) ||
-      isSessionExpiredResponse(response.body)
+      isSessionExpiredResponse(response.body, $)
     ) {
       throw new AppError('SESSION_EXPIRED');
     }
     checkStatus(response);
-    return response.body;
+    return { html: response.body, $ };
   }
 
-  async function fetch(
+  async function fetchPage(
     operation: PortalOperation,
     params: PortalOperationParams = {},
     options: AcademicRequestOptions = {},
-  ): Promise<string> {
+  ): Promise<PortalPage> {
     const identity = identityGeneration;
     guard(identity, options.signal);
     await cleanup;
@@ -316,13 +329,13 @@ export function createAlunoOnlineAdapter({
             identity,
             options.signal,
           );
-          const derived = parse(parseSubjectInfoReqId, curriculum);
+          const derived = parse(parseSubjectInfoReqId, curriculum.$);
           if (!derived) throw new AppError('PORTAL_LAYOUT_CHANGED');
           guard(identity, options.signal);
           if (session !== snapshot) throw new AppError('SESSION_CHANGED');
           snapshot.dictionary.DadosDisciplina = derived;
         }
-        const body = await sendOperation(
+        const page = await sendOperation(
           snapshot,
           operation,
           params,
@@ -330,7 +343,7 @@ export function createAlunoOnlineAdapter({
           options.signal,
         );
         guard(identity, options.signal);
-        return body;
+        return page;
       } catch (error) {
         guard(identity, options.signal);
         const sessionError =
@@ -346,7 +359,7 @@ export function createAlunoOnlineAdapter({
 
   async function read<T>(
     operation: PortalOperation,
-    parser: (html: string) => T,
+    parser: ($: CheerioAPI) => T,
     options?: AcademicRequestOptions,
     params?: PortalOperationParams,
   ) {
@@ -354,9 +367,9 @@ export function createAlunoOnlineAdapter({
     if (operation === 'subjectDetails' && !params?.subjectId?.trim()) {
       throw new AppError('INVALID_INPUT');
     }
-    const html = await fetch(operation, params, options);
+    const { $ } = await fetchPage(operation, params, options);
     guard(identity, options?.signal);
-    return parse(parser, html);
+    return parse(parser, $);
   }
 
   const authentication: AuthenticationPort = {
@@ -372,13 +385,15 @@ export function createAlunoOnlineAdapter({
   };
 
   const records: AcademicRecordsPort = {
-    getGrades: options => read('grades', parseGrades, options),
-    getHistory: options => read('history', parseHistory, options),
-    getCurriculum: options => read('curriculum', parseCurriculum, options),
-    getSchedule: options => read('schedule', parseSchedule, options),
-    getPartialRid: options => read('partialRid', parsePartialRid, options),
+    getGrades: options => read('grades', parseClassGrades, options),
+    getHistory: options => read('history', parseSubjectsTaken, options),
+    getCurriculum: options =>
+      read('curriculum', parseCurriculumSubjects, options),
+    getSchedule: options =>
+      read('schedule', parseAttendedClassesSchedule, options),
+    getPartialRid: options => read('partialRid', parsePartialRID, options),
     getSubjectDetails: (subjectId, options) =>
-      read('subjectDetails', parseSubjectDetails, options, { subjectId }),
+      read('subjectDetails', parseSubjectInfo, options, { subjectId }),
     getUniversalSubjects: options =>
       read('universalSubjects', parseUniversalSubjects, options),
   };
@@ -387,7 +402,9 @@ export function createAlunoOnlineAdapter({
     authentication,
     records,
     diagnostics: {
-      fetch,
+      async fetch(...args: Parameters<typeof fetchPage>) {
+        return (await fetchPage(...args)).html;
+      },
       snapshot: () => ({
         identityGeneration,
         sessionGeneration: session?.generation ?? null,

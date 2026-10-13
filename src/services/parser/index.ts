@@ -1,5 +1,1 @@
-import * as minorParser from './minorParser';
-
-export default {
-  ...minorParser,
-};
+export { parseName } from './minorParser';

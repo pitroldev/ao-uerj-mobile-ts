@@ -232,6 +232,7 @@ export function ListRow({
       {divider ? (
         <Line
           $pad={pad}
+          testID="list-row-divider"
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
         />
@@ -282,5 +283,3 @@ export function ListRow({
     </PressableRow>
   );
 }
-
-export default ListRow;

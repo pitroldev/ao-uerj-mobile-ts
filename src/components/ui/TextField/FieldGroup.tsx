@@ -125,7 +125,12 @@ export function FieldGroup({
           </RowSlot>
         ))}
       </Group>
-      <ErrorLine accessibilityRole="alert" accessibilityLiveRegion="polite">
+      {/* com mensagem, a linha vira um elemento só (o papel `alert` passa a valer) */}
+      <ErrorLine
+        accessible={Boolean(error) || undefined}
+        accessibilityRole="alert"
+        accessibilityLiveRegion="polite"
+      >
         {error ? (
           <>
             <Icon
@@ -249,5 +254,3 @@ const styles = StyleSheet.create({
   // ref no TextInput exige o componente puro (o styled não repassa ref no React 19)
   input: { flex: 1, minWidth: 0, minHeight: 54, padding: 0 },
 });
-
-export default FieldGroup;

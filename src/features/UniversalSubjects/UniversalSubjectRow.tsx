@@ -11,7 +11,7 @@ import {
 
 import { departmentOf } from './departments';
 
-export type UniversalSubjectRowProps = {
+type UniversalSubjectRowProps = {
   subject: UniversalSubject;
   onPress: (subject: UniversalSubject) => void;
 };
@@ -50,5 +50,3 @@ export const UniversalSubjectRow = memo(function ({
   );
 });
 UniversalSubjectRow.displayName = 'UniversalSubjectRow';
-
-export default UniversalSubjectRow;

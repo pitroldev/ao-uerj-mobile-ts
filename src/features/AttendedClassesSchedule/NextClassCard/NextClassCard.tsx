@@ -61,7 +61,11 @@ function When({ next }: { next: NextClass }) {
  * "Próxima aula" (o único card acima da dobra): horário em destaque, fio
  * vertical, disciplina, turno com ponto, tempos, sala e local.
  */
-const NextClassCard = ({ data, now, onPress }: Props) => {
+export const NextClassCard = React.memo(function NextClassCard({
+  data,
+  now,
+  onPress,
+}: Props) {
   const theme = useTheme();
   const next = findNextClass(data ?? [], now);
   if (!next) return null;
@@ -112,6 +116,4 @@ const NextClassCard = ({ data, now, onPress }: Props) => {
       </Card>
     </Section>
   );
-};
-
-export default React.memo(NextClassCard);
+});

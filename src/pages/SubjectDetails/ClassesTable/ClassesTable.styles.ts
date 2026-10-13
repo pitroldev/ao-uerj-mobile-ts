@@ -1,6 +1,6 @@
 import styled from 'styled-components/native';
 
-import { ProgressBar, Text } from '@components/ui';
+import { ProgressBar, Text, tableHeaderCss } from '@components/ui';
 
 /** Coluna "Turma" (".tt col.t"). */
 const NUMBER_COLUMN = 56;
@@ -10,10 +10,7 @@ const BODY_INSET = 12;
 const CELL_GAP = 20;
 
 export const HeaderRow = styled.View`
-  flex-direction: row;
-  padding-bottom: ${({ theme }) => theme.spacing.sm}px;
-  border-bottom-width: ${({ theme }) => theme.borders.hairline}px;
-  border-bottom-color: ${({ theme }) => theme.colors.rule};
+  ${tableHeaderCss}
 `;
 
 export const HeaderNumber = styled.View`

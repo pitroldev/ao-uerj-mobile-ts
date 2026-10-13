@@ -49,4 +49,3 @@ function AoLogoBase({
 }
 
 export const AoLogo = memo(AoLogoBase);
-export default AoLogo;

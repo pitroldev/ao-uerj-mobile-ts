@@ -80,7 +80,7 @@ export function timeRange(item: AttendedClassesSchedule): string {
 }
 
 const NOT_INFORMED = /^n[aã]o\s+informad[oa]\.?$/i;
-export const ROOM_NOT_INFORMED = 'Sala não informada';
+const ROOM_NOT_INFORMED = 'Sala não informada';
 
 /** Local da UERJ como veio do portal, ou "Sala não informada". */
 export function locationLabel(location?: string | null): string {
@@ -125,7 +125,7 @@ export function isCanceled(item: AttendedClassesSchedule): boolean {
 }
 
 /** "Ter e Qui", "Seg, Qua e Sex". */
-export function joinPt(parts: string[]): string {
+function joinPt(parts: string[]): string {
   if (parts.length < 2) return parts.join('');
   return `${parts.slice(0, -1).join(', ')} e ${parts[parts.length - 1]}`;
 }

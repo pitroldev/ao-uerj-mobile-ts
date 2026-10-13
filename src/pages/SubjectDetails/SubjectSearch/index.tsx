@@ -1,1 +1,1 @@
-export { default } from './SubjectSearch';
+export { SubjectSearch } from './SubjectSearch';

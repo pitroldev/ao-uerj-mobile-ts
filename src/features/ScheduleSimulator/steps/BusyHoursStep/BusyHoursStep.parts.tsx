@@ -81,15 +81,15 @@ export const LegendLabel = styled(Text)`
   flex-shrink: 1;
 `;
 
-/** Quadradinho da legenda (".sq"): ocupado em vermelho claro, livre em branco. */
+/** Quadradinho da legenda (".sq"): ocupado no tom crítico, livre no fundo. */
 export const LegendSquare = styled.View<{ $busy: boolean }>`
   width: 16px;
   height: 16px;
   border-width: ${({ theme }) => theme.borders.hairline}px;
   border-color: ${({ theme, $busy }) =>
-    $busy ? theme.status.bad.line : theme.colors.ruleStrong};
+    $busy ? theme.status.bad.washLine : theme.colors.ruleStrong};
   background-color: ${({ theme, $busy }) =>
-    $busy ? theme.status.bad.bg : theme.colors.surface};
+    $busy ? theme.status.bad.wash : theme.colors.background};
   border-radius: ${({ theme }) => theme.radii.xs}px;
   border-top-right-radius: 0px;
 `;
@@ -144,7 +144,7 @@ export const DayHead = styled.Pressable`
   align-items: center;
   justify-content: center;
   border-left-width: ${({ theme }) => theme.borders.hairline}px;
-  border-left-color: ${({ theme }) => theme.colors.rule};
+  border-left-color: ${({ theme }) => theme.colors.gridRule};
 `;
 
 /** Corpo da tabela: só fios, sem caixa por célula (".busy"). */
@@ -167,13 +167,13 @@ export const ShiftBand = styled.View<{ $first: boolean }>`
   background-color: ${({ theme }) => theme.colors.surfaceMuted};
   border-top-width: ${({ theme, $first }) =>
     $first ? 0 : theme.borders.hairline}px;
-  border-top-color: ${({ theme }) => theme.colors.rule};
+  border-top-color: ${({ theme }) => theme.colors.gridRule};
 `;
 
 export const ShiftRow = styled.View`
   flex-direction: row;
   border-top-width: ${({ theme }) => theme.borders.hairline}px;
-  border-top-color: ${({ theme }) => theme.colors.rule};
+  border-top-color: ${({ theme }) => theme.colors.gridRule};
 `;
 
 const TimeLabel = styled.View<{ $width: number }>`
@@ -214,9 +214,9 @@ const Cell = styled.Pressable<{ $selected: boolean }>`
   align-items: center;
   justify-content: center;
   border-left-width: ${({ theme }) => theme.borders.hairline}px;
-  border-left-color: ${({ theme }) => theme.colors.rule};
+  border-left-color: ${({ theme }) => theme.colors.gridRule};
   background-color: ${({ theme, $selected }) =>
-    $selected ? theme.status.bad.bg : theme.colors.surface};
+    $selected ? theme.status.bad.wash : theme.colors.background};
 `;
 
 type WeekDayNumber = keyof typeof WEEKDAY_DICTIONARY;

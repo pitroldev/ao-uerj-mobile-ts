@@ -7,7 +7,7 @@ import {
 import type { AccountDataLifecycle } from '@root/modules/identity/application/ports';
 import type { KeyValueStorage } from './storage';
 
-const MAX_CACHE_AGE = 7 * 24 * 60 * 60 * 1000;
+export const MAX_CACHE_AGE = 7 * 24 * 60 * 60 * 1000;
 
 /** Only academic query data is cached. Credentials and transport never enter it. */
 export function createQueryAccountCache(
@@ -96,7 +96,14 @@ export function createQueryAccountCache(
             Number.isFinite(query.state.dataUpdatedAt) &&
             Date.now() - query.state.dataUpdatedAt <= MAX_CACHE_AGE,
         );
-        hydrate(queryClient, { mutations: [], queries });
+        // Restored queries have no observer until their screen opens. With a
+        // shorter gcTime they would be collected and the next flush would
+        // rewrite the cache without them.
+        hydrate(
+          queryClient,
+          { mutations: [], queries },
+          { defaultOptions: { queries: { gcTime: MAX_CACHE_AGE } } },
+        );
       } catch {
         await storage.removeItem(key(account));
       }

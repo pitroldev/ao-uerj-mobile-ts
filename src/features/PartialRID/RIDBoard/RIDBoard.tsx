@@ -29,7 +29,7 @@ type Props = {
  * oferecidas, a posição na fila (com a saúde em ponto + rótulo) e a
  * situação, destacada quando não há posição.
  */
-const RIDBoard = ({ data }: Props) => {
+export const RIDBoard = React.memo(function RIDBoard({ data }: Props) {
   const theme = useTheme();
   const navigation = useNavigation();
 
@@ -121,6 +121,4 @@ const RIDBoard = ({ data }: Props) => {
       <List>{subjects.map(renderItem)}</List>
     </Section>
   );
-};
-
-export default React.memo(RIDBoard);
+});

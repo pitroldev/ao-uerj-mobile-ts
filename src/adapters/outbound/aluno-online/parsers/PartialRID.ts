@@ -1,13 +1,11 @@
 import { requireStructure, requiredNumber } from './contract';
-const cheerio = require('react-native-cheerio');
+import type { CheerioAPI } from '../html';
 
 import { PartialRID } from '@root/modules/academics/domain/models';
 
 import { parseSubjectName, parseSubjectID } from './values';
 
-export default function parsePartialRID(html: string) {
-  const $ = cheerio.load(html);
-
+export function parsePartialRID($: CheerioAPI) {
   requireStructure(
     $('table.reportTable').length > 0 ||
       /não há resultado provisório disponível/i.test($.root().text()),
@@ -16,7 +14,7 @@ export default function parsePartialRID(html: string) {
 
   // Receipt and layout tables share this page with the provisional results.
   $('table.reportTable > tr, table.reportTable > tbody > tr').each(
-    (_index: number, row: any) => {
+    (_index, row) => {
       const cells = $(row).children('td');
       if (cells.length !== 6 || cells.filter('[colspan]').length) {
         return;

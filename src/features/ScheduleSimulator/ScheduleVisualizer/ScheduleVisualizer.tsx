@@ -37,6 +37,18 @@ const TimeColumn = styled.View`
   width: ${TIME_COLUMN}px;
 `;
 
+/**
+ * ".wk-band": no escuro, a linha dos dias sobe um degrau, como o cabeçalho
+ * das tabelas (faixa `surface` um pouco maior que a grade).
+ */
+const HeadBand = styled.View`
+  position: absolute;
+  top: -4px;
+  left: -10px;
+  right: -10px;
+  background-color: ${({ theme }) => theme.colors.surface};
+`;
+
 const Spacer = styled.View``;
 
 const DayColumn = styled.View`
@@ -99,7 +111,9 @@ const byName = (a: GeneratedClassWithSubject, b: GeneratedClassWithSubject) =>
  * sábado/domingo quando houver aula), só os tempos usados, blocos com a
  * sigla da disciplina na cor do turno e a legenda das siglas abaixo.
  */
-const ScheduleVisualizer = ({ data }: Props) => {
+export const ScheduleVisualizer = React.memo(function ScheduleVisualizer({
+  data,
+}: Props) {
   const theme = useTheme();
   const { fontScale } = useWindowDimensions();
 
@@ -155,6 +169,9 @@ const ScheduleVisualizer = ({ data }: Props) => {
   return (
     <>
       <Grid accessible accessibilityRole="image" accessibilityLabel={label}>
+        {theme.name === 'dark' ? (
+          <HeadBand style={{ height: headHeight + 4 }} />
+        ) : null}
         <TimeColumn>
           <Spacer style={{ height: headHeight }} />
           {rows.map(slot => (
@@ -239,6 +256,4 @@ const ScheduleVisualizer = ({ data }: Props) => {
       </Key>
     </>
   );
-};
-
-export default React.memo(ScheduleVisualizer);
+});

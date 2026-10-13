@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -11,7 +18,7 @@ import { useTheme } from 'styled-components/native';
 
 import type { Message } from '@root/modules/community/domain/models';
 import { Skeleton, Text } from '@components/ui';
-import ChatBubble from '@features/MessageBoard/ChatBubble';
+import { ChatBubble } from '@features/MessageBoard/ChatBubble';
 
 import type { DayGroup } from '../chatFormat';
 import {
@@ -46,7 +53,10 @@ type Props = {
 };
 
 type Sticky = { label: string; top: number } | null;
-type StickyController = React.MutableRefObject<((next: Sticky) => void) | null>;
+type StickyHandle = (next: Sticky) => void;
+
+const sameSticky = (a: Sticky, b: Sticky) =>
+  a?.label === b?.label && a?.top === b?.top;
 
 /** Distância do fim em que a conversa continua "presa" à mensagem mais recente. */
 const PIN_SLACK = 24;
@@ -59,17 +69,13 @@ const PIN_SLACK = 24;
  * aparecer cortados em volta. Tem estado próprio para que a rolagem não
  * renderize a conversa inteira de novo.
  */
-function StickyDay({ controller }: { controller: StickyController }) {
+function StickyDay({ ref }: { ref: React.Ref<StickyHandle> }) {
   const [sticky, setSticky] = useState<Sticky>(null);
-  useEffect(() => {
-    controller.current = next =>
-      setSticky(prev =>
-        prev?.label === next?.label && prev?.top === next?.top ? prev : next,
-      );
-    return () => {
-      controller.current = null;
-    };
-  }, [controller]);
+  useImperativeHandle(
+    ref,
+    () => next => setSticky(prev => (sameSticky(prev, next) ? prev : next)),
+    [],
+  );
   if (!sticky) return null;
   return (
     <StickySlot
@@ -127,10 +133,12 @@ export function ChatMessages({
   const pinned = useRef(true);
   const offset = useRef(0);
   const layouts = useRef(new Map<string, { y: number; height: number }>());
-  const sticky: StickyController = useRef(null);
+  const sticky = useRef<StickyHandle>(null);
   const frame = useRef<number | null>(null);
   const groupsRef = useRef(groups);
-  groupsRef.current = placeholder ? [] : groups;
+  useLayoutEffect(() => {
+    groupsRef.current = placeholder ? [] : groups;
+  });
 
   /**
    * Vai para a mensagem mais recente. O comando pode chegar à view nativa
@@ -216,6 +224,7 @@ export function ChatMessages({
     <Area>
       <ScrollView
         ref={scrollRef}
+        testID="chat-scroll"
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
@@ -248,7 +257,7 @@ export function ChatMessages({
           </Messages>
         )}
       </ScrollView>
-      <StickyDay controller={sticky} />
+      <StickyDay ref={sticky} />
     </Area>
   );
 }
@@ -257,5 +266,3 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { flexGrow: 1, paddingTop: CONTENT_TOP, paddingBottom: 16 },
 });
-
-export default ChatMessages;

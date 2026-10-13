@@ -1,1 +1,1 @@
-export { default } from './Login';
+export { LoginPage } from './Login';

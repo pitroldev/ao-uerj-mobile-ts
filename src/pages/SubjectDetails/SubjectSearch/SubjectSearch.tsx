@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import Toast from 'react-native-toast-message';
 
 import { useIdentity } from '@root/app/providers/AppServicesProvider';
 import { academicKeys } from '@root/modules/academics/presentation/queryKeys';
 import { SubjectInfo } from '@root/modules/academics/domain/models';
-import ScreenPanel from '@templates/ScreenPanel';
+import { ScreenPanel } from '@templates/ScreenPanel';
 import {
   Button,
   EmptyState,
@@ -13,6 +12,7 @@ import {
   ListRow,
   SearchField,
   Section,
+  snackbar,
 } from '@components/ui';
 
 import { creditsAndHours } from '../subjectFormat';
@@ -25,7 +25,7 @@ type Props = {
 const EMPTY_TEXT =
   'Parece que você não pesquisou nenhuma disciplina ainda, use a caixa acima para realizar a suas buscas.';
 
-const SubjectSearch = ({ searchSubject }: Props) => {
+export const SubjectSearch = ({ searchSubject }: Props) => {
   const [subjectCode, setSubjectCode] = useState('');
 
   const queryClient = useQueryClient();
@@ -53,11 +53,10 @@ const SubjectSearch = ({ searchSubject }: Props) => {
     try {
       searchSubject(subjectCode);
     } catch {
-      Toast.show({
-        type: 'error',
-        text1: 'Parece que esse código não é válido :(',
-        text2: 'Certifique-se de que escreveu o código corretamente.',
-      });
+      snackbar.error(
+        'Parece que esse código não é válido :(',
+        'Certifique-se de que escreveu o código corretamente.',
+      );
     }
   };
 
@@ -107,5 +106,3 @@ const SubjectSearch = ({ searchSubject }: Props) => {
     </ScreenPanel>
   );
 };
-
-export default SubjectSearch;
