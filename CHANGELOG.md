@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.4.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.3.5...v1.4.0) (2026-10-13)
+
+
+### Novidades
+
+* add parser tests for PartialRID and improve parsing logic ([f6bca41](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/f6bca4164ac824d5d59d52e49ee68e6a1f89ab87))
+* **android:** harden the native layer and add splash, updates and edge-to-edge ([e6d35a9](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/e6d35a910d33bbb1799852b7388ee32dbb02290d))
+* better UX in navigation when viewing subject details ([17c2efa](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/17c2efa72bcd14917e8e4b74a456051a2de2607b))
+* implement the "Agenda limpa" design system (light mode) ([fa66c80](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/fa66c80cbc41a2455bfc8f642805b6903a801b65))
+* implement the dependency plan (dark theme, sheets, Sentry, delivery) ([b897183](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/b8971834cdd8d54592366c58d3f00d17b1165f93))
+
+
+### Correções
+
+* add offset in fallback semester calculation logic ([f4b9122](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/f4b9122e525efcc6d48c9dddf4a7087a36e094ff))
+* **android:** stop restoring screen fragments when the activity is recreated ([fac85e6](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/fac85e69a48d6c4ea98e54a466073cd7e410de87))
+* **e2e:** keep animations on and hide the reduced-motion dev warning ([df1e297](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/df1e29739b11cb95e4c2b776cac0f44e1c94da37))
+* gerador de grades não limpando corretamente o formulário após primeiro uso ([8fefbe3](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/8fefbe3c01bb9f202aef0bd28b5deb72362ad5e4))
+* grades parsing ([3b9eefc](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/3b9eefc89a8689ad4c03cd194158c3e8ca129b03))
+* prevent crash when app returns from background ([f697551](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/f6975515808b5375e32d05972c2454a6eb41647a))
+* problema de estado no Gerador de Grade após upgrade do react-query ([68b7b85](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/68b7b856532addd31a25202bdfed528d40559921))
+* RID typo ([80437d2](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/80437d227afc1e7f9f00691f491c9303a10dc815))
+
 ## [v1.2.5](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.2.3...v1.2.5)
 
 ### New Features
