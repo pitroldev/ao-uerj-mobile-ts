@@ -6,9 +6,13 @@ tags:
   - ios
 ---
 - launchApp
+# A folha de novidades reabre se o fluxo anterior não a fechou; no iOS ela
+# esconde o resto da tela da árvore de acessibilidade.
 - extendedWaitUntil:
-    visible: Olá, Marina
+    visible: 'Olá, Marina|Funcionalidades exclusivas'
     timeout: 120000
+- runFlow: ../subflows/fechar-novidades.yaml
+- assertVisible: Olá, Marina
 
 - tapOn: .*Ver disciplinas em curso
 - extendedWaitUntil:
