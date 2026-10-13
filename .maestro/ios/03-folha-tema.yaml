@@ -1,0 +1,55 @@
+# iOS: folha inferior (X e véu) e troca para o tema escuro e de volta.
+# Sem "back": o iOS não tem botão voltar do sistema.
+appId: org.reactjs.native.example.aouerjmobile
+name: iOS - folha e tema
+tags:
+  - ios
+---
+- launchApp
+- extendedWaitUntil:
+    visible: Olá, Marina
+    timeout: 120000
+
+- tapOn: .*Ver disciplinas em curso
+- extendedWaitUntil:
+    visible: Disciplinas em Curso
+    timeout: 10000
+- takeScreenshot: ios-03-folha
+- tapOn: Fechar
+- extendedWaitUntil:
+    notVisible: Disciplinas em Curso
+    timeout: 10000
+- tapOn: .*Ver disciplinas em curso
+- extendedWaitUntil:
+    visible: Disciplinas em Curso
+    timeout: 10000
+- tapOn: Fechar folha
+- extendedWaitUntil:
+    notVisible: Disciplinas em Curso
+    timeout: 10000
+
+- runFlow: ../subflows/abrir-menu.yaml
+- tapOn: 'Tema: .*'
+- extendedWaitUntil:
+    visible: Acompanha o modo claro ou escuro do aparelho
+    timeout: 10000
+- tapOn: Escuro
+- extendedWaitUntil:
+    notVisible: Acompanha o modo claro ou escuro do aparelho
+    timeout: 10000
+- assertVisible: 'Tema: Escuro'
+- tapOn: Fechar menu
+- extendedWaitUntil:
+    visible: Olá, Marina
+    timeout: 10000
+- takeScreenshot: ios-03-escuro
+- runFlow: ../subflows/abrir-menu.yaml
+- tapOn: 'Tema: Escuro'
+- extendedWaitUntil:
+    visible: Acompanha o modo claro ou escuro do aparelho
+    timeout: 10000
+- tapOn: Padrão do sistema
+- extendedWaitUntil:
+    visible: 'Tema: Padrão do sistema'
+    timeout: 10000
+- tapOn: Fechar menu

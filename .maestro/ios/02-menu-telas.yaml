@@ -1,0 +1,39 @@
+# iOS: navega pelo menu lateral pelas telas principais (sessão do fluxo 01).
+appId: org.reactjs.native.example.aouerjmobile
+name: iOS - menu lateral
+tags:
+  - ios
+---
+- launchApp
+- extendedWaitUntil:
+    visible: Olá, Marina
+    timeout: 120000
+- runFlow:
+    file: ../subflows/ir-pelo-menu.yaml
+    env:
+      TELA: Meu Progresso
+      MARCA: CR aproximado
+- takeScreenshot: ios-02-meu-progresso
+- runFlow:
+    file: ../subflows/ir-pelo-menu.yaml
+    env:
+      TELA: Disciplinas do Currículo
+      MARCA: Não atendidas
+- takeScreenshot: ios-02-curriculo
+- runFlow:
+    file: ../subflows/ir-pelo-menu.yaml
+    env:
+      TELA: Gerador de Grade
+      MARCA: Conte-nos um pouco sobre você
+- takeScreenshot: ios-02-gerador
+- runFlow:
+    file: ../subflows/ir-pelo-menu.yaml
+    env:
+      TELA: Mural de Mensagens
+      MARCA: Escolha a disciplina para abrir o mural da turma\.
+- takeScreenshot: ios-02-mural
+- runFlow:
+    file: ../subflows/ir-pelo-menu.yaml
+    env:
+      TELA: Início
+      MARCA: Olá, Marina

@@ -1,0 +1,25 @@
+# iOS: entra no modo demonstração pelo formulário (o scheme aouerj-dev só
+# existe no Android) e confere o Início. Começa do zero a cada execução.
+appId: org.reactjs.native.example.aouerjmobile
+name: iOS - login demo e Início
+tags:
+  - ios
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: Entre com sua conta
+    # a primeira abertura monta o bundle no Metro
+    timeout: 180000
+- tapOn: Matrícula
+- inputText: demo
+- tapOn: Senha
+- inputText: demo
+- tapOn: Entrar
+- runFlow: ../subflows/fechar-novidades.yaml
+- extendedWaitUntil:
+    visible: Olá, Marina
+    timeout: 60000
+- assertVisible: Abrir menu
+- assertVisible: Próxima aula
+- takeScreenshot: ios-01-inicio
