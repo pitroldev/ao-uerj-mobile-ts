@@ -127,6 +127,8 @@ jobs:
           java-version: '17'
       - run: pnpm install --frozen-lockfile
       - run: bundle exec pod install --project-directory=ios
+      # Assinatura ad-hoc ("Sign to Run Locally"): sem ela o app do simulador
+      # não tem os entitlements do Keychain, e o login falha ao guardar a sessão.
       - name: Build de debug para o simulador
         run: >-
           xcodebuild
@@ -136,7 +138,9 @@ jobs:
           -sdk iphonesimulator
           -destination 'generic/platform=iOS Simulator'
           -derivedDataPath ios/build
-          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGN_IDENTITY=-
+          CODE_SIGN_STYLE=Manual
+          DEVELOPMENT_TEAM=
           build
 
       - name: Maestro CLI
