@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A cadeia do Aluno Online termina na GlobalSign Root R46, que só entrou na loja
+  de CAs do Android 14; do 7 ao 13 a conexão falharia com "Trust anchor for
+  certification path not found". A raiz vai junto, só para o portal, além das CAs
+  do sistema (não é pinning: vale até 2046 e sobrevive à troca do certificado).
+  globalsign_root_r46.pem: SHA-256 4F:A3:12:6D:8D:3A:11:D1:C4:85:5A:4F:80:7C:BA:D6:
+  CF:91:9D:3A:5A:88:B0:3B:EA:2C:63:72:D9:3C:40:C9.
+
+  O build de debug usa src/debug/res/xml/network_security_config.xml: mantenha o
+  domain-config do portal igual nos dois.
+-->
+<network-security-config>
+  <base-config cleartextTrafficPermitted="false" />
+  <domain-config cleartextTrafficPermitted="false">
+    <domain includeSubdomains="false">www.alunoonline.uerj.br</domain>
+    <trust-anchors>
+      <certificates src="system" />
+      <certificates src="@raw/globalsign_root_r46" />
+    </trust-anchors>
+  </domain-config>
+</network-security-config>

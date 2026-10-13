@@ -1,0 +1,7 @@
+{
+  "$schema": "./app-status.schema.json",
+  "schemaVersion": 1,
+  "minSupportedVersion": "1.0.0",
+  "notices": [],
+  "disabledFeatures": []
+}

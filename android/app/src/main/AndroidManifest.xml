@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:tools="http://schemas.android.com/tools">
 
   <uses-permission android:name="android.permission.INTERNET" />
 
@@ -8,9 +9,19 @@
     android:icon="@mipmap/ic_launcher"
     android:roundIcon="@mipmap/ic_launcher_round"
     android:allowBackup="false"
+    android:dataExtractionRules="@xml/data_extraction_rules"
+    android:networkSecurityConfig="@xml/network_security_config"
     android:theme="@style/AppTheme"
-    android:usesCleartextTraffic="${usesCleartextTraffic}"
     android:supportsRtl="true">
+    <!--
+      O react-native-share declara o próprio provider com esta mesma authority e
+      caminhos mais amplos (Download/ do armazenamento externo). Só um provider por
+      authority é registrado; o dele sai para que valha sempre o @xml/filepaths.
+    -->
+    <provider
+      android:name="cl.json.RNShareFileProvider"
+      android:authorities="${applicationId}.rnshare.fileprovider"
+      tools:node="remove" />
     <provider
       android:name="androidx.core.content.FileProvider"
       android:authorities="${applicationId}.rnshare.fileprovider"
@@ -27,6 +38,7 @@
       android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|locale|layoutDirection"
       android:launchMode="singleTask"
       android:windowSoftInputMode="adjustResize"
+      android:theme="@style/BootTheme"
       android:exported="true">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />

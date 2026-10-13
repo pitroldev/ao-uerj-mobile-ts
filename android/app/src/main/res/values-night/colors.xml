@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<resources>
+  <!-- O `ink` de src/themes/dark.ts. O azul (primary, splash) é o mesmo nos dois temas. -->
+  <color name="text_primary">#E6EDF6</color>
+</resources>

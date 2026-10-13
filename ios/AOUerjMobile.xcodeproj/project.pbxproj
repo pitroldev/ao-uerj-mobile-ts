@@ -11,7 +11,8 @@
 		0C80B921A6F3F58F76C31292 /* libPods-aouerjmobile.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-aouerjmobile.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
-		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		B0075A5A0000000000000001 /* BootSplash.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B0075A5A0000000000000002 /* BootSplash.storyboard */; };
+		B0075A5A0000000000000003 /* Colors.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0075A5A0000000000000004 /* Colors.xcassets */; };
 		A0F0B0000000000000000000 /* Inter-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A0F0F0000000000000000000 /* Inter-Regular.ttf */; };
 		A0F0B0001000000000000000 /* Inter-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A0F0F0001000000000000000 /* Inter-Medium.ttf */; };
 		A0F0B0002000000000000000 /* Inter-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A0F0F0002000000000000000 /* Inter-SemiBold.ttf */; };
@@ -28,7 +29,8 @@
 		5709B34CF0A7D63546082F79 /* Pods-aouerjmobile.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-aouerjmobile.release.xcconfig"; path = "Target Support Files/Pods-aouerjmobile/Pods-aouerjmobile.release.xcconfig"; sourceTree = "<group>"; };
 		5DCACB8F33CDC322A6C60F78 /* libPods-aouerjmobile.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-aouerjmobile.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = AOUerjMobile/AppDelegate.swift; sourceTree = "<group>"; };
-		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = AOUerjMobile/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		B0075A5A0000000000000002 /* BootSplash.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = BootSplash.storyboard; path = AOUerjMobile/BootSplash.storyboard; sourceTree = "<group>"; };
+		B0075A5A0000000000000004 /* Colors.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Colors.xcassets; path = AOUerjMobile/Colors.xcassets; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		A0F0F0000000000000000000 /* Inter-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Inter-Regular.ttf"; path = "../src/assets/fonts/Inter-Regular.ttf"; sourceTree = "<group>"; };
 		A0F0F0001000000000000000 /* Inter-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Inter-Medium.ttf"; path = "../src/assets/fonts/Inter-Medium.ttf"; sourceTree = "<group>"; };
@@ -53,9 +55,10 @@
 			isa = PBXGroup;
 			children = (
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
+				B0075A5A0000000000000004 /* Colors.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
-				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
+				B0075A5A0000000000000002 /* BootSplash.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
 			);
 			name = aouerjmobile;
@@ -133,6 +136,7 @@
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
+				A5E17C0D2E3F405162738495 /* Upload Debug Symbols to Sentry */,
 				00EEFC60759A1932668264C0 /* [CP] Embed Pods Frameworks */,
 				E235C05ADACE081382539298 /* [CP] Copy Pods Resources */,
 			);
@@ -181,7 +185,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
+				B0075A5A0000000000000001 /* BootSplash.storyboard in Resources */,
+				B0075A5A0000000000000003 /* Colors.xcassets in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				13B07FB91A68108700A75B9A /* PrivacyInfo.xcprivacy in Resources */,
 				A0F0B0000000000000000000 /* Inter-Regular.ttf in Resources */,
@@ -209,7 +214,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"$REACT_NATIVE_PATH/scripts/react-native-xcode.sh\"\n\n/bin/sh -c \"\\\"$WITH_ENVIRONMENT\\\" \\\"$REACT_NATIVE_XCODE\\\"\"\n";
+			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\"\n# Sentry: sentry-xcode.sh wraps react-native-xcode.sh and also emits the source map.\n# It is uploaded only for Release builds and only when SENTRY_AUTH_TOKEN is set.\nSENTRY_XCODE=\"../node_modules/@sentry/react-native/scripts/sentry-xcode.sh\"\nif [ -z \"$SENTRY_AUTH_TOKEN\" ]; then export SENTRY_DISABLE_AUTO_UPLOAD=true; fi\n\n/bin/sh -c \"\\\"$WITH_ENVIRONMENT\\\" \\\"$SENTRY_XCODE\\\"\"\n";
 		};
 		00EEFC60759A1932668264C0 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -266,6 +271,21 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-aouerjmobile/Pods-aouerjmobile-resources.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		A5E17C0D2E3F405162738495 /* Upload Debug Symbols to Sentry */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Upload Debug Symbols to Sentry";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Sentry: native debug symbols (dSYM), uploaded only for Release builds with SENTRY_AUTH_TOKEN set.\nif [ -z \"$SENTRY_AUTH_TOKEN\" ]; then export SENTRY_DISABLE_AUTO_UPLOAD=true; fi\n/bin/sh ../node_modules/@sentry/react-native/scripts/sentry-xcode-debug-files.sh\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

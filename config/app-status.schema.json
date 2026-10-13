@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aviso remoto do AO UERJ",
+  "description": "Lido pelo app na abertura e ao voltar ao primeiro plano (no máximo a cada 15 minutos), de raw.githubusercontent.com/pitroldev/ao-uerj-mobile-ts/main. Vale na hora para todos os apps instalados, sem CI nem revisão da loja. O endereço fica gravado em cada versão publicada: a conta pitroldev e o repositório não podem ser renomeados, transferidos nem apagados enquanto houver versões com ele. Validação no app: src/modules/delivery/domain/appStatus.ts (o teste dela confere este esquema). Um documento inválido é ignorado e o app segue com a última cópia boa; um aviso inválido some sozinho.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "minSupportedVersion",
+    "notices",
+    "disabledFeatures"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": {
+      "description": "Versão do esquema. Campos novos e opcionais não mudam a versão; outra versão faz o app ignorar o documento.",
+      "const": 1
+    },
+    "minSupportedVersion": {
+      "description": "Versão mínima (MAJOR.MINOR.PATCH, a do package.json). Abaixo dela o app mostra a tela de bloqueio com \"Atualizar\". Só suba para uma versão já com rollout de 100% em produção na Play: o release publica na trilha interna. No Android instalado pela Play, o bloqueio só aparece se a Play oferecer uma versão mais nova ao aparelho; no iOS e fora da Play, vale sozinho.",
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "notices": {
+      "description": "Avisos no topo do Início (no máximo 10 são lidos). O aluno pode dispensar cada um; o id dispensado não volta.",
+      "type": "array",
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "required": ["id", "level", "title", "message"],
+        "properties": {
+          "id": {
+            "description": "Identificador estável (troque o id para mostrar de novo a quem já dispensou).",
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+          },
+          "level": { "enum": ["info", "warning", "critical"] },
+          "title": {
+            "description": "Sem endereços (o link vai em url) e sem a palavra senha: o app descarta o aviso.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "message": {
+            "description": "Sem endereços (o link vai em url) e sem a palavra senha: o app descarta o aviso.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400
+          },
+          "url": {
+            "description": "Link \"Saiba mais\" (o botão mostra o domínio). Só https, host em minúsculas, sem usuário nem porta, para: uerj.br e subdomínios, pitrol.dev, github.com/pitroldev/ao-uerj-mobile-ts e a página do app na Play. A lista fica em LINK_DESTINATIONS (appStatus.ts).",
+            "type": "string",
+            "maxLength": 300,
+            "pattern": "^(?!.*[@\\\\])https://(?:(?:(?:[a-z0-9-]+\\.)*uerj\\.br|pitrol\\.dev)(?:[/?#][!-~]*)?|(?:github\\.com/pitroldev/ao-uerj-mobile-ts|play\\.google\\.com/store/apps/details\\?id=com\\.aouerjmobile)(?:[/?#&][!-~]*)?)$"
+          },
+          "until": {
+            "description": "Data ISO 8601; depois dela o aviso some.",
+            "type": "string",
+            "format": "date-time"
+          },
+          "platforms": {
+            "description": "Sem a lista, vale para todas.",
+            "type": "array",
+            "items": { "enum": ["android", "ios"] }
+          }
+        }
+      }
+    },
+    "disabledFeatures": {
+      "description": "Telas desativadas: aparecem como indisponíveis no menu e mostram um aviso no lugar do conteúdo.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "progress",
+          "schedule-generator",
+          "message-board",
+          "subjects-taken",
+          "curriculum-subjects",
+          "universal-subjects",
+          "subject-search",
+          "teacher-search"
+        ]
+      }
+    }
+  }
+}

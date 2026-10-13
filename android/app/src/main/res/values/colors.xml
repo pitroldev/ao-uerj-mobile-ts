@@ -2,6 +2,8 @@
 
 <resources>
   <color name="primary">#003468</color>
-  <color name="secondary">#004891</color>
+  <!-- Texto nativo sem cor própria (o JS sempre define a sua). -->
   <color name="text_primary">#333333</color>
+  <!-- Fundo do splash: o `brand` de src/themes/light.ts. -->
+  <color name="bootsplash_background">#003468</color>
 </resources>

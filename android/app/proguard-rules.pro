@@ -21,9 +21,6 @@
 -keep class com.facebook.jsc.** { *; }
 -dontwarn com.facebook.jsc.**
 
-# React Native Vector Icons
--keep class com.oblador.vectoricons.** { *; }
-
 # React Native Screens
 -keep class com.swmansion.rnscreens.** { *; }
 -dontwarn com.swmansion.rnscreens.**

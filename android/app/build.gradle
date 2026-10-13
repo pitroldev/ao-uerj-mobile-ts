@@ -70,10 +70,38 @@ def enableProguardInReleaseBuilds = true
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
 
+// Single source of truth for the version: package.json, bumped by release-please.
+// versionCode = MAJOR * 10^7 + MINOR * 10^4 + PATCH (1.3.6 -> 10030006). It must stay
+// above 3145828, the last hand-edited code (3 * 2^20 + 100: the old per-ABI split
+// formula of the React Native template, arm64-v8a = 3, then bumped by hand).
+def appVersion = new groovy.json.JsonSlurper().parse(rootProject.file("../package.json")).version
+def appVersionParts = appVersion =~ /^(\d+)\.(\d+)\.(\d+)$/
+if (!appVersionParts.matches()) {
+    throw new GradleException("package.json version must be MAJOR.MINOR.PATCH, got ${appVersion}.")
+}
+def (versionMajor, versionMinor, versionPatch) = (1..3).collect { appVersionParts.group(it).toInteger() }
+if (versionMajor < 1 || versionMinor > 999 || versionPatch > 9999) {
+    throw new GradleException("Version ${appVersion} does not fit the versionCode formula.")
+}
+def appVersionCode = versionMajor * 10_000_000 + versionMinor * 10_000 + versionPatch
+
 def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
 if (keystorePropertiesFile.exists()) {
     keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+// CI passes the upload key through environment variables, which take precedence
+// over android/keystore.properties key by key.
+[
+    storeFile: "ANDROID_KEYSTORE_FILE",
+    storePassword: "ANDROID_KEYSTORE_PASSWORD",
+    keyAlias: "ANDROID_KEY_ALIAS",
+    keyPassword: "ANDROID_KEY_PASSWORD",
+].each { key, variable ->
+    def value = providers.environmentVariable(variable).getOrNull()
+    if (value) {
+        keystoreProperties[key] = value
+    }
 }
 
 // Debug/CI builds never require publication secrets. Release fails explicitly
@@ -83,16 +111,35 @@ def hasReleaseSigning = releaseSigningKeys.every { keystoreProperties[it] }
 def verifyReleaseSigning = tasks.register("verifyReleaseSigning") {
     doLast {
         if (!hasReleaseSigning) {
-            throw new GradleException("Release requires android/keystore.properties with keyAlias, keyPassword, storeFile and storePassword.")
+            throw new GradleException("Release requires keyAlias, keyPassword, storeFile and storePassword in android/keystore.properties, or ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD, ANDROID_KEYSTORE_FILE and ANDROID_KEYSTORE_PASSWORD.")
         }
-        if (!file(keystoreProperties["storeFile"]).isFile()) {
-            throw new GradleException("Release keystore file was not found. Check storeFile in android/keystore.properties.")
+        def releaseStoreFile = file(keystoreProperties["storeFile"])
+        if (!releaseStoreFile.isFile()) {
+            throw new GradleException("Release keystore file was not found. Check storeFile in android/keystore.properties or ANDROID_KEYSTORE_FILE.")
+        }
+        // In CI an unset ANDROID_KEYSTORE_BASE64 decodes to an empty file, which would
+        // only fail when the bundle is signed, at the end of a long build.
+        if (releaseStoreFile.length() == 0) {
+            throw new GradleException("Release keystore ${releaseStoreFile} is empty. Check storeFile in android/keystore.properties or ANDROID_KEYSTORE_FILE; in CI, the ANDROID_KEYSTORE_BASE64 secret of the play environment.")
         }
     }
 }
 tasks.matching { it.name == "preReleaseBuild" }.configureEach {
     dependsOn(verifyReleaseSigning)
 }
+
+// Sentry: release bundles get Hermes source maps with a Debug ID (see metro.config.js).
+// They are uploaded only when SENTRY_AUTH_TOKEN is set, as in the release workflow;
+// local and CI builds without the token skip the upload and build as before.
+// sentry-cli reads SENTRY_ORG, SENTRY_PROJECT and SENTRY_URL (EU: https://de.sentry.io/).
+// No Sentry Android Gradle Plugin: it would instrument OkHttp, which sees the portal
+// login URL with the password.
+apply from: "../../node_modules/@sentry/react-native/sentry.gradle"
+def sentryUploadEnabled = !providers.environmentVariable("SENTRY_AUTH_TOKEN").getOrElse("").trim().isEmpty() &&
+    providers.environmentVariable("SENTRY_DISABLE_AUTO_UPLOAD").getOrElse("") != "true"
+project.ext.shouldSentryAutoUploadGeneral = { -> sentryUploadEnabled }
+// The SDK is configured in JS (src/app/observability), without sentry.options.json.
+project.ext.shouldCopySentryOptionsFile = { -> false }
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -105,8 +152,19 @@ android {
         applicationId "com.aouerjmobile"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 3145828
-        versionName "v1.3.5"
+        versionCode appVersionCode
+        versionName "v${appVersion}"
+        externalNativeBuild {
+            cmake {
+                // On Windows, ninja fails past MAX_PATH (260) on the deep codegen
+                // sources of react-native-gesture-handler 3. CMake only hashes a
+                // long object path when the hashed name fits under this limit
+                // (default 250), which the longer ABI folders (arm64-v8a,
+                // armeabi-v7a) miss by a few characters; 255 leaves room for the
+                // hash and keeps the full path under 260.
+                arguments "-DCMAKE_OBJECT_PATH_MAX=255"
+            }
+        }
     }
     signingConfigs {
         release {
@@ -137,6 +195,15 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
+    sourceSets {
+        // The React Native plugin creates debugOptimized with initWith(debug), which copies
+        // the build type but not its source set. Without this, that variant would get the
+        // network security config of src/main, which blocks Metro's cleartext HTTP, and no
+        // aouerj-dev:// scheme. With setRoot, a src/debugOptimized folder would be ignored.
+        debugOptimized {
+            setRoot "src/debug"
+        }
+    }
 
     applicationVariants.all { variant ->
         variant.outputs.all {
@@ -148,6 +215,8 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+    // Play In-App Updates for the local InAppUpdates module (src/specs/NativeInAppUpdates.ts).
+    implementation("com.google.android.play:app-update:2.1.0")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
