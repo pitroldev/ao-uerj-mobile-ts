@@ -1,9 +1,12 @@
 name: E2E
 
 # Fluxos do Maestro (.maestro/) no modo demonstração, sem rede nem conta real.
-# Manual ou noturno: o emulador leva de 15 a 30 minutos, caro demais para cada PR.
+# Manual, noturno ou num PR com o rótulo "e2e": o emulador leva de 15 a 30
+# minutos, caro demais para rodar em todo PR.
 on:
   workflow_dispatch:
+  pull_request:
+    types: [labeled]
   schedule:
     # 03:30 em Brasília
     - cron: '30 6 * * *'
@@ -24,6 +27,7 @@ env:
 
 jobs:
   maestro:
+    if: github.event_name != 'pull_request' || github.event.label.name == 'e2e'
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
