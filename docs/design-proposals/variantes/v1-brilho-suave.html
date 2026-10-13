@@ -1,0 +1,1089 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AO UERJ · Variante da interface · Brilho suave</title>
+<meta name="description" content="Variante da interface atual do AO UERJ (Agenda limpa) derivada da logo com tratamento Brilho suave: luz azul nas áreas de marca, conteúdo claro e profundidade suave nos cartões.">
+<meta name="color-scheme" content="dark">
+<style>
+/* Inter: os mesmos arquivos que o app usa (src/assets/fonts) */
+@font-face{font-family:"Inter";font-weight:400;font-style:normal;font-display:block;src:url("../../../src/assets/fonts/Inter-Regular.ttf") format("truetype")}
+@font-face{font-family:"Inter";font-weight:500;font-style:normal;font-display:block;src:url("../../../src/assets/fonts/Inter-Medium.ttf") format("truetype")}
+@font-face{font-family:"Inter";font-weight:600;font-style:normal;font-display:block;src:url("../../../src/assets/fonts/Inter-SemiBold.ttf") format("truetype")}
+@font-face{font-family:"Inter";font-weight:700;font-style:normal;font-display:block;src:url("../../../src/assets/fonts/Inter-Bold.ttf") format("truetype")}
+@font-face{font-family:"Inter Display";font-weight:600;font-style:normal;font-display:block;src:url("../../../src/assets/fonts/InterDisplay-SemiBold.ttf") format("truetype")}
+
+/* =====================================================================
+   Página (mesa escura, como a página da logo)
+   ===================================================================== */
+:root{
+  --pg:#090D14;
+  --tinta:#E8EDF4;
+  --tinta-2:#AEB8C6;
+  --tinta-3:#8692A3;
+  --fio:rgba(255,255,255,.08);
+  --realce:#8CC4FF;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{background:var(--pg);scrollbar-color:#2A3445 var(--pg);-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;color:var(--tinta);font:15px/1.55 Inter,system-ui,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;font-optical-sizing:auto}
+p,h1,h2,h3,h4,ol,ul,dl,dd,figure{margin:0}
+button,input,textarea{font:inherit;color:inherit;letter-spacing:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+::selection{background:rgba(140,196,255,.32);color:#fff}
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--realce);outline-offset:3px}
+.sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.defs{position:absolute;width:0;height:0;overflow:hidden}
+.envelope{width:100%;max-width:1440px;margin:0 auto;padding:0 56px}
+@media (max-width:900px){.envelope{padding:0 20px}}
+
+/* cabeçalho da página */
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:48px;align-items:center;padding-top:72px;padding-bottom:48px}
+.intro h1{font:600 52px/1.04 "Inter Display",Inter,sans-serif;letter-spacing:-.025em;text-wrap:balance}
+.intro-sub{margin-top:14px;font-size:19px;line-height:1.45;color:var(--tinta);max-width:44ch;text-wrap:pretty}
+.intro-desc{margin-top:18px;max-width:68ch;color:var(--tinta-2);text-wrap:pretty}
+.paleta{display:flex;flex-wrap:wrap;gap:14px 18px;margin:28px 0 0;padding:0;list-style:none}
+.paleta li{display:flex;align-items:center;gap:8px;font-size:12.5px;line-height:16px;color:var(--tinta-3);font-variant-numeric:tabular-nums}
+.paleta i{display:block;width:22px;height:22px;border-radius:7px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.paleta b{display:block;color:var(--tinta-2);font-weight:500}
+.intro-fig figcaption{margin-top:12px;font-size:13px;line-height:1.5;color:var(--tinta-3)}
+.banner{position:relative;aspect-ratio:16/9;border-radius:18px;overflow:hidden;isolation:isolate;box-shadow:0 0 0 1px var(--fio),0 34px 80px -36px rgba(0,0,0,.9)}
+@media (max-width:1100px){.intro{grid-template-columns:minmax(0,1fr)}.intro-fig{max-width:520px}}
+@media (max-width:600px){.intro h1{font-size:38px}}
+
+.principios{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px 48px;padding-top:28px;padding-bottom:16px;border-top:1px solid var(--fio)}
+.principios h2{font-size:15px;line-height:22px;font-weight:600;color:var(--tinta)}
+.principios p{margin-top:6px;font-size:14px;line-height:1.6;color:var(--tinta-2);text-wrap:pretty}
+@media (max-width:900px){.principios{grid-template-columns:minmax(0,1fr)}}
+
+/* grupos de telas */
+.grupo{padding-top:72px}
+.grupo-cab{display:flex;align-items:baseline;gap:20px;flex-wrap:wrap;margin-bottom:32px}
+.grupo-cab h2{font:600 28px/1.15 "Inter Display",Inter,sans-serif;letter-spacing:-.02em}
+.grupo-cab p{color:var(--tinta-2);font-size:15px;max-width:72ch}
+.telas{display:flex;flex-wrap:wrap;justify-content:space-between;gap:56px 40px}
+@media (max-width:1400px){.telas{justify-content:center}}
+.shot{margin:0;width:410px}
+@media (max-width:470px){.shot{zoom:.86}}
+@media (max-width:400px){.shot{zoom:.78}}
+.shot figcaption{margin-top:18px;max-width:410px;font-size:13.5px;line-height:1.55;color:var(--tinta-2);text-wrap:pretty}
+.shot figcaption b{display:block;margin-bottom:2px;color:var(--tinta);font-size:15px;font-weight:600}
+.rodape{margin-top:96px;padding-top:28px;padding-bottom:48px;border-top:1px solid var(--fio);font-size:13px;color:var(--tinta-3)}
+.rodape p{max-width:96ch}
+.rodape p+p{margin-top:6px}
+
+/* aparelho */
+.phone{width:410px;padding:10px;border-radius:50px;background:linear-gradient(160deg,#2A3140,#10141B 42%,#1B212C);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.08),0 0 0 1px #000,0 40px 80px -34px rgba(0,0,0,.95)}
+
+/* =====================================================================
+   Tela: tokens (claro)
+   ===================================================================== */
+.screen{
+  /* marca: o azul da logo, com a luz onde a logo está */
+  --b-lit:#0B5AA8;--b-hl:#004891;--b-mid:#003E7E;--brand:#003468;--b-deep:#002B58;--b-edge:#001F3F;
+  --halo:176 214 255;
+  --on-brand:#FFFFFF;--on-brand-2:rgba(236,244,255,.80);--brand-rule:rgba(255,255,255,.14);
+  --on-brand-m:#F2D98C;--on-brand-a:#FFCC9C;--on-brand-n:#99E6FF;
+  /* conteúdo */
+  --bg:#F4F7FB;--bg-2:#EBF0F6;--bg-3:#E0E7F0;--surface:#FFFFFF;--surface-hover:#F7F9FC;--sheet:#FFFFFF;--float:#FFFFFF;
+  --rule:#DEE4EC;--rule-2:#CAD2DD;--field:#8794A6;
+  --ink:#0E1A2B;--ink-2:#536075;--ink-3:#7D8899;
+  --accent:#004891;--accent-soft:#E6EFFA;--accent-line:#B7CDEA;--sel:#CFE0F5;
+  --fill:#004891;--fill-top:#0B58A6;--on-fill:#FFFFFF;
+  --good:#17673A;--good-bg:#DDF5E3;--warn:#715600;--warn-bg:#FAF4CC;--bad:#A4261E;--bad-bg:#FCE4E2;--bad-line:#F1B5AF;
+  --neu:#4A5263;--neu-bg:#E9EDF2;
+  --m:#665400;--m-bg:#FBF8D6;--m-line:#E6DC98;--a:#894A0F;--a-bg:#FFEEDB;--a-line:#F0CBA4;--n:#0A5A73;--n-bg:#DEF3FA;--n-line:#A6D8E9;
+  --scrim:rgba(4,16,36,.46);
+  /* profundidade: a "sombra de luz rente" da logo vira sombra curta, macia e azulada */
+  --sh-1:0 1px 2px rgba(14,38,74,.06),0 6px 18px -8px rgba(14,38,74,.18);
+  --sh-2:0 1px 2px rgba(0,30,70,.12),0 16px 30px -14px rgba(0,44,100,.50);
+  --sh-up:0 -12px 24px -16px rgba(14,38,74,.26);
+  --sh-btn:0 1px 2px rgba(0,30,70,.18),0 8px 16px -10px rgba(0,58,120,.55);
+  --sh-sheet:0 -12px 36px rgba(4,20,48,.22);
+  --edge:0 0 #0000;
+  position:relative;width:390px;height:844px;border-radius:40px;overflow:hidden;isolation:isolate;
+  display:flex;flex-direction:column;
+  color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:20px;letter-spacing:0;
+  background-color:var(--brand);
+  /* a luz nasce da logo do cabeçalho (canto superior direito) e se apaga para o marinho das bordas */
+  background-image:radial-gradient(165% 72% at 93% 5%,var(--b-lit) 0%,var(--b-hl) 12%,var(--b-mid) 28%,var(--brand) 48%,var(--b-deep) 70%,#00244A 86%,var(--b-edge) 100%);
+}
+/* escuro: "a mesma agenda, à noite". A marca não muda; o painel desce para o marinho e os degraus de superfície ganham a luz rente no fio de cima */
+.screen[data-theme="dark"]{
+  --bg:#0B1626;--bg-2:#111F33;--bg-3:#182A43;--surface:#122139;--surface-hover:#182A43;--sheet:#111F33;--float:#182A43;
+  --rule:#2B3D55;--rule-2:#3B4E68;--field:#6B7E97;
+  --ink:#E6EDF6;--ink-2:#A7B4C6;--ink-3:#7E8DA3;
+  --accent:#7DB7F2;--accent-soft:#123458;--accent-line:#2D5786;--sel:#17497B;
+  --fill:#2A6BC0;--fill-top:#3478CE;
+  --good:#A4EBB8;--good-bg:#1E4A2E;--warn:#F8D48B;--warn-bg:#573900;--bad:#FF9C92;--bad-bg:#612E2B;--bad-line:#854B47;
+  --neu:#B3BFCF;--neu-bg:#36414F;
+  --m:#F2D98C;--m-bg:#4E3A03;--m-line:#715A24;--a:#FFCC9C;--a-bg:#593014;--a-line:#7F4F31;--n:#99E6FF;--n-bg:#184655;--n-line:#356575;
+  --scrim:rgba(2,8,20,.62);
+  --sh-1:inset 0 1px 0 rgba(176,214,255,.06),0 10px 22px -12px rgba(0,0,0,.7);
+  --sh-2:inset 0 1px 0 rgba(255,255,255,.10),0 18px 34px -16px rgba(0,0,0,.8);
+  --sh-up:0 -12px 24px -16px rgba(0,0,0,.6);
+  --sh-btn:inset 0 1px 0 rgba(255,255,255,.12),0 8px 16px -10px rgba(0,0,0,.7);
+}
+.screen *{scrollbar-width:none}
+.screen ::-webkit-scrollbar{display:none}
+.screen ::selection{background:var(--sel);color:var(--ink)}
+.screen input{caret-color:var(--accent)}
+.screen :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.screen .appbar :focus-visible,.screen .drawer :focus-visible,.screen .solo-top :focus-visible{outline-color:#fff}
+.ic{display:inline-block;flex:none;width:1em;height:1em;font-size:22px;fill:currentColor;vertical-align:middle}
+.tnum,.next-time,.gp,.gt td,.stat b,.day b,.cal-hr span,.cal-now b,.ch-y,.ch-x,.ch-v,.wk-t,.msg-h time,.sb>span:first-child,.res-sum b,.path-top b,.r-aside{font-variant-numeric:tabular-nums}
+
+/* halo do cabeçalho: centrado na logo, apaga antes do título */
+.c-halo{position:absolute;z-index:0;left:216px;top:-56px;width:292px;height:212px;pointer-events:none;
+  background:radial-gradient(closest-side,rgb(var(--halo)/.40) 0%,rgb(var(--halo)/.36) 12%,rgb(var(--halo)/.28) 26%,rgb(var(--halo)/.19) 40%,rgb(var(--halo)/.11) 55%,rgb(var(--halo)/.05) 72%,rgb(var(--halo)/.015) 88%,rgb(var(--halo)/0) 100%)}
+
+/* barra de status e cabeçalho */
+.sb{position:relative;z-index:3;flex:none;height:26px;padding:2px 16px 0 22px;display:flex;align-items:center;justify-content:space-between;color:#fff;font-size:13px;font-weight:500;letter-spacing:.01em}
+.sb-ic{display:flex;gap:5px;align-items:center}
+.sb svg{display:block}
+.appbar{position:relative;z-index:3;flex:none;height:52px;display:flex;align-items:center;padding:0 4px;color:var(--on-brand)}
+.appbar-t{flex:1;text-align:center;font-size:17px;line-height:24px;font-weight:500;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{width:48px;height:48px;flex:none;display:inline-grid;place-items:center;border:0;border-radius:50%;background:transparent;color:inherit;padding:0;transition:background-color 150ms ease}
+.ib:hover{background:color-mix(in srgb,currentColor 10%,transparent)}
+.ib:active{background:color-mix(in srgb,currentColor 18%,transparent)}
+.logo-sm{width:36px;height:auto;display:block;overflow:visible;filter:drop-shadow(0 2px 3px rgba(196,224,255,.38))}
+
+/* corpo, painel e menu */
+.body{flex:1;position:relative;min-height:0;z-index:2}
+.panel{position:absolute;inset:0;z-index:2;background:var(--bg);color:var(--ink);border-top-left-radius:48px;overflow:hidden;display:flex;flex-direction:column;transition:transform 240ms cubic-bezier(.2,.8,.2,1)}
+.drawer-open .panel{transform:translateX(300px);box-shadow:-18px 0 44px rgba(0,8,26,.5)}
+.panel-top{flex:none}
+.panel-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:32px 20px 56px;overscroll-behavior:contain}
+.panel-foot{position:relative;z-index:2;flex:none;display:flex;gap:12px;padding:12px 20px 26px;background:var(--surface);box-shadow:var(--sh-up)}
+.panel-foot .btn{flex:1}
+
+.drawer{position:absolute;top:0;bottom:0;left:0;width:300px;color:var(--on-brand);display:flex;flex-direction:column;padding:4px 0 22px}
+.dr-user{display:flex;gap:12px;align-items:flex-start;padding:10px 20px 16px 24px}
+.avatar{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:14px;font-weight:600;letter-spacing:.02em;color:#fff;
+  background:radial-gradient(120% 120% at 30% 15%,#2A75C4 0%,#0B5AA8 40%,#004891 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),0 4px 10px -4px rgba(0,8,26,.6)}
+.dr-name{font-size:15px;line-height:20px;font-weight:600}
+.dr-meta{font-size:13px;line-height:18px;color:var(--on-brand-2)}
+.dr-nav{position:relative;flex:1;min-height:0;overflow-y:auto;margin:0 12px;border-top:1px solid var(--brand-rule)}
+.dr-group{font-size:13px;line-height:18px;font-weight:500;color:var(--on-brand-2);padding:16px 12px 6px}
+.dr-sep{height:1px;background:var(--brand-rule);margin:12px 0}
+.dr-item{position:relative;display:flex;align-items:center;gap:14px;width:100%;height:48px;padding:0 12px;border:0;background:none;color:var(--on-brand);font-size:15px;text-align:left;border-radius:12px 0 12px 12px;transition:background-color 150ms ease}
+.dr-item .ic{color:var(--on-brand-2)}
+.dr-item:hover{background:rgba(255,255,255,.06)}
+/* o item ativo é uma placa de luz: o azul de destaque da logo, aceso de cima */
+.dr-item[aria-current="page"]{font-weight:600;background:linear-gradient(180deg,#0E5DAB 0%,#004891 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 8px 18px -10px rgba(0,6,20,.75)}
+.dr-item[aria-current="page"] .ic{color:#fff}
+.dr-foot{display:flex;align-items:center;gap:4px;margin:8px 12px 0;padding-top:8px;border-top:1px solid var(--brand-rule)}
+.dr-foot .dr-item{width:auto;padding:0 16px 0 12px}
+.dr-ver{flex:1;text-align:right;font-size:12px;color:var(--on-brand-2)}
+
+/* =====================================================================
+   Componentes
+   ===================================================================== */
+.greet h3{font:600 24px/30px "Inter Display",Inter,sans-serif;letter-spacing:-.02em}
+.greet p{margin-top:2px;color:var(--ink-2);font-size:14px}
+.sec{margin-top:30px}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:32px;margin-bottom:10px}
+.sec-h h3{font-size:17px;line-height:24px;font-weight:600;letter-spacing:-.01em}
+.sec-when{font-size:14px;line-height:20px;color:var(--ink-2);white-space:nowrap}
+.sec-when b{font-weight:600;color:var(--ink)}
+.sec-note{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--ink-2);white-space:nowrap}
+.card{border-radius:12px 0 12px 12px;background:var(--surface);box-shadow:var(--sh-1)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border:0;border-radius:10px;color:var(--on-fill);font-size:15px;font-weight:600;white-space:nowrap;
+  background:linear-gradient(180deg,var(--fill-top),var(--fill));box-shadow:var(--sh-btn);transition:filter 150ms ease,box-shadow 150ms ease}
+.btn:hover{filter:brightness(1.06)}
+.btn:active{filter:brightness(.94);box-shadow:none}
+.btn .ic{font-size:20px}
+.btn-outline{background:var(--surface);color:var(--accent);box-shadow:inset 0 0 0 1px var(--rule-2)}
+.btn-outline:hover{background:var(--accent-soft);filter:none}
+.btn:disabled{background:var(--bg-3);color:var(--ink-2);box-shadow:none;cursor:not-allowed;filter:none}
+.btn-block{width:100%}
+.btn-text{display:inline-flex;align-items:center;gap:6px;min-height:48px;padding:0 10px;margin:-8px -10px -8px 0;border:0;border-radius:10px;background:none;color:var(--accent);font-size:14px;font-weight:600}
+.btn-text .ic{font-size:18px}
+.btn-text:hover{background:var(--accent-soft)}
+.btn-link{display:block;width:100%;min-height:48px;border:0;background:none;color:var(--accent);font-size:14px;font-weight:600;border-radius:10px}
+.btn-link:hover{text-decoration:underline;text-underline-offset:3px}
+
+.st{display:inline-flex;align-items:center;gap:6px;font-size:12px;line-height:16px;font-weight:500;white-space:nowrap}
+.st i{width:7px;height:7px;border-radius:50%;flex:none;background:currentColor}
+.st .ic{font-size:15px;margin:0 -2px}
+.st-good{color:var(--good)}.st-warn{color:var(--warn)}.st-bad{color:var(--bad)}.st-neu{color:var(--neu)}.st-accent{color:var(--accent)}
+.st-m{color:var(--m)}.st-a{color:var(--a)}.st-n{color:var(--n)}
+.tag{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:6px 0 6px 6px;font-size:12px;font-weight:500;line-height:16px;white-space:nowrap;background:var(--neu-bg);color:var(--neu)}
+.tag-accent{background:var(--accent-soft);color:var(--accent)}
+.gp{display:inline-grid;place-items:center;min-width:40px;height:28px;padding:0 6px;border-radius:6px 0 6px 6px;font-size:14px;font-weight:600}
+.gp-good{background:var(--good-bg);color:var(--good)}.gp-warn{background:var(--warn-bg);color:var(--warn)}.gp-bad{background:var(--bad-bg);color:var(--bad)}
+.gp-none{color:var(--ink-2);font-weight:400}
+.bar{display:block;height:6px;border-radius:3px;background:var(--bg-3);overflow:hidden}
+.bar i{display:block;height:100%;width:calc(var(--p) * 100%);border-radius:3px;background:linear-gradient(90deg,var(--fill) 0%,var(--fill-top) 100%)}
+
+/* listas */
+.rows{margin:0 -20px}
+.r{position:relative;display:flex;align-items:center;gap:14px;width:100%;min-height:56px;padding:12px 20px;border:0;background:none;color:inherit;font:inherit;text-align:left}
+.r::after{content:"";position:absolute;left:20px;right:0;bottom:0;border-bottom:1px solid var(--rule)}
+.rows>.r:last-child::after{display:none}
+button.r{transition:background-color 150ms ease}
+button.r:hover{background:var(--bg-2)}
+.r-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.code{color:var(--ink-2)}
+.r-title{font-size:15px;line-height:21px;font-weight:600;color:var(--ink)}
+.r-label{flex:1;min-width:0;font-size:15px;line-height:21px;color:var(--ink)}
+.r-meta{font-size:13px;line-height:18px;color:var(--ink-2)}
+.r-facts{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin-top:4px;font-size:13px;line-height:18px;color:var(--ink-2)}
+.r-chev{color:var(--ink-2);font-size:20px}
+.lead{color:var(--ink-2);font-size:14px;margin-bottom:8px}
+
+/* chips, segmentado, abas, seletor, campos */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative;flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border:0;border-radius:8px 0 8px 8px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--rule-2);color:var(--ink);font-size:14px;font-weight:500;white-space:nowrap;transition:background-color 150ms ease}
+.chip::after{content:"";position:absolute;left:0;right:0;top:-6px;bottom:-6px}
+.chip .ic{font-size:18px;margin-left:-4px}
+.chip:hover{background:var(--surface-hover)}
+.chip.on{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent-line);color:var(--accent)}
+.segm{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border-radius:10px 0 10px 10px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--rule-2);overflow:hidden}
+.segm button{min-height:48px;border:0;background:none;color:var(--ink);font-size:14px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.segm button .ic{font-size:18px}
+.segm button+button{box-shadow:inset 1px 0 0 var(--rule-2)}
+.segm button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.tabs{display:flex;border-bottom:1px solid var(--rule);margin:20px 0 4px}
+.tabs button{flex:1;height:48px;border:0;background:none;color:var(--ink-2);font-size:14px;font-weight:600;position:relative}
+.tabs button[aria-selected="true"]{color:var(--accent)}
+.tabs button[aria-selected="true"]::after{content:"";position:absolute;left:22%;right:22%;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:var(--accent)}
+.select{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:4px 8px 4px 12px;border:1px solid var(--field);border-radius:10px 0 10px 10px;background:var(--surface);color:var(--ink);text-align:left}
+.select>.ic{color:var(--ink-2);font-size:20px}
+.select>span{flex:1;min-width:0;display:flex;flex-direction:column;font-size:15px;line-height:20px}
+.select small{font-size:12px;line-height:16px;color:var(--ink-2)}
+.field{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 0 0 14px;border:1px solid var(--field);border-radius:10px 0 10px 10px;background:var(--surface)}
+.field input{flex:1;min-width:0;border:0;background:none;outline:none;font-size:15px;line-height:22px;color:var(--ink);padding:12px 12px 12px 0}
+.field input::placeholder{color:var(--ink-2);opacity:1}
+.field:focus-within{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+
+/* ---------------------------------------------------------- início */
+/* próxima aula: a única superfície de marca dentro do conteúdo, com a mesma luz do cabeçalho */
+.next{position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:stretch;width:100%;padding:16px 8px 16px 16px;border:0;border-radius:14px 0 14px 14px;color:var(--on-brand);text-align:left;
+  background:radial-gradient(110% 150% at 100% 0%,#0B5AA8 0%,#004891 34%,#003E7E 68%,#00376F 100%);box-shadow:var(--sh-2);transition:filter 150ms ease}
+.next::before{content:"";position:absolute;z-index:-1;right:-150px;top:-118px;width:300px;height:220px;background:radial-gradient(closest-side,rgb(176 214 255/.34) 0%,rgb(176 214 255/.24) 30%,rgb(176 214 255/.11) 58%,rgb(176 214 255/.03) 82%,rgb(176 214 255/0) 100%)}
+.next:hover{filter:brightness(1.05)}
+.next-time{flex:none;width:78px;display:flex;flex-direction:column;padding-right:14px;white-space:nowrap}
+.next-time b{font:600 22px/28px "Inter Display",Inter,sans-serif;letter-spacing:-.02em}
+.next-time span{font-size:13px;line-height:18px;color:var(--on-brand-2);margin-top:2px}
+.next-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding:2px 0 0 14px;border-left:1px solid rgba(255,255,255,.18)}
+.next-name{font-size:17px;line-height:24px;font-weight:600;letter-spacing:-.01em}
+.next-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px}
+.next-meta{font-size:13px;line-height:18px;color:var(--on-brand-2)}
+.next .st-a{color:var(--on-brand-a)}.next .st-m{color:var(--on-brand-m)}.next .st-n{color:var(--on-brand-n)}
+.next .r-chev{align-self:center;margin-left:4px;color:var(--on-brand-2)}
+
+.gt{width:100%;border-collapse:collapse;table-layout:fixed}
+.gt col.n{width:45px}
+.gt thead th{font-size:12px;line-height:16px;font-weight:500;color:var(--ink-2);text-align:center;padding:0 0 8px;border-bottom:1px solid var(--rule)}
+.gt thead th:first-child{text-align:left}
+.gt tbody th{text-align:left;font-weight:inherit;padding:10px 8px 10px 0}
+.gt td{text-align:center;padding:10px 0}
+.gt tbody tr{border-bottom:1px solid var(--rule)}
+.gt-name{display:block;font-size:14px;line-height:19px;font-weight:500;color:var(--ink)}
+.gt-sub{display:block;margin-top:3px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:10px}
+.legend .st{color:var(--ink-2);font-weight:400}
+.legend .st-good i{background:var(--good)}.legend .st-warn i{background:var(--warn)}.legend .st-bad i{background:var(--bad)}
+
+/* semana: a faixa de dias é um cartão; o dia escolhido acende como a marca */
+.days{display:grid;grid-template-columns:repeat(6,1fr);border-radius:12px 0 12px 12px;background:var(--surface);box-shadow:var(--sh-1);overflow:hidden}
+.day{position:relative;height:60px;border:0;background:none;color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 0 6px;transition:background-color 180ms ease}
+.day+.day{box-shadow:inset 1px 0 0 var(--rule)}
+.day small{font-size:12px;line-height:16px;font-weight:500;color:var(--ink-2)}
+.day b{font-size:17px;line-height:22px;font-weight:600}
+.day i{position:absolute;bottom:8px;width:4px;height:4px;border-radius:50%}
+.day i.has{background:var(--ink-3)}
+.day:hover{background:var(--surface-hover)}
+.day.today small,.day.today b{color:var(--accent)}
+.day[aria-selected="true"],.day[aria-selected="true"]:hover{background:radial-gradient(120% 110% at 80% 0%,#0B5AA8 0%,#004891 55%,#003E7E 100%);box-shadow:none}
+.day[aria-selected="true"]+.day{box-shadow:none}
+.day[aria-selected="true"] small,.day[aria-selected="true"] b{color:#fff}
+.day[aria-selected="true"] i.has{background:#fff}
+.day:focus-visible{outline-offset:-4px}
+.dayview{margin-top:18px}
+.dv-head{display:flex;align-items:center;gap:8px;font-size:14px;line-height:20px;font-weight:600;margin-bottom:6px}
+.dv-count{margin-left:auto;font-weight:400;color:var(--ink-2)}
+.cal{position:relative}
+.cal-hr{position:absolute;left:0;right:0;height:0;display:flex;align-items:center;gap:8px}
+.cal-hr span{flex:none;width:44px;text-align:right;font-size:12px;line-height:16px;color:var(--ink-2)}
+.cal-hr::after{content:"";flex:1;border-top:1px solid var(--rule)}
+.cal-hr.muted span{visibility:hidden}
+.cal-ev{position:absolute;left:56px;right:0;z-index:1;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:9px 12px;border:1px solid transparent;border-radius:12px 0 12px 12px;background:var(--surface);box-shadow:var(--sh-1);color:var(--ink);text-align:left;overflow:hidden}
+.ev-name{font-size:15px;line-height:20px;font-weight:600;padding-right:84px}
+.ev-meta{font-size:13px;line-height:18px;color:var(--ink-2)}
+.ev-st{position:absolute;top:11px;right:12px}
+.cal-ev.past{background:var(--bg);border-color:var(--rule);box-shadow:none}
+.cal-ev.past .ev-name{color:var(--ink-2);font-weight:500}
+.cal-free{position:absolute;left:56px;right:0;z-index:1;display:flex;align-items:center;justify-content:center;border:1px dashed var(--rule-2);border-radius:12px 0 12px 12px;background:var(--bg);font-size:12px;line-height:16px;color:var(--ink-2)}
+.cal-free.up{align-items:flex-start;padding-top:8px}
+.cal-free.down{align-items:flex-end;padding-bottom:8px}
+.cal-now{position:absolute;left:0;right:0;height:0;z-index:3;display:flex;align-items:center;gap:8px;pointer-events:none}
+.cal-now b{flex:none;width:44px;text-align:right;font-size:12px;line-height:16px;font-weight:600;color:var(--accent)}
+.cal-now::after{content:"";flex:1;border-top:1.5px solid var(--accent)}
+.cal-now i{position:absolute;left:48px;top:-4.5px;width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--bg)}
+.dv-empty{display:flex;align-items:center;gap:10px;padding:16px;border:1px dashed var(--rule-2);border-radius:12px 0 12px 12px;color:var(--ink-2);font-size:14px}
+
+/* ------------------------------------------------------- progresso */
+.stats{display:grid;grid-template-columns:1fr 1fr}
+.stat{padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.stat+.stat{box-shadow:inset 1px 0 0 var(--rule)}
+.stat b{font:600 26px/32px "Inter Display",Inter,sans-serif;letter-spacing:-.02em}
+.stat span{font-size:13px;line-height:18px;color:var(--ink-2)}
+.foot-note{display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:13px;line-height:18px;color:var(--ink-2)}
+.foot-note .ic{font-size:18px}
+.ch-legend{display:flex;gap:16px;margin:-2px 0 10px;font-size:12px;color:var(--ink-2)}
+.ch-legend span{display:inline-flex;align-items:center;gap:6px}
+.lg-cra{width:16px;height:2px;border-radius:1px;background:var(--accent)}
+.lg-avg{width:16px;border-top:2px dashed var(--ink-3)}
+.chart{padding:10px 8px 4px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.ch-grid{stroke:var(--rule);stroke-width:1}
+.ch-y,.ch-x{fill:var(--ink-2);font-size:12px;font-family:Inter,sans-serif}
+.ch-x{font-size:11px}
+.ch-y{text-anchor:end}.ch-x{text-anchor:middle}
+.ch-cra{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.ch-avg{fill:none;stroke:var(--ink-3);stroke-width:1.5;stroke-dasharray:4 4}
+.ch-dot{fill:var(--surface);stroke:var(--accent);stroke-width:2}
+.ch-dot.last{fill:var(--accent)}
+.ch-adot{fill:var(--ink-3)}
+.ch-v{fill:var(--ink);font-size:12px;font-weight:600;text-anchor:middle;font-family:Inter,sans-serif}
+.path{align-items:flex-start}
+.path-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.path-top b{font-size:15px;font-weight:600}
+.path .bar{margin:8px 0 4px}
+
+/* ---------------------------------------------------------- gerador */
+.panel.gen .panel-top{padding:18px 0 0;border-bottom:1px solid var(--rule)}
+.steps{list-style:none;margin:0;padding:0 0 8px 16px;display:flex;align-items:center;overflow-x:auto;scroll-padding-inline:20px;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 24px),transparent)}
+.steps.rolado{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 40px,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(90deg,transparent 0,#000 40px,#000 calc(100% - 24px),transparent)}
+.steps::after{content:"";flex:none;width:160px;height:1px}
+.steps li{flex:none;display:flex;align-items:center}
+.steps li+li::before{content:"";width:14px;height:1px;background:var(--rule-2);margin:0 4px}
+.steps li.done+li::before{background:var(--accent-line)}
+.steps button{display:flex;align-items:center;gap:8px;height:48px;padding:0 10px 0 4px;border:0;background:none;color:var(--ink-2);font-size:13px;font-weight:500;border-radius:24px}
+.steps button:disabled{cursor:default}
+.sn{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;box-shadow:inset 0 0 0 1px var(--rule-2);font-size:12px;font-weight:600;flex:none}
+.sn .ic{font-size:16px}
+.steps .cur button{color:var(--ink);font-weight:600}
+.steps .cur .sn{background:radial-gradient(120% 120% at 70% 10%,#0B5AA8,#004891 60%,#003E7E);box-shadow:0 3px 8px -3px rgba(0,58,120,.6);color:#fff}
+.steps .done button{color:var(--ink)}
+.steps .done .sn{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent-line);color:var(--accent)}
+.step-t{font-size:20px;line-height:26px;font-weight:600;letter-spacing:-.015em}
+.step-d{margin-top:6px;color:var(--ink-2);font-size:14px;line-height:20px}
+.sub-h{display:flex;align-items:center;gap:8px;margin:24px 0 10px;font-size:15px;line-height:20px;font-weight:600}
+.pair{margin:8px 20px;border-radius:12px 0 12px 12px;background:var(--surface);box-shadow:var(--sh-1);overflow:hidden}
+.pair-note{display:flex;align-items:center;gap:6px;padding:10px 14px 2px;font-size:12px;font-weight:500;color:var(--ink-2)}
+.pair-note .ic{font-size:16px}
+.pair .r{padding:10px 14px}
+.pair .r::after{left:14px}
+.pair .r:last-child::after{display:none}
+.switch{flex:none;width:52px;height:32px;border-radius:16px;border:2px solid var(--field);background:var(--bg-3);position:relative;transition:background-color 180ms ease,border-color 180ms ease}
+.switch i{position:absolute;top:2px;left:2px;width:24px;height:24px;border-radius:50%;background:var(--ink-2);transform:scale(.6667);transition:transform 180ms cubic-bezier(.2,.8,.2,1),background-color 180ms ease}
+[aria-checked="true"]>.switch{border-color:transparent;background:linear-gradient(180deg,var(--fill-top),var(--fill))}
+[aria-checked="true"]>.switch i{transform:translateX(20px);background:#fff;box-shadow:0 1px 3px rgba(0,20,50,.35)}
+.res-pick{margin-top:16px}
+.res-sum{display:flex;gap:18px;margin-top:14px;font-size:13px;color:var(--ink-2)}
+.res-sum b{color:var(--ink);font-size:15px;font-weight:600;margin-right:4px}
+.wk-card{margin-top:14px;padding:10px 8px 12px;border-radius:12px 0 12px 12px;background:var(--surface);box-shadow:var(--sh-1)}
+.wk{display:grid;column-gap:3px}
+.wk-h{font-size:12px;font-weight:600;color:var(--ink-2);text-align:center;align-self:end;padding-bottom:6px;border-bottom:1px solid var(--rule)}
+.wk-t{font-size:12px;color:var(--ink-2);display:flex;align-items:center;border-bottom:1px solid var(--rule)}
+.wk-c{border-bottom:1px solid var(--rule)}
+.wk-b{z-index:1;margin:2px 0;padding:5px 5px;white-space:nowrap;border:1px solid;border-radius:8px 0 8px 8px;display:flex;flex-direction:column;font-size:12px;line-height:15px;overflow:hidden}
+.wk-b b{font-weight:700}
+.wk-b span{color:var(--ink-2)}
+.wk-m{background:var(--m-bg);border-color:var(--m-line);color:var(--m)}
+.wk-a{background:var(--a-bg);border-color:var(--a-line);color:var(--a)}
+.wk-n{background:var(--n-bg);border-color:var(--n-line);color:var(--n)}
+.wk-key{margin-top:14px;display:grid;gap:6px;font-size:13px;color:var(--ink-2)}
+.wk-key b{display:inline-block;min-width:38px;color:var(--ink);font-weight:700}
+
+/* ------------------------------------------------------------ mural */
+.panel.chat .panel-top{padding:24px 20px 12px;border-bottom:1px solid var(--rule)}
+.chat-name{font-size:18px;line-height:24px;font-weight:600;letter-spacing:-.01em}
+.chat-meta{margin:2px 0 12px;font-size:13px;line-height:18px;color:var(--ink-2)}
+.panel.chat .panel-scroll{padding-top:4px;padding-bottom:16px}
+.msgs{display:flex;flex-direction:column;gap:8px}
+.day-sep{display:flex;align-items:center;gap:12px;margin:14px 0 4px;font-size:12px;line-height:20px;font-weight:500;color:var(--ink-2);white-space:nowrap}
+.day-sep::before,.day-sep::after{content:"";flex:1;border-top:1px solid var(--rule)}
+.msg{display:flex}
+.msg.mine{justify-content:flex-end}
+.bubble{max-width:86%;padding:9px 12px 10px;border-radius:4px 12px 12px 12px;background:var(--surface);box-shadow:var(--sh-1);text-align:left}
+/* os seus: azul suave com fio, como o chip ligado; sem sombra (no claro, o azul suave sozinho quase some no painel) */
+.mine .bubble{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent-line);border-radius:12px 0 12px 12px}
+.msg-h{display:flex;gap:10px;align-items:baseline;justify-content:space-between;font-size:12px;line-height:16px;color:var(--ink-2);margin-bottom:2px}
+.msg-h b{font-weight:600;color:var(--ink);font-size:13px}
+.msg-t{display:block;font-size:15px;line-height:21px;color:var(--ink);overflow-wrap:anywhere}
+.msg-t a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.composer{display:flex;gap:8px;align-items:center;width:100%}
+.composer .field{flex:1}
+.send{width:48px;height:48px;border-radius:50%;border:0;display:grid;place-items:center;flex:none;color:#fff;background:radial-gradient(120% 120% at 70% 10%,#0B5AA8,#004891 60%,#003E7E);box-shadow:var(--sh-btn)}
+.send:disabled{background:var(--bg-3);color:var(--ink-2);box-shadow:none;cursor:not-allowed}
+
+/* ---------------------------------------------------- folha inferior */
+.scrim{position:absolute;inset:0;z-index:30;background:var(--scrim)}
+.sheet{position:absolute;z-index:31;left:0;right:0;bottom:0;max-height:84%;display:flex;flex-direction:column;background:var(--sheet);color:var(--ink);border-radius:24px 24px 0 0;box-shadow:var(--sh-sheet)}
+.sheet-handle{flex:none;width:32px;height:4px;border-radius:2px;background:var(--rule-2);margin:10px auto 0}
+.sheet-head{flex:none;display:flex;align-items:center;gap:8px;padding:6px 8px 4px 20px}
+.sheet-head h3{flex:1;font-size:18px;line-height:24px;font-weight:600;letter-spacing:-.01em}
+.sheet-meta{font-size:13px;color:var(--ink-2);white-space:nowrap}
+.sheet-head .ib{color:var(--ink-2)}
+.sheet-body{flex:1;min-height:0;overflow-y:auto;padding:4px 20px 28px}
+.cls.focus{background:var(--accent-soft)}
+.cls.focus::after{display:none}
+
+/* ------------------------------------------------- splash e login */
+.solo{flex:1;display:flex;flex-direction:column;min-height:0;position:relative;z-index:1}
+.scene{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;
+  background:radial-gradient(var(--cena-tam,105% 62%) at 50% var(--cy,44%),#0B5AA8 0%,#004891 20%,#003E7E 38%,#003468 56%,#002B58 74%,#00244A 88%,#001F3F 100%) #001F3F}
+.scene-halo{position:absolute;left:50%;top:var(--cy,44%);width:var(--halo-w,132%);aspect-ratio:var(--halo-ar,1.2);translate:-50% -50%;
+  background:radial-gradient(closest-side,rgb(176 214 255/.44) 0%,rgb(176 214 255/.425) 10%,rgb(176 214 255/.383) 20%,rgb(176 214 255/.322) 30%,rgb(176 214 255/.253) 40%,rgb(176 214 255/.185) 50%,rgb(176 214 255/.126) 60%,rgb(176 214 255/.081) 70%,rgb(176 214 255/.048) 80%,rgb(176 214 255/.022) 90%,rgb(176 214 255/0) 100%);
+  animation:respira 9s ease-in-out -3s infinite alternate}
+@keyframes respira{from{opacity:.82;scale:.965}to{opacity:1;scale:1.035}}
+.scene-vinheta{position:absolute;inset:0;background:radial-gradient(140% 120% at 50% var(--cy,44%),rgba(0,10,26,0) 42%,rgba(0,10,26,.10) 58%,rgba(0,10,26,.24) 74%,rgba(0,8,22,.42) 90%,rgba(0,6,18,.52) 100%)}
+.marca{position:absolute;left:50%;top:var(--cy,44%);width:calc(var(--lw) * 1026.8 / 586.8);height:auto;translate:-50% -50%;overflow:visible}
+/* como no app (Loading.tsx): a logo no centro da janela, no mesmo ponto do splash nativo, e o aviso 22 px abaixo dela */
+.splash{--cy:50%;--lw:200px}
+.solo.splash{position:absolute;inset:0}
+.splash-txt{position:absolute;z-index:2;left:0;right:0;top:calc(50% + var(--lw) * 355.9 / 586.8 / 2 + 22px);display:flex;flex-direction:column;align-items:center;gap:22px;padding:0 48px}
+/* o aviso cai dentro do halo: branco cheio para manter 4,5:1 sobre o ponto mais claro */
+.splash-txt p{text-align:center;font-size:14px;line-height:20px;color:var(--on-brand);max-width:28ch}
+.lin{width:120px;height:3px;border-radius:2px;background:rgba(255,255,255,.18);overflow:hidden;position:relative}
+.lin i{position:absolute;top:0;bottom:0;left:-40%;width:40%;background:#fff;border-radius:2px;animation:lin 1.3s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes lin{from{left:-40%}to{left:100%}}
+.login-top{position:relative;flex:none;height:228px;--cy:52%;--lw:156px;--halo-w:118%;--halo-ar:1.5;--cena-tam:120% 150%}
+.login-top .scene{bottom:-48px}
+.login-panel{position:relative;z-index:1;flex:1;min-height:0;overflow:auto;background:var(--bg);color:var(--ink);border-top-left-radius:48px;padding:36px 24px 28px;display:flex;flex-direction:column}
+.login h3{font:600 22px/28px "Inter Display",Inter,sans-serif;letter-spacing:-.02em}
+.login-sub{margin:4px 0 24px;color:var(--ink-2);font-size:14px}
+.fgroup{border:1px solid var(--field);border-radius:12px 0 12px 12px;background:var(--surface)}
+.fgroup:focus-within{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.frow{display:flex;align-items:center;gap:10px;min-height:56px;padding:0 4px 0 14px}
+.frow+.frow{border-top:1px solid var(--rule)}
+.frow>.ic{color:var(--ink-2);font-size:20px}
+.frow-l{flex:none;width:78px;font-size:14px;line-height:20px;font-weight:500;color:var(--ink)}
+.frow input{flex:1;min-width:0;height:54px;border:0;background:none;outline:none;padding:0;font-size:15px;color:var(--ink)}
+.frow input::placeholder{color:var(--ink-2);opacity:1}
+.frow:focus-within>.ic,.frow:focus-within .frow-l{color:var(--accent)}
+.frow .ib{color:var(--ink-2)}
+.frow .ib .ic{font-size:20px}
+.form-err{min-height:20px;margin:6px 0 10px;font-size:13px;line-height:18px;color:var(--bad);font-weight:500}
+.login .btn-link{margin-top:8px}
+.login-foot{margin-top:auto;padding-top:16px;text-align:center;font-size:12px;line-height:16px;color:var(--ink-2)}
+
+.gesture{position:absolute;left:0;right:0;bottom:0;height:18px;display:flex;align-items:center;justify-content:center;z-index:50;pointer-events:none}
+.gesture i{width:108px;height:4px;border-radius:2px;background:var(--ink);opacity:.3}
+.on-brand-gesture .gesture i{background:#fff;opacity:.5}
+
+/* página: movimento */
+html.captura *,html.captura *::before,html.captura *::after{animation:none!important;transition:none!important}
+html.captura .lin i{left:30%}
+html.captura .scene-halo{opacity:.92}
+@media (prefers-reduced-motion:reduce){
+  .scene-halo{animation:none;opacity:.92}
+  .lin i{animation-duration:2.6s}
+  *,*::before,*::after{transition-duration:1ms!important}
+}
+</style>
+</head>
+<body>
+
+<svg class="defs" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <g id="ao"></g>
+    <!-- contorno externo da logo (sem os vazados do selo): só alimenta o brilho -->
+    <path id="silhueta" d="M584.3,147.6C569,55.5,481.7-10.2,389.2,1.3c-56.4,7-99.9,35-130.8,82.6c-0.8,1.2-1.6,2.5-2.7,4.1C238.6,58.6,222,29.8,205,0.3C136.4,119.1,68.4,236.9,0,355.4c1.3,0.2,1.8,0.4,2.3,0.4c24.6,0,49.1,0.1,73.7-0.1c1.9,0,4.3-1.8,5.6-3.4c22.1-27.6,44.1-55.2,66.2-82.8c1.3-1.6,3.7-3.2,5.7-3.2c34.2-0.2,68.5-0.1,102.7,0.1c2,0,4.5,1.4,5.8,2.9c22.3,27.6,44.4,55.3,66.5,83.1c2,2.5,4,3.5,7.1,3.5c23.8-0.1,47.6,0.5,71.3-0.3c13.9-0.4,28-1.5,41.4-4.6C541.3,329.8,600,241.8,584.3,147.6z"/>
+    <linearGradient id="branco-frio" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="355.9">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset=".55" stop-color="#F8FBFF"/>
+      <stop offset="1" stop-color="#E2EDFB"/>
+    </linearGradient>
+    <filter id="bloom" x="-45%" y="-75%" width="190%" height="250%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="62" result="b1"/>
+      <feFlood flood-color="#8FC4FF" flood-opacity=".46"/>
+      <feComposite in2="b1" operator="in" result="g1"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="20" result="b2"/>
+      <feFlood flood-color="#C4E0FF" flood-opacity=".34"/>
+      <feComposite in2="b2" operator="in" result="g2"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="b3"/>
+      <feOffset in="b3" dy="5" result="b3o"/>
+      <feFlood flood-color="#EAF4FF" flood-opacity=".42"/>
+      <feComposite in2="b3o" operator="in" result="g3"/>
+      <feMerge><feMergeNode in="g1"/><feMergeNode in="g2"/><feMergeNode in="g3"/></feMerge>
+    </filter>
+    <!-- logo tratada (igual à proposta da logo): brilho, placa #003468 atrás do selo e a logo em branco frio -->
+    <g id="luz">
+      <use href="#silhueta" fill="#fff" filter="url(#bloom)"/>
+      <circle cx="418.7" cy="185.2" r="140" fill="#003468"/>
+      <use href="#ao" fill="url(#branco-frio)"/>
+    </g>
+  </defs>
+</svg>
+
+<header class="intro envelope">
+  <div class="intro-txt">
+    <h1>Brilho suave</h1>
+    <p class="intro-sub">A interface atual do AO UERJ (Agenda limpa), com a luz da logo nas áreas de marca.</p>
+    <p class="intro-desc">A logo com brilho tem três ingredientes: um azul que clareia onde a marca está e escurece para o marinho das bordas, um halo branco-azulado bem difuso e uma sombra de luz curta, logo abaixo da forma. Aqui eles viram regra de interface. O fundo de marca (barra de status, cabeçalho, menu lateral, splash e login) ganha o mesmo gradiente, com a luz saindo de onde a logo está. A próxima aula é o único cartão de marca dentro do conteúdo. E a sombra de luz rente vira a profundidade dos cartões. Telas, textos, rotas e dados são os da Agenda limpa; só a linguagem visual muda.</p>
+    <ul class="paleta" aria-label="Cores da variante">
+      <li><i style="background:#0B5AA8"></i><span><b>Luz</b>#0B5AA8</span></li>
+      <li><i style="background:#004891"></i><span><b>Acento</b>#004891</span></li>
+      <li><i style="background:#003468"></i><span><b>Marca</b>#003468</span></li>
+      <li><i style="background:#001F3F"></i><span><b>Borda</b>#001F3F</span></li>
+      <li><i style="background:#B0D6FF"></i><span><b>Halo</b>#B0D6FF</span></li>
+      <li><i style="background:#F4F7FB"></i><span><b>Painel</b>#F4F7FB</span></li>
+      <li><i style="background:#FFFFFF"></i><span><b>Cartão</b>#FFFFFF</span></li>
+    </ul>
+  </div>
+  <figure class="intro-fig">
+    <div class="banner" role="img" aria-label="Logo AO UERJ em branco frio sobre o gradiente azul, com halo difuso: o tratamento Brilho suave de onde a variante deriva">
+      <div class="scene" style="--cy:47%;--halo-w:74%;--halo-ar:1.55;--cena-tam:75% 85%">
+        <div class="scene-halo"></div>
+        <div class="scene-vinheta"></div>
+        <svg class="marca" style="--lw:39%" viewBox="-220 -220 1026.8 795.9" focusable="false"><use href="#luz"/></svg>
+      </div>
+    </div>
+    <figcaption>A origem: o tratamento Brilho suave da logo atual. Gradiente, halo, vinheta e a logo em branco frio.</figcaption>
+  </figure>
+</header>
+
+<section class="principios envelope" aria-label="Como a variante deriva da logo">
+  <div>
+    <h2>A luz nasce na logo</h2>
+    <p>No cabeçalho, o halo fica atrás da logo, no canto direito, e se apaga antes do título. No splash e no login, fica atrás da logo centralizada. O azul clareia ali (#0B5AA8) e escurece para as bordas e para o pé do menu (#001F3F).</p>
+  </div>
+  <div>
+    <h2>Só nas áreas de marca</h2>
+    <p>Gradiente e halo só aparecem no azul: barras, menu, splash, login, a próxima aula e o dia escolhido. O painel de conteúdo continua claro, com os fios de 1 px, as tabelas e as listas da Agenda limpa. Nenhum texto recebe brilho ou sombra.</p>
+  </div>
+  <div>
+    <h2>Sombra de luz rente</h2>
+    <p>A sombra curta que a logo projeta para baixo vira a profundidade: cartões brancos sem borda, com sombra macia azulada, sobre um painel #F4F7FB. Botões cheios recebem luz por cima, num degradê curto. Campos mantêm a borda, com 3:1 de contraste.</p>
+  </div>
+</section>
+
+<main>
+  <section class="grupo envelope" aria-labelledby="g-entrada">
+    <div class="grupo-cab"><h2 id="g-entrada">Entrada e menu</h2><p>Onde a marca ocupa a tela inteira: o mesmo palco da logo, com halo e vinheta.</p></div>
+    <div class="telas">
+      <figure class="shot"><div class="phone" data-tela="splash"></div><figcaption><b>Splash</b>O palco da logo em tela cheia, com a logo no centro, onde o splash nativo a deixa. O halo respira devagar; com movimento reduzido, fica parado.</figcaption></figure>
+      <figure class="shot"><div class="phone" data-tela="login"></div><figcaption><b>Login</b>A logo com brilho no topo e o painel claro de canto arredondado. O grupo de campos mantém a borda com 3:1; o botão Entrar recebe luz por cima.</figcaption></figure>
+      <figure class="shot"><div class="phone" data-tela="menu"></div><figcaption><b>Menu lateral</b>O menu fica sobre o mesmo azul do cabeçalho, mais escuro no pé. O item ativo é uma placa no azul de destaque, iluminada por cima.</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="grupo envelope" aria-labelledby="g-inicio">
+    <div class="grupo-cab"><h2 id="g-inicio">Início</h2><p>Terça, 13 de outubro, 11:58. A próxima aula é o ponto de luz do conteúdo.</p></div>
+    <div class="telas">
+      <figure class="shot"><div class="phone" data-tela="inicio"></div><figcaption><b>Próxima aula e notas</b>O cartão da próxima aula leva o gradiente e o halo do cabeçalho. As notas seguem como tabela de fios, com as cores de saúde e o rótulo ao lado.</figcaption></figure>
+      <figure class="shot"><div class="phone" data-tela="semana"></div><figcaption><b>Semana</b>A faixa de dias vira cartão; o dia escolhido acende como a marca. As aulas são blocos brancos com sombra rente; a encerrada fica só no fio.</figcaption></figure>
+      <figure class="shot"><div class="phone" data-tela="folha"></div><figcaption><b>Disciplinas em Curso</b>A folha abre ao tocar a próxima aula e destaca a disciplina tocada. Véu azul-marinho e sombra larga; o conteúdo da folha não tem efeito.</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="grupo envelope" aria-labelledby="g-ferr">
+    <div class="grupo-cab"><h2 id="g-ferr">Progresso e Gerador de Grade</h2><p>Gráfico, listas e controles no painel claro; a luz só marca a seleção.</p></div>
+    <div class="telas">
+      <figure class="shot"><div class="phone" data-tela="progresso"></div><figcaption><b>Meu Progresso</b>Números e gráfico em cartões com sombra rente. O gráfico mostra o valor de cada período, como no app, sempre do lado oposto à linha da média. As barras clareiam na ponta, como o azul da logo.</figcaption></figure>
+      <figure class="shot"><div class="phone" data-tela="gerador"></div><figcaption><b>Gerador · Prioridades</b>Passo 3 de 7. O passo atual e os interruptores ligados usam o azul iluminado por cima; chips e linhas seguem no painel claro, com fios.</figcaption></figure>
+      <figure class="shot"><div class="phone" data-tela="resultado"></div><figcaption><b>Gerador · Grade gerada</b>A grade semanal fica num cartão, com os pastéis de turno da Agenda limpa. O rodapé de ações sobe com uma sombra, sem fio.</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="grupo envelope" aria-labelledby="g-mural">
+    <div class="grupo-cab"><h2 id="g-mural">Mural e tema escuro</h2><p>No escuro, a marca não muda e o painel desce para o marinho.</p></div>
+    <div class="telas">
+      <figure class="shot"><div class="phone" data-tela="mural"></div><figcaption><b>Mural · Turmas</b>A lista das disciplinas ativas, com a contagem de mensagens. Lista de fios, sem cartões.</figcaption></figure>
+      <figure class="shot"><div class="phone" data-tela="conversa"></div><figcaption><b>Mural · Conversa</b>Balões dos colegas em cartão branco com sombra; os seus no azul suave, com fio e sem sombra. O botão de enviar acende só com texto.</figcaption></figure>
+      <figure class="shot"><div class="phone" data-tela="escuro"></div><figcaption><b>Início no escuro</b>A marca não muda; o painel desce para #0B1626 e as notas mantêm a tabela de fios, com os tons de saúde do escuro. A próxima aula continua sendo o único cartão de marca no conteúdo.</figcaption></figure>
+    </div>
+  </section>
+</main>
+
+<footer class="rodape envelope">
+  <p>Dados fictícios da demonstração (aluna Marina, período 2026.2), de ../shared/data.js; logo de ../shared/logo.js, sem alteração de forma; ícones Material Symbols de src/components/ui/Icon; Inter de src/assets/fonts.</p>
+  <p>Contraste AA em todo texto, inclusive sobre o gradiente; alvos de toque de 48 dp. O halo do splash para de respirar com a opção de reduzir movimento.</p>
+</footer>
+
+<script src="../shared/logo.js"></script>
+<script src="../shared/data.js"></script>
+<script>
+(function () {
+'use strict';
+var D = window.AO_DATA;
+var root = document.documentElement;
+if (/captura/.test(location.search + location.hash)) root.classList.add('captura');
+
+/* logo: os paths de src/assets/AO_Logo.svg, sem alteração */
+document.getElementById('ao').innerHTML = window.AO_LOGO.inner;
+
+/* ícones: Material Symbols Outlined, peso 300 (os mesmos glifos do app) */
+var ICONS = {
+  menu: 'M140-254.62v-59.99h680v59.99H140ZM140-450v-60h680v60H140Zm0-195.39v-59.99h680v59.99H140Z',
+  menu_open: 'M140-260v-60h488.46v60H140Zm637.85-38.08L595.15-480l182.7-181.54L820-619.38 679.46-480 820-340.23l-42.15 42.15ZM140-450v-60h371.54v60H140Zm0-190v-60h488.46v60H140Z',
+  arrow_back: 'm294.92-450 227.85 227.85L480-180 180-480l300-300 42.77 42.15L294.92-510H780v60H294.92Z',
+  arrow_forward: 'M665.08-450H180v-60h485.08L437.23-737.85 480-780l300 300-300 300-42.77-42.15L665.08-450Z',
+  chevron_right: 'm517.85-480-184-184L376-706.15 602.15-480 376-253.85 333.85-296l184-184Z',
+  share: 'M720.05-90q-45.82 0-77.93-32.08Q610-154.17 610-200q0-7.49 1.19-15.51 1.2-8.03 3.58-14.8L318.92-403.54q-15.84 15.77-36.07 24.65Q262.62-370 240-370q-45.83 0-77.92-32.07Q130-434.14 130-479.95q0-45.82 32.08-77.93Q194.17-590 240-590q22.62 0 42.85 8.89 20.23 8.88 36.07 24.65l295.85-173.23q-2.38-6.77-3.58-14.8Q610-752.51 610-760q0-45.83 32.07-77.92Q674.14-870 719.95-870q45.82 0 77.93 32.07Q830-805.86 830-760.05q0 45.82-32.08 77.93Q765.83-650 720-650q-22.62 0-42.85-8.89-20.23-8.88-36.07-24.65L345.23-510.31q2.38 6.77 3.58 14.77 1.19 8 1.19 15.46 0 7.46-1.19 15.54-1.2 8.08-3.58 14.85l295.85 173.23q15.84-15.77 36.07-24.65Q697.38-310 720-310q45.83 0 77.92 32.07Q830-245.86 830-200.05q0 45.82-32.07 77.93Q765.86-90 720.05-90ZM720-710q20.85 0 35.42-14.58Q770-739.15 770-760t-14.58-35.42Q740.85-810 720-810t-35.42 14.58Q670-780.85 670-760t14.58 35.42Q699.15-710 720-710ZM240-430q20.85 0 35.42-14.58Q290-459.15 290-480t-14.58-35.42Q260.85-530 240-530t-35.42 14.58Q190-500.85 190-480t14.58 35.42Q219.15-430 240-430Zm480 280q20.85 0 35.42-14.58Q770-179.15 770-200t-14.58-35.42Q740.85-250 720-250t-35.42 14.58Q670-220.85 670-200t14.58 35.42Q699.15-150 720-150Zm0-610ZM240-480Zm480 280Z',
+  home: 'M240-200h133.85v-237.69h212.3V-200H720v-360L480-740.77 240-560v360Zm-60 60v-450l300-225.77L780-590v450H526.15v-237.69h-92.3V-140H180Zm300-330.38Z',
+  monitoring: 'M130-130v-65.77l60-60V-130h-60Zm160 0v-225.77l60-60V-130h-60Zm160 0v-285.77l60 61V-130h-60Zm160 0v-224.77l60-60V-130h-60Zm160 0v-385.77l60-60V-130h-60ZM130-351.23v-84.54l270-270 160 160 270-270v84.54l-270 270-160-160-270 270Z',
+  task_alt: 'M480.07-100q-78.84 0-148.21-29.92t-120.68-81.21q-51.31-51.29-81.25-120.63Q100-401.1 100-479.93q0-78.84 29.93-148.21 29.92-69.37 81.22-120.68t120.65-81.25Q401.15-860 480-860q63.2 0 119.6 19 56.4 19 103.48 53l-43.39 44.39q-38.77-26.7-83.99-41.54Q530.48-800 480-800q-133 0-226.5 93.5T160-480q0 133 93.5 226.5T480-160q133 0 226.5-93.5T800-480q0-21.08-2.77-41.69t-8.31-40.08l48.46-48.84q11 30.84 16.81 63.46Q860-514.54 860-480q0 78.85-29.92 148.2t-81.21 120.65q-51.29 51.3-120.63 81.22Q558.9-100 480.07-100Zm-56.84-209.85L267.08-466l42.15-42.15 114 114 394.62-395.23L860-747.23 423.23-309.85Z',
+  account_tree: 'M610-130v-120H450v-400H350v120H90v-300h260v120h260v-120h260v300H610v-120H510v340h100v-120h260v300H610ZM150-770v180-180Zm520 400v180-180Zm0-400v180-180Zm0 180h140v-180H670v180Zm0 400h140v-180H670v180ZM150-590h140v-180H150v180Z',
+  public: 'M480.07-100q-78.84 0-148.21-29.92t-120.68-81.21q-51.31-51.29-81.25-120.63Q100-401.1 100-479.93q0-78.84 29.92-148.21t81.21-120.68q51.29-51.31 120.63-81.25Q401.1-860 479.93-860q78.84 0 148.21 29.92t120.68 81.21q51.31 51.29 81.25 120.63Q860-558.9 860-480.07q0 78.84-29.92 148.21t-81.21 120.68q-51.29 51.31-120.63 81.25Q558.9-100 480.07-100ZM440-162v-78q-33 0-56.5-23.5T360-320v-40L168-552q-3 18-5.5 36t-2.5 36q0 121 79.5 212T440-162Zm276-102q20-22 36-47.5t26.5-53q10.5-27.5 16-56.5t5.5-59q0-98.29-54.31-179.53T600-776.77V-760q0 33-23.5 56.5T520-680h-80v80q0 17-11.5 28.5T400-560h-80v80h240q17 0 28.5 11.5T600-440v120h40q26 0 47 15.5t29 40.5Z',
+  search: 'M781.69-136.92 530.46-388.16q-30 24.77-69 38.77-39 14-80.69 14-102.55 0-173.58-71.01-71.03-71.01-71.03-173.54 0-102.52 71.01-173.6 71.01-71.07 173.54-71.07 102.52 0 173.6 71.03 71.07 71.03 71.07 173.58 0 42.85-14.38 81.85-14.39 39-38.39 67.84l251.23 251.23-42.15 42.16ZM380.77-395.38q77.31 0 130.96-53.66 53.66-53.65 53.66-130.96t-53.66-130.96q-53.65-53.66-130.96-53.66t-130.96 53.66Q196.15-657.31 196.15-580t53.66 130.96q53.65 53.66 130.96 53.66Z',
+  edit_calendar: 'M212.31-100Q182-100 161-121q-21-21-21-51.31v-535.38Q140-738 161-759q21-21 51.31-21h55.38v-84.61h61.54V-780h303.08v-84.61h60V-780h55.38Q778-780 799-759q21 21 21 51.31v200h-60v-40H200v375.38q0 4.62 3.85 8.46 3.84 3.85 8.46 3.85h264.61v60H212.31ZM200-607.69h560v-100q0-4.62-3.85-8.46-3.84-3.85-8.46-3.85H212.31q-4.62 0-8.46 3.85-3.85 3.84-3.85 8.46v100Zm0 0V-720v112.31ZM564.62-100v-105.69l217.15-216.16q7.46-7.46 16.15-10.5 8.69-3.03 17.39-3.03 9.3 0 18.19 3.53 8.88 3.54 15.96 10.62l37 37.38q6.46 7.47 10 16.16Q900-359 900-350.31t-3.23 17.69q-3.23 9-10.31 16.46L670.31-100H564.62Zm287.69-250.31-37-37.38 37 37.38Zm-240 202.62h38l129.84-130.47-18.38-19-18.62-18.76-130.84 130.23v38Zm149.46-149.47-18.62-18.76 37 37.76-18.38-19Z',
+  forum: 'M284.62-275.39q-15.04 0-25.22-10.17-10.17-10.17-10.17-25.21v-60h495l12.69 12.69V-720h60q15.04 0 25.21 10.17 10.18 10.18 10.18 25.21v550.77L710.77-275.39H284.62Zm-176.93-33.84v-515.38q0-15.04 10.18-25.22Q128.04-860 143.08-860h498.46q15.04 0 25.21 10.17 10.17 10.18 10.17 25.22v338.46q0 15.03-10.17 25.21-10.17 10.17-25.21 10.17H249.23L107.69-309.23Zm509.23-201.54V-800H167.69v316.93l27.7-27.7h421.53Zm-449.23 0V-800v289.23Z',
+  info: 'M450-290h60v-230h-60v230Zm30-298.46q13.73 0 23.02-9.29t9.29-23.02q0-13.73-9.29-23.02-9.29-9.28-23.02-9.28t-23.02 9.28q-9.29 9.29-9.29 23.02t9.29 23.02q9.29 9.29 23.02 9.29Zm.07 488.46q-78.84 0-148.21-29.92t-120.68-81.21q-51.31-51.29-81.25-120.63Q100-401.1 100-479.93q0-78.84 29.92-148.21t81.21-120.68q51.29-51.31 120.63-81.25Q401.1-860 479.93-860q78.84 0 148.21 29.92t120.68 81.21q51.31 51.29 81.25 120.63Q860-558.9 860-480.07q0 78.84-29.92 148.21t-81.21 120.68q-51.29 51.31-120.63 81.25Q558.9-100 480.07-100Zm-.07-60q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z',
+  logout: 'M212.31-140Q182-140 161-161q-21-21-21-51.31v-535.38Q140-778 161-799q21-21 51.31-21h268.07v60H212.31q-4.62 0-8.46 3.85-3.85 3.84-3.85 8.46v535.38q0 4.62 3.85 8.46 3.84 3.85 8.46 3.85h268.07v60H212.31Zm436.92-169.23-41.54-43.39L705.08-450H363.85v-60h341.23l-97.39-97.38 41.54-43.39L820-480 649.23-309.23Z',
+  light_mode: 'M480-360q50 0 85-35t35-85q0-50-35-85t-85-35q-50 0-85 35t-35 85q0 50 35 85t85 35Zm0 60q-74.92 0-127.46-52.54Q300-405.08 300-480q0-74.92 52.54-127.46Q405.08-660 480-660q74.92 0 127.46 52.54Q660-554.92 660-480q0 74.92-52.54 127.46Q554.92-300 480-300ZM200-450H50v-60h150v60Zm710 0H760v-60h150v60ZM450-760v-150h60v150h-60Zm0 710v-150h60v150h-60ZM262.92-656.92l-93.69-90.46 42.39-44.39 90.23 92.69-38.93 42.16Zm485.46 488.69-90.84-93.31 39.54-41.54 93.69 90.46-42.39 44.39Zm-91.46-528.85 90.46-93.69 44.39 42.39-92.69 90.23-42.16-38.93ZM168.23-211.62l93.31-90.84 40.77 39.54-90.08 94.07-44-42.77ZM480-480Z',
+  dark_mode: 'M481.15-140q-141.66 0-240.83-99.17-99.16-99.16-99.16-240.83 0-135.77 92.11-232.88 92.11-97.12 225.57-105.2 8.62 0 16.93.62 8.3.62 16.3 1.85-30.61 28.61-48.76 69.15-18.16 40.54-18.16 86.46 0 98.33 68.84 167.17Q562.82-424 661.15-424q46.54 0 86.77-18.15 40.23-18.16 68.46-48.77 1.23 8 1.85 16.31.61 8.3.61 16.92-7.69 133.46-104.8 225.57Q616.92-140 481.15-140Zm0-60q88 0 158-48.5t102-126.5q-20 5-40 8t-40 3q-123 0-209.5-86.5T365.15-660q0-20 3-40t8-40q-78 32-126.5 102t-48.5 158q0 116 82 198t198 82Zm-10-270Z',
+  close: 'M256-213.85 213.85-256l224-224-224-224L256-746.15l224 224 224-224L746.15-704l-224 224 224 224L704-213.85l-224-224-224 224Z',
+  check: 'M382-253.85 168.62-467.23 211.38-510 382-339.38 748.62-706l42.76 42.77L382-253.85Z',
+  badge: 'M172.31-100Q142-100 121-121q-21-21-21-51.31v-415.38Q100-618 121-639q21-21 51.31-21H380v-140q0-24.92 17.54-42.46T440-860h80q24.92 0 42.46 17.54T580-800v140h207.69Q818-660 839-639q21 21 21 51.31v415.38Q860-142 839-121q-21 21-51.31 21H172.31Zm0-60h615.38q5.39 0 8.85-3.46t3.46-8.85v-415.38q0-5.39-3.46-8.85t-8.85-3.46H580v15.39q0 24.53-17.73 42.26-17.73 17.73-42.27 17.73h-80q-24.54 0-42.27-17.73Q380-560.08 380-584.61V-600H172.31q-5.39 0-8.85 3.46t-3.46 8.85v415.38q0 5.39 3.46 8.85t8.85 3.46Zm73.84-91.54h227.7v-11.85q0-15.46-8.54-28.42T441.69-312q-19.61-8.62-39.73-12.92-20.11-4.31-41.96-4.31t-41.96 4.31q-20.12 4.3-39.73 12.92-15.08 7.23-23.62 20.19-8.54 12.96-8.54 28.42v11.85ZM560-312.31h160V-360H560v47.69ZM360-360q22.31 0 38.08-15.77t15.77-38.08q0-22.3-15.77-38.07T360-467.69q-22.31 0-38.08 15.77t-15.77 38.07q0 22.31 15.77 38.08T360-360Zm200-60h160v-47.69H560V-420ZM440-584.61h80V-800h-80v215.39ZM480-380Z',
+  lock: 'M252.31-100q-29.92 0-51.12-21.19Q180-142.39 180-172.31v-375.38q0-29.92 21.19-51.12Q222.39-620 252.31-620H300v-80q0-74.92 52.54-127.46Q405.08-880 480-880q74.92 0 127.46 52.54Q660-774.92 660-700v80h47.69q29.92 0 51.12 21.19Q780-577.61 780-547.69v375.38q0 29.92-21.19 51.12Q737.61-100 707.69-100H252.31Zm0-60h455.38q5.39 0 8.85-3.46t3.46-8.85v-375.38q0-5.39-3.46-8.85t-8.85-3.46H252.31q-5.39 0-8.85 3.46t-3.46 8.85v375.38q0 5.39 3.46 8.85t8.85 3.46ZM480-290q29.15 0 49.58-20.42Q550-330.85 550-360t-20.42-49.58Q509.15-430 480-430t-49.58 20.42Q410-389.15 410-360t20.42 49.58Q450.85-290 480-290ZM360-620h240v-80q0-50-35-85t-85-35q-50 0-85 35t-35 85v80ZM240-160v-400 400Z',
+  visibility: 'M480.09-336.92q67.99 0 115.49-47.59t47.5-115.58q0-67.99-47.59-115.49t-115.58-47.5q-67.99 0-115.49 47.59t-47.5 115.58q0 67.99 47.59 115.49t115.58 47.5ZM480-392q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm.05 172q-137.97 0-251.43-76.12Q115.16-372.23 61.54-500q53.62-127.77 167.02-203.88Q341.97-780 479.95-780q137.97 0 251.43 76.12Q844.84-627.77 898.46-500q-53.62 127.77-167.02 203.88Q618.03-220 480.05-220ZM480-500Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z',
+  date_range: 'M320-402.31q-14.69 0-25.04-10.34-10.34-10.35-10.34-25.04t10.34-25.04q10.35-10.35 25.04-10.35t25.04 10.35q10.34 10.35 10.34 25.04t-10.34 25.04q-10.35 10.34-25.04 10.34Zm160 0q-14.69 0-25.04-10.34-10.34-10.35-10.34-25.04t10.34-25.04q10.35-10.35 25.04-10.35t25.04 10.35q10.34 10.35 10.34 25.04t-10.34 25.04q-10.35 10.34-25.04 10.34Zm160 0q-14.69 0-25.04-10.34-10.34-10.35-10.34-25.04t10.34-25.04q10.35-10.35 25.04-10.35t25.04 10.35q10.34 10.35 10.34 25.04t-10.34 25.04q-10.35 10.34-25.04 10.34ZM212.31-100Q182-100 161-121q-21-21-21-51.31v-535.38Q140-738 161-759q21-21 51.31-21h55.38v-84.61h61.54V-780h303.08v-84.61h60V-780h55.38Q778-780 799-759q21 21 21 51.31v535.38Q820-142 799-121q-21 21-51.31 21H212.31Zm0-60h535.38q4.62 0 8.46-3.85 3.85-3.84 3.85-8.46v-375.38H200v375.38q0 4.62 3.85 8.46 3.84 3.85 8.46 3.85ZM200-607.69h560v-100q0-4.62-3.85-8.46-3.84-3.85-8.46-3.85H212.31q-4.62 0-8.46 3.85-3.85 3.84-3.85 8.46v100Zm0 0V-720v112.31Z',
+  expand_more: 'M480-358.46 253.85-584.62 296-626.77l184 184 184-184 42.15 42.15L480-358.46Z',
+  send: 'M140-190v-580l688.46 290L140-190Zm60-90 474-200-474-200v147.69L416.92-480 200-427.69V-280Zm0 0v-400 400Z',
+  event_available: 'M438-240.62 309.85-368.77l43.38-43.38L438-327.38l168.77-168.77 43.38 43.38L438-240.62ZM212.31-100Q182-100 161-121q-21-21-21-51.31v-535.38Q140-738 161-759q21-21 51.31-21h55.38v-84.61h61.54V-780h303.08v-84.61h60V-780h55.38Q778-780 799-759q21 21 21 51.31v535.38Q820-142 799-121q-21 21-51.31 21H212.31Zm0-60h535.38q4.62 0 8.46-3.85 3.85-3.84 3.85-8.46v-375.38H200v375.38q0 4.62 3.85 8.46 3.84 3.85 8.46 3.85ZM200-607.69h560v-100q0-4.62-3.85-8.46-3.84-3.85-8.46-3.85H212.31q-4.62 0-8.46 3.85-3.85 3.84-3.85 8.46v100Zm0 0V-720v112.31Z',
+  settings: 'm387.69-100-15.23-121.85q-16.07-5.38-32.96-15.07-16.88-9.7-30.19-20.77L196.46-210l-92.3-160 97.61-73.77q-1.38-8.92-1.96-17.92-.58-9-.58-17.93 0-8.53.58-17.34t1.96-19.27L104.16-590l92.3-159.23 112.46 47.31q14.47-11.46 30.89-20.96t32.27-15.27L387.69-860h184.62l15.23 122.23q18 6.54 32.57 15.27 14.58 8.73 29.43 20.58l114-47.31L855.84-590l-99.15 74.92q2.15 9.69 2.35 18.12.19 8.42.19 16.96 0 8.15-.39 16.58-.38 8.42-2.76 19.27L854.46-370l-92.31 160-112.61-48.08q-14.85 11.85-30.31 20.96-15.46 9.12-31.69 14.89L572.31-100H387.69ZM440-160h78.62L533-267.15q30.62-8 55.96-22.73 25.35-14.74 48.89-37.89L737.23-286l39.39-68-86.77-65.38q5-15.54 6.8-30.47 1.81-14.92 1.81-30.15 0-15.62-1.81-30.15-1.8-14.54-6.8-29.7L777.38-606 738-674l-100.54 42.38q-20.08-21.46-48.11-37.92-28.04-16.46-56.73-23.31L520-800h-79.38l-13.24 106.77q-30.61 7.23-56.53 22.15-25.93 14.93-49.47 38.46L222-674l-39.38 68L269-541.62q-5 14.24-7 29.62t-2 32.38q0 15.62 2 30.62 2 15 6.62 29.62l-86 65.38L222-286l99-42q22.77 23.38 48.69 38.31 25.93 14.92 57.31 22.92L440-160Zm40.46-200q49.92 0 84.96-35.04 35.04-35.04 35.04-84.96 0-49.92-35.04-84.96Q530.38-600 480.46-600q-50.54 0-85.27 35.04T360.46-480q0 49.92 34.73 84.96Q429.92-360 480.46-360ZM480-480Z',
+  auto_awesome: 'M740-616l-42-94L604-752l94-43L740-888l42 93L876-752l-94 42Zm0 544l-42-93L604-208l94-42l42-94l42 94l94 42l-94 43Zm-385-136l-84-187L84-480l187-85l84-187L440-565L627-480L440-395Zm0-146l40-86l86-40l-86-40l-40-86l-40 86l-86 40l86 40Zm0-126Z',
+  refresh: 'M481.54-180q-125.63 0-212.81-87.17-87.19-87.17-87.19-212.77 0-125.6 87.19-212.83Q355.91-780 481.54-780q70.15 0 132.77 31.19 62.61 31.2 104.15 88.04V-780h60v244.61H533.85v-59.99h158q-31.62-57.93-87.7-91.27Q548.08-720 481.54-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h63.23q-27.23 97.92-107.27 158.96Q583.46-180 481.54-180Z',
+  swap_vert: 'M336.16-453.85v-291.23L222.77-631.69 180-673.85 366.15-860l186.16 186.15-42.77 42.16-113.39-113.39v291.23h-59.99ZM593.46-100 407.31-286.15l42.77-42.16 113.38 113.39v-291.23h60v291.23l113.39-113.39 42.76 42.16L593.46-100Z',
+  error: 'M480-290.77q13.73 0 23.02-9.29t9.29-23.02q0-13.73-9.29-23.02-9.29-9.28-23.02-9.28t-23.02 9.28q-9.29 9.29-9.29 23.02t9.29 23.02q9.29 9.29 23.02 9.29Zm-30-146.15h60v-240h-60v240ZM480.07-100q-78.84 0-148.21-29.92t-120.68-81.21q-51.31-51.29-81.25-120.63Q100-401.1 100-479.93q0-78.84 29.92-148.21t81.21-120.68q51.29-51.31 120.63-81.25Q401.1-860 479.93-860q78.84 0 148.21 29.92t120.68 81.21q51.31 51.29 81.25 120.63Q860-558.9 860-480.07q0 78.84-29.92 148.21t-81.21 120.68q-51.29 51.31-120.63 81.25Q558.9-100 480.07-100Zm-.07-60q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z',
+  check_circle: 'm423.23-309.85 268.92-268.92L650-620.92 423.23-394.15l-114-114L267.08-466l156.15 156.15ZM480.07-100q-78.84 0-148.21-29.92t-120.68-81.21q-51.31-51.29-81.25-120.63Q100-401.1 100-479.93q0-78.84 29.92-148.21t81.21-120.68q51.29-51.31 120.63-81.25Q401.1-860 479.93-860q78.84 0 148.21 29.92t120.68 81.21q51.31 51.29 81.25 120.63Q860-558.9 860-480.07q0 78.84-29.92 148.21t-81.21 120.68q-51.29 51.31-120.63 81.25Q558.9-100 480.07-100Zm-.07-60q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z',
+  block: 'M480.07-100q-78.84 0-148.21-29.92t-120.68-81.21q-51.31-51.29-81.25-120.63Q100-401.1 100-479.93q0-78.84 29.92-148.21t81.21-120.68q51.29-51.31 120.63-81.25Q401.1-860 479.93-860q78.84 0 148.21 29.92t120.68 81.21q51.31 51.29 81.25 120.63Q860-558.9 860-480.07q0 78.84-29.92 148.21t-81.21 120.68q-51.29 51.31-120.63 81.25Q558.9-100 480.07-100Zm-.07-60q56.29 0 108.42-19.04 52.12-19.04 95.27-55.11L234.15-683.69q-35.69 43.15-54.92 95.27Q160-536.29 160-480q0 134 93 227t227 93Zm245.85-116.31q36.07-43.15 55.11-95.27Q800-423.71 800-480q0-134-93-227t-227-93q-56.43 0-108.68 18.85-52.24 18.84-95.01 55.3l449.54 449.54Z',
+  lightbulb: 'M480-96.92q-30.31 0-52.27-21-21.96-21-23.88-51.31h152.3q-1.92 30.31-23.88 51.31-21.96 21-52.27 21Zm-150-127.7v-60h300v60H330ZM336.15-340q-62.84-39.08-99.49-102.12Q200-505.15 200-580q0-116.92 81.54-198.46T480-860q116.92 0 198.46 81.54T760-580q0 74.85-36.66 137.88-36.65 63.04-99.49 102.12h-287.7ZM354-400h252q45-32 69.5-79T700-580q0-92-64-156t-156-64q-92 0-156 64t-64 156q0 54 24.5 101t69.5 79Zm126 0Z',
+  person: 'M480-492.31q-57.75 0-98.87-41.12Q340-574.56 340-632.31q0-57.75 41.13-98.87 41.12-41.13 98.87-41.13 57.75 0 98.87 41.13Q620-690.06 620-632.31q0 57.75-41.13 98.88-41.12 41.12-98.87 41.12ZM180-187.69v-88.93q0-29.38 15.96-54.42 15.96-25.04 42.66-38.5 59.3-29.07 119.65-43.61 60.35-14.54 121.73-14.54t121.73 14.54q60.35 14.54 119.65 43.61 26.7 13.46 42.66 38.5Q780-306 780-276.62v88.93H180Zm60-60h480v-28.93q0-12.15-7.04-22.5-7.04-10.34-19.11-16.88-51.7-25.46-105.42-38.58Q534.7-367.69 480-367.69q-54.7 0-108.43 13.11-53.72 13.12-105.42 38.58-12.07 6.54-19.11 16.88-7.04 10.35-7.04 22.5v28.93Zm240-304.62q33 0 56.5-23.5t23.5-56.5q0-33-23.5-56.5t-56.5-23.5q-33 0-56.5 23.5t-23.5 56.5q0 33 23.5 56.5t56.5 23.5Zm0-80Zm0 384.62Z',
+  delete_sweep: 'M597.69-250v-60h140v60h-140Zm0-320v-60h260v60h-260Zm0 160v-60h220v60h-220ZM142.31-640h-40v-60h154.61v-47.69h130.77V-700h154.62v60h-40v347.69q0 30.31-21 51.31-21 21-51.31 21H214.62q-30.31 0-51.31-21-21-21-21-51.31V-640Zm60 0v347.69q0 4.62 3.84 8.46Q210-280 214.62-280H430q4.61 0 8.46-3.85 3.85-3.84 3.85-8.46V-640h-240Zm0 0v360-360Z',
+  schedule: 'm618.92-298.92 42.16-42.16L510-492.16V-680h-60v212.15l168.92 168.93ZM480.07-100q-78.84 0-148.21-29.92t-120.68-81.21q-51.31-51.29-81.25-120.63Q100-401.1 100-479.93q0-78.84 29.92-148.21t81.21-120.68q51.29-51.31 120.63-81.25Q401.1-860 479.93-860q78.84 0 148.21 29.92t120.68 81.21q51.31 51.29 81.25 120.63Q860-558.9 860-480.07q0 78.84-29.92 148.21t-81.21 120.68q-51.29 51.31-120.63 81.25Q558.9-100 480.07-100ZM480-480Zm0 320q133 0 226.5-93.5T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 133 93.5 226.5T480-160Z',
+  location_on: 'M480.07-485.39q29.85 0 51.04-21.26 21.2-21.26 21.2-51.11 0-29.85-21.26-51.05Q509.79-630 479.93-630q-29.85 0-51.04 21.26-21.2 21.26-21.2 51.12 0 29.85 21.26 51.04 21.26 21.19 51.12 21.19ZM480-179.46q117.38-105.08 179.65-201.58 62.27-96.5 62.27-169.04 0-109.38-69.5-179.84-69.5-70.46-172.42-70.46-102.92 0-172.42 70.46-69.5 70.46-69.5 179.84 0 72.54 62.27 169.04 62.27 96.5 179.65 201.58Zm0 79.84Q329-230.46 253.54-343.15q-75.46-112.7-75.46-206.93 0-138.46 89.57-224.19Q357.23-860 480-860t212.35 85.73q89.57 85.73 89.57 224.19 0 94.23-75.46 206.93Q631-230.46 480-99.62Zm0-458.07Z',
+  home_f: 'M180-140v-450l300-225.77L780-590v450H556.15v-267.69h-152.3V-140H180Z',
+  monitoring_f: 'm120-130-3.46-52.69L190-255.77V-130h-70Zm170 0v-225.77l60-60V-130h-60Zm160 0v-285.77l60 61V-130h-60Zm160 0v-224.77l60-60V-130h-60Zm160 0v-385.77l60-60V-130h-60ZM130-351.23v-84.54l270-270 160 160 270-270v84.54l-270 270-160-160-270 270Z',
+  edit_calendar_f: 'M212.31-100Q182-100 161-121q-21-21-21-51.31v-535.38Q140-738 161-759q21-21 51.31-21h55.38v-84.61h61.54V-780h303.08v-84.61h60V-780h55.38Q778-780 799-759q21 21 21 51.31v200h-60v-40H200v375.38q0 4.62 3.85 8.46 3.84 3.85 8.46 3.85h264.61v60H212.31Zm352.31 0v-105.69l217.15-216.16q7.46-7.07 16.15-10.3 8.69-3.23 17.39-3.23 9.3 0 18.19 3.53 8.88 3.54 15.96 10.62l37 37.38q6.46 7.47 10 16.16Q900-359 900-350.31t-3.04 17.69q-3.04 9-10.5 16.46L670.31-100H564.62Zm250.69-211.69 37-38.62-37-37.38-38 38 38 38Z',
+  forum_f: 'M284.62-275.39q-15.04 0-25.22-10.17-10.17-10.17-10.17-25.21v-60h495l12.69 12.69V-720h60q15.04 0 25.21 10.17 10.18 10.18 10.18 25.21v550.77L710.77-275.39H284.62Zm-176.93-33.84v-515.38q0-15.04 10.18-25.22Q128.04-860 143.08-860h498.46q15.04 0 25.21 10.17 10.17 10.18 10.17 25.22v338.46q0 15.03-10.17 25.21-10.17 10.17-25.21 10.17H249.23L107.69-309.23Z',
+  check_circle_f: 'm423.23-309.85 268.92-268.92L650-620.92 423.23-394.15l-114-114L267.08-466l156.15 156.15ZM480.07-100q-78.84 0-148.21-29.92t-120.68-81.21q-51.31-51.29-81.25-120.63Q100-401.1 100-479.93q0-78.84 29.92-148.21t81.21-120.68q51.29-51.31 120.63-81.25Q401.1-860 479.93-860q78.84 0 148.21 29.92t120.68 81.21q51.31 51.29 81.25 120.63Q860-558.9 860-480.07q0 78.84-29.92 148.21t-81.21 120.68q-51.29 51.31-120.63 81.25Q558.9-100 480.07-100Z',
+  info_f: 'M450-290h60v-230h-60v230Zm30-298.46q13.73 0 23.02-9.29t9.29-23.02q0-13.73-9.29-23.02-9.29-9.28-23.02-9.28t-23.02 9.28q-9.29 9.29-9.29 23.02t9.29 23.02q9.29 9.29 23.02 9.29Zm.07 488.46q-78.84 0-148.21-29.92t-120.68-81.21q-51.31-51.29-81.25-120.63Q100-401.1 100-479.93q0-78.84 29.92-148.21t81.21-120.68q51.29-51.31 120.63-81.25Q401.1-860 479.93-860q78.84 0 148.21 29.92t120.68 81.21q51.31 51.29 81.25 120.63Q860-558.9 860-480.07q0 78.84-29.92 148.21t-81.21 120.68q-51.29 51.31-120.63 81.25Q558.9-100 480.07-100Z'
+};
+
+/* ============================================================ utilidades */
+function ic(n, c) { return '<svg class="ic' + (c ? ' ' + c : '') + '" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="' + ICONS[n] + '"/></svg>'; }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function fmt(n, d) { if (n == null || isNaN(n)) return '–'; d = d == null ? 1 : d; return Number(n).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+function joinPt(a) { return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' e ' + a[a.length - 1]; }
+function dur(min) { var h = Math.floor(min / 60), m = min % 60; if (!h) return m + ' min'; return h + 'h' + (m ? String(m).padStart(2, '0') : ''); }
+function range(a, b) { return a === b ? a : a + '–' + b; }
+function room(loc) { if (!loc) return 'Sala não informada'; var p = loc.split(' · '); return p[p.length - 1]; }
+function place(loc) { if (!loc) return ''; var p = loc.split(' · '); return p.slice(0, -1).join(' · '); }
+function dayNum(n) { return 11 + n; }
+function dayLabel(n) { return D.WEEKDAYS[n - 1].name + ', ' + dayNum(n) + ' de outubro'; }
+function find(arr, fn) { for (var i = 0; i < arr.length; i++) if (fn(arr[i])) return arr[i]; return null; }
+function slotIdx(id) { return D.SLOTS.indexOf(D.slot(id)); }
+function meetSummary(ms) {
+  if (!ms || !ms.length) return '';
+  var a = D.slot(ms[0].from), b = D.slot(ms[0].to);
+  return joinPt(ms.map(function (m) { return D.WEEKDAYS[m.day - 1].short; })) + ' · ' + range(a.id, b.id) + ' · ' + a.from + '–' + b.to;
+}
+function acronym(name) {
+  var stop = ['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'para', 'a', 'o'];
+  return name.split(' ').filter(function (w) { return stop.indexOf(w.toLowerCase()) < 0; }).map(function (w) { return w[0].toUpperCase(); }).join('');
+}
+var SHIFT = { MORNING: { k: 'm', l: 'Manhã' }, AFTERNOON: { k: 'a', l: 'Tarde' }, NIGHT: { k: 'n', l: 'Noite' } };
+var HEALTH = { GOOD: { k: 'good', l: 'Bom' }, BAD: { k: 'warn', l: 'Atenção' }, CRITICAL: { k: 'bad', l: 'Crítico' }, NONE: { k: 'neu', l: 'Sem dado' } };
+function hp(v, base, inv) { return HEALTH[D.health(v, base, inv)]; }
+function st(k, l, icon) { return '<span class="st st-' + k + '">' + (icon ? ic(icon) : '<i aria-hidden="true"></i>') + esc(l) + '</span>'; }
+var TYPE_PL = { MANDATORY: 'Obrigatórias', RESTRICTED: 'Eletivas Restritas', DEFINED: 'Eletivas Definidas', UNIVERSAL: 'Universais' };
+function chev() { return ic('chevron_right', 'r-chev'); }
+function nameCode(name, code, rest) {
+  return '<span class="r-title">' + esc(name) + '</span><span class="r-meta"><span class="code">' + esc(code) + '</span>' + (rest ? ' · ' + rest : '') + '</span>';
+}
+function initials(name) { var w = name.split(' ').filter(Boolean); return (w[0][0] + w[w.length - 1][0]).toUpperCase(); }
+
+/* ============================================================ casca */
+var SB = '<div class="sb" aria-hidden="true"><span>' + D.now.time + '</span><span class="sb-ic">' +
+  '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 13.6 1 6.5a10.2 10.2 0 0 1 14 0z"/></svg>' +
+  '<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M15 1.5v13H2z"/></svg>' +
+  '<svg width="9" height="15" viewBox="0 0 9 16" fill="currentColor"><rect x="2.5" y=".5" width="4" height="2" rx=".6"/><rect x=".5" y="2" width="8" height="13.5" rx="1.6"/></svg>' +
+  '</span></div>';
+function logoSm() { return '<svg class="logo-sm" viewBox="0 0 586.8 355.9" aria-hidden="true" focusable="false"><use href="#ao" fill="url(#branco-frio)"/></svg>'; }
+function logoLuz(label) { return '<svg class="marca" viewBox="-220 -220 1026.8 795.9" role="img" aria-label="' + esc(label || 'AO UERJ') + '" focusable="false"><use href="#luz"/></svg>'; }
+
+var NAV = [
+  { group: 'Acadêmico', items: [
+    { r: 'home', label: 'Início', icon: 'home' },
+    { r: 'progress', label: 'Meu Progresso', icon: 'monitoring' },
+    { r: 'realizadas', label: 'Disciplinas Realizadas', icon: 'task_alt' },
+    { r: 'curriculo', label: 'Disciplinas do Currículo', icon: 'account_tree' },
+    { r: 'universais', label: 'Disciplinas Universais', icon: 'public' },
+    { r: 'pesquisa', label: 'Pesquisa de Disciplinas', icon: 'search' }
+  ] },
+  { group: 'Ferramentas', items: [
+    { r: 'generator', label: 'Gerador de Grade', icon: 'edit_calendar' },
+    { r: 'board', label: 'Mural de Mensagens', icon: 'forum' }
+  ] },
+  { group: null, items: [{ r: 'about', label: 'Sobre', icon: 'info' }] }
+];
+function drawerHTML(active) {
+  var s = D.student;
+  var h = '<div class="dr-user"><span class="avatar" aria-hidden="true">' + initials(s.name) + '</span><div><div class="dr-name">' + esc(s.name) + '</div><div class="dr-meta">Matrícula ' + s.matricula + '</div></div></div>';
+  h += '<div class="dr-nav">';
+  NAV.forEach(function (g) {
+    h += g.group ? '<div class="dr-group">' + g.group + '</div>' : '<div class="dr-sep" role="separator"></div>';
+    g.items.forEach(function (it) {
+      var on = it.r === active;
+      h += '<button class="dr-item" type="button"' + (on ? ' aria-current="page"' : '') + '>' + ic(on && ICONS[it.icon + '_f'] ? it.icon + '_f' : it.icon) + '<span>' + it.label + '</span></button>';
+    });
+  });
+  h += '</div><div class="dr-foot"><button class="dr-item" type="button">' + ic('logout') + '<span>Sair</span></button><span class="dr-ver">Versão ' + D.version + '</span><button class="ib" type="button" aria-label="Tema: Padrão do sistema" aria-haspopup="dialog">' + ic('light_mode') + '</button></div>';
+  return h;
+}
+
+function shell(o) {
+  var lead = o.back ? ['arrow_back', 'Voltar'] : o.drawer ? ['menu_open', 'Fechar menu'] : ['menu', 'Abrir menu'];
+  var h = '<div class="screen' + (o.drawer ? ' drawer-open on-brand-gesture' : '') + '" data-theme="' + (o.dark ? 'dark' : 'light') + '" role="group" aria-label="' + esc(o.label) + '">' +
+    '<div class="c-halo" aria-hidden="true"></div>' + SB +
+    '<header class="appbar"><button class="ib" type="button" aria-label="' + lead[1] + '"' + (o.back ? '' : ' aria-expanded="' + !!o.drawer + '"') + '>' + ic(lead[0]) + '</button>' +
+    '<span class="appbar-t">' + esc(o.title) + '</span>' +
+    '<button class="ib" type="button" aria-label="Sobre o AO UERJ">' + logoSm() + '</button></header>' +
+    '<div class="body">' + (o.drawer ? '<nav class="drawer" aria-label="Menu principal">' + drawerHTML(o.active) + '</nav>' : '') +
+    '<div class="panel' + (o.cls ? ' ' + o.cls : '') + '"' + (o.drawer ? ' inert' : '') + '>' +
+    (o.top ? '<div class="panel-top">' + o.top + '</div>' : '') +
+    '<div class="panel-scroll">' + o.html + '</div>' +
+    (o.foot ? '<div class="panel-foot">' + o.foot + '</div>' : '') + '</div></div>';
+  if (o.sheet) h += '<div class="scrim" aria-hidden="true"></div><section class="sheet" role="dialog" aria-label="' + esc(o.sheet.title) + '">' +
+    '<div class="sheet-handle" aria-hidden="true"></div><div class="sheet-head"><h3>' + esc(o.sheet.title) + '</h3>' +
+    (o.sheet.meta ? '<span class="sheet-meta">' + esc(o.sheet.meta) + '</span>' : '') +
+    '<button class="ib" type="button" aria-label="Fechar">' + ic('close') + '</button></div><div class="sheet-body">' + o.sheet.body + '</div></section>';
+  return h + '<div class="gesture" aria-hidden="true"><i></i></div></div>';
+}
+
+/* ============================================================ início */
+function greet() { return '<div class="greet"><h3>Olá, ' + esc(D.student.firstName) + '</h3><p>' + esc(D.now.label) + '</p></div>'; }
+function nextSection() {
+  var c = D.nextClass(), sh = SHIFT[c.shift];
+  var when = c.ongoing ? '<b>Agora</b>' : c.inMinutes != null ? 'Hoje · <b>em ' + dur(c.inMinutes) + '</b>' : '<b>' + c.dayName + '</b>';
+  return '<section class="sec"><div class="sec-h"><h3>Próxima aula</h3><span class="sec-when">' + when + '</span></div>' +
+    '<button class="next" type="button" aria-label="' + esc(c.name + ', ' + c.fromTime + ' às ' + c.toTime + ', ' + room(c.location)) + '. Ver disciplinas em curso">' +
+    '<span class="next-time"><b>' + c.fromTime + '</b><span>até ' + c.toTime + '</span></span>' +
+    '<span class="next-main"><span class="next-name">' + esc(c.name) + '</span>' +
+    '<span class="next-row">' + st(sh.k, sh.l) + '<span class="next-meta">' + range(c.fromSlot, c.toSlot) + ' · ' + esc(room(c.location)) + '</span></span>' +
+    (place(c.location) ? '<span class="next-meta">' + esc(place(c.location)) + '</span>' : '') + '</span>' + chev() + '</button></section>';
+}
+function lastGrade(g) { return g.result != null ? g.result : g.pf != null ? g.pf : g.p2 != null ? g.p2 : g.p1; }
+function lastGradeName(g) { return g.result != null ? 'média' : g.pf != null ? 'PF' : g.p2 != null ? 'P2' : 'P1'; }
+function gradeCell(v) {
+  if (v == null) return '<td><span class="gp gp-none" aria-label="sem nota">–</span></td>';
+  return '<td><span class="gp gp-' + hp(v).k + '">' + fmt(v) + '</span></td>';
+}
+function gradesSection() {
+  var rows = D.grades.map(function (g) {
+    var v = lastGrade(g), h = hp(v);
+    var sub = v == null ? st('neu', 'Sem notas lançadas') : st(h.k, h.l + ' na ' + lastGradeName(g));
+    return '<tr><th scope="row"><span class="gt-name">' + esc(g.name) + '</span><span class="gt-sub">' + sub + '</span></th>' + gradeCell(g.p1) + gradeCell(g.p2) + gradeCell(g.pf) + gradeCell(g.result) + '</tr>';
+  }).join('');
+  return '<section class="sec"><div class="sec-h"><h3>Notas</h3></div>' +
+    '<table class="gt"><caption class="sr">Notas do período ' + D.student.period + '</caption><colgroup><col><col class="n"><col class="n"><col class="n"><col class="n"></colgroup>' +
+    '<thead><tr><th scope="col">Disciplina</th><th scope="col">P1</th><th scope="col">P2</th><th scope="col">PF</th><th scope="col">Média</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+    '<p class="legend">' + st('good', 'Bom: 7 ou mais') + st('warn', 'Atenção: 5 a 6,9') + st('bad', 'Crítico: abaixo de 5') + '</p></section>';
+}
+function weekSection(sel) {
+  var days = D.WEEKDAYS.map(function (w) {
+    var has = D.schedule.some(function (c) { return c.day === w.n; });
+    var today = w.n === D.now.weekday, on = w.n === sel;
+    return '<button class="day' + (today ? ' today' : '') + '" type="button" role="tab" aria-selected="' + on + '" data-day="' + w.n + '" aria-label="' + w.name + ', ' + dayNum(w.n) + ' de outubro' + (today ? ', hoje' : '') + (has ? '' : ', sem aulas') + '">' +
+      '<small>' + w.short + '</small><b>' + dayNum(w.n) + '</b><i class="' + (has ? 'has' : '') + '"></i></button>';
+  }).join('');
+  return '<section class="sec week"><div class="sec-h"><h3>Semana</h3><button class="btn-text" type="button">' + ic('share') + 'Compartilhar grade</button></div>' +
+    '<div class="days" role="tablist" aria-label="Dias da semana">' + days + '</div><div class="dayview" role="tabpanel">' + dayView(sel) + '</div></section>';
+}
+var CAL_K = 0.8, CAL_PAD = 10;
+function dayView(n) {
+  var list = D.schedule.filter(function (c) { return c.day === n; });
+  var today = n === D.now.weekday, now = D.now.minutes;
+  var head = '<p class="dv-head"><span>' + esc(dayLabel(n)) + '</span>' + (today ? '<span class="tag tag-accent">Hoje</span>' : '') + (list.length ? '<span class="dv-count">' + plural(list.length, 'aula', 'aulas') + '</span>' : '') + '</p>';
+  if (!list.length) return head + '<div class="dv-empty">' + ic('event_available') + '<span>Sem aulas ' + (n === 6 ? 'no sábado' : 'neste dia') + '.</span></div>';
+  var first = list[0].start, last = list[list.length - 1].end;
+  if (today) { first = Math.min(first, now); last = Math.max(last, now); }
+  var lo = Math.floor(first / 60) * 60, hi = Math.ceil(last / 60) * 60;
+  function y(m) { return CAL_PAD + (m - lo) * CAL_K; }
+  var nowY = today ? y(now) : null, nowDone = false;
+  function nowMark() { nowDone = true; return '<div class="cal-now" style="top:' + nowY + 'px"><b aria-hidden="true">' + D.now.time + '</b><i aria-hidden="true"></i><span class="sr">Agora, ' + D.now.time + '</span></div>'; }
+  var o = '';
+  for (var h = lo; h <= hi; h += 60) {
+    var hide = nowY != null && Math.abs(y(h) - nowY) < 14;
+    o += '<div class="cal-hr' + (hide ? ' muted' : '') + '" style="top:' + y(h) + 'px" aria-hidden="true"><span>' + (h / 60) + 'h</span></div>';
+  }
+  list.forEach(function (c, i) {
+    var prev = list[i - 1];
+    if (prev && c.start - prev.end >= 40) {
+      var ft = y(prev.end) + 4, fb = y(c.start) - 4, mid = (ft + fb) / 2, pos = '';
+      if (nowY != null && nowY > ft && nowY < fb && Math.abs(nowY - mid) < 16) pos = nowY > mid ? ' up' : ' down';
+      o += '<div class="cal-free' + pos + '" style="top:' + ft + 'px;height:' + (fb - ft) + 'px">Livre · ' + dur(c.start - prev.end) + '</div>';
+    }
+    if (nowY != null && !nowDone && c.start > now) o += nowMark();
+    var sh = SHIFT[c.shift], past = today && c.end <= now, live = today && c.start <= now && c.end > now;
+    var tag = past ? st('neu', 'Encerrada', 'check') : live ? st('accent', 'Agora') : st(sh.k, sh.l);
+    var label = c.name + ', ' + c.fromTime + ' às ' + c.toTime + ', ' + range(c.fromSlot, c.toSlot) + ', ' + room(c.location) + ', ' + (past ? 'encerrada' : live ? 'agora' : sh.l);
+    o += '<button class="cal-ev' + (past ? ' past' : '') + '" type="button" style="top:' + (y(c.start) + 1) + 'px;height:' + ((c.end - c.start) * CAL_K - 2) + 'px" aria-label="' + esc(label) + '">' +
+      '<span class="ev-name">' + esc(c.name) + '</span><span class="ev-meta">' + c.fromTime + '–' + c.toTime + ' · ' + range(c.fromSlot, c.toSlot) + ' · ' + esc(room(c.location)) + '</span><span class="ev-st">' + tag + '</span></button>';
+  });
+  if (nowY != null && !nowDone) o += nowMark();
+  return head + '<div class="cal" style="height:' + (y(hi) + CAL_PAD) + 'px">' + o + '</div>';
+}
+function homeHTML() { return greet() + nextSection() + gradesSection() + weekSection(D.now.weekday); }
+
+/* ============================================================ progresso */
+function crChart() {
+  var pts = D.craPoints, W = 330, H = 200, L = 30, R = 22, T = 24, B = 30, lo = 5, hi = 9;
+  function x(i) { return L + i * (W - L - R) / (pts.length - 1); }
+  function y(v) { return T + (hi - v) * (H - T - B) / (hi - lo); }
+  var g = '';
+  for (var v = lo; v <= hi; v++) g += '<line class="ch-grid" x1="' + L + '" x2="' + (W - R + 6) + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text class="ch-y" x="' + (L - 10) + '" y="' + (y(v) + 4) + '">' + v + '</text>';
+  var cra = pts.map(function (p, i) { return x(i).toFixed(1) + ',' + y(p.cra).toFixed(1); }).join(' ');
+  var avg = pts.map(function (p, i) { return x(i).toFixed(1) + ',' + y(p.periodAverage).toFixed(1); }).join(' ');
+  var adots = pts.map(function (p, i) { return '<circle class="ch-adot" cx="' + x(i) + '" cy="' + y(p.periodAverage) + '" r="2.5"/>'; }).join('');
+  /* todos os pontos têm valor, como no app (CrChart.tsx). O rótulo fica do lado oposto à média do período,
+     para não cruzar a linha tracejada; no vale, desloca para a direita, onde a linha do CR já subiu */
+  var dots = pts.map(function (p, i) {
+    var prev = pts[i - 1], nx = pts[i + 1];
+    var valley = !!(prev && nx) && prev.cra > p.cra && nx.cra > p.cra;
+    var below = p.periodAverage > p.cra + 0.05;
+    return '<g><title>' + p.label + ': CR ' + fmt(p.cra, 2) + ', média do período ' + fmt(p.periodAverage, 2) + '</title>' +
+      '<circle class="ch-dot' + (i === pts.length - 1 ? ' last' : '') + '" cx="' + x(i) + '" cy="' + y(p.cra) + '" r="4"/>' +
+      '<text class="ch-v" x="' + (valley ? x(i) + 16 : x(i)) + '" y="' + (below ? y(p.cra) + 19 : y(p.cra) - 10) + '">' + fmt(p.cra, 2) + '</text></g>';
+  }).join('');
+  var xl = pts.map(function (p, i) { return '<text class="ch-x" x="' + x(i) + '" y="' + (H - 6) + '">' + p.label + '</text>'; }).join('');
+  var first = pts[0], last = pts[pts.length - 1];
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="CR acumulado de ' + first.label + ' a ' + last.label + ': de ' + fmt(first.cra, 2) + ' para ' + fmt(last.cra, 2) + '">' +
+    g + '<polyline class="ch-avg" points="' + avg + '"/>' + adots + '<polyline class="ch-cra" points="' + cra + '"/>' + dots + xl + '</svg>';
+}
+function pathRows(P) {
+  return P.order.map(function (t) {
+    var mand = t === 'MANDATORY', req = P.requiredCredits[t];
+    if (mand || req) {
+      var done = mand ? P.completed[t] : P.completedCredits[t], total = mand ? P.totals[t] : req;
+      var unit = mand ? 'disciplinas' : 'créditos', left = Math.max(0, total - done);
+      return '<div class="r path"><span class="r-main"><span class="path-top"><span class="r-title">' + TYPE_PL[t] + '</span><b>' + P.percent[t] + '%</b></span>' +
+        '<span class="bar" role="progressbar" aria-label="' + TYPE_PL[t] + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + P.percent[t] + '"><i style="--p:' + (P.percent[t] / 100) + '"></i></span>' +
+        '<span class="r-meta">' + done + ' de ' + total + ' ' + unit + (left ? ' · faltam ' + left : ' · concluído') + '</span></span></div>';
+    }
+    return '<div class="r path"><span class="r-main"><span class="path-top"><span class="r-title">' + TYPE_PL[t] + '</span><span class="tag">Sem meta</span></span>' +
+      '<span class="r-meta">' + plural(P.completed[t], 'concluída', 'concluídas') + ' · ' + P.completedCredits[t] + ' créditos concluídos</span></span></div>';
+  }).join('');
+}
+function progressHTML() {
+  var P = D.academicProgress(D.electiveConfig);
+  return '<div class="card stats"><div class="stat"><b>' + P.approvedCount + '</b><span>Disciplinas concluídas</span></div>' +
+    '<div class="stat"><b>' + fmt(D.currentCRA, 2) + '</b><span>CR aproximado</span></div></div>' +
+    '<p class="foot-note">' + ic('info') + 'O CR é calculado pelo app a partir do seu histórico e pode ser diferente do oficial.</p>' +
+    '<section class="sec"><div class="sec-h"><h3>Evolução do CR</h3></div>' +
+    '<div class="ch-legend" aria-hidden="true"><span><i class="lg-cra"></i>CR acumulado</span><span><i class="lg-avg"></i>Média do período</span></div>' +
+    '<div class="card chart">' + crChart() + '</div></section>' +
+    '<section class="sec"><div class="sec-h"><h3>Seu caminho no currículo</h3><button class="ib" type="button" style="margin-right:-12px;color:var(--ink-2)" aria-label="Configurar créditos exigidos">' + ic('settings') + '</button></div>' +
+    '<div class="rows">' + pathRows(P) + '</div></section>';
+}
+
+/* ============================================================ gerador */
+var STEPS = ['Qtd. Disciplinas', 'Horários Ocupados', 'Prioridades', 'Selecionar Disciplinas', 'Carregar Dados', 'Turmas', 'Gerar Grade'];
+function stepsHTML(step) {
+  return '<ol class="steps" aria-label="Passos do gerador">' + STEPS.map(function (l, i) {
+    var n = i + 1, cls = n < step ? 'done' : n === step ? 'cur' : '';
+    return '<li class="' + cls + '"' + (n === step ? ' aria-current="step"' : '') + '><button type="button"' + (n > step ? ' disabled' : '') + '>' +
+      '<span class="sn">' + (n < step ? ic('check') : n) + '</span><span>' + l + '</span></button></li>';
+  }).join('') + '</ol>';
+}
+var PRIO = new Set(D.generator.priorityPresets[0].keys);
+function prioRow(o) {
+  var on = PRIO.has(o.key);
+  return '<button class="r prio" type="button" role="switch" aria-checked="' + on + '"><span class="r-label">' + esc(o.label) + '</span><span class="switch" aria-hidden="true"><i></i></span></button>';
+}
+function g3() {
+  var chips = D.generator.priorityPresets.map(function (p, i) {
+    var on = i === 0;
+    return '<button class="chip' + (on ? ' on' : '') + '" type="button" aria-pressed="' + on + '">' + (on ? ic('check') : '') + esc(p.label) + '</button>';
+  }).join('');
+  var groups = D.generator.priorities.map(function (grp) {
+    if (grp.length === 1) return prioRow(grp[0]);
+    return '<div class="pair" role="group"><p class="pair-note">' + ic('swap_vert') + 'Só uma destas pode ficar ligada</p>' + grp.map(prioRow).join('') + '</div>';
+  }).join('');
+  return '<h3 class="step-t">Quais são suas prioridades?</h3><p class="step-d">Ligue o que mais importa para você. Os atalhos ligam um conjunto pronto.</p>' +
+    '<h4 class="sub-h">Sugestões rápidas</h4><div class="chips">' + chips + '</div>' +
+    '<h4 class="sub-h">Prioridades <span class="sec-note">' + plural(PRIO.size, 'ligada', 'ligadas') + '</span></h4><div class="rows">' + groups + '</div>';
+}
+function genFoot(step) {
+  var prev = '<button class="btn btn-outline" type="button">' + ic('arrow_back') + 'Anterior</button>';
+  if (step === 7) return prev + '<button class="btn" type="button">' + ic('refresh') + 'Gerar outra grade</button>';
+  return prev + '<button class="btn" type="button">Próximo' + ic('arrow_forward') + '</button>';
+}
+function resGrid(res) {
+  var used = [];
+  res.items.forEach(function (it) { it.meetings.forEach(function (m) { used.push(slotIdx(m.from), slotIdx(m.to)); }); });
+  var lo = Math.min.apply(null, used), hi = Math.max.apply(null, used);
+  var days = [1, 2, 3, 4, 5];
+  var h = '<div class="wk-card"><div class="wk" role="img" aria-label="Grade semanal com ' + res.items.length + ' disciplinas" style="grid-template-columns:30px repeat(' + days.length + ',1fr);grid-template-rows:26px repeat(' + (hi - lo + 1) + ',30px)">';
+  h += days.map(function (d, i) { return '<span class="wk-h" style="grid-row:1;grid-column:' + (i + 2) + '">' + D.WEEKDAYS[d - 1].short + '</span>'; }).join('');
+  for (var r = lo; r <= hi; r++) {
+    h += '<span class="wk-t" style="grid-row:' + (r - lo + 2) + ';grid-column:1">' + D.SLOTS[r].id + '</span>';
+    days.forEach(function (d, i) { h += '<span class="wk-c" style="grid-row:' + (r - lo + 2) + ';grid-column:' + (i + 2) + '"></span>'; });
+  }
+  res.items.forEach(function (it) {
+    it.meetings.forEach(function (m) {
+      var a = slotIdx(m.from), b = slotIdx(m.to), sh = SHIFT[D.shiftOf(D.SLOTS[a].start)];
+      h += '<span class="wk-b wk-' + sh.k + '" style="grid-row:' + (a - lo + 2) + '/' + (b - lo + 3) + ';grid-column:' + (days.indexOf(m.day) + 2) + '"><b>' + acronym(it.name) + '</b><span>' + range(m.from, m.to) + '</span></span>';
+    });
+  });
+  h += '</div></div><div class="wk-key">' + res.items.map(function (it) { return '<span><b>' + acronym(it.name) + '</b>' + esc(it.name) + ' · Turma ' + it.class + '</span>'; }).join('') + '</div>';
+  return h;
+}
+function g7() {
+  var R = D.generator.results, res = R[0];
+  return '<h3 class="step-t">Veja abaixo as grades geradas</h3>' +
+    '<div class="segm res-pick" role="tablist" aria-label="Grades geradas">' + R.map(function (r, j) { return '<button type="button" role="tab" aria-selected="' + (j === 0) + '">' + (j === 0 ? ic('check') : '') + 'Grade ' + (j + 1) + '</button>'; }).join('') + '</div>' +
+    '<div class="res-sum"><span><b>' + res.items.length + '</b>disciplinas</span><span><b>' + res.credits + '</b>créditos</span><span><b>' + res.workload + '</b>horas</span></div>' +
+    '<div class="tabs" role="tablist"><button type="button" role="tab" aria-selected="false">Informações</button><button type="button" role="tab" aria-selected="true">Horários</button></div>' + resGrid(res);
+}
+
+/* ============================================================ mural */
+function linkify(t) { return esc(t).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>'); }
+function dateLabel(at) {
+  var p = at.split('/'), d = new Date(+p[2], +p[1] - 1, +p[0]);
+  if (at === '13/10/2026') return 'Hoje';
+  return ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][d.getDay()] + ', ' + (+p[0]) + ' de outubro';
+}
+function boardHTML() {
+  var rows = D.enrolled.filter(function (e) { return e.status === 'ACTIVE'; }).map(function (e) {
+    var m = D.messages[e.id] || [], last = m[m.length - 1];
+    return '<button class="r" type="button">' + '<span class="r-main">' + nameCode(e.name, e.id, 'Turma ' + e.class) + '<span class="r-meta">' + (m.length ? plural(m.length, 'mensagem', 'mensagens') + ' · última em ' + last.at : 'Nenhuma mensagem ainda') + '</span></span>' + chev() + '</button>';
+  }).join('');
+  return '<p class="lead">Escolha a disciplina para abrir o mural da turma.</p><div class="rows">' + rows + '</div>';
+}
+function chatHTML(id) {
+  var list = D.messages[id] || [], lastDate = null;
+  return '<div class="msgs">' + list.map(function (m) {
+    var sep = m.at !== lastDate ? '<p class="day-sep">' + dateLabel(m.at) + '</p>' : '';
+    lastDate = m.at;
+    return sep + '<div class="msg' + (m.mine ? ' mine' : '') + '"><div class="bubble" role="button" tabindex="0" aria-label="Mensagem de ' + esc(m.mine ? 'você' : m.author) + ', ' + m.time + '. Toque para copiar">' +
+      '<span class="msg-h"><b>' + esc(m.mine ? 'Você' : m.author) + '</b><time>' + m.time + '</time></span><span class="msg-t">' + linkify(m.text) + '</span></div></div>';
+  }).join('') + '</div>';
+}
+
+/* ============================================================ folha */
+function classesSheet(focusId) {
+  var list = D.enrolled.filter(function (e) { return e.status === 'ACTIVE'; }).concat(D.enrolled.filter(function (e) { return e.status !== 'ACTIVE'; }));
+  var body = '<div class="rows">' + list.map(function (e) {
+    var canceled = e.status === 'CANCELED';
+    return '<div class="r cls' + (e.id === focusId ? ' focus' : '') + '"><span class="r-main">' + nameCode(e.name, e.id, 'Turma ' + e.class) +
+      (canceled ? '<span class="r-facts">' + st('neu', 'Cancelada', 'block') + '</span>' :
+        '<span class="r-meta">' + meetSummary(e.meetings) + '</span><span class="r-meta">' + esc(e.location || 'Sala não informada') + '</span>' +
+        (e.ava ? '<span class="r-meta">Sala virtual (AVA): ' + esc(e.ava) + '</span>' : '')) + '</span></div>';
+  }).join('') + '</div>';
+  var active = D.enrolled.filter(function (e) { return e.status === 'ACTIVE'; }).length;
+  return { title: 'Disciplinas em Curso', meta: plural(active, 'ativa', 'ativas'), body: body };
+}
+
+/* ============================================================ splash e login */
+function splashScreen() {
+  return '<div class="screen on-brand-gesture" role="group" aria-label="Splash">' +
+    '<div class="scene splash" aria-hidden="true"><div class="scene-halo"></div><div class="scene-vinheta"></div></div>' + SB +
+    '<div class="solo splash" role="status">' + logoLuz('AO UERJ') +
+    '<div class="splash-txt"><p>' + esc(D.copy.loading) + '</p><div class="lin" aria-hidden="true"><i></i></div></div></div>' +
+    '<div class="gesture" aria-hidden="true"><i></i></div></div>';
+}
+function loginScreen() {
+  return '<div class="screen" role="group" aria-label="Login">' + SB.replace('class="sb"', 'class="sb" style="position:absolute;left:0;right:0;top:0;z-index:4"') +
+    '<div class="solo"><div class="login-top solo-top"><div class="scene" aria-hidden="true"><div class="scene-halo"></div><div class="scene-vinheta"></div></div>' + logoLuz('AO UERJ') + '</div>' +
+    '<div class="login-panel"><form class="login" novalidate onsubmit="return false">' +
+    '<h3>Entre com sua conta</h3><p class="login-sub">Use a mesma matrícula e senha do Aluno Online.</p>' +
+    '<div class="fgroup">' +
+    '<div class="frow">' + ic('badge') + '<label class="frow-l" for="mat">Matrícula</label><input id="mat" inputmode="numeric" autocomplete="username" placeholder="Digite sua matrícula"></div>' +
+    '<div class="frow">' + ic('lock') + '<label class="frow-l" for="pw">Senha</label><input id="pw" type="password" autocomplete="current-password" placeholder="Digite sua senha">' +
+    '<button type="button" class="ib" aria-label="Mostrar senha" aria-pressed="false">' + ic('visibility') + '</button></div></div>' +
+    '<p class="form-err" role="alert"></p>' +
+    '<button class="btn btn-block" type="submit">Entrar</button>' +
+    '<button type="button" class="btn-link">Não possui acesso ou esqueceu a senha?</button>' +
+    '</form><p class="login-foot">Aplicativo não oficial e de código aberto · Versão ' + D.version + '</p></div></div>' +
+    '<div class="gesture" aria-hidden="true"><i></i></div></div>';
+}
+
+/* ============================================================ telas */
+var next = D.nextClass();
+var TELAS = {
+  splash: function () { return splashScreen(); },
+  login: function () { return loginScreen(); },
+  menu: function () { return shell({ label: 'Menu lateral aberto', title: D.student.period, drawer: true, active: 'home', html: homeHTML() }); },
+  inicio: function () { return shell({ label: 'Início', title: D.student.period, html: homeHTML() }); },
+  semana: function () { return shell({ label: 'Início, semana', title: D.student.period, html: homeHTML() }); },
+  folha: function () { return shell({ label: 'Início com a folha Disciplinas em Curso', title: D.student.period, html: homeHTML(), sheet: classesSheet(next.subjectId) }); },
+  progresso: function () { return shell({ label: 'Meu Progresso', title: 'Meu Progresso', html: progressHTML() }); },
+  gerador: function () { return shell({ label: 'Gerador de Grade, passo 3', title: 'Gerador de Grade', cls: 'gen', top: stepsHTML(3), html: g3(), foot: genFoot(3) }); },
+  resultado: function () { return shell({ label: 'Gerador de Grade, grade gerada', title: 'Gerador de Grade', cls: 'gen', top: stepsHTML(7), html: g7(), foot: genFoot(7) }); },
+  mural: function () { return shell({ label: 'Mural de Mensagens', title: 'Mural de Mensagens', html: boardHTML() }); },
+  conversa: function () {
+    var e = find(D.enrolled, function (x) { return x.id === 'IME02-10892'; });
+    return shell({ label: 'Mural, conversa da turma', title: 'Mural de Mensagens', back: true, cls: 'chat',
+      top: '<h3 class="chat-name">' + esc(e.name) + '</h3><p class="chat-meta"><span class="code">' + e.id + '</span> · Turma ' + e.class + '</p>' +
+        '<button class="select" type="button">' + ic('date_range') + '<span><small>Período das mensagens</small>' + D.student.period + '</span>' + ic('expand_more') + '</button>',
+      html: chatHTML(e.id),
+      foot: '<form class="composer" onsubmit="return false"><div class="field"><input placeholder="Digite aqui sua mensagem" maxlength="500" aria-label="Mensagem" autocomplete="off"></div><button class="send" type="submit" aria-label="Enviar mensagem" disabled>' + ic('send') + '</button></form>' });
+  },
+  escuro: function () { return shell({ label: 'Início no tema escuro', title: D.student.period, dark: true, html: homeHTML() }); }
+};
+
+document.querySelectorAll('.phone[data-tela]').forEach(function (ph) {
+  var k = ph.dataset.tela;
+  ph.innerHTML = TELAS[k]();
+});
+
+/* posições de rolagem de cada moldura */
+function place2() {
+  var sem = document.querySelector('[data-tela="semana"] .panel-scroll');
+  /* a rolagem para numa divisa de linha da tabela (penúltima disciplina), sem linha cortada no topo */
+  if (sem) { var w = sem.querySelector('.gt tbody tr:nth-last-child(2)'); sem.scrollTop += w.getBoundingClientRect().top - sem.getBoundingClientRect().top - 8; }
+  document.querySelectorAll('[data-tela="conversa"] .panel-scroll').forEach(function (s) { s.scrollTop = s.scrollHeight; });
+  document.querySelectorAll('.steps').forEach(function (ol) {
+    var cur = ol.querySelector('.cur'), prev = cur && cur.previousElementSibling;
+    if (!prev) return;
+    ol.scrollLeft += prev.querySelector('button').getBoundingClientRect().left - ol.getBoundingClientRect().left - 20;
+    ol.classList.toggle('rolado', ol.scrollLeft > 0);
+  });
+}
+place2();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { requestAnimationFrame(place2); });
+window.addEventListener('load', function () { requestAnimationFrame(place2); setTimeout(place2, 300); });
+
+/* interação mínima: dias, interruptores, chips, senha, campo de mensagem */
+document.addEventListener('click', function (ev) {
+  var t = ev.target.closest('button,[role="button"]');
+  if (!t) return;
+  if (t.classList.contains('day')) {
+    var sec = t.closest('.week');
+    sec.querySelectorAll('.day').forEach(function (b) { b.setAttribute('aria-selected', String(b === t)); });
+    sec.querySelector('.dayview').innerHTML = dayView(+t.dataset.day);
+  } else if (t.getAttribute('role') === 'switch') {
+    var on = t.getAttribute('aria-checked') !== 'true';
+    var pair = t.closest('.pair');
+    if (pair && on) pair.querySelectorAll('[role="switch"]').forEach(function (b) { b.setAttribute('aria-checked', 'false'); });
+    t.setAttribute('aria-checked', String(on));
+  } else if (t.classList.contains('chip')) {
+    var p = t.getAttribute('aria-pressed') === 'true';
+    t.setAttribute('aria-pressed', String(!p)); t.classList.toggle('on', !p);
+  } else if (t.getAttribute('aria-label') === 'Mostrar senha' || t.getAttribute('aria-label') === 'Ocultar senha') {
+    var inp = t.parentNode.querySelector('input'), show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    t.setAttribute('aria-pressed', String(show)); t.setAttribute('aria-label', show ? 'Ocultar senha' : 'Mostrar senha');
+  }
+});
+document.addEventListener('input', function (ev) {
+  var f = ev.target.closest('.composer');
+  if (f) f.querySelector('.send').disabled = !ev.target.value.trim();
+});
+})();
+</script>
+</body>
+</html>

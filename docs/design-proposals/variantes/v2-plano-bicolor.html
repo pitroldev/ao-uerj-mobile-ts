@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AO UERJ · Variante da interface · Plano bicolor</title>
+<meta name="description" content="Variante da interface atual do AO UERJ (V3 Agenda limpa) na linguagem do tratamento Plano bicolor da logo: superfícies chapadas em dois azuis, disco e anel do O como cabeçalho, marcador e estado vazio.">
+<meta name="color-scheme" content="light">
+<style>
+/* ------------------------------------------------------------------ fontes */
+/* Inter estático do próprio app (src/assets/fonts), o mesmo corte que o Android usa */
+@font-face{font-family:"Inter AO";src:url("../../../src/assets/fonts/Inter-Regular.ttf") format("truetype");font-weight:400;font-style:normal;font-display:block}
+@font-face{font-family:"Inter AO";src:url("../../../src/assets/fonts/Inter-Medium.ttf") format("truetype");font-weight:500;font-style:normal;font-display:block}
+@font-face{font-family:"Inter AO";src:url("../../../src/assets/fonts/Inter-SemiBold.ttf") format("truetype");font-weight:600;font-style:normal;font-display:block}
+@font-face{font-family:"Inter AO";src:url("../../../src/assets/fonts/Inter-Bold.ttf") format("truetype");font-weight:700;font-style:normal;font-display:block}
+@font-face{font-family:"Inter AO Display";src:url("../../../src/assets/fonts/InterDisplay-SemiBold.ttf") format("truetype");font-weight:600;font-style:normal;font-display:block}
+
+/* ------------------------------------------------------------------ página */
+:root{
+  --pg:#ECEBE8;--tinta:#161B24;--tinta-2:#4A5262;--tinta-3:#5A6170;--fio:#D3D1CC;
+  --navy:#003468;--blue:#004891;--sky:#BBD0EC;
+  color-scheme:light;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{background:var(--pg);scrollbar-color:#B4B2AC var(--pg);-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;color:var(--tinta);font:15px/1.55 "Inter AO",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+::selection{background:var(--sky);color:#0B1626}
+:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+p,h1,h2,h3,ol,ul,dl,dd,figure{margin:0}
+button{font:inherit;color:inherit;letter-spacing:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.defs{position:absolute;width:0;height:0;overflow:hidden}
+.sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.pagina{max-width:1440px;margin:0 auto;padding:0 48px 72px}
+
+.topo{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:24px 64px;padding:44px 0 32px;border-bottom:1px solid var(--fio)}
+h1{font-family:"Inter AO Display","Inter AO",system-ui,sans-serif;font-size:36px;line-height:1.1;font-weight:600;letter-spacing:-.025em;text-wrap:balance}
+.lede{margin-top:14px;max-width:72ch;color:var(--tinta-2);font-size:15.5px;line-height:1.62;text-wrap:pretty}
+.lede a{color:var(--blue);text-underline-offset:3px}
+.paleta{display:flex;gap:18px;margin:0;padding:0;list-style:none}
+.paleta li{display:grid;justify-items:center;align-content:start;gap:7px;font-size:11.5px;line-height:1.25;color:var(--tinta-3);text-align:center;width:84px}
+.paleta i{display:block;width:44px;height:44px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(22,27,36,.12)}
+.paleta code{font:600 10.5px/1.2 ui-monospace,"Cascadia Mono",Consolas,monospace;color:var(--tinta-2)}
+
+/* derivação: três regras, cada uma com o desenho que a resume */
+.regras{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:40px;padding:32px 0 36px;border-bottom:1px solid var(--fio)}
+.regra{display:grid;grid-template-columns:132px minmax(0,1fr);gap:20px;align-items:start}
+.regra svg{display:block;width:132px;height:132px;border-radius:14px}
+.regra h2{font-size:15px;line-height:1.35;font-weight:650;margin:2px 0 6px}
+.regra p{max-width:72ch;font-size:13.5px;line-height:1.6;color:var(--tinta-2);text-wrap:pretty}
+
+.grupo{padding:40px 0 8px}
+.grupo>h2{font-family:"Inter AO Display","Inter AO",system-ui,sans-serif;font-size:24px;line-height:1.2;font-weight:600;letter-spacing:-.02em}
+.grupo>p{margin-top:6px;max-width:80ch;color:var(--tinta-2);font-size:14.5px;line-height:1.6;text-wrap:pretty}
+.fila{display:grid;grid-template-columns:repeat(3,406px);justify-content:space-between;row-gap:44px;margin-top:26px}
+.quadro{margin:0;width:406px}
+.cel{width:406px;padding:8px;border-radius:50px;background:#151A22;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.legenda{margin-top:14px;font-size:13.5px;line-height:1.55;color:var(--tinta-2);text-wrap:pretty}
+.legenda b{display:block;margin-bottom:2px;color:var(--tinta);font-weight:650}
+.nota-escuro{grid-column:3/4;align-self:start;padding:4px 0 0}
+.nota-escuro h3{font-size:15px;font-weight:650;margin-bottom:8px}
+.nota-escuro p{font-size:13.5px;line-height:1.6;color:var(--tinta-2);max-width:68ch;text-wrap:pretty}
+.nota-escuro p+p{margin-top:10px}
+.tokens{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px;margin-top:20px}
+.tokens div{display:flex;flex-direction:column;gap:6px;font-size:12px;line-height:1.3;color:var(--tinta-3)}
+.tokens i{display:block;height:44px;border-radius:10px;box-shadow:inset 0 0 0 1px rgba(22,27,36,.12)}
+.tokens code{font:600 10.5px/1.2 ui-monospace,"Cascadia Mono",Consolas,monospace;color:var(--tinta-2)}
+@media (max-width:1360px){
+  .fila{grid-template-columns:repeat(2,406px);justify-content:start;column-gap:48px}
+  .nota-escuro{grid-column:1/-1;max-width:860px}
+  .nota-escuro .tokens{max-width:420px}
+  .regras{grid-template-columns:minmax(0,1fr);gap:24px}
+  .topo{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:920px){
+  .pagina{padding:0 20px 56px}
+  .fila{grid-template-columns:406px;justify-content:center}
+  .regra{grid-template-columns:96px minmax(0,1fr)}
+  .regra svg{width:96px;height:96px}
+  .paleta{flex-wrap:wrap}
+}
+
+/* =============================================================== o app === */
+.tela{
+  --navy:#003468;--blue:#004891;--sky:#BBD0EC;--sky-2:#9DB8DD;--conn:#547AA3;--dr-rule:#2F6AA8;--on:#FFFFFF;
+  --bg:#FFFFFF;--plano:#EBF1F9;--plano-2:#DAE5F4;
+  --ink:#0C1A2E;--ink-2:#4A5A73;--ink-3:#7A889E;--rule:#D3DDEA;--field:#7A889E;
+  --head:#003468;--accent:#004891;--fill:#004891;--on-fill:#FFFFFF;--off:#DAE5F4;--off-ink:#4A5A73;
+  --good:#17673A;--good-bg:#DDF5E3;--warn:#715600;--warn-bg:#FAF4CC;--bad:#A4261E;--bad-bg:#FCE4E2;--neu:#4A5263;--neu-bg:#EDEFF3;
+  --m-bg:#BBD0EC;--m-ink:#003468;--m-2:#003468;
+  --a-bg:#004891;--a-ink:#FFFFFF;--a-2:#BBD0EC;
+  --n-bg:#003468;--n-ink:#FFFFFF;--n-2:#BBD0EC;
+  --veu:rgba(0,22,48,.62);
+  position:relative;width:390px;height:844px;overflow:hidden;border-radius:42px;
+  background:var(--navy);color:var(--ink);display:flex;flex-direction:column;isolation:isolate;
+  font:14px/20px "Inter AO",system-ui,sans-serif;font-feature-settings:"cv11" 0;-webkit-font-smoothing:antialiased;text-align:left
+}
+/* escuro: a faixa segue #003468; a página vira #0B1626 e o texto secundário sobre ela fica azul-acinzentado claro */
+.tela.escuro{
+  --bg:#0B1626;--plano:#13243B;--plano-2:#1C3352;
+  --ink:#E6EDF6;--ink-2:#A7B4C6;--ink-3:#6E809A;--rule:#22364F;--field:#6A7D97;
+  --head:#BBD0EC;--accent:#BBD0EC;--off:#1C3352;--off-ink:#A7B4C6;
+  --good:#A4EBB8;--good-bg:#1E4A2E;--warn:#F8D48B;--warn-bg:#573900;--bad:#FF9C92;--bad-bg:#612E2B;--neu:#B3BFCF;--neu-bg:#36414F;
+  --veu:rgba(2,8,20,.72);
+}
+.tela :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tela :where(button){border:0;background:none;padding:0;text-align:inherit}
+.tela .num,.tela .tn{font-variant-numeric:tabular-nums}
+.i{display:block;width:24px;height:24px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.i.sm{width:20px;height:20px}
+.i.xs{width:18px;height:18px}
+.i.fill{fill:currentColor}
+.turno{display:inline-block;width:11px;height:11px;flex:none;vertical-align:-1px}
+
+/* barra de status, câmera e gesto */
+.sb{flex:none;height:28px;padding:2px 20px 0 24px;display:flex;align-items:center;justify-content:space-between;color:#FFFFFF;font-size:13px;font-weight:500;letter-spacing:.01em;font-variant-numeric:tabular-nums;position:relative;z-index:9}
+.sb svg{display:block}
+.camera{position:absolute;z-index:10;top:9px;left:50%;width:11px;height:11px;margin-left:-5.5px;border-radius:50%;background:#05080D}
+.gesto{position:absolute;z-index:40;left:0;right:0;bottom:0;height:20px;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.gesto i{width:108px;height:4px;border-radius:2px;background:var(--ink);opacity:.34}
+.gesto.claro i{background:#FFFFFF;opacity:.6}
+
+/* cabeçalho: menu, título e o selo (logo com o disco, como no ícone) */
+.appbar{flex:none;height:56px;display:flex;align-items:center;padding:0 10px 0 4px;color:#FFFFFF;position:relative;z-index:8;background:var(--navy)}
+.appbar .t{flex:1;margin-left:6px;text-align:center;font:500 17px/24px "Inter AO",system-ui,sans-serif;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{width:48px;height:48px;flex:none;display:inline-grid;place-items:center;border-radius:50%;color:inherit}
+.selo{display:block;width:48px;height:48px}
+
+/* corpo: menu atrás, painel na frente */
+.corpo{flex:1;position:relative;min-height:0}
+.corpo.aberto{background:var(--blue)}
+.painel{position:absolute;inset:0;z-index:2;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;overflow:hidden}
+.corpo.aberto .painel{transform:translateX(300px)}
+.rolagem{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;padding:0 20px 40px}
+.rolagem::-webkit-scrollbar{display:none}
+.rodape{flex:none;display:flex;gap:12px;padding:12px 20px 30px;border-top:1px solid var(--rule);background:var(--bg)}
+.rodape .bt{flex:1}
+
+/* faixa: o plano azul-marinho continua por baixo do cabeçalho */
+.faixa{position:relative;margin:0 -20px;padding:4px 20px 24px;background:var(--navy);color:#FFFFFF;overflow:hidden}
+.faixa>*{position:relative;z-index:1}
+.faixa>.orb{position:absolute;z-index:0;right:0;bottom:0;display:block}
+.greet h2{font:600 28px/34px "Inter AO Display","Inter AO",system-ui,sans-serif;letter-spacing:-.022em}
+.greet p{margin-top:2px;font-size:15px;line-height:20px;color:var(--sky)}
+
+/* seções */
+.sec{margin-top:28px}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:32px;margin-bottom:10px}
+.sec-h h2{font:600 17px/24px "Inter AO",system-ui,sans-serif;letter-spacing:-.01em;color:var(--head)}
+/* o alvo de 48 dp transborda a linha do título sem empurrar o conteúdo */
+.sec-h>.bt-txt,.sec-h>.ib{margin-top:-8px;margin-bottom:-8px}
+.sec-when{font-size:14px;line-height:20px;color:var(--ink-2);white-space:nowrap}
+.sec-when b{font-weight:600;color:var(--ink)}
+
+/* botões: pílula cheia, pílula de contorno, texto */
+.bt{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:0 22px;border-radius:999px;background:var(--fill);color:var(--on-fill);font-size:15px;font-weight:600;white-space:nowrap}
+.bt .i{width:20px;height:20px}
+.bt-cont{background:var(--bg);color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--field)}
+.bt-txt{min-height:48px;padding:0 12px;background:none;color:var(--accent);font-size:14px}
+.bt-txt .i{width:18px;height:18px}
+.bt-bloco{display:flex;width:100%}
+
+/* próxima aula: o único plano #004891 da página */
+.prox{display:flex;align-items:stretch;width:100%;padding:16px 8px 16px 18px;background:var(--blue);color:#FFFFFF}
+.prox-hora{flex:none;width:78px;display:flex;flex-direction:column;padding-right:14px;white-space:nowrap}
+.prox-hora b{font:600 26px/30px "Inter AO Display","Inter AO",system-ui,sans-serif;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.prox-hora span{margin-top:3px;font-size:13px;line-height:18px;color:var(--sky);font-variant-numeric:tabular-nums}
+.prox-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;padding:1px 0 0 16px;border-left:1px solid #3871AC}
+.prox-nome{font-size:17px;line-height:23px;font-weight:600;letter-spacing:-.01em}
+.prox-lin{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;margin-top:2px;font-size:13px;line-height:18px;color:var(--sky)}
+.prox-lin .tr{display:inline-flex;align-items:center;gap:6px;color:#FFFFFF;font-weight:600}
+.prox-meta{font-size:13px;line-height:18px;color:var(--sky)}
+.prox>.i{align-self:center;margin-left:2px}
+
+/* tabela de notas */
+.gt{width:100%;border-collapse:collapse;table-layout:fixed}
+.gt col.n{width:42px}
+.gt thead th{font-size:12px;line-height:16px;font-weight:500;color:var(--ink-2);text-align:center;padding:0 0 8px;border-bottom:1.5px solid var(--head)}
+.gt thead th:first-child{text-align:left}
+.gt tbody th{text-align:left;font-weight:inherit;padding:11px 4px 11px 0}
+.gt td{text-align:center;padding:11px 0}
+.gt tbody tr{border-bottom:1px solid var(--rule)}
+.gt-nome{display:block;font-size:14px;line-height:19px;font-weight:500;color:var(--ink)}
+.gt-sub{display:block;margin-top:3px}
+.gp{display:inline-grid;place-items:center;min-width:40px;height:28px;padding:0 7px;border-radius:999px;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.gp-good{background:var(--good-bg);color:var(--good)}.gp-warn{background:var(--warn-bg);color:var(--warn)}.gp-bad{background:var(--bad-bg);color:var(--bad)}
+.gp-none{color:var(--ink-2);font-weight:400}
+.st{display:inline-flex;align-items:center;gap:6px;font-size:12px;line-height:16px;font-weight:500;white-space:nowrap}
+.st>i{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.st .i{width:15px;height:15px}
+.st-good{color:var(--good)}.st-warn{color:var(--warn)}.st-bad{color:var(--bad)}.st-neu{color:var(--neu)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px}
+.legend .st{color:var(--ink-2);font-weight:400}
+.legend .st-good>i{background:var(--good)}.legend .st-warn>i{background:var(--warn)}.legend .st-bad>i{background:var(--bad)}
+
+/* semana: disco = dia escolhido, anel = hoje */
+.dias{display:grid;grid-template-columns:repeat(6,1fr)}
+.dia{display:flex;flex-direction:column;align-items:center;gap:5px;min-height:80px;padding:4px 0 0;color:var(--ink)}
+.dia small{font-size:12px;line-height:16px;font-weight:500;color:var(--ink-2)}
+.dia b{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;font-size:17px;line-height:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.dia i{width:5px;height:5px;border-radius:50%;background:transparent}
+.dia i.tem{background:var(--ink-3)}
+.dia.hoje b{box-shadow:inset 0 0 0 2px var(--accent);color:var(--accent)}
+.dia[aria-selected="true"] b{background:var(--fill);color:var(--on-fill);box-shadow:none}
+.dia.hoje[aria-selected="true"] b{outline:2px solid var(--fill);outline-offset:3px}
+.dia[aria-selected="true"] small{color:var(--ink);font-weight:600}
+.dv-head{display:flex;align-items:center;gap:8px;margin:14px 0 8px;font-size:14px;line-height:20px;font-weight:600;color:var(--ink)}
+.dv-n{margin-left:auto;font-weight:400;color:var(--ink-2)}
+.tag-anel{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;box-shadow:inset 0 0 0 1.5px var(--accent);color:var(--accent);font-size:12px;font-weight:600}
+.cal{position:relative}
+.cal-hr{position:absolute;left:0;right:0;height:0;display:flex;align-items:center;gap:8px}
+.cal-hr span{flex:none;width:40px;text-align:right;font-size:12px;line-height:16px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.cal-hr::after{content:"";flex:1;border-top:1px solid var(--rule)}
+.cal-hr.mudo span{visibility:hidden}
+.ev{position:absolute;left:52px;right:0;z-index:1;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:9px 12px;overflow:hidden;text-align:left}
+.ev-nome{font-size:15px;line-height:20px;font-weight:600;padding-right:88px}
+.ev-meta{font-size:13px;line-height:18px}
+.ev-st{position:absolute;top:10px;right:12px;display:inline-flex;align-items:center;gap:6px;font-size:12px;line-height:16px;font-weight:600}
+.ev.m{background:var(--m-bg);color:var(--m-ink)}.ev.m .ev-meta{color:var(--m-2)}
+.ev.a{background:var(--a-bg);color:var(--a-ink)}.ev.a .ev-meta,.ev.a .ev-st{color:var(--a-2)}
+.ev.n{background:var(--n-bg);color:var(--n-ink)}.ev.n .ev-meta,.ev.n .ev-st{color:var(--n-2)}
+.ev.fim{background:var(--bg);box-shadow:inset 0 0 0 1.5px var(--rule);color:var(--ink-2)}
+.ev.fim .ev-nome{font-weight:500}
+.ev.fim .ev-meta,.ev.fim .ev-st{color:var(--ink-2)}
+.ev.fim .ev-st{font-weight:500}
+.livre{position:absolute;left:52px;right:0;z-index:1;display:flex;align-items:center;justify-content:center;background:var(--plano);font-size:12px;line-height:16px;color:var(--ink-2)}
+.livre.cima{align-items:flex-start;padding-top:8px}
+.livre.baixo{align-items:flex-end;padding-bottom:8px}
+.agora{position:absolute;left:0;right:0;height:0;z-index:3;display:flex;align-items:center;gap:8px;pointer-events:none}
+.agora b{flex:none;width:40px;text-align:right;font-size:12px;line-height:16px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+.agora::after{content:"";flex:1;border-top:2px solid var(--accent)}
+.agora svg{position:absolute;left:41px;top:-11px;width:22px;height:22px}
+
+/* meu progresso */
+.stats{display:flex;align-items:stretch;gap:0}
+.stat{display:flex;flex-direction:column;gap:2px}
+.stat+.stat{margin-left:22px;padding-left:22px;border-left:1px solid var(--conn)}
+.stat b{font:600 34px/40px "Inter AO Display","Inter AO",system-ui,sans-serif;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat span{font-size:13px;line-height:18px;color:var(--sky)}
+.nota-p{display:flex;gap:8px;align-items:flex-start;margin-top:16px;font-size:13px;line-height:18px;color:var(--ink-2)}
+.nota-p .i{width:18px;height:18px;margin-top:0}
+.ch-leg{display:flex;gap:18px;margin:-2px 0 10px;font-size:12px;line-height:16px;color:var(--ink-2)}
+.ch-leg span{display:inline-flex;align-items:center;gap:7px}
+.lg-cr{width:18px;height:3px;background:var(--accent)}
+.lg-md{width:18px;border-top:2px dashed var(--ink-3)}
+.grafico{background:var(--plano);padding:12px 6px 6px}
+.grafico svg{display:block;width:100%;height:auto;overflow:visible}
+.ch-g{stroke:var(--bg);stroke-width:1.5}
+.ch-y,.ch-x{fill:var(--ink-2);font-size:12px;font-family:"Inter AO",sans-serif;font-variant-numeric:tabular-nums}
+.ch-y{text-anchor:end}.ch-x{text-anchor:middle}
+.ch-cr{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+.ch-md{fill:none;stroke:var(--ink-3);stroke-width:1.5;stroke-dasharray:4 4}
+.ch-ponto{fill:var(--plano);stroke:var(--accent);stroke-width:2}
+.ch-mp{fill:var(--ink-3)}
+.ch-v{fill:var(--ink);font-size:12px;font-weight:600;text-anchor:middle;font-family:"Inter AO",sans-serif;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--plano);stroke-width:4px;stroke-linejoin:round}
+.ch-atual{fill:var(--accent)}
+.ch-anel{fill:none;stroke:var(--accent);stroke-width:1.75}
+.caminho{padding:14px 0;border-bottom:1px solid var(--rule)}
+.caminho:last-child{border-bottom:0}
+.cam-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.cam-top span{font-size:15px;line-height:21px;font-weight:600}
+.cam-top b{font-size:15px;font-weight:700;color:var(--head);font-variant-numeric:tabular-nums}
+.barra{display:block;height:8px;margin:9px 0 6px;border-radius:4px;background:var(--plano-2);overflow:hidden}
+.barra i{display:block;height:100%;border-radius:4px;background:var(--fill)}
+.meta{font-size:13px;line-height:18px;color:var(--ink-2)}
+
+/* gerador: passos na faixa (feito = disco claro, atual = disco branco, próximos = anel) */
+.passos{flex:none;display:flex;align-items:center;list-style:none;margin:0;padding:4px 20px 12px 14px;background:var(--navy);overflow-x:auto;scrollbar-width:none;position:relative;z-index:3}
+.passos::-webkit-scrollbar{display:none}
+.passos li{flex:none;display:flex;align-items:center}
+.passos li+li::before{content:"";width:14px;height:1.5px;background:var(--conn);margin:0 2px}
+.passos li.feito+li::before{background:var(--sky)}
+.passos button{display:flex;align-items:center;gap:8px;height:48px;padding:0 8px 0 6px;color:var(--sky-2);font-size:13px;font-weight:500;white-space:nowrap}
+.sn{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;flex:none;font-size:12px;font-weight:700;box-shadow:inset 0 0 0 1.5px var(--conn);color:var(--sky-2)}
+.sn .i{width:16px;height:16px;stroke-width:2.25}
+.feito button{color:var(--sky)}
+.feito .sn{background:var(--sky);color:var(--navy);box-shadow:none}
+.atual button{color:#FFFFFF;font-weight:600}
+.atual .sn{background:#FFFFFF;color:var(--navy);box-shadow:none;outline:1.5px solid #FFFFFF;outline-offset:3px}
+.passo-t{margin-top:24px;font:600 20px/26px "Inter AO",system-ui,sans-serif;letter-spacing:-.015em;color:var(--head)}
+.passo-d{margin-top:6px;font-size:14px;line-height:20px;color:var(--ink-2)}
+.atalhos{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:14px}
+.atalhos>span{font-size:13px;line-height:18px;color:var(--ink-2);margin-right:2px}
+.chip{position:relative;display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 14px;border-radius:999px;background:var(--plano);color:var(--accent);font-size:14px;font-weight:600}
+.chip::after{content:"";position:absolute;left:0;right:0;top:-6px;bottom:-6px}
+.chip[aria-pressed="true"]{background:var(--fill);color:var(--on-fill)}
+.ocup-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px}
+.ocup-n{display:inline-flex;align-items:center;gap:7px;font-size:13px;line-height:18px;color:var(--ink-2)}
+.ocup-n>span+i{margin-left:10px}
+.q{width:16px;height:16px;flex:none;background:var(--fill)}
+.q.livre-q{background:var(--bg);box-shadow:inset 0 0 0 1.5px var(--field)}
+.grade-o{margin-top:6px;border:1.5px solid var(--head);overflow:clip}
+.go-l{display:grid;grid-template-columns:52px repeat(6,1fr)}
+.go-l+.go-l{border-top:1px solid var(--rule)}
+.go-cab{position:sticky;top:0;z-index:2;background:var(--bg);color:var(--ink);border-bottom:1.5px solid var(--head)}
+.go-cab span{height:36px;display:grid;place-items:center;font-size:12px;font-weight:600}
+.go-turno{display:flex;align-items:baseline;gap:8px;height:32px;padding:7px 12px 0;background:var(--plano);font-size:13px;line-height:18px;font-weight:600;color:var(--ink);border-top:1px solid var(--rule)}
+.go-cab+.go-turno{border-top:0}
+.go-turno span{font-weight:400;color:var(--ink-2)}
+.go-turno+.go-l{border-top:1px solid var(--rule)}
+.go-t{display:flex;flex-direction:column;justify-content:center;padding-left:12px;font-size:12px;line-height:15px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.go-t b{color:var(--ink);font-weight:600}
+.cel-o{height:48px;border-left:1px solid var(--rule);background:var(--bg)}
+.cel-o[aria-pressed="true"]{background:var(--fill);border-left-color:var(--fill)}
+.cel-o[aria-pressed="true"]+.cel-o[aria-pressed="true"]{border-left-color:#2F6AA8}
+
+/* resultado */
+.segm{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;margin-top:16px;padding:4px;border-radius:999px;background:var(--plano)}
+.segm button{min-height:48px;border-radius:999px;color:var(--accent);font-size:14px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.segm button .i{width:18px;height:18px;stroke-width:2.25}
+.segm button[aria-selected="true"]{background:var(--fill);color:var(--on-fill)}
+.res-sum{display:flex;gap:20px;margin-top:14px;font-size:13px;line-height:18px;color:var(--ink-2)}
+.res-sum b{color:var(--ink);font-size:16px;font-weight:700;margin-right:4px;font-variant-numeric:tabular-nums}
+.abas{display:flex;border-bottom:1px solid var(--rule);margin:16px 0 4px}
+.abas button{flex:1;height:48px;color:var(--ink-2);font-size:14px;font-weight:600;text-align:center;position:relative}
+.abas button[aria-selected="true"]{color:var(--accent)}
+.abas button[aria-selected="true"]::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:var(--accent)}
+.wk{display:grid;column-gap:3px;margin-top:12px}
+.wk-h{font-size:12px;font-weight:600;color:var(--ink-2);text-align:center;align-self:end;padding-bottom:6px;border-bottom:1.5px solid var(--head)}
+.wk-t{font-size:12px;color:var(--ink-2);display:flex;align-items:center;border-bottom:1px solid var(--rule);font-variant-numeric:tabular-nums}
+.wk-c{border-bottom:1px solid var(--rule)}
+.wk-b{z-index:1;margin:2px 0;padding:5px 6px;display:flex;flex-direction:column;font-size:12px;line-height:15px;overflow:hidden}
+.wk-b b{font-weight:700;font-size:12.5px}
+.wk-b.m{background:var(--m-bg);color:var(--m-ink)}.wk-b.a{background:var(--a-bg);color:var(--a-ink)}.wk-b.n{background:var(--n-bg);color:var(--n-ink)}
+.wk-b.a span,.wk-b.n span{color:var(--sky)}
+.wk-key{margin-top:12px;padding-top:12px;border-top:1px solid var(--rule);display:grid;gap:7px;font-size:13px;line-height:18px;color:var(--ink-2)}
+.wk-key b{display:inline-block;min-width:40px;color:var(--ink);font-weight:700}
+/* legenda dos turnos logo abaixo da grade: cada amostra é um bloco no tom do turno, com o símbolo do turno */
+.wk-turnos{display:flex;gap:6px;margin-top:10px;font-size:12px;line-height:16px;font-weight:600}
+.wk-turnos span{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 8px}
+.wk-turnos .m{background:var(--m-bg);color:var(--m-ink)}.wk-turnos .a{background:var(--a-bg);color:var(--a-ink)}.wk-turnos .n{background:var(--n-bg);color:var(--n-ink)}
+
+/* listas */
+.lead{margin-top:20px;color:var(--ink-2);font-size:14px;line-height:20px}
+.linhas{margin:6px -20px 0}
+.r{position:relative;display:flex;align-items:center;gap:14px;width:100%;min-height:64px;padding:12px 16px 12px 20px;color:inherit}
+.r::after{content:"";position:absolute;left:20px;right:0;bottom:0;border-bottom:1px solid var(--rule)}
+.linhas>.r:last-child::after{display:none}
+.r-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.r-t{font-size:15px;line-height:21px;font-weight:600;color:var(--ink)}
+.r-m{font-size:13px;line-height:18px;color:var(--ink-2)}
+.r>.i{color:var(--ink-2)}
+.sigla{display:grid;place-items:center;width:44px;height:44px;flex:none;border-radius:50%;background:var(--plano);color:var(--head);font-size:13px;font-weight:700;letter-spacing:.01em}
+.r.foco{background:var(--plano)}
+.r.foco::after{border-bottom-color:transparent}
+
+/* mural */
+.selecao{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;margin-top:14px;padding:4px 10px 4px 16px;border-radius:999px;background:var(--blue);color:#FFFFFF;text-align:left}
+.selecao>span{flex:1;display:flex;flex-direction:column;font-size:15px;line-height:20px;font-weight:600}
+.selecao small{font-size:12px;line-height:16px;font-weight:500;color:var(--sky)}
+.conversa-n{font:600 20px/26px "Inter AO",system-ui,sans-serif;letter-spacing:-.015em}
+.conversa-m{margin-top:2px;font-size:13px;line-height:18px;color:var(--sky)}
+.msgs{display:flex;flex-direction:column;gap:8px;padding-top:6px}
+.sep{display:flex;justify-content:center;margin:14px 0 4px}
+.sep span{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;background:var(--plano);font-size:12px;font-weight:600;color:var(--ink-2)}
+.msg{display:flex}
+.msg.minha{justify-content:flex-end}
+.bolha{max-width:86%;padding:10px 13px 11px;background:var(--plano)}
+.minha .bolha{background:var(--blue);color:#FFFFFF}
+.msg-h{display:flex;gap:12px;align-items:baseline;justify-content:space-between;font-size:12px;line-height:16px;color:var(--ink-2);margin-bottom:3px}
+.msg-h b{font-size:13px;font-weight:600;color:var(--ink)}
+.minha .msg-h{color:var(--sky)}
+.minha .msg-h b{color:#FFFFFF}
+.msg-t{display:block;font-size:15px;line-height:21px;overflow-wrap:anywhere}
+.msg-t a{color:var(--accent);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+.compor{display:flex;gap:8px;align-items:center;width:100%}
+.campo{flex:1;min-width:0;display:flex;align-items:center;height:48px;padding:0 18px;border-radius:999px;box-shadow:inset 0 0 0 1.5px var(--field);font-size:15px;color:var(--ink-2)}
+.enviar{display:grid;place-items:center;width:48px;height:48px;flex:none;border-radius:50%;background:var(--off);color:var(--off-ink)}
+
+/* vazio: a construção da logo em tons de página */
+.vazio{display:flex;flex-direction:column;align-items:center;text-align:center;gap:18px;padding:84px 12px 0}
+.vazio svg{display:block}
+.vazio p{max-width:30ch;font-size:15px;line-height:22px;color:var(--ink-2);text-wrap:pretty}
+
+/* menu lateral: o plano #004891 que aparece quando o painel desliza */
+.gaveta{position:absolute;top:0;bottom:0;left:0;width:300px;z-index:1;display:flex;flex-direction:column;color:#FFFFFF;overflow:hidden}
+.dr-user{position:relative;display:flex;gap:14px;align-items:center;min-height:116px;padding:12px 16px 14px 112px}
+.dr-user>svg{position:absolute;left:0;top:0}
+.dr-nome{font-size:15px;line-height:20px;font-weight:600}
+.dr-meta{font-size:13px;line-height:18px;color:var(--sky)}
+.dr-nav{flex:1;min-height:0;margin:0 12px;border-top:1px solid var(--dr-rule)}
+.dr-g{font-size:13px;line-height:18px;font-weight:500;color:var(--sky);padding:14px 12px 6px}
+.dr-sep{height:1px;background:var(--dr-rule);margin:10px 0}
+.dr-item{display:flex;align-items:center;gap:14px;width:100%;height:48px;padding:0 14px;border-radius:999px;color:#FFFFFF;font-size:15px;text-align:left}
+.dr-item .i{color:var(--sky)}
+.dr-item[aria-current="page"]{background:#FFFFFF;color:var(--navy);font-weight:600}
+.dr-item[aria-current="page"] .i{color:var(--navy)}
+.dr-pe{display:flex;align-items:center;gap:4px;margin:8px 12px 26px;padding-top:8px;border-top:1px solid var(--dr-rule)}
+.dr-pe .dr-item{width:auto;padding:0 18px 0 14px}
+.dr-ver{flex:1;text-align:right;font-size:12px;color:var(--sky);font-variant-numeric:tabular-nums}
+
+/* folha inferior: borda reta, véu azul-marinho, sem sombra */
+.veu{position:absolute;inset:0;z-index:30;background:var(--veu)}
+.folha{position:absolute;left:0;right:0;bottom:0;z-index:31;display:flex;flex-direction:column;background:var(--bg);color:var(--ink)}
+.alca{flex:none;width:36px;height:4px;border-radius:2px;background:var(--ink-3);opacity:.55;margin:10px auto 0}
+.folha-h{flex:none;display:flex;align-items:center;gap:8px;padding:6px 6px 6px 20px;border-bottom:1.5px solid var(--head)}
+.folha-h h2{flex:1;font:600 18px/24px "Inter AO",system-ui,sans-serif;letter-spacing:-.01em;color:var(--head)}
+.folha-h span{font-size:13px;color:var(--ink-2);white-space:nowrap}
+.folha-h .ib{color:var(--ink)}
+.folha-c{flex:1;min-height:0;overflow:hidden}
+.folha .r{align-items:center;min-height:0;padding:14px 12px 14px 20px}
+
+/* login e abertura */
+.solo{flex:1;position:relative;min-height:0;display:flex;flex-direction:column}
+.login-topo{flex:none;position:relative;height:272px}
+.login-topo svg,.abertura svg.arte{position:absolute;left:0;top:-28px;display:block}
+.login-painel{flex:1;min-height:0;position:relative;z-index:2;background:var(--bg);padding:32px 24px 30px;display:flex;flex-direction:column}
+.login-painel h2{font:600 24px/30px "Inter AO Display","Inter AO",system-ui,sans-serif;letter-spacing:-.02em;color:var(--head)}
+.login-sub{margin:4px 0 22px;color:var(--ink-2);font-size:14px;line-height:20px}
+.fgrupo{box-shadow:inset 0 0 0 1.5px var(--field)}
+.frow{display:flex;align-items:center;gap:10px;min-height:56px;padding:0 4px 0 14px}
+.frow+.frow{border-top:1px solid var(--rule);margin:0 1.5px;padding-left:12.5px}
+.frow>.i{color:var(--ink-2);width:20px;height:20px}
+.frow-l{flex:none;width:80px;font-size:14px;line-height:20px;font-weight:600;color:var(--ink)}
+.frow-v{flex:1;min-width:0;font-size:15px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frow .ib{color:var(--ink-2)}
+.login-painel .bt-bloco{margin-top:22px}
+.link{display:block;width:100%;min-height:48px;margin-top:6px;color:var(--accent);font-size:14px;font-weight:600;text-align:center!important}
+.login-pe{margin-top:auto;text-align:center;font-size:12px;line-height:16px;color:var(--ink-2)}
+.abertura{flex:1;position:relative}
+.abertura p{position:absolute;left:48px;right:48px;top:584px;text-align:center;font-size:14px;line-height:20px;color:var(--sky)}
+.abertura .gira{position:absolute;left:50%;top:648px;margin-left:-14px}
+</style>
+</head>
+<body>
+<div class="pagina" id="pagina">
+  <header class="topo">
+    <div>
+      <h1>Plano bicolor na interface</h1>
+      <p class="lede">Variante da interface atual do app, a V3 “Agenda limpa”, desenhada a partir do tratamento <a href="../logo-atual/index.html#plano-bicolor">Plano bicolor</a> da logo. Arquitetura, textos e funções continuam os do app, com os dados fictícios da Marina em 2026.2. O que muda é a linguagem: superfícies chapadas em dois azuis, branco e azul claro, sem sombra borrada e sem gradiente. O disco e o anel que a logo ganha atrás do “O” viram cabeçalho, marcador de estado e estado vazio, sempre com as medidas tiradas da própria logo.</p>
+    </div>
+    <ul class="paleta" aria-label="Cores da variante">
+      <li><i style="background:#003468"></i><code>#003468</code>faixas e cabeçalho</li>
+      <li><i style="background:#004891"></i><code>#004891</code>ação, escolha, tarde</li>
+      <li><i style="background:#FFFFFF"></i><code>#FFFFFF</code>página e “O”</li>
+      <li><i style="background:#BBD0EC"></i><code>#BBD0EC</code>texto no azul, manhã</li>
+    </ul>
+  </header>
+  <section class="regras" id="regras" aria-label="Como a variante deriva da logo"></section>
+  <main id="grupos"></main>
+</div>
+
+<script src="../shared/logo.js"></script>
+<script src="../shared/data.js"></script>
+<script>
+(function () {
+'use strict';
+var D = window.AO_DATA;
+
+/* ---------------------------------------------------------------- utilidades */
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function fmt(n, d) { if (n == null || isNaN(n)) return '–'; d = d == null ? 1 : d; return Number(n).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+function joinPt(a) { return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' e ' + a[a.length - 1]; }
+function dur(min) { var h = Math.floor(min / 60), m = min % 60; if (!h) return m + ' min'; return h + 'h' + (m ? String(m).padStart(2, '0') : ''); }
+function range(a, b) { return a === b ? a : a + '–' + b; }
+function room(loc) { if (!loc) return 'Sala não informada'; var p = loc.split(' · '); return p[p.length - 1]; }
+function place(loc) { if (!loc) return ''; var p = loc.split(' · '); return p.slice(0, -1).join(' · '); }
+function dayNum(n) { return 11 + n; }
+function dayLabel(n) { return D.WEEKDAYS[n - 1].name + ', ' + dayNum(n) + ' de outubro'; }
+function find(a, f) { for (var i = 0; i < a.length; i++) if (f(a[i])) return a[i]; return null; }
+function slotIdx(id) { return D.SLOTS.indexOf(D.slot(id)); }
+function meetSummary(ms) {
+  if (!ms || !ms.length) return '';
+  var a = D.slot(ms[0].from), b = D.slot(ms[0].to);
+  return joinPt(ms.map(function (m) { return D.WEEKDAYS[m.day - 1].short; })) + ' · ' + range(a.id, b.id) + ' · ' + a.from + '–' + b.to;
+}
+function acronym(name) {
+  var stop = ['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'para', 'a', 'o'];
+  return name.split(' ').filter(function (w) { return stop.indexOf(w.toLowerCase()) < 0; }).map(function (w) { return /^[IVX]+$/.test(w) ? ' ' + w : w[0].toUpperCase(); }).join('');
+}
+function initials(name) { var w = name.split(' ').filter(Boolean); return (w[0][0] + w[w.length - 1][0]).toUpperCase(); }
+var SHIFT = { MORNING: { k: 'm', l: 'Manhã' }, AFTERNOON: { k: 'a', l: 'Tarde' }, NIGHT: { k: 'n', l: 'Noite' } };
+var HEALTH = { GOOD: { k: 'good', l: 'Bom' }, BAD: { k: 'warn', l: 'Atenção' }, CRITICAL: { k: 'bad', l: 'Crítico' }, NONE: { k: 'neu', l: 'Sem dado' } };
+function hp(v) { return HEALTH[D.health(v)]; }
+function st(k, l, icon) { return '<span class="st st-' + k + '">' + (icon ? ic(icon) : '<i aria-hidden="true"></i>') + esc(l) + '</span>'; }
+var TYPE_PL = { MANDATORY: 'Obrigatórias', RESTRICTED: 'Eletivas Restritas', DEFINED: 'Eletivas Definidas', UNIVERSAL: 'Universais' };
+
+/* ------------------------------------------------------------------ ícones
+   Desenhados aqui, num só traço (1,75 em 24), pontas e cantos redondos. */
+var IC = {
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  menu_open: '<path d="M4 7h11M4 12h8M4 17h11M20 8.5 16.5 12l3.5 3.5"/>',
+  back: '<path d="M20 12H4.5M10.5 6l-6 6 6 6"/>',
+  fwd: '<path d="M4 12h15.5M13.5 6l6 6-6 6"/>',
+  chev: '<path d="m9.5 6 6 6-6 6"/>',
+  down: '<path d="m6 9.5 6 6 6-6"/>',
+  close: '<path d="m6.5 6.5 11 11M17.5 6.5l-11 11"/>',
+  share: '<circle cx="17.5" cy="5.5" r="2.5"/><circle cx="6.5" cy="12" r="2.5"/><circle cx="17.5" cy="18.5" r="2.5"/><path d="m8.7 10.7 6.6-3.9M8.7 13.3l6.6 3.9"/>',
+  home: '<path d="M4 10.2 12 4l8 6.2V20h-5.5v-6h-5v6H4z"/>',
+  progress: '<path d="M4 20h16M6.5 16.5v-3M10.5 16.5v-7M14.5 16.5v-5M18.5 16.5v-11"/>',
+  done: '<circle cx="12" cy="12" r="8.5"/><path d="m8.3 12.3 2.6 2.6 4.9-5"/>',
+  tree: '<path d="M3.5 4.5h7v5h-7zM13.5 4.5h7v5h-7zM13.5 14.5h7v5h-7zM7 9.5V17h6.5"/>',
+  globe: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.3 2.4 3.5 5.2 3.5 8.5s-1.2 6.1-3.5 8.5c-2.3-2.4-3.5-5.2-3.5-8.5S9.7 5.9 12 3.5z"/>',
+  search: '<circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/>',
+  gen: '<path d="M4 5.5h16V20H4zM4 10h16M8 3v4M16 3v4M7.5 13.5h2M11 13.5h2M7.5 16.5h2"/><path d="m14.5 18.5 4-4"/>',
+  forum: '<path d="M3.5 4.5h12v9h-7l-5 4z"/><path d="M18.5 8.5h2v11L17 16.7h-7V16"/>',
+  info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.9v.1"/>',
+  logout: '<path d="M10 4H5v16h5M14.5 8l4 4-4 4M18.5 12H9.5"/>',
+  sun: '<circle cx="12" cy="12" r="3.8"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/>',
+  eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+  id: '<path d="M3.5 5.5h17v13h-17z"/><circle cx="9" cy="10.5" r="2"/><path d="M5.8 15.5c.6-1.4 1.8-2.2 3.2-2.2s2.6.8 3.2 2.2M14.5 10h3.5M14.5 13.5h3.5"/>',
+  lock: '<path d="M5.5 10.5h13v10h-13zM8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
+  send: '<path d="M20 4 4 10.6l6.4 2.9L13.3 20z"/><path d="M10.4 13.5 20 4"/>',
+  refresh: '<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4.5H15"/>',
+  tune: '<path d="M4 7h8.5M17.5 7H20M4 17h2.5M11.5 17H20"/><circle cx="15" cy="7" r="2.5"/><circle cx="9" cy="17" r="2.5"/>',
+  trash: '<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/>',
+  check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  cal: '<path d="M4 5.5h16V20H4zM4 10h16M8 3v4M16 3v4"/>'
+};
+function ic(n, cls) { return '<svg class="i' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + IC[n] + '</svg>'; }
+/* turnos: o dia enche o disco (anel vazio de manhã, meio disco à tarde, disco cheio à noite) */
+function turno(k) {
+  var s = '<svg class="turno" viewBox="0 0 12 12" aria-hidden="true" focusable="false">';
+  if (k === 'm') s += '<circle cx="6" cy="6" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/>';
+  if (k === 'a') s += '<circle cx="6" cy="6" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 1.4a4.6 4.6 0 0 1 0 9.2z" fill="currentColor"/>';
+  if (k === 'n') s += '<circle cx="6" cy="6" r="5.4" fill="currentColor"/>';
+  return s + '</svg>';
+}
+
+/* --------------------------------------------------------------- logo e órbita
+   Os 20 paths de src/assets/AO_Logo.svg (via shared/logo.js), sem alteração.
+   Medidas do tratamento Plano bicolor, em unidades da logo: centro do “O” (409,22 ; 177,85),
+   raio do “O” 177,7; disco 270,61 (1,52 R); anel de 371,17 a 446,08 (2,09 a 2,51 R). */
+var OX = 409.22, OY = 177.85, RO = 177.7, RD = 270.61, RA = 408.62, WA = 74.91;
+document.body.insertAdjacentHTML('afterbegin',
+  '<svg class="defs" width="0" height="0" aria-hidden="true" focusable="false"><defs>' +
+  '<g id="ao">' + window.AO_LOGO.inner + '</g>' +
+  '<clipPath id="corte-o" clipPathUnits="userSpaceOnUse"><path d="M409.22,355.55A177.7 177.7 0 0 1 258.4,83.9L300,-40L660,-40L660,420L409.22,420Z"/></clipPath>' +
+  '<g id="logo-2t"><use href="#ao" fill="#BBD0EC"/><use href="#ao" fill="#FFFFFF" clip-path="url(#corte-o)"/></g>' +
+  '</defs></svg>');
+function n2(v) { return Math.round(v * 100) / 100; }
+/* órbita com o centro do “O” em (cx, cy) e escala s (px por unidade da logo) */
+function orb(cx, cy, s, o) {
+  o = o || {};
+  var r = '';
+  if (o.disc !== false) r += '<circle cx="' + n2(cx) + '" cy="' + n2(cy) + '" r="' + n2(RD * s) + '" fill="' + (o.cor || '#004891') + '"/>';
+  if (o.ring !== false) r += '<circle cx="' + n2(cx) + '" cy="' + n2(cy) + '" r="' + n2(RA * s) + '" fill="none" stroke="' + (o.cor || '#004891') + '" stroke-width="' + n2(WA * s) + '"/>';
+  if (o.o) r += '<circle cx="' + n2(cx) + '" cy="' + n2(cy) + '" r="' + n2(RO * s) + '" fill="' + o.o + '"/>';
+  if (o.logo) r += '<use href="#logo-2t" transform="translate(' + n2(cx - OX * s) + ' ' + n2(cy - OY * s) + ') scale(' + n2(s * 1e4) / 1e4 + ')"/>';
+  return r;
+}
+/* selo do cabeçalho: logo de 38 px com o disco (em 48 dp o anel sai, como no ícone) */
+function selo() {
+  var s = 38 / 586.8;
+  return '<svg class="selo" viewBox="0 0 48 48" aria-hidden="true" focusable="false">' + orb(29.5, 24, s, { ring: false, logo: true }) + '</svg>';
+}
+/* quarto de órbita no canto inferior direito de uma faixa: o “O” é a própria página subindo */
+function orbCanto(h, page) {
+  var s = 84 / (RA + WA / 2);
+  return '<svg class="orb" width="96" height="' + h + '" viewBox="0 0 96 ' + h + '" aria-hidden="true" focusable="false">' + orb(96, h, s, { o: page }) + '</svg>';
+}
+
+/* --------------------------------------------------------------- moldura */
+var SB_IC = '<svg width="52" height="12" viewBox="0 0 52 12" fill="currentColor" aria-hidden="true"><path d="M1 10h2v1H1zM5 8h2v3H5zM9 5.5h2V11H9zM13 3h2v8h-2z"/><path d="M26 11.2 19.6 5a9 9 0 0 1 12.8 0z"/><rect x="36" y="2" width="13" height="8" rx="2.2" fill="none" stroke="currentColor" stroke-width="1"/><rect x="37.6" y="3.6" width="8.4" height="4.8" rx="1"/><rect x="49.6" y="4.4" width="1.4" height="3.2" rx=".7"/></svg>';
+function sb() { return '<div class="sb" aria-hidden="true"><span>' + D.now.time + '</span>' + SB_IC + '</div><span class="camera" aria-hidden="true"></span>'; }
+function appbar(lead, title) {
+  var labels = { menu: 'Abrir menu', menu_open: 'Fechar menu', back: 'Voltar' };
+  return '<header class="appbar"><button class="ib" aria-label="' + labels[lead] + '">' + ic(lead) + '</button><span class="t">' + esc(title) + '</span>' +
+    '<button class="ib" aria-label="Sobre o AO UERJ">' + selo() + '</button></header>';
+}
+function tela(o) {
+  var h = '<div class="tela' + (o.dark ? ' escuro' : '') + '" id="' + o.id + '">' + sb();
+  if (o.solo) {
+    h += '<div class="solo">' + o.solo + '</div>';
+  } else {
+    h += appbar(o.lead || 'menu', o.title) +
+      '<div class="corpo' + (o.drawer ? ' aberto' : '') + '">' + (o.drawer ? gaveta() : '') +
+      '<div class="painel">' + (o.top || '') + '<div class="rolagem">' + o.body + '</div>' + (o.foot ? '<div class="rodape">' + o.foot + '</div>' : '') + '</div></div>';
+  }
+  if (o.sheet) h += o.sheet;
+  h += '<div class="gesto' + (o.gestoClaro ? ' claro' : '') + '" aria-hidden="true"><i></i></div></div>';
+  return h;
+}
+
+/* ================================================================ telas */
+
+/* abertura: a composição do splash da logo (360 × 780) na tela de 390 × 844 */
+function sSplash() {
+  var k = 390 / 360;
+  var art = '<svg class="arte" width="390" height="844" viewBox="0 0 360 780" aria-hidden="true" focusable="false">' +
+    '<rect width="360" height="780" fill="#003468"/>' + orb(226.33, 367.96, 0.4, { logo: true }) + '</svg>';
+  var spin = '<svg class="gira" width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="11.5" fill="none" stroke="#004891" stroke-width="3.5"/><path d="M14 2.5A11.5 11.5 0 0 1 25.5 14" fill="none" stroke="#FFFFFF" stroke-width="3.5"/></svg>';
+  return tela({ id: 't-splash', gestoClaro: true, solo: '<div class="abertura" role="status">' + art + '<p>' + esc(D.copy.loading) + '</p>' + spin + '</div>' });
+}
+
+/* login: a órbita sangra por cima e pela direita; o painel branco corta o anel em linha reta */
+function sLogin() {
+  var s = 0.37, cx = 236, cy = 150;
+  var art = '<svg width="390" height="300" viewBox="0 0 390 300" aria-hidden="true" focusable="false"><rect width="390" height="300" fill="#003468"/>' + orb(cx, cy, s, { logo: true }) + '</svg>';
+  var form = '<h2>Entre com sua conta</h2><p class="login-sub">Use a mesma matrícula e senha do Aluno Online.</p>' +
+    '<div class="fgrupo"><div class="frow">' + ic('id') + '<span class="frow-l">Matrícula</span><span class="frow-v">Digite sua matrícula</span></div>' +
+    '<div class="frow">' + ic('lock') + '<span class="frow-l">Senha</span><span class="frow-v">Digite sua senha</span><button class="ib" aria-label="Mostrar senha">' + ic('eye', 'sm') + '</button></div></div>' +
+    '<button class="bt bt-bloco">Entrar</button><button class="link">Não possui acesso ou esqueceu a senha?</button>' +
+    '<p class="login-pe">Aplicativo não oficial e de código aberto · Versão ' + D.version + '</p>';
+  return tela({ id: 't-login', solo: '<div class="login-topo">' + art + '</div><div class="login-painel">' + form + '</div>' });
+}
+
+/* menu lateral */
+var NAV = [
+  { group: 'Acadêmico', items: [['Início', 'home'], ['Meu Progresso', 'progress'], ['Disciplinas Realizadas', 'done'], ['Disciplinas do Currículo', 'tree'], ['Disciplinas Universais', 'globe'], ['Pesquisa de Disciplinas', 'search']] },
+  { group: 'Ferramentas', items: [['Gerador de Grade', 'gen'], ['Mural de Mensagens', 'forum']] },
+  { group: null, items: [['Sobre', 'info']] }
+];
+function gaveta() {
+  var s = D.student, r = 22, k = r / RO;
+  /* avatar = o “O”: disco e anel em azul-marinho, tom sobre tom, sangrando pela esquerda e por cima */
+  var av = '<svg width="112" height="116" viewBox="0 0 112 116" aria-hidden="true" focusable="false">' + orb(46, 50, k, { cor: '#003468', o: '#FFFFFF' }) +
+    '<text x="46" y="55.5" text-anchor="middle" font-family="Inter AO, sans-serif" font-size="15" font-weight="700" fill="#003468" letter-spacing=".3">' + initials(s.name) + '</text></svg>';
+  var h = '<nav class="gaveta" aria-label="Menu principal"><div class="dr-user">' + av +
+    '<div><div class="dr-nome">' + esc(s.name) + '</div><div class="dr-meta tn">Matrícula ' + s.matricula + '</div><div class="dr-meta">' + esc(s.course) + '</div></div></div><div class="dr-nav">';
+  NAV.forEach(function (g) {
+    h += g.group ? '<div class="dr-g">' + g.group + '</div>' : '<div class="dr-sep" role="separator"></div>';
+    g.items.forEach(function (it) { h += '<button class="dr-item"' + (it[0] === 'Início' ? ' aria-current="page"' : '') + '>' + ic(it[1]) + '<span>' + it[0] + '</span></button>'; });
+  });
+  return h + '</div><div class="dr-pe"><button class="dr-item">' + ic('logout') + '<span>Sair</span></button><span class="dr-ver">Versão ' + D.version + '</span><button class="ib" aria-label="Usar tema escuro">' + ic('sun') + '</button></div></nav>';
+}
+
+/* ------------------------------------------------------------------ início */
+function faixaInicio(dark) {
+  return '<div class="faixa" style="height:96px">' + orbCanto(96, dark ? '#0B1626' : '#FFFFFF') +
+    '<div class="greet"><h2>Olá, ' + esc(D.student.firstName) + '</h2><p>' + esc(D.now.label) + '</p></div></div>';
+}
+function proxSection() {
+  var c = D.nextClass(), sh = SHIFT[c.shift];
+  var when = c.ongoing ? '<b>Agora</b>' : c.inMinutes != null ? 'Hoje · <b>em ' + dur(c.inMinutes) + '</b>' : '<b>' + c.dayName + '</b>';
+  return '<section class="sec" aria-labelledby="hProx"><div class="sec-h"><h2 id="hProx">Próxima aula</h2><span class="sec-when">' + when + '</span></div>' +
+    '<button class="prox" aria-label="' + esc(c.name + ', ' + c.fromTime + ' às ' + c.toTime + ', ' + room(c.location)) + '. Ver disciplinas em curso">' +
+    '<span class="prox-hora"><b>' + c.fromTime + '</b><span>até ' + c.toTime + '</span></span>' +
+    '<span class="prox-main"><span class="prox-nome">' + esc(c.name) + '</span>' +
+    '<span class="prox-lin"><span class="tr">' + turno(sh.k) + sh.l + '</span><span>' + range(c.fromSlot, c.toSlot) + ' · ' + esc(room(c.location)) + '</span></span>' +
+    (place(c.location) ? '<span class="prox-meta">' + esc(place(c.location)) + '</span>' : '') + '</span>' + ic('chev') + '</button></section>';
+}
+function lastGrade(g) { return g.result != null ? g.result : g.pf != null ? g.pf : g.p2 != null ? g.p2 : g.p1; }
+function lastGradeName(g) { return g.result != null ? 'média' : g.pf != null ? 'PF' : g.p2 != null ? 'P2' : 'P1'; }
+function gcell(v) { if (v == null) return '<td><span class="gp gp-none" aria-label="sem nota">–</span></td>'; return '<td><span class="gp gp-' + hp(v).k + '">' + fmt(v) + '</span></td>'; }
+function notasSection() {
+  var rows = D.grades.map(function (g) {
+    var v = lastGrade(g), h = hp(v);
+    var sub = v == null ? st('neu', 'Sem notas lançadas') : st(h.k, h.l + ' na ' + lastGradeName(g));
+    return '<tr><th scope="row"><span class="gt-nome">' + esc(g.name) + '</span><span class="gt-sub">' + sub + '</span></th>' + gcell(g.p1) + gcell(g.p2) + gcell(g.pf) + gcell(g.result) + '</tr>';
+  }).join('');
+  return '<section class="sec" aria-labelledby="hNotas"><div class="sec-h"><h2 id="hNotas">Notas</h2></div>' +
+    '<table class="gt"><caption class="sr">Notas do período ' + D.student.period + '</caption><colgroup><col><col class="n"><col class="n"><col class="n"><col class="n" style="width:50px"></colgroup>' +
+    '<thead><tr><th scope="col">Disciplina</th><th scope="col">P1</th><th scope="col">P2</th><th scope="col">PF</th><th scope="col">Média</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+    '<p class="legend">' + st('good', 'Bom: 7 ou mais') + st('warn', 'Atenção: 5 a 6,9') + st('bad', 'Crítico: abaixo de 5') + '</p></section>';
+}
+function semanaSection(sel) {
+  var days = D.WEEKDAYS.map(function (w) {
+    var has = D.schedule.some(function (c) { return c.day === w.n; });
+    var today = w.n === D.now.weekday, on = w.n === sel;
+    return '<button class="dia' + (today ? ' hoje' : '') + '" role="tab" aria-selected="' + on + '" aria-label="' + w.name + ', ' + dayNum(w.n) + ' de outubro' + (today ? ', hoje' : '') + (has ? '' : ', sem aulas') + '">' +
+      '<small>' + w.short + '</small><b>' + dayNum(w.n) + '</b><i class="' + (has ? 'tem' : '') + '"></i></button>';
+  }).join('');
+  return '<section class="sec sec-semana" aria-labelledby="hSem"><div class="sec-h"><h2 id="hSem">Semana</h2><button class="bt bt-txt" style="margin-right:-12px">' + ic('share') + 'Compartilhar grade</button></div>' +
+    '<div class="dias" role="tablist" aria-label="Dias da semana">' + days + '</div>' + dayView(sel) + '</section>';
+}
+var CAL_K = 0.8, CAL_PAD = 10;
+function agoraSVG() {
+  return '<svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="10" fill="var(--bg)"/><circle cx="11" cy="11" r="7.6" fill="none" stroke="var(--accent)" stroke-width="2"/><circle cx="11" cy="11" r="4.2" fill="var(--accent)"/></svg>';
+}
+function dayView(n) {
+  var list = D.schedule.filter(function (c) { return c.day === n; });
+  var today = n === D.now.weekday, now = D.now.minutes;
+  var head = '<p class="dv-head"><span>' + esc(dayLabel(n)) + '</span>' + (today ? '<span class="tag-anel">Hoje</span>' : '') + (list.length ? '<span class="dv-n">' + plural(list.length, 'aula', 'aulas') + '</span>' : '') + '</p>';
+  var first = list[0].start, last = list[list.length - 1].end;
+  if (today) { first = Math.min(first, now); last = Math.max(last, now); }
+  var lo = Math.floor(first / 60) * 60, hi = Math.ceil(last / 60) * 60;
+  function y(m) { return CAL_PAD + (m - lo) * CAL_K; }
+  var nowY = today ? y(now) : null, nowDone = false;
+  function nowMark() { nowDone = true; return '<div class="agora" style="top:' + nowY + 'px"><b aria-hidden="true">' + D.now.time + '</b>' + agoraSVG() + '<span class="sr">Agora, ' + D.now.time + '</span></div>'; }
+  var o = '';
+  for (var h = lo; h <= hi; h += 60) {
+    var hide = nowY != null && Math.abs(y(h) - nowY) < 14;
+    o += '<div class="cal-hr' + (hide ? ' mudo' : '') + '" style="top:' + y(h) + 'px" aria-hidden="true"><span>' + (h / 60) + 'h</span></div>';
+  }
+  list.forEach(function (c, i) {
+    var prev = list[i - 1];
+    if (prev && c.start - prev.end >= 40) {
+      var ft = y(prev.end) + 4, fb = y(c.start) - 4, mid = (ft + fb) / 2, pos = '';
+      if (nowY != null && nowY > ft && nowY < fb && Math.abs(nowY - mid) < 16) pos = nowY > mid ? ' cima' : ' baixo';
+      o += '<div class="livre' + pos + '" style="top:' + ft + 'px;height:' + (fb - ft) + 'px">Livre · ' + dur(c.start - prev.end) + '</div>';
+    }
+    if (nowY != null && !nowDone && c.start > now) o += nowMark();
+    var sh = SHIFT[c.shift], past = today && c.end <= now;
+    var tag = past ? ic('check', 'xs') + 'Encerrada' : turno(sh.k) + sh.l;
+    o += '<button class="ev ' + (past ? 'fim' : sh.k) + '" style="top:' + (y(c.start) + 1) + 'px;height:' + ((c.end - c.start) * CAL_K - 2) + 'px" aria-label="' + esc(c.name + ', ' + c.fromTime + ' às ' + c.toTime + ', ' + room(c.location) + (past ? ', encerrada' : ', ' + sh.l)) + '">' +
+      '<span class="ev-nome">' + esc(c.name) + '</span><span class="ev-meta tn">' + c.fromTime + '–' + c.toTime + ' · ' + range(c.fromSlot, c.toSlot) + ' · ' + esc(room(c.location)) + '</span>' +
+      '<span class="ev-st">' + tag + '</span></button>';
+  });
+  if (nowY != null && !nowDone) o += nowMark();
+  return head + '<div class="cal" style="height:' + (y(hi) + CAL_PAD) + 'px">' + o + '</div>';
+}
+function inicioBody(dark) { return faixaInicio(dark) + proxSection() + notasSection() + semanaSection(D.now.weekday); }
+function sInicio(id, dark) { return tela({ id: id, dark: dark, title: D.student.period, body: inicioBody(dark) }); }
+
+/* folha: Disciplinas em Curso, aberta pelo card da próxima aula */
+function sFolha() {
+  var focus = D.nextClass().subjectId;
+  var list = D.enrolled.filter(function (e) { return e.status === 'ACTIVE'; }).concat(D.enrolled.filter(function (e) { return e.status !== 'ACTIVE'; }));
+  var rows = list.map(function (e) {
+    var canceled = e.status === 'CANCELED';
+    var tag = canceled ? 'div' : 'button';
+    return '<' + tag + ' class="r' + (e.id === focus ? ' foco' : '') + '"><span class="r-main"><span class="r-t">' + esc(e.name) + '</span><span class="r-m">' + e.id + ' · Turma ' + e.class + '</span>' +
+      (canceled ? '<span style="margin-top:4px">' + st('neu', 'Cancelada') + '</span>' :
+        '<span class="r-m tn">' + meetSummary(e.meetings) + '</span><span class="r-m">' + esc(e.location || 'Sala não informada') + '</span>' + (e.ava ? '<span class="r-m">Sala virtual (AVA): ' + esc(e.ava) + '</span>' : '')) +
+      '</span>' + (canceled ? '' : ic('chev', 'sm')) + '</' + tag + '>';
+  }).join('');
+  var active = D.enrolled.filter(function (e) { return e.status === 'ACTIVE'; }).length;
+  var sheet = '<div class="veu" aria-hidden="true"></div><section class="folha" role="dialog" aria-modal="true" aria-labelledby="hFolha" style="top:206px"><div class="alca" aria-hidden="true"></div>' +
+    '<div class="folha-h"><h2 id="hFolha">Disciplinas em Curso</h2><span>' + plural(active, 'ativa', 'ativas') + '</span><button class="ib" aria-label="Fechar">' + ic('close') + '</button></div>' +
+    '<div class="folha-c"><div class="linhas" style="margin:0">' + rows + '</div></div></section>';
+  return tela({ id: 't-folha', title: D.student.period, body: inicioBody(false), sheet: sheet });
+}
+
+/* ------------------------------------------------------------ meu progresso */
+function crChart() {
+  var pts = D.craPoints, W = 338, H = 206, L = 28, R = 22, T = 26, B = 30, lo = 5, hi = 9;
+  function x(i) { return L + i * (W - L - R) / (pts.length - 1); }
+  function y(v) { return T + (hi - v) * (H - T - B) / (hi - lo); }
+  var g = '';
+  for (var v = lo; v <= hi; v++) g += '<line class="ch-g" x1="' + L + '" x2="' + (W - R + 8) + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text class="ch-y" x="' + (L - 10) + '" y="' + (y(v) + 4) + '">' + v + '</text>';
+  var cr = pts.map(function (p, i) { return x(i).toFixed(1) + ',' + y(p.cra).toFixed(1); }).join(' ');
+  var md = pts.map(function (p, i) { return x(i).toFixed(1) + ',' + y(p.periodAverage).toFixed(1); }).join(' ');
+  var mdots = pts.map(function (p, i) { return '<circle class="ch-mp" cx="' + x(i) + '" cy="' + y(p.periodAverage) + '" r="2.5"/>'; }).join('');
+  var dots = pts.map(function (p, i) {
+    var prev = pts[i - 1], next = pts[i + 1], last = i === pts.length - 1;
+    var valley = prev && next && prev.cra > p.cra && next.cra > p.cra;
+    var below = valley || p.periodAverage > p.cra + 0.05;
+    var mark = last ? '<circle class="ch-anel" cx="' + x(i) + '" cy="' + y(p.cra) + '" r="9"/><circle class="ch-atual" cx="' + x(i) + '" cy="' + y(p.cra) + '" r="5"/>'
+      : '<circle class="ch-ponto" cx="' + x(i) + '" cy="' + y(p.cra) + '" r="4"/>';
+    /* o primeiro rótulo vai para a direita do ponto, longe da coluna do eixo; o do vale fica centrado
+       embaixo, entre as duas pernas da linha tracejada */
+    if (i === 0) return mark + '<text class="ch-v" text-anchor="start" style="text-anchor:start" x="' + (x(i) + 9) + '" y="' + (y(p.cra) - 5) + '">' + fmt(p.cra, 2) + '</text>';
+    return mark + '<text class="ch-v" x="' + x(i) + '" y="' + (below ? y(p.cra) + (last ? 24 : 19) : y(p.cra) - (last ? 14 : 10)) + '">' + fmt(p.cra, 2) + '</text>';
+  }).join('');
+  var xl = pts.map(function (p, i) { return '<text class="ch-x" x="' + x(i) + '" y="' + (H - 6) + '">' + p.label + '</text>'; }).join('');
+  var a = pts[0], z = pts[pts.length - 1];
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="CR acumulado de ' + a.label + ' a ' + z.label + ': de ' + fmt(a.cra, 2) + ' para ' + fmt(z.cra, 2) + '">' +
+    g + '<polyline class="ch-md" points="' + md + '"/>' + mdots + '<polyline class="ch-cr" points="' + cr + '"/>' + dots + xl + '</svg>';
+}
+function sProgresso() {
+  var P = D.academicProgress(D.electiveConfig);
+  var band = '<div class="faixa" style="height:100px;padding-top:6px">' + orbCanto(100, '#FFFFFF') +
+    '<div class="stats"><div class="stat"><b>' + P.approvedCount + '</b><span>Disciplinas concluídas</span></div><div class="stat"><b>' + fmt(D.currentCRA, 2) + '</b><span>CR aproximado</span></div></div></div>';
+  var rows = P.order.map(function (t) {
+    var mand = t === 'MANDATORY', req = P.requiredCredits[t];
+    var done = mand ? P.completed[t] : P.completedCredits[t], total = mand ? P.totals[t] : req, unit = mand ? 'disciplinas' : 'créditos', left = Math.max(0, total - done);
+    return '<div class="caminho"><div class="cam-top"><span>' + TYPE_PL[t] + '</span><b>' + P.percent[t] + '%</b></div>' +
+      '<span class="barra" role="progressbar" aria-label="' + TYPE_PL[t] + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + P.percent[t] + '"><i style="width:' + P.percent[t] + '%"></i></span>' +
+      '<span class="meta">' + done + ' de ' + total + ' ' + unit + (left ? ' · faltam ' + left : ' · concluído') + '</span></div>';
+  }).join('');
+  var body = band + '<p class="nota-p">' + ic('info') + 'O CR é calculado pelo app a partir do seu histórico e pode ser diferente do oficial.</p>' +
+    '<section class="sec" aria-labelledby="hCr"><div class="sec-h"><h2 id="hCr">Evolução do CR</h2></div>' +
+    '<div class="ch-leg" aria-hidden="true"><span><i class="lg-cr"></i>CR acumulado</span><span><i class="lg-md"></i>Média do período</span></div>' +
+    '<div class="grafico">' + crChart() + '</div></section>' +
+    '<section class="sec" aria-labelledby="hCam"><div class="sec-h"><h2 id="hCam">Seu caminho no currículo</h2><button class="ib" style="margin-right:-12px;color:var(--ink-2)" aria-label="Configurar créditos exigidos">' + ic('tune') + '</button></div>' + rows + '</section>';
+  return tela({ id: 't-progresso', title: 'Meu Progresso', body: body });
+}
+
+/* ----------------------------------------------------------------- gerador */
+var STEPS = ['Qtd. Disciplinas', 'Horários Ocupados', 'Prioridades', 'Selecionar Disciplinas', 'Carregar Dados', 'Turmas', 'Gerar Grade'];
+function passos(step) {
+  return '<ol class="passos" aria-label="Passos do gerador">' + STEPS.map(function (l, i) {
+    var n = i + 1, cls = n < step ? 'feito' : n === step ? 'atual' : '';
+    return '<li class="' + cls + '"' + (n === step ? ' aria-current="step"' : '') + '><button' + (n > step ? ' disabled' : '') + '><span class="sn">' + (n < step ? ic('check') : n) + '</span><span>' + l + '</span></button></li>';
+  }).join('') + '</ol>';
+}
+function sGerador2() {
+  var busy = {};
+  D.generator.defaultBusy.forEach(function (b) { busy[b.day + '-' + b.slot] = true; });
+  var head = '<div class="go-l go-cab" aria-hidden="true"><span></span>' + D.WEEKDAYS.map(function (w) { return '<span>' + w.short + '</span>'; }).join('') + '</div>';
+  var groups = [['M', 'Manhã'], ['T', 'Tarde'], ['N', 'Noite']].map(function (sg) {
+    var ids = D.SLOTS.filter(function (s) { return s.id[0] === sg[0]; });
+    return '<div class="go-turno" id="go-' + sg[0] + '">' + sg[1] + '<span>' + ids[0].id + '–' + ids[ids.length - 1].id + '</span></div>' + ids.map(function (s) {
+      return '<div class="go-l" id="go-' + s.id + '"><span class="go-t"><b>' + s.id + '</b>' + s.from + '</span>' + D.WEEKDAYS.map(function (w) {
+        var on = !!busy[w.n + '-' + s.id];
+        return '<button class="cel-o" aria-pressed="' + on + '" aria-label="' + w.name + ', ' + s.id + ', ' + s.from + ' às ' + s.to + '"></button>';
+      }).join('') + '</div>';
+    }).join('');
+  }).join('');
+  var n = D.generator.defaultBusy.length;
+  var body = '<h2 class="passo-t">Quando você está ocupado?</h2>' +
+    '<p class="passo-d">Dica: toque para marcar, toque e segure para o período do dia. Você também pode usar os atalhos abaixo.</p>' +
+    '<div class="atalhos" role="group" aria-label="Turno inteiro ocupado"><span>Turno inteiro ocupado</span>' +
+    [['m', 'Manhã'], ['a', 'Tarde'], ['n', 'Noite']].map(function (t) { return '<button class="chip" aria-pressed="false">' + turno(t[0]) + t[1] + '</button>'; }).join('') + '</div>' +
+    '<div class="ocup-bar"><span class="ocup-n"><i class="q" aria-hidden="true"></i><span>Ocupado: ' + plural(n, 'tempo', 'tempos') + '</span><i class="q livre-q" aria-hidden="true"></i><span>Livre</span></span>' +
+    '<button class="bt bt-txt" style="margin-right:-12px">' + ic('trash') + 'Limpar tudo</button></div>' +
+    '<div class="grade-o" id="gradeO">' + head + groups + '</div>';
+  var foot = '<button class="bt bt-cont">' + ic('back') + 'Anterior</button><button class="bt">Próximo' + ic('fwd') + '</button>';
+  return tela({ id: 't-gerador2', title: 'Gerador de Grade', top: passos(2), body: body, foot: foot });
+}
+function resGrid(res) {
+  var used = [];
+  res.items.forEach(function (it) { it.meetings.forEach(function (m) { used.push(slotIdx(m.from), slotIdx(m.to)); }); });
+  var lo = Math.min.apply(null, used), hi = Math.max.apply(null, used);
+  var days = [1, 2, 3, 4, 5];
+  var h = '<div class="wk" role="img" aria-label="Grade semanal com ' + res.items.length + ' disciplinas" style="grid-template-columns:34px repeat(' + days.length + ',1fr);grid-template-rows:26px repeat(' + (hi - lo + 1) + ',30px)">';
+  h += days.map(function (d, i) { return '<span class="wk-h" style="grid-row:1;grid-column:' + (i + 2) + '">' + D.WEEKDAYS[d - 1].short + '</span>'; }).join('');
+  for (var r = lo; r <= hi; r++) {
+    h += '<span class="wk-t" style="grid-row:' + (r - lo + 2) + ';grid-column:1">' + D.SLOTS[r].id + '</span>';
+    days.forEach(function (d, i) { h += '<span class="wk-c" style="grid-row:' + (r - lo + 2) + ';grid-column:' + (i + 2) + '"></span>'; });
+  }
+  res.items.forEach(function (it) {
+    it.meetings.forEach(function (m) {
+      var a = slotIdx(m.from), b = slotIdx(m.to), sh = SHIFT[D.shiftOf(D.SLOTS[a].start)];
+      h += '<span class="wk-b ' + sh.k + '" style="grid-row:' + (a - lo + 2) + '/' + (b - lo + 3) + ';grid-column:' + (days.indexOf(m.day) + 2) + '"><b>' + acronym(it.name) + '</b><span>' + range(m.from, m.to) + '</span></span>';
+    });
+  });
+  h += '</div><p class="wk-turnos" aria-hidden="true"><span class="m">' + turno('m') + 'Manhã</span><span class="a">' + turno('a') + 'Tarde</span><span class="n">' + turno('n') + 'Noite</span></p>';
+  h += '<div class="wk-key">' + res.items.map(function (it) { return '<span><b>' + acronym(it.name) + '</b>' + esc(it.name) + ' · Turma ' + it.class + '</span>'; }).join('') + '</div>';
+  return h;
+}
+function sGerador7(id, dark) {
+  var R = D.generator.results, res = R[0];
+  var body = '<h2 class="passo-t">Veja abaixo as grades geradas</h2>' +
+    '<div class="segm" role="tablist" aria-label="Grades geradas">' + R.map(function (r, j) { return '<button role="tab" aria-selected="' + (j === 0) + '">' + (j === 0 ? ic('check') : '') + 'Grade ' + (j + 1) + '</button>'; }).join('') + '</div>' +
+    '<div class="res-sum"><span><b>' + res.items.length + '</b>disciplinas</span><span><b>' + res.credits + '</b>créditos</span><span><b>' + res.workload + '</b>horas</span></div>' +
+    '<div class="abas" role="tablist"><button role="tab" aria-selected="false">Informações</button><button role="tab" aria-selected="true">Horários</button></div>' + resGrid(res);
+  var foot = '<button class="bt bt-cont" style="flex:0 0 132px">' + ic('back') + 'Anterior</button><button class="bt">' + ic('refresh') + 'Gerar outra grade</button>';
+  return tela({ id: id || 't-gerador7', dark: dark, title: 'Gerador de Grade', top: passos(7), body: body, foot: foot });
+}
+
+/* ------------------------------------------------------------------- mural */
+function sMural() {
+  var rows = D.enrolled.filter(function (e) { return e.status === 'ACTIVE'; }).map(function (e) {
+    var m = D.messages[e.id] || [], last = m[m.length - 1];
+    return '<button class="r"><span class="sigla" aria-hidden="true">' + acronym(e.name) + '</span><span class="r-main"><span class="r-t">' + esc(e.name) + '</span><span class="r-m">' + e.id + ' · Turma ' + e.class + '</span>' +
+      '<span class="r-m">' + (m.length ? plural(m.length, 'mensagem', 'mensagens') + ' · última em ' + last.at : 'Nenhuma mensagem ainda') + '</span></span>' + ic('chev', 'sm') + '</button>';
+  }).join('');
+  return tela({ id: 't-mural', title: 'Mural de Mensagens', body: '<p class="lead">Escolha a disciplina para abrir o mural da turma.</p><div class="linhas">' + rows + '</div>' });
+}
+function linkify(t) { return esc(t).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>'); }
+function dateLabel(at) {
+  var p = at.split('/'), d = new Date(+p[2], +p[1] - 1, +p[0]);
+  if (at === '13/10/2026') return 'Hoje';
+  if (at === '12/10/2026') return 'Ontem';
+  return ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][d.getDay()] + ', ' + (+p[0]) + ' de outubro';
+}
+function sConversa() {
+  var e = find(D.enrolled, function (x) { return x.id === 'IME02-10892'; });
+  var list = D.messages[e.id], lastDate = null;
+  var msgs = list.map(function (m) {
+    var sep = m.at !== lastDate ? '<div class="sep"><span>' + dateLabel(m.at) + '</span></div>' : '';
+    lastDate = m.at;
+    return sep + '<div class="msg' + (m.mine ? ' minha' : '') + '"><div class="bolha" role="button" tabindex="0" aria-label="Mensagem de ' + esc(m.mine ? 'você' : m.author) + ', ' + m.time + '. Toque para copiar">' +
+      '<span class="msg-h"><b>' + esc(m.mine ? 'Você' : m.author) + '</b><time class="tn">' + m.time + '</time></span><span class="msg-t">' + linkify(m.text) + '</span></div></div>';
+  }).join('');
+  var band = '<div class="faixa" style="margin:0;padding:6px 20px 18px"><h2 class="conversa-n">' + esc(e.name) + '</h2><p class="conversa-m">' + e.id + ' · Turma ' + e.class + '</p>' +
+    '<button class="selecao" aria-label="Período das mensagens: ' + D.student.period + '">' + ic('cal', 'sm') + '<span><small>Período das mensagens</small>' + D.student.period + '</span>' + ic('down', 'sm') + '</button></div>';
+  var foot = '<div class="compor"><div class="campo">Digite aqui sua mensagem</div><button class="enviar" aria-label="Enviar mensagem" disabled>' + ic('send', 'sm') + '</button></div>';
+  return tela({ id: 't-conversa', lead: 'back', title: 'Mural de Mensagens', top: band, body: '<div class="msgs">' + msgs + '</div>', foot: foot });
+}
+function sMuralVazio() {
+  var r = 36, k = r / RO, c = 92;
+  var art = '<svg width="184" height="184" viewBox="0 0 184 184" aria-hidden="true" focusable="false">' + orb(c, c, k, { cor: 'var(--plano-2)', o: 'var(--fill)' }) +
+    '<g transform="translate(74 74) scale(1.5)" fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + IC.forum + '</g></svg>';
+  return tela({ id: 't-vazio', title: 'Mural de Mensagens', body: '<div class="vazio">' + art + '<p>' + esc(D.copy.boardEmpty) + '</p></div>' });
+}
+
+/* =================================================================== página */
+var REGRAS = [
+  {
+    t: 'Quatro cores chapadas, papéis fixos',
+    p: 'Azul-marinho é o plano de cima: cabeçalho, faixas e passos. O #004891 é o que se toca ou se escolhe e o card da próxima aula. Branco é a página; o azul claro faz o texto secundário sobre o azul. Os turnos usam os mesmos tons, do claro ao escuro ao longo do dia.',
+    svg: '<svg viewBox="0 0 132 132" aria-hidden="true"><rect width="132" height="132" fill="#003468"/><rect x="0" y="66" width="132" height="66" fill="#FFFFFF"/><rect x="14" y="80" width="104" height="38" fill="#004891"/><rect x="24" y="92" width="34" height="5" fill="#FFFFFF"/><rect x="24" y="102" width="56" height="4" fill="#BBD0EC"/><rect x="14" y="20" width="58" height="8" fill="#FFFFFF"/><rect x="14" y="34" width="40" height="5" fill="#BBD0EC"/>' + orb(132, 66, 52 / 446.08, { o: '#FFFFFF' }) + '</svg>'
+  },
+  {
+    t: 'Selo e órbita, nas medidas da logo',
+    p: 'No cabeçalho, a logo de 38 px leva só o disco, como no ícone. Onde há área, entra o anel: abertura, login, menu e vazios. Disco a 1,52 e anel de 2,09 a 2,51 vezes o raio do “O”, sempre concêntricos; nas faixas sobra um quarto, e o “O” é a própria página.',
+    svg: '<svg viewBox="0 0 132 132" aria-hidden="true"><rect width="132" height="132" fill="#003468"/>' + orb(84, 72, 0.14, { logo: true }) + '</svg>'
+  },
+  {
+    t: 'Disco escolhe, anel marca o agora',
+    p: 'Disco cheio é seleção: o dia aberto, a grade escolhida, o item do menu. Anel é tempo presente: hoje, a linha do agora, o CR atual, o passo em que você está. Quando os dois coincidem, aparecem juntos, como na logo.',
+    svg: '<svg viewBox="0 0 132 132" aria-hidden="true"><rect width="132" height="132" fill="#FFFFFF"/><circle cx="40" cy="44" r="18" fill="#004891"/><text x="40" y="49.5" text-anchor="middle" font-family="Inter AO,sans-serif" font-size="15" font-weight="600" fill="#FFFFFF">12</text><circle cx="92" cy="44" r="17" fill="none" stroke="#004891" stroke-width="2"/><text x="92" y="49.5" text-anchor="middle" font-family="Inter AO,sans-serif" font-size="15" font-weight="600" fill="#004891">13</text><line x1="14" x2="118" y1="96" y2="96" stroke="#004891" stroke-width="2"/><circle cx="40" cy="96" r="10" fill="#FFFFFF"/><circle cx="40" cy="96" r="7.6" fill="none" stroke="#004891" stroke-width="2"/><circle cx="40" cy="96" r="4.2" fill="#004891"/></svg>'
+  }
+];
+var GRUPOS = [
+  {
+    h: 'Entrada e menu',
+    p: 'A abertura e o login carregam a órbita inteira; o menu é o segundo azul aparecendo quando o conteúdo desliza para a direita, como hoje.',
+    q: [
+      { f: sSplash, t: 'Abertura', d: 'A composição do splash da logo, sem mudança, só em cores chapadas. Abaixo do anel, o texto real de carregamento e um indicador em forma de anel.' },
+      { f: sLogin, t: 'Login', d: 'A órbita sangra por cima e pela direita; o painel branco corta o anel em linha reta. Campos num retângulo de fios e botão em pílula, com alvos de 48 dp ou mais.' },
+      { f: function () { return tela({ id: 't-menu', drawer: true, gestoClaro: true, lead: 'menu_open', title: D.student.period, body: inicioBody(false) }); }, t: 'Menu lateral', d: 'O plano #004891 por trás do Início. O avatar é o “O”, com disco e anel em azul-marinho, tom sobre tom; o item ativo vira pílula branca.' }
+    ]
+  },
+  {
+    h: 'Início',
+    p: 'A saudação sobe para uma faixa azul-marinho com um quarto da órbita no canto. A próxima aula é o único plano #004891 da página; notas e semana seguem as listas e a régua de horas da V3.',
+    q: [
+      { f: function () { return sInicio('t-inicio', false); }, t: 'Início', d: 'O “O” branco no canto da faixa é a própria página subindo. Notas em pílulas de status, sempre com ponto e rótulo; o cabeçalho da tabela fecha com fio azul-marinho.' },
+      { f: function () { return sInicio('t-semana', false); }, t: 'Início · Semana', d: 'Dia aberto em disco e hoje em anel; terça tem os dois. Na régua, a aula que vem fica no tom do turno (tarde = #004891), a encerrada vira contorno e o agora é disco com anel.' },
+      { f: sFolha, t: 'Folha · Disciplinas em Curso', d: 'Aberta pelo card da próxima aula. Folha de borda reta sobre um véu azul-marinho, sem sombra; a aula de origem fica marcada num plano azul claro.' }
+    ]
+  },
+  {
+    h: 'Meu Progresso e Gerador de Grade',
+    p: 'Os números do progresso ocupam a faixa; no gerador, a faixa leva os sete passos. Seleção e tempo ocupado são planos #004891 cheios.',
+    q: [
+      { f: sProgresso, t: 'Meu Progresso', d: 'Mesma faixa com quarto de órbita do Início. O gráfico fica num plano azul claro, com o CR atual em disco e anel; o caminho no currículo usa barras em pílula.' },
+      { f: sGerador2, t: 'Gerador · Horários Ocupados', d: 'Passo feito em disco azul claro, passo atual em disco branco com anel, próximos só em contorno. Rolado até a tarde de terça e quinta, já marcada como ocupada.' },
+      { f: function () { return sGerador7(); }, t: 'Gerador · Grade gerada', d: 'Grade semanal pelos tons da logo: manhã em azul claro, tarde em #004891, noite em azul-marinho, com sigla e tempos em contraste AA. Logo abaixo, a legenda repete os três tons com o símbolo de cada turno.' }
+    ]
+  },
+  {
+    h: 'Mural',
+    p: 'A lista ganha discos com a sigla de cada turma, a mesma da grade gerada. Na conversa, os planos de cor separam quem fala.',
+    q: [
+      { f: sMural, t: 'Mural · Lista', d: 'Disco com a sigla, nome, código e a contagem de mensagens. Linhas de 64 dp com fio fino, sem cards.' },
+      { f: sConversa, t: 'Mural · Conversa', d: 'Disciplina e período na faixa; o seletor de período é uma pílula #004891. Mensagens dos colegas em azul claro, as suas em #004891, ambas em planos retos.' },
+      { f: sMuralVazio, t: 'Mural · Estado vazio', d: 'A construção da logo em tons de página: o “O” em #004891 com o ícone, disco e anel em azul claro, nas mesmas proporções. Texto real do app.' }
+    ]
+  },
+  {
+    h: 'Escuro',
+    p: '',
+    q: [
+      { f: function () { return sInicio('t-escuro', true); }, t: 'Início no escuro', d: 'Mesma tela, com a página em #0B1626. O “O” do canto acompanha a página e o card da próxima aula segue #004891.' },
+      { f: function () { return sGerador7('t-gerador7-escuro', true); }, t: 'Grade gerada no escuro', d: 'Os tons de turno não mudam: manhã em azul claro com texto azul-marinho, tarde e noite com texto branco. A grade lê igual nos dois temas.' }
+    ],
+    nota: '<h3>A mesma faixa, à noite</h3><p>Faz sentido ter escuro nesta variante porque a identidade já é azul-marinho: a faixa, o cabeçalho e o menu não mudam. Muda só o plano da página, que vira #0B1626, e com ele o “O” das órbitas de canto, que é sempre a cor da página.</p><p>O texto principal fica #E6EDF6 (15,4:1) e o secundário #A7B4C6 (8,6:1). O azul claro #BBD0EC vira a cor de título e de ação (11,5:1), e o #004891 continua sendo o plano do que se toca, com branco por cima (9,0:1). As cores de saúde da nota são as do escuro da V3.</p>' +
+      '<div class="tokens"><div><i style="background:#0B1626"></i><code>#0B1626</code>página</div><div><i style="background:#13243B"></i><code>#13243B</code>plano claro</div><div><i style="background:#E6EDF6"></i><code>#E6EDF6</code>texto</div><div><i style="background:#A7B4C6"></i><code>#A7B4C6</code>texto secundário</div></div>'
+  }
+];
+
+document.getElementById('regras').innerHTML = REGRAS.map(function (r) {
+  return '<div class="regra">' + r.svg + '<div><h2>' + r.t + '</h2><p>' + r.p + '</p></div></div>';
+}).join('');
+document.getElementById('grupos').innerHTML = GRUPOS.map(function (g) {
+  return '<section class="grupo"><h2>' + g.h + '</h2>' + (g.p ? '<p>' + g.p + '</p>' : '') + '<div class="fila">' +
+    g.q.map(function (q) { var h = q.f(), tid = (/id="(t-[\w-]+)"/.exec(h) || [])[1]; h = h.replace(/(id|aria-labelledby)="(h[A-Z]\w*)"/g, '$1="$2-' + tid + '"'); return '<figure class="quadro"><div class="cel">' + h + '</div><figcaption class="legenda"><b>' + q.t + '</b>' + q.d + '</figcaption></figure>'; }).join('') +
+    (g.nota ? '<div class="nota-escuro">' + g.nota + '</div>' : '') + '</div></section>';
+}).join('');
+
+/* estados de rolagem das telas (depois que as fontes chegam) */
+function rolar() {
+  var sem = document.querySelector('#t-semana .rolagem'), alvo = document.querySelector('#t-semana .sec-semana');
+  if (sem && alvo) sem.scrollTop = alvo.offsetTop - 8;
+  var g2 = document.querySelector('#t-gerador2 .rolagem'), m2 = document.querySelector('#t-gerador2 #go-M3');
+  if (g2 && m2) g2.scrollTop = m2.offsetTop - g2.offsetTop - 36;
+  document.querySelectorAll('#t-gerador7 .passos, #t-gerador7-escuro .passos').forEach(function (p7) { p7.scrollLeft = p7.scrollWidth; });
+  var cv = document.querySelector('#t-conversa .rolagem');
+  if (cv) cv.scrollTop = cv.scrollHeight;
+}
+rolar();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(rolar);
+})();
+</script>
+</body>
+</html>
