@@ -35,12 +35,15 @@ const devLinking = loadDevLinking(services);
 enableScreens(true);
 
 if (__DEV__) {
-  // O KeyboardAvoidingView do react-native-keyboard-controller 1.22.7 passa
-  // dependências aos hooks do Reanimated 4.7, que avisa no debug. O aviso
-  // continua no console; só sai do LogBox, cujo balão cobria o pé da tela
-  // (e os toques dos testes E2E).
+  // Avisos de debug que não indicam erro do app; continuam no console e só
+  // saem do LogBox, cujo balão cobria o pé da tela (e os toques dos testes E2E):
+  // - o react-native-keyboard-controller 1.22.7 passa dependências aos hooks
+  //   do Reanimated 4.7;
+  // - o Reanimated avisa quando o aparelho usa "reduzir movimento" (ou está
+  //   com as animações desligadas).
   LogBox.ignoreLogs([
     '[Reanimated] Dependencies should only be used on the web',
+    '[Reanimated] Reduced motion setting is enabled on this device',
   ]);
 }
 

@@ -87,6 +87,9 @@ jobs:
           ram-size: 4096M
           disk-size: 6000M
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          # Com as animações desligadas, o Android informa "reduzir movimento" e
+          # os fluxos deixam de testar a experiência de quem não usa essa opção.
+          disable-animations: false
           # Cada linha roda num `sh -c` separado: a lógica fica no script.
           script: bash scripts/dev/e2e-ci.sh android/app/build/outputs/apk/debug/com.aouerjmobile-*.apk "$RUNNER_TEMP/e2e"
 
