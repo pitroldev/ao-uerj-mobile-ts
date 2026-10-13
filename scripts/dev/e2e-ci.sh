@@ -29,6 +29,12 @@ XML
 adb push "$prefs" /data/local/tmp/aouerj-dev-prefs.xml
 adb shell "run-as $app sh -c 'mkdir -p shared_prefs && cp /data/local/tmp/aouerj-dev-prefs.xml shared_prefs/${app}_preferences.xml'"
 
+# Emuladores de CI às vezes mostram "Pixel Launcher isn't responding" por cima
+# do app; os diálogos de erro e de ANR do sistema não fazem parte do teste.
+adb shell settings put global hide_error_dialogs 1
+adb shell settings put global anr_show_background 0
+adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null || true
+
 api_level="$(adb shell getprop ro.build.version.sdk | tr -d '\r')"
 
 # maestro test <fluxos> <pasta>
