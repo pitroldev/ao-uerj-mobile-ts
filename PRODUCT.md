@@ -28,7 +28,7 @@ Não é o app da UERJ; é o app que os alunos gostariam que a UERJ tivesse feito
 
 ## Capabilities and Constraints
 
-- React Native 0.83 com styled-components; Android publicado na Google Play, build iOS existe mas é secundário.
+- React Native 0.87 (nova arquitetura, React Compiler) com styled-components; Android publicado na Google Play, build iOS existe mas é secundário.
 - Rotas atuais: Início, Meu Progresso, Gerador de Grade, Mural de Mensagens, Disciplinas Realizadas, Disciplinas do Currículo, Disciplinas Universais, Pesquisa de Disciplinas, Sobre, além de Login e Carregamento.
 - Navegação por menu lateral (drawer), como hoje; todas as rotas continuam acessíveis por ele.
 - O app precisa oferecer tema claro e escuro.
@@ -43,7 +43,7 @@ Não é o app da UERJ; é o app que os alunos gostariam que a UERJ tivesse feito
 
 ## Evidence on Hand
 
-- Dados de exemplo do portal em `src/examples/` e fixtures de parser em `src/adapters/outbound/aluno-online/__fixtures__/`.
+- Fixtures sintéticas de parser em `src/adapters/outbound/aluno-online/__fixtures__/`.
 - Não há depoimentos, número de usuários, avaliações ou parcerias confirmados; não inventar.
 - Desenvolvedor: Petro Cardoso; repositório público no GitHub (pitroldev/ao-uerj-mobile-ts).
 

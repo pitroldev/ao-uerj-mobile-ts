@@ -4,29 +4,73 @@ Levantamento de outubro de 2026, feito logo depois do upgrade para React Native 
 
 Legenda de esforço: **P** (horas), **M** (1 a 3 dias), **G** (uma semana ou mais).
 
+## Status da implementação (12/10/2026)
+
+Todos os itens abaixo foram implementados e verificados com lint (Oxlint com tipos), type-check (TS 7), Prettier, Knip, Jest, build de debug e de release do Android e QA nos emuladores API 35 e API 33. O resto deste documento continua como registro do porquê de cada decisão.
+
+| Item                                  | Como ficou                                                                                                                                                                                                                    |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gcTime` do cache offline             | `gcTime` de 7 dias no `QueryClient` de produção e no `hydrate()`, com teste que falhava antes da correção                                                                                                                     |
+| Raiz GlobalSign R46                   | Confirmado: falta na loja de CAs do Android 11 e 13 (emuladores API 30 e 33). `network_security_config.xml` só para `www.alunoonline.uerj.br`; o login no Android 13 chega ao portal                                          |
+| Pacotes sem uso                       | Saíram picker, 4 vector-icons, carousel, native-stack, svg-transformer e gitmoji, além dos substituídos abaixo e dos drawables do splash antigo                                                                               |
+| `react-native-modal`                  | `BottomSheet` com `Modal` do core + `Animated` (driver nativo) + responder; patch e `patchedDependencies` removidos                                                                                                           |
+| Sentry                                | `@sentry/react-native` com coleta mínima em `src/app/observability`, **desligado até o DSN ser preenchido**; source maps só com `SENTRY_AUTH_TOKEN`                                                                           |
+| Renovate + Knip                       | `.github/renovate.json5` e `knip.jsonc`; `pnpm knip` no CI, saindo com 0 (projeto passou a usar só exports nomeados)                                                                                                          |
+| cheerio                               | `cheerio/slim` + parse5 atrás de `loadHtml()`, uma leitura por página; saída idêntica à da lib antiga nas páginas de teste. A fase 2 (htmlparser2 puro) não foi feita, porque depende de fixtures reais                       |
+| iconv-lite + buffer                   | `decodeWindows1252` local (tabela WHATWG) e base64 do SVG com `TextEncoder` + `btoa`                                                                                                                                          |
+| Edge-to-edge                          | `edgeToEdgeEnabled=true`; o painel encolhe com o teclado em todas as versões                                                                                                                                                  |
+| React Compiler                        | `babel-plugin-react-compiler` 1.0.0 como primeiro plugin; 176 de 176 componentes e hooks compilados; regras do Compiler nativas do Oxlint                                                                                     |
+| keyboard-controller                   | 1.22.7 (exceção de idade mínima no `pnpm-workspace.yaml`) no Login, no Mural, nas folhas e no painel                                                                                                                          |
+| Maestro                               | Fluxos em `.maestro/` sobre o modo demo, `pnpm e2e` e `.github/workflows/e2e.yml` (manual e noturno)                                                                                                                          |
+| Release no CI + In-App Updates        | release-please com job de publicação na trilha interna (environment `play`), build de release em todo PR, versão só no `package.json`. In-App Updates por um **módulo nativo local** (ver nota abaixo)                        |
+| Regras de extração de dados           | `data_extraction_rules.xml` excluindo tudo de `cloud-backup` e `device-transfer`; `filepaths.xml` só com caches                                                                                                               |
+| Testing Library                       | 26 arquivos migrados; `useKeyboardInset.test.tsx` saiu junto com o hook, trocado pelo keyboard-controller; `react-test-renderer` removido                                                                                     |
+| async-storage                         | De volta à 2.2.0 (nenhuma versão com a 3 foi publicada); o código de migração saiu                                                                                                                                            |
+| lefthook + commitlint, release-please | Hooks de pre-commit, commit-msg e pre-push; `auto-changelog` e arquivos dele removidos                                                                                                                                        |
+| Oxlint                                | `.oxlintrc.json` com lint por tipos (tsgolint); ESLint e 11 pacotes removidos; Prettier roda à parte (`format:check`). Lint de 17,5 s para cerca de 1 s                                                                       |
+| bootsplash, In-App Review             | Splash nativo que sai no primeiro layout de tela; pedido de avaliação depois de momentos positivos, com limites                                                                                                               |
+| Sem nova dependência                  | `initialMetrics` no `SafeAreaProvider`, toast de "Copiado" só abaixo da API 33, tema escuro (Sistema/Claro/Escuro, botão no rodapé do menu), aviso remoto em `config/app-status.json`, `useAnimatedValue`, fachada `snackbar` |
+
+Diferenças em relação ao texto original:
+
+- **In-App Updates:** em vez do `sp-react-native-in-app-updates`, um TurboModule local (`src/specs/NativeInAppUpdates.ts` e `android/.../updates/`) sobre `com.google.android.play:app-update` 2.1.0. A 2.0.0 da lib traz `react-native-device-info` 10.3 (2022), `underscore` e o peer `react-native-siren`.
+- **Sentry:** sem `Sentry.wrap`, que grava rótulos e textos tocados; sem o plugin Gradle do Sentry, que instrumentaria o OkHttp (o mapping do R8 não vai ao Sentry).
+- **Aviso remoto:** em vez de um backend próprio, o JSON fica neste repositório (`config/app-status.json`) e o app o busca em `raw.githubusercontent.com`. A busca não leva dados do aluno, mas o GitHub vê o IP do aparelho (ver "Persistência e privacidade" no README).
+- **Imagem compartilhada da grade:** sempre no tema claro, mesmo com o app no escuro.
+- **Login:** a resposta do portal "a matrícula informada não existe, ou não está habilitada…, ou existe alguma manutenção…" aparecia como "formato inesperado". Agora vira o código `ACCOUNT_UNAVAILABLE`, com mensagem própria. Ele não conta como senha errada: ao reabrir o app, credenciais e cache offline continuam salvos.
+
+Pendências que dependem do dono do projeto:
+
+- **Sentry:** criar a organização na região UE e o projeto, preencher `SENTRY_DSN` em `src/app/observability/config.ts`, ligar "Prevent Storing of IP Addresses" e o Data Scrubber, e cadastrar `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` e `SENTRY_PROJECT` no environment `play`. Atualizar a política de privacidade, o Data safety e a base legal da LGPD (ver README).
+- **Aviso remoto:** já ativo, sem depender de configuração. Incluir na política de privacidade a busca do `config/app-status.json` no GitHub (o IP e o horário chegam ao GitHub, da Microsoft, nos EUA) e considerá-la na transferência internacional da LGPD (ver README).
+- **GitHub:** instalar o app do Renovate; permitir que o Actions crie PRs; criar o environment `play` com revisor; cadastrar os secrets de assinatura e da conta de serviço da Play (lista no README).
+- **Play:** o próximo `versionCode` sai na casa de 10 milhões (fórmula no `android/app/build.gradle`); testar In-App Updates e In-App Review pela trilha interna.
+- **iOS:** rodar `pod install` e compilar no Xcode (bootsplash, fases do Sentry, módulo de updates sem implementação no iOS). Nada de iOS foi validado, porque o desenvolvimento foi no Windows.
+- **Histórico do git:** `src/examples/` saiu do repositório, mas continua no histórico. Se o número com formato de matrícula for real, limpar o histórico é uma decisão do dono. O `html/grades.html`, que não é usado pelo app, também tem um número nesse formato.
+
 ## Resumo
 
-| Prioridade | Ação | Tipo | Esforço |
-| --- | --- | --- | --- |
-| Alta | Corrigir o `gcTime` das queries reidratadas (cache offline perde dados) | correção | P |
-| Alta | Confiar na raiz GlobalSign R46 para `alunoonline.uerj.br` no Android 7 a 13 (verificar antes) | adição | P |
-| Alta | Remover pacotes sem uso (picker, vector-icons, carousel, native-stack, svg-transformer, gitmoji) | remoção | P |
-| Alta | `react-native-modal` → motor próprio no `BottomSheet` | substituição | P |
-| Alta | Sentry com coleta mínima (região UE, sem rede nem PII) | adição | M |
-| Alta | Renovate + Knip (atualizações agrupadas e detecção de código morto) | adição | P |
-| Média | `react-native-cheerio` → `cheerio/slim` + parse5 | substituição | M |
-| Média | `iconv-lite` + `buffer` → decodificador windows-1252 local | substituição | P |
-| Média | `edgeToEdgeEnabled=true` (um único modo de layout em todas as versões) | ajuste | P |
-| Média | React Compiler + regras do Compiler no lint | adição | P |
-| Média | `react-native-keyboard-controller` | adição | M |
-| Média | Maestro (E2E sobre o modo demo) | adição | M |
-| Média | Release automatizado no GitHub Actions + In-App Updates | adição | M |
-| Média | Regras de extração de dados (backup e transferência entre aparelhos) | adição | P |
-| Média | `react-test-renderer` → Testing Library (gradual) | substituição | G |
-| Média | Reavaliar o async-storage 3 (volta para 2.2.0) | decisão | P |
-| Baixa | lefthook + commitlint; release-please no lugar do auto-changelog parado | adição | P |
-| Baixa | Oxlint com lint por tipos no lugar do ESLint adaptado | substituição | M |
-| Baixa | `react-native-bootsplash`, In-App Review | adição | P |
+| Prioridade | Ação                                                                                             | Tipo         | Esforço |
+| ---------- | ------------------------------------------------------------------------------------------------ | ------------ | ------- |
+| Alta       | Corrigir o `gcTime` das queries reidratadas (cache offline perde dados)                          | correção     | P       |
+| Alta       | Confiar na raiz GlobalSign R46 para `alunoonline.uerj.br` no Android 7 a 13 (verificar antes)    | adição       | P       |
+| Alta       | Remover pacotes sem uso (picker, vector-icons, carousel, native-stack, svg-transformer, gitmoji) | remoção      | P       |
+| Alta       | `react-native-modal` → motor próprio no `BottomSheet`                                            | substituição | P       |
+| Alta       | Sentry com coleta mínima (região UE, sem rede nem PII)                                           | adição       | M       |
+| Alta       | Renovate + Knip (atualizações agrupadas e detecção de código morto)                              | adição       | P       |
+| Média      | `react-native-cheerio` → `cheerio/slim` + parse5                                                 | substituição | M       |
+| Média      | `iconv-lite` + `buffer` → decodificador windows-1252 local                                       | substituição | P       |
+| Média      | `edgeToEdgeEnabled=true` (um único modo de layout em todas as versões)                           | ajuste       | P       |
+| Média      | React Compiler + regras do Compiler no lint                                                      | adição       | P       |
+| Média      | `react-native-keyboard-controller`                                                               | adição       | M       |
+| Média      | Maestro (E2E sobre o modo demo)                                                                  | adição       | M       |
+| Média      | Release automatizado no GitHub Actions + In-App Updates                                          | adição       | M       |
+| Média      | Regras de extração de dados (backup e transferência entre aparelhos)                             | adição       | P       |
+| Média      | `react-test-renderer` → Testing Library (gradual)                                                | substituição | G       |
+| Média      | Reavaliar o async-storage 3 (volta para 2.2.0)                                                   | decisão      | P       |
+| Baixa      | lefthook + commitlint; release-please no lugar do auto-changelog parado                          | adição       | P       |
+| Baixa      | Oxlint com lint por tipos no lugar do ESLint adaptado                                            | substituição | M       |
+| Baixa      | `react-native-bootsplash`, In-App Review                                                         | adição       | P       |
 
 ## Achados que não são troca de dependência
 
@@ -70,9 +114,9 @@ O critério da issue (fim do `GNU_RELRO` fora do limite de 16 KB) também reprov
 - **Por quê:** a versão `1.0.0-rc.4` é de **2017**, com `css-select` 1.2, um fork do parse5 2.x, lodash e `buffer@5`. Não tem tipos: os 13 parsers usam `require` e `any`.
 - **Atenção:** a lib atual monta a árvore com **parse5** (`lib/parse.js` só usa htmlparser2 com `xmlMode`). Por isso existem `<tbody>` implícito e foster-parenting, e os parsers dependem disso, por exemplo `subjectClasses.ts:237` com `> table > tbody > tr`. Trocar direto por htmlparser2, `node-html-parser` ou `linkedom` faria a lista de turmas voltar **vazia, sem erro**.
 - **Fase 1:**
-    - `cheerio@^1.2` importado sempre de `cheerio/slim`. A raiz `cheerio` puxa `undici` e `node:stream` e quebra no Metro; vale uma regra de lint proibindo esse import.
-    - `parse5@^7.3` + `parse5-htmlparser2-tree-adapter@^7.1`, atrás de um `loadHtml()` único. A árvore fica idêntica.
-    - Os 85 testes dos parsers passam com a troca.
+  - `cheerio@^1.2` importado sempre de `cheerio/slim`. A raiz `cheerio` puxa `undici` e `node:stream` e quebra no Metro; vale uma regra de lint proibindo esse import.
+  - `parse5@^7.3` + `parse5-htmlparser2-tree-adapter@^7.1`, atrás de um `loadHtml()` único. A árvore fica idêntica.
+  - Os 85 testes dos parsers passam com a troca.
 - **Ganho maior, independente da lib:** parsear cada página uma vez. Hoje são 3 ou 4 parses por resposta.
 - **Fase 2 (opcional):** htmlparser2 puro, cerca de 2x mais rápido e 200 KB a menos. Só com fixtures reais, porque `SubjectInfo.ts` e `subjectClasses.ts` têm 19% e 3% de cobertura.
 
@@ -89,10 +133,10 @@ O critério da issue (fim do `GNU_RELRO` fora do limite de 16 KB) também reprov
 - **Por quê:** depreciado pelo React 19, com aviso a cada `create()` e remoção prevista. O próprio time do React indica a Testing Library.
 - **Versões:** `@testing-library/react-native@^14.1` + `test-renderer@~1.2`, a linha casada com o React 19.2. A 1.3 exige React 19.3. Não usar o codemod `rntl-v14-update-deps`, que remove o renderer de uma vez.
 - **Migração gradual:**
-    - helper de render com tema;
-    - `no-restricted-imports` congelando o legado, para que todo teste novo já nasça em RNTL;
-    - hooks com `renderHook`;
-    - depois as telas, de 4 a 6 dias no total.
+  - helper de render com tema;
+  - `no-restricted-imports` congelando o legado, para que todo teste novo já nasça em RNTL;
+  - hooks com `renderHook`;
+  - depois as telas, de 4 a 6 dias no total.
 - **Custo real:** reescrever as 158 consultas a props de componentes compostos (`findByProps`, `findByType`) como consultas ao que é visível ou acessível.
 
 ### Edge-to-edge nativo: `edgeToEdgeEnabled=true` (média, P)
@@ -100,10 +144,10 @@ O critério da issue (fim do `GNU_RELRO` fora do limite de 16 KB) também reprov
 - **Hoje:** o app roda em dois modos. Até o Android 14 a barra é pintada pelo tema; no 15+ o RN liga o edge-to-edge à força, por causa do targetSdk 36. Daí os ramos por versão em `BottomSheet.tsx` (com o hack `NAV_BAR_PROPS`), em `useKeyboardInset.ts` e no `Header`.
 - **Com a flag ligada:** o layout fica igual do API 24 ao 36, e as correções do RN 0.86 (KeyboardAvoidingView, `Dimensions`, `StatusBar` em `Modal`) passam a valer em todas as versões. O template 0.87 já vem com `true`.
 - **Para ligar:**
-    - testar nos API 24, 29, 34, 35 e 36, com navegação por gestos e por 3 botões;
-    - dar `bottomOffset` ao toast;
-    - tirar o `statusBarColor` do `styles.xml`;
-    - forçar o modo claro dos botões da barra até o tema escuro existir.
+  - testar nos API 24, 29, 34, 35 e 36, com navegação por gestos e por 3 botões;
+  - dar `bottomOffset` ao toast;
+  - tirar o `statusBarColor` do `styles.xml`;
+  - forçar o modo claro dos botões da barra até o tema escuro existir.
 - **Descartado:** a lib `react-native-edge-to-edge`, que o próprio README dispensa a partir do RN 0.86.
 
 ### Async-storage 3 → voltar para 2.2.0? (média, P)
@@ -124,9 +168,9 @@ API oficial do RN. Afeta `LoadingBar`, `Skeleton`, `Spinner`, `Switch`, `ClassSc
 
 - **Situação atual:** o `eslint.config.js` só roda no ESLint 10 com adaptações permanentes: `@eslint/compat`, troca de parser, fork do plugin de comentários e peers liberados. O preset do RN não declara suporte ao 10 nem na 0.88-rc.
 - **Proposta:** `oxlint` 1.87 + `oxlint-tsgolint` 7, que roda sobre o TypeScript 7 que o repo já usa.
-    - Tem regras com tipos que hoje não existem: `no-floating-promises`, `no-misused-promises` e `switch-exhaustiveness-check`.
-    - Tem `no-restricted-imports` para a fronteira de domínio.
-    - Remove cerca de 11 devDependencies.
+  - Tem regras com tipos que hoje não existem: `no-floating-promises`, `no-misused-promises` e `switch-exhaustiveness-check`.
+  - Tem `no-restricted-imports` para a fronteira de domínio.
+  - Remove cerca de 11 devDependencies.
 - **O que se perde:** `react-native/no-inline-styles`, irrelevante com styled-components, e `no-deep-imports`, coberta pela API estrita de tipos.
 - **Custo:** reescrever `scripts/__tests__/architecture.test.cjs`.
 - **Meio-termo, se não migrar:** uma flat config própria com typescript-eslint, react-hooks e jest, sem o preset do RN. Não rodar os dois linters juntos.
@@ -143,24 +187,24 @@ O fluxo atual parou: o `auto-changelog` nem está nas dependências, o template 
 - **Por quê:** hoje não há visibilidade de erros em produção. O `ErrorBoundary` só registra em `__DEV__`, e o `AppError('PORTAL_LAYOUT_CHANGED')`, sinal de que o portal mudou o HTML, é um erro tratado que ninguém vê.
 - **Escolha:** `@sentry/react-native` (8.30, com suporte ao RN 0.87) simboliza o Hermes e mostra a taxa de sessões sem crash por versão. O Crashlytics foi descartado porque não aceita source maps, e o JS do Hermes chegaria ilegível.
 - **Configuração obrigatória para este app:**
-    - região UE;
-    - `sendDefaultPii: false`, sem `setUser` e sem IP;
-    - `breadcrumbsIntegration({ xhr: false, console: false })`, porque a URL de login do portal leva a senha;
-    - sem tracing nem Session Replay, porque as telas mostram nome e notas;
-    - no plugin Gradle, `tracingInstrumentation` desligado, porque ele instrumentaria o OkHttp;
-    - filtrar os erros transitórios (`NETWORK`, `CANCELLED`…).
+  - região UE;
+  - `sendDefaultPii: false`, sem `setUser` e sem IP;
+  - `breadcrumbsIntegration({ xhr: false, console: false })`, porque a URL de login do portal leva a senha;
+  - sem tracing nem Session Replay, porque as telas mostram nome e notas;
+  - no plugin Gradle, `tracingInstrumentation` desligado, porque ele instrumentaria o OkHttp;
+  - filtrar os erros transitórios (`NETWORK`, `CANCELLED`…).
 - **Integração:** o Sentry não substitui o `ErrorReport`, que pega o que não vira exceção (nota faltando, turma errada). Integre os dois. O plano gratuito atende.
 - **Pendências:** atualizar a política de privacidade, o formulário Data safety e a base da LGPD para a transferência internacional.
 
 ### Automação de dependências: Renovate + Knip (alta, P)
 
 - **Renovate**, com:
-    - grupos para o núcleo do RN (sob aprovação, porque exige o Upgrade Helper), React Navigation, TanStack e o tooling de lint/teste;
-    - 3 dias de idade mínima, alinhado com o `minimumReleaseAge` do pnpm 12;
-    - actions fixadas por digest;
-    - `abandonments:recommended` para sinalizar libs paradas;
-    - atualização também de `.node-version`, `packageManager` e do wrapper do Gradle.
-  O Dependabot com grupos é a alternativa sem app de terceiros, mais limitada.
+  - grupos para o núcleo do RN (sob aprovação, porque exige o Upgrade Helper), React Navigation, TanStack e o tooling de lint/teste;
+  - 3 dias de idade mínima nas versões que ele propõe (o `pnpm-workspace.yaml` não define `minimumReleaseAge`, então o próprio pnpm 12 fica no padrão de 1 dia nas instalações locais e nas dependências transitivas);
+  - actions fixadas por digest;
+  - `abandonments:recommended` para sinalizar libs paradas;
+  - atualização também de `.node-version`, `packageManager` e do wrapper do Gradle.
+    O Dependabot com grupos é a alternativa sem app de terceiros, mais limitada.
 - **Knip** no CI: acha dependências, exports e arquivos sem uso. Hoje ele pegaria os 7 pacotes sem uso e o `src/examples`.
 
 ### React Compiler (média, P)
@@ -189,9 +233,9 @@ O fluxo atual parou: o `auto-changelog` nem está nas dependências, o template 
 
 - **Hoje:** o release é feito à mão, com `pnpm bundle` local, a keystore no notebook e upload manual. A versão fica repetida em `package.json`, `versionName` e `versionCode`.
 - **Proposta:**
-    - workflow disparado por tag, num `environment` protegido, com `r0adkll/upload-google-play`;
-    - um job que compila o release a cada PR com uma keystore descartável, porque problemas do R8 hoje só aparecem na hora de publicar;
-    - `sp-react-native-in-app-updates`, para que as correções de parser cheguem em dias quando o portal mudar.
+  - workflow disparado por tag, num `environment` protegido, com `r0adkll/upload-google-play`;
+  - um job que compila o release a cada PR com uma keystore descartável, porque problemas do R8 hoje só aparecem na hora de publicar;
+  - `sp-react-native-in-app-updates`, para que as correções de parser cheguem em dias quando o portal mudar.
 - **Avaliar depois:** OTA auto-hospedado (`hot-updater`), se o Sentry mostrar quebras frequentes.
 - **Descartados:** CodePush (aposentado) e os OTAs pagos.
 
@@ -219,34 +263,34 @@ O fluxo atual parou: o `auto-changelog` nem está nas dependências, o template 
 
 ## Remoções
 
-| Pacote ou arquivo | Motivo |
-| --- | --- |
-| `@react-native-vector-icons/*` (4) | Sem import; os ícones são SVG gerados. Tiram fontes `.ttf` do APK (só a MaterialDesignIcons tem cerca de 1,3 MB) |
-| `@react-native-picker/picker` | Sem import; tira um módulo nativo do autolinking |
-| `react-native-reanimated-carousel`, `@react-navigation/native-stack` | Sem import (JS puro, só peso no lockfile) |
-| `react-native-svg-transformer` | Nenhum import de `.svg` sobrou; sai também do `metro.config.js` e do `declarations.d.ts` |
-| `gitmoji-cli` (script `commit` e chave `gitmoji`) | O histórico recente usa Conventional Commits puros |
-| `react-native-modal` + patch, `react-native-animatable` | Depois da substituição acima |
-| `iconv-lite`, `buffer` | Depois da substituição acima |
-| `eslint-plugin-prettier`, `eslint-config-prettier` | Se o Prettier passar a rodar à parte |
-| `.auto-changelog`, `changelog-template.hbs`, `setup.js` | Se adotar o release-please |
-| `android/app/src/main/res/drawable*/screen.png`, `background_splash.xml`, `icon*.png` | Sem referência (sobras de um splash antigo, cerca de 324 KB) |
-| `src/examples/*.ts` | Sem import; conferir antes o possível dado pessoal |
+| Pacote ou arquivo                                                                     | Motivo                                                                                                           |
+| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `@react-native-vector-icons/*` (4)                                                    | Sem import; os ícones são SVG gerados. Tiram fontes `.ttf` do APK (só a MaterialDesignIcons tem cerca de 1,3 MB) |
+| `@react-native-picker/picker`                                                         | Sem import; tira um módulo nativo do autolinking                                                                 |
+| `react-native-reanimated-carousel`, `@react-navigation/native-stack`                  | Sem import (JS puro, só peso no lockfile)                                                                        |
+| `react-native-svg-transformer`                                                        | Nenhum import de `.svg` sobrou; sai também do `metro.config.js` e do `declarations.d.ts`                         |
+| `gitmoji-cli` (script `commit` e chave `gitmoji`)                                     | O histórico recente usa Conventional Commits puros                                                               |
+| `react-native-modal` + patch, `react-native-animatable`                               | Depois da substituição acima                                                                                     |
+| `iconv-lite`, `buffer`                                                                | Depois da substituição acima                                                                                     |
+| `eslint-plugin-prettier`, `eslint-config-prettier`                                    | Se o Prettier passar a rodar à parte                                                                             |
+| `.auto-changelog`, `changelog-template.hbs`, `setup.js`                               | Se adotar o release-please                                                                                       |
+| `android/app/src/main/res/drawable*/screen.png`, `background_splash.xml`, `icon*.png` | Sem referência (sobras de um splash antigo, cerca de 324 KB)                                                     |
+| `src/examples/*.ts`                                                                   | Sem import; conferir antes o possível dado pessoal                                                               |
 
 ## Manter (e por quê)
 
-| Pacote | Motivo |
-| --- | --- |
-| `styled-components` 6.5 | Voltou a ter desenvolvimento ativo; a 6.4 cortou o custo de runtime no RN. O tema tipado já está pronto para o modo escuro. Reavaliar na v7 estável |
-| `axios` | No RN, fetch e axios usam o mesmo XHR nativo; trocar só arrisca a codificação dos parâmetros do login |
-| `react-native-keychain` 10 | Correto: Keystore + AES-GCM, `WHEN_UNLOCKED_THIS_DEVICE_ONLY`, verificação após gravar. Migrar de lib arrisca deslogar todos os usuários |
-| Clipboard, netinfo, share, view-shot, svg | Ativas e com codegen. As alternativas Expo exigem o pacote `expo` (nenhum SDK mira o RN 0.87), e as versões Nitro só ganham com chamadas nativas de alta frequência, o que não é o caso aqui. Skia para o gráfico do CR custaria cerca de 4 MB sem ganho visível |
-| Reanimated, worklets, gesture-handler, screens | Peers obrigatórios do drawer do React Navigation; com o carousel removido, passam a servir de base ao novo `BottomSheet` |
-| `@preeternal/react-native-cookie-manager` 7 | Sucessor oficial do pacote deprecado; só `clearAll()` é usado |
-| Persistência própria do TanStack Query | Faz o que o persister oficial não faz (por conta, sem erros em disco); só precisa da correção do `gcTime` |
-| `react-native-toast-message` | Mantida e é só o "motor"; colocar atrás de uma fachada `snackbar.*` e montar um host dentro do `Modal` da folha (hoje o toast fica atrás dela e o VoiceOver não anuncia) |
-| FlatList/ScrollView do core | Listas simples de centenas de itens; FlashList v2 só se uma medição mostrar travamento |
-| Jest 30, Prettier 3, TypeScript 7 | Já são o caminho oficial ou o SOTA |
+| Pacote                                         | Motivo                                                                                                                                                                                                                                                           |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `styled-components` 6.5                        | Voltou a ter desenvolvimento ativo; a 6.4 cortou o custo de runtime no RN. O tema tipado já está pronto para o modo escuro. Reavaliar na v7 estável                                                                                                              |
+| `axios`                                        | No RN, fetch e axios usam o mesmo XHR nativo; trocar só arrisca a codificação dos parâmetros do login                                                                                                                                                            |
+| `react-native-keychain` 10                     | Correto: Keystore + AES-GCM, `WHEN_UNLOCKED_THIS_DEVICE_ONLY`, verificação após gravar. Migrar de lib arrisca deslogar todos os usuários                                                                                                                         |
+| Clipboard, netinfo, share, view-shot, svg      | Ativas e com codegen. As alternativas Expo exigem o pacote `expo` (nenhum SDK mira o RN 0.87), e as versões Nitro só ganham com chamadas nativas de alta frequência, o que não é o caso aqui. Skia para o gráfico do CR custaria cerca de 4 MB sem ganho visível |
+| Reanimated, worklets, gesture-handler, screens | Peers obrigatórios do drawer do React Navigation; com o carousel removido, passam a servir de base ao novo `BottomSheet`                                                                                                                                         |
+| `@preeternal/react-native-cookie-manager` 7    | Sucessor oficial do pacote deprecado; só `clearAll()` é usado                                                                                                                                                                                                    |
+| Persistência própria do TanStack Query         | Faz o que o persister oficial não faz (por conta, sem erros em disco); só precisa da correção do `gcTime`                                                                                                                                                        |
+| `react-native-toast-message`                   | Mantida e é só o "motor"; colocar atrás de uma fachada `snackbar.*` e montar um host dentro do `Modal` da folha (hoje o toast fica atrás dela e o VoiceOver não anuncia)                                                                                         |
+| FlatList/ScrollView do core                    | Listas simples de centenas de itens; FlashList v2 só se uma medição mostrar travamento                                                                                                                                                                           |
+| Jest 30, Prettier 3, TypeScript 7              | Já são o caminho oficial ou o SOTA                                                                                                                                                                                                                               |
 
 ## Não vale a pena agora
 
@@ -261,11 +305,11 @@ O fluxo atual parou: o `auto-changelog` nem está nas dependências, o template 
 
 ## Bloqueados por versão
 
-| Pacote | Atual → mais recente | Bloqueio |
-| --- | --- | --- |
-| `react`, `react-test-renderer` | 19.2.3 → 19.3.0 | O RN 0.87 embute o renderer 19.2.3; a 19.3 vem com o RN 0.88 (ainda RC) |
-| `@babel/core`, `@babel/runtime` | 7.29 → 8.0 | O preset de Babel do RN, o Metro e o plugin do worklets exigem Babel 7 |
-| `eslint` 10 com o preset do RN | — | Funciona com adaptações (`@eslint/compat` e outras); o preset ainda declara só ESLint 8/9 |
+| Pacote                          | Atual → mais recente | Bloqueio                                                                                 |
+| ------------------------------- | -------------------- | ---------------------------------------------------------------------------------------- |
+| `react`                         | 19.2.3 → 19.3.0      | O RN 0.87 embute o renderer 19.2.3; a 19.3 vem com o RN 0.88 (ainda RC)                  |
+| `test-renderer`                 | 1.2.0 → 1.3.1        | A 1.3 depende do `react-reconciler` 0.34, que exige React 19.3; sobe junto com o `react` |
+| `@babel/core`, `@babel/runtime` | 7.29 → 8.0           | O preset de Babel do RN, o Metro e o plugin do worklets exigem Babel 7                   |
 
 ## Ordem sugerida
 
