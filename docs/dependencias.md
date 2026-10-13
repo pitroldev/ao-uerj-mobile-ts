@@ -6,7 +6,7 @@ Legenda de esforço: **P** (horas), **M** (1 a 3 dias), **G** (uma semana ou mai
 
 ## Status da implementação (12/10/2026)
 
-Todos os itens abaixo foram implementados e verificados com lint (Oxlint com tipos), type-check (TS 7), Prettier, Knip, Jest, build de debug e de release do Android e QA nos emuladores API 35 e API 33. O resto deste documento continua como registro do porquê de cada decisão.
+Todos os itens abaixo foram implementados e verificados com lint (Oxlint com tipos), type-check (TS 7), Prettier, Knip, Jest, build de debug e de release do Android (as 4 ABIs) e QA nos emuladores API 35 e API 33. No CI do GitHub (PR #9) passaram o Quality (JavaScript, Android debug e release), o E2E com os 8 fluxos do Maestro e o build do iOS no simulador. O resto deste documento continua como registro do porquê de cada decisão.
 
 | Item                                  | Como ficou                                                                                                                                                                                                                    |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -45,8 +45,8 @@ Pendências que dependem do dono do projeto:
 - **Aviso remoto:** já ativo, sem depender de configuração. Incluir na política de privacidade a busca do `config/app-status.json` no GitHub (o IP e o horário chegam ao GitHub, da Microsoft, nos EUA) e considerá-la na transferência internacional da LGPD (ver README).
 - **GitHub:** instalar o app do Renovate; permitir que o Actions crie PRs; criar o environment `play` com revisor; cadastrar os secrets de assinatura e da conta de serviço da Play (lista no README).
 - **Play:** o próximo `versionCode` sai na casa de 10 milhões (fórmula no `android/app/build.gradle`); testar In-App Updates e In-App Review pela trilha interna.
-- **iOS:** rodar `pod install` e compilar no Xcode (bootsplash, fases do Sentry, módulo de updates sem implementação no iOS). Nada de iOS foi validado, porque o desenvolvimento foi no Windows.
-- **Histórico do git:** `src/examples/` saiu do repositório, mas continua no histórico. Se o número com formato de matrícula for real, limpar o histórico é uma decisão do dono. O `html/grades.html`, que não é usado pelo app, também tem um número nesse formato.
+- **iOS:** o build do simulador passa no CI (`pod install` e Xcode, com o bootsplash e as fases do Sentry). Falta testar num iPhone ou simulador interativo (splash, tema escuro, folhas, teclado), o que exige um Mac.
+- **Histórico do git:** `src/examples/` e o antigo `src/services/UerjApi/lib/examples.ts` foram removidos de todo o histórico (git filter-repo, em 13/10/2026), com push forçado da `main`, da `chore/upgrade-rn-to-83` e das tags. O GitHub ainda guarda as referências dos PRs antigos (#2 e #4 a #8), que só o suporte do GitHub consegue apagar ("remoção de dados sensíveis"); forks e clones antigos mantêm o histórico velho. O `html/grades.html`, que não é usado pelo app, tem outro número nesse formato e não foi mexido.
 
 ## Resumo
 
