@@ -1,10 +1,6 @@
-import React from 'react';
-import { act, create, ReactTestRenderer } from 'react-test-renderer';
-import {
-  focusManager,
-  QueryClient,
-  QueryClientProvider,
-} from '@tanstack/react-query';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { focusManager, type QueryClient } from '@tanstack/react-query';
+import { createTestQueryClient, createWrapper } from '@root/test-utils/render';
 import { useGenerateSchedules } from '../useGenerateSchedules';
 import { form, generated } from '../../application/testFixtures';
 
@@ -18,63 +14,48 @@ jest.mock('@root/app/providers/AppServicesProvider', () => ({
   }),
 }));
 
-let mutation: ReturnType<typeof useGenerateSchedules>;
-function Probe() {
-  mutation = useGenerateSchedules();
-  return <>{mutation.status}</>;
-}
-let renderer: ReactTestRenderer;
 let client: QueryClient;
+const renderGeneration = () =>
+  renderHook(() => useGenerateSchedules(), {
+    wrapper: createWrapper({ queryClient: client }),
+  });
+/** Dá tempo a uma geração indevida (foco, novo render) de acontecer. */
 const settle = () =>
   act(async () => {
     await new Promise<void>(resolve => setTimeout(resolve, 5));
   });
-beforeEach(async () => {
+beforeEach(() => {
   mockScope = 'account-a';
   mockGenerate.mockReset().mockResolvedValue([generated]);
-  client = new QueryClient({
-    defaultOptions: { mutations: { gcTime: Infinity } },
-  });
-  await act(async () => {
-    renderer = create(
-      <QueryClientProvider client={client}>
-        <Probe />
-      </QueryClientProvider>,
-    );
-  });
+  client = createTestQueryClient();
 });
-afterEach(async () => {
-  await act(async () => renderer.unmount());
+afterEach(() => {
   client.clear();
 });
 
 it('generates only on an explicit command and never on mount, render or refocus', async () => {
+  const { result, rerender } = await renderGeneration();
   expect(mockGenerate).not.toHaveBeenCalled();
-  await act(async () => {
-    mutation.mutate(form);
+  await act(() => {
+    result.current.mutate(form);
   });
-  await settle();
-  expect(mutation.data).toEqual([generated]);
-  await act(async () => {
+  await waitFor(() => expect(result.current.data).toEqual([generated]));
+  await act(() => {
     focusManager.setFocused(false);
     focusManager.setFocused(true);
-    renderer.update(
-      <QueryClientProvider client={client}>
-        <Probe />
-      </QueryClientProvider>,
-    );
   });
+  await rerender(undefined);
   await settle();
   expect(mockGenerate).toHaveBeenCalledTimes(1);
 });
 
 it('does not retry a failed generation until explicitly requested', async () => {
   mockGenerate.mockRejectedValue(new Error('unavailable'));
-  await act(async () => {
-    mutation.mutate(form);
+  const { result } = await renderGeneration();
+  await act(() => {
+    result.current.mutate(form);
   });
-  await settle();
-  expect(mutation.isError).toBe(true);
+  await waitFor(() => expect(result.current.isError).toBe(true));
   expect(mockGenerate).toHaveBeenCalledTimes(1);
 });
 
@@ -89,13 +70,12 @@ it('aborts work when leaving the flow and discards a late response', async () =>
       });
     },
   );
+  const { result, unmount } = await renderGeneration();
   let pending!: Promise<unknown>;
-  await act(async () => {
-    pending = mutation.mutateAsync(form);
+  await act(() => {
+    pending = result.current.mutateAsync(form);
   });
-  await act(async () => {
-    renderer.unmount();
-  });
+  await unmount();
   expect(signal.aborted).toBe(true);
   resolveLate([generated]);
   await expect(pending).rejects.toMatchObject({ code: 'CANCELLED' });

@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { act, create, ReactTestRenderer } from 'react-test-renderer';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { useScheduleSharing } from '../useScheduleSharing';
 
 const mockCapturePng = jest.fn();
@@ -11,44 +10,34 @@ jest.mock('@root/app/providers/AppServicesProvider', () => ({
   }),
 }));
 jest.mock('react-native-svg', () => ({ SvgXml: 'SvgXml' }));
+// O `SvgRenderer` usa a ref criada pelo hook: ele precisa estar na mesma
+// árvore do hook, como na agenda.
 let sharing: ReturnType<typeof useScheduleSharing>;
 function Probe() {
   sharing = useScheduleSharing();
   return <sharing.SvgRenderer svgString='<svg width="100" height="100" />' />;
 }
-let renderer: ReactTestRenderer;
 beforeEach(async () => {
   mockCapturePng.mockReset().mockResolvedValue('file:///schedule.png');
   mockShare.mockReset().mockResolvedValue(undefined);
-  await act(async () => {
-    renderer = create(<Probe />, {
-      createNodeMock: () => ({ nativeView: true }),
-    });
-  });
-});
-afterEach(async () => {
-  await act(async () => renderer.unmount());
+  await render(<Probe />);
 });
 
 it('keeps the capture view native and opaque and waits for a measured layout', async () => {
-  const view = renderer.root.findByType(View);
-  expect(view.props.collapsable).toBe(false);
-  expect(StyleSheet.flatten(view.props.style).opacity).not.toBe(0);
-  await act(async () => {
-    await sharing.share('svg-before-layout');
-  });
+  // a vista de captura fica fora da tela e sem papel acessível: é a raiz
+  const view = screen.root!;
+  expect(view).toHaveProp('collapsable', false);
+  expect(view).toBeVisible();
+  await act(() => sharing.share('svg-before-layout'));
   expect(mockCapturePng).not.toHaveBeenCalled();
   expect(mockShare).toHaveBeenCalledWith({
     url: 'svg-before-layout',
     type: 'image/svg+xml',
   });
-  await act(async () => {
-    view.props.onLayout({
-      nativeEvent: { layout: { width: 100, height: 100 } },
-    });
-    await sharing.share('svg-after-layout');
-  });
+  await fireEvent.layout(view, { width: 100, height: 100 });
+  await act(() => sharing.share('svg-after-layout'));
   expect(mockCapturePng).toHaveBeenCalledTimes(1);
+  expect(mockCapturePng).toHaveBeenCalledWith(expect.anything());
   expect(mockShare).toHaveBeenLastCalledWith({
     url: 'file:///schedule.png',
     type: 'image/png',
@@ -65,7 +54,7 @@ it('ignores two taps within the same render while one native dialog is pending',
   );
   let first!: Promise<void>;
   let second!: Promise<void>;
-  await act(async () => {
+  await act(() => {
     first = sharing.share('svg');
     second = sharing.share('svg');
   });

@@ -1,24 +1,11 @@
 import React from 'react';
-import { Text as RNText } from 'react-native';
-import { act, create, ReactTestRenderer } from 'react-test-renderer';
+import { screen, userEvent, within } from '@testing-library/react-native';
+import type { TestInstance } from 'test-renderer';
 import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form';
-import { ThemeProvider } from 'styled-components/native';
 
-import { LIGHT } from '@root/themes';
-import StepsProvider from '@hooks/useSteps';
-import {
-  Button,
-  EmptyState,
-  ErrorState,
-  FilterChip,
-  ListRow,
-  Notice,
-  SegmentedControl,
-  SelectField,
-  SkeletonList,
-  Stepper,
-  Tabs,
-} from '@components/ui';
+import { renderWithProviders } from '@root/test-utils/render';
+import { StepsProvider } from '@hooks/useSteps';
+import { OUTLINED_GLYPHS } from '@components/ui';
 import {
   createScheduleDraft,
   type GeneratedSchedule,
@@ -30,15 +17,19 @@ import type {
 } from '@root/modules/academics/domain/models';
 import { AppError } from '@root/shared/errors/AppError';
 
-import BusyHoursStep from '../steps/BusyHoursStep';
-import PriorityStep from '../steps/PriorityStep';
-import SubjectsStep from '../steps/SubjectsStep';
-import FetchDataStep from '../steps/FetchDataStep';
-import ClassesStep from '../steps/ClassesStep';
-import GenerationStep from '../steps/GenerationStep';
-import { acronym, classMeetings, scheduleMeetings } from '../format';
+import { BusyHoursStep } from '../steps/BusyHoursStep';
+import { PriorityStep } from '../steps/PriorityStep';
+import { SubjectsStep } from '../steps/SubjectsStep';
+import { FetchDataStep } from '../steps/FetchDataStep';
+import { ClassesStep } from '../steps/ClassesStep';
+import { GenerationStep } from '../steps/GenerationStep';
+import {
+  acronym,
+  BLOCKED_TEXT,
+  classMeetings,
+  scheduleMeetings,
+} from '../format';
 
-jest.mock('react-native-modal', () => 'Modal');
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
@@ -208,9 +199,8 @@ const RESULTS: GeneratedSchedule[] = [
 
 const steps = { nextStep: jest.fn(), prevStep: jest.fn(), setStep: jest.fn() };
 let form: UseFormReturn<ScheduleCreationParams>;
-let renderer: ReactTestRenderer;
 
-function Harness({
+function StepForm({
   step,
   values,
   children,
@@ -224,60 +214,52 @@ function Harness({
     defaultValues: { ...createScheduleDraft(), ...values },
   });
   return (
-    <ThemeProvider theme={LIGHT}>
-      <FormProvider {...form}>
-        <StepsProvider values={{ step, ...steps }}>{children}</StepsProvider>
-      </FormProvider>
-    </ThemeProvider>
+    <FormProvider {...form}>
+      <StepsProvider values={{ step, ...steps }}>{children}</StepsProvider>
+    </FormProvider>
   );
 }
 
-const render = async (
+const renderStep = (
   node: React.ReactElement,
   step: number,
   values: Partial<ScheduleCreationParams> = {},
 ) => {
-  await act(async () => {
-    renderer = create(
-      <Harness step={step} values={values}>
-        {node}
-      </Harness>,
+  function Providers({ children }: { children: React.ReactNode }) {
+    return (
+      <StepForm step={step} values={values}>
+        {children}
+      </StepForm>
     );
-  });
+  }
+  return renderWithProviders(node, { wrapper: Providers });
 };
 
-afterEach(async () => {
-  await act(async () => renderer?.unmount());
+// Os passos têm muitos toques; com timers falsos o `userEvent` não espera os
+// 130 ms reais de cada um.
+let user: ReturnType<typeof userEvent.setup>;
+beforeEach(() => {
+  jest.useFakeTimers();
+  user = userEvent.setup();
+});
+afterEach(() => {
+  jest.useRealTimers();
 });
 
-const texts = () =>
-  renderer.root
-    .findAllByType(RNText)
-    .map(t =>
-      React.Children.toArray(t.props.children)
-        .filter(c => typeof c === 'string' || typeof c === 'number')
-        .join(''),
-    )
-    .filter(Boolean);
-const hasText = (needle: string) => texts().some(t => t.includes(needle));
-const button = (label: string) =>
-  renderer.root.find(
-    n =>
-      n.type === Button &&
-      (n.props.label === label || n.props.accessibilityLabel === label),
+const button = (name: string) => screen.getByRole('button', { name });
+/** Linhas de seleção (disciplinas e turmas); as opções da folha são `radio`. */
+const checkRows = () => screen.getAllByRole('checkbox');
+/** Linha de seleção pelo título (o nome acessível começa por ele). */
+const checkRow = (title: string) =>
+  screen.getByRole('checkbox', { name: new RegExp(`^${title} `) });
+/** Confere, na ordem da tela, o texto que identifica cada elemento. */
+const expectEachToShow = (elements: TestInstance[], texts: string[]) => {
+  expect(elements).toHaveLength(texts.length);
+  elements.forEach((element, i) =>
+    expect(within(element).getByText(texts[i])).toBeOnTheScreen(),
   );
-const rows = () => renderer.root.findAllByType(ListRow);
-/** Células da tabela de horários (o `memo` esconde o tipo do componente). */
-const cells = () => renderer.root.findAll(n => Boolean(n.props.onToggleRow));
-/** Linhas de turma (a folha do seletor de docente também tem linhas). */
-const classRows = () =>
-  rows().filter(r => r.props.accessibilityRole === 'checkbox');
-const row = (title: string) => rows().find(r => r.props.title === title)!;
-const press = async (fn: () => unknown) => {
-  await act(async () => {
-    await fn();
-  });
 };
+const isChecked = expect.objectContaining({ checked: true });
 
 /* ------------------------------------------------------------------ tests */
 
@@ -299,51 +281,49 @@ describe('format', () => {
 
 describe('BusyHoursStep', () => {
   const busy = () => form.getValues('busy_schedules');
+  /** Células da tabela de horários: "Segunda, M1, 7:00 às 7:50". */
+  const cells = () =>
+    screen.getAllByRole('togglebutton', { name: /, [MTN]\d, .+ às / });
+  const cell = (day: string, alias: string) =>
+    screen.getByRole('togglebutton', {
+      name: new RegExp(`^${day}, ${alias}, `),
+    });
 
   it('shows the week as a grid of 17 times by 6 days, with the stepper on step 2', async () => {
-    await render(<BusyHoursStep />, 1);
+    await renderStep(<BusyHoursStep />, 1);
     expect(cells()).toHaveLength(17 * 6);
-    expect(renderer.root.findByType(Stepper).props.current).toBe(2);
-    expect(hasText('nenhum tempo')).toBe(true);
+    expect(
+      screen.getByRole('button', { name: /^Passo 2 de 7: / }),
+    ).toBeSelected();
+    expect(screen.getByText('Ocupado: nenhum tempo')).toBeOnTheScreen();
   });
 
   it('toggles one time, the whole row on long press, a shift and clears', async () => {
-    await render(<BusyHoursStep />, 1);
-    const cell = (day: number, alias: string) =>
-      cells().find(
-        c => c.props.weekDay === day && c.props.time.periodAlias === alias,
-      )!;
+    await renderStep(<BusyHoursStep />, 1);
 
-    await press(() =>
-      cell(1, 'M1').props.onToggle(1, cell(1, 'M1').props.time),
-    );
+    await user.press(cell('Segunda', 'M1'));
     expect(busy()).toEqual([
       { week_day: 0, start_time_in_minutes: 420, end_time_in_minutes: 470 },
     ]);
-    expect(cell(1, 'M1').props.selected).toBe(true);
-    expect(hasText('1 tempo')).toBe(true);
+    expect(cell('Segunda', 'M1')).toHaveProp('accessibilityState', isChecked);
+    expect(screen.getByText('Ocupado: 1 tempo')).toBeOnTheScreen();
 
-    await press(() =>
-      cell(2, 'T1').props.onToggleRow(cell(2, 'T1').props.time),
-    );
+    await user.longPress(cell('Terça', 'T1'));
     expect(busy()).toHaveLength(7);
 
-    await press(() => button('Noite ocupada').props.onPress());
+    const night = () =>
+      screen.getByRole('togglebutton', { name: 'Noite ocupada' });
+    await user.press(night());
     expect(busy()).toHaveLength(7 + 5 * 6);
-    expect(button('Noite ocupada').props.accessibilityState.checked).toBe(true);
+    expect(night()).toHaveProp('accessibilityState', isChecked);
 
-    await press(() => button('Limpar tudo').props.onPress());
+    await user.press(button('Limpar tudo'));
     expect(busy()).toEqual([]);
   });
 
   it('marks a whole day from its header', async () => {
-    await render(<BusyHoursStep />, 1);
-    const header = renderer.root.find(
-      n =>
-        n.props.accessibilityLabel ===
-          'Sexta: marcar o dia inteiro como ocupado' && n.props.onPress,
-    );
-    await press(() => header.props.onPress());
+    await renderStep(<BusyHoursStep />, 1);
+    await user.press(button('Sexta: marcar o dia inteiro como ocupado'));
     expect(busy()).toHaveLength(17);
     expect(busy().every(b => b.week_day === 4)).toBe(true);
   });
@@ -353,33 +333,30 @@ describe('PriorityStep', () => {
   const priority = () => form.getValues('priority');
 
   it('applies a preset and keeps paired options exclusive', async () => {
-    await render(<PriorityStep />, 2);
-    expect(hasText('1 ligada')).toBe(true);
+    await renderStep(<PriorityStep />, 2);
+    expect(screen.getByText('1 ligada')).toBeOnTheScreen();
 
-    const chip = renderer.root
-      .findAllByType(FilterChip)
-      .find(c => c.props.label === 'Moro longe')!;
-    await press(() => chip.props.onPress());
+    await user.press(screen.getByRole('togglebutton', { name: 'Moro longe' }));
     expect(priority()).toEqual([
       'MIN_GAPS',
       'LIVES_FAR_AWAY',
       'MIN_DAY_WORKLOAD',
     ]);
-    expect(hasText('3 ligadas')).toBe(true);
+    expect(screen.getByText('3 ligadas')).toBeOnTheScreen();
 
-    await press(() => row('Muita carga horária diária').props.onPress());
+    const heavyDay = () =>
+      screen.getByRole('switch', { name: 'Muita carga horária diária' });
+    await user.press(heavyDay());
     expect(priority()).toContain('MAX_DAY_WORKLOAD');
     expect(priority()).not.toContain('MIN_DAY_WORKLOAD');
-    expect(
-      row('Muita carga horária diária').props.accessibilityState.checked,
-    ).toBe(true);
+    expect(heavyDay()).toBeChecked();
   });
 
   it('orders the priorities before advancing', async () => {
-    await render(<PriorityStep />, 2, {
+    await renderStep(<PriorityStep />, 2, {
       priority: ['MOST_SUBJECTS_POSSIBLE', 'MIN_GAPS'],
     });
-    await press(() => button('Próximo').props.onPress());
+    await user.press(button('Próximo'));
     expect(priority()).toEqual(['MIN_GAPS', 'MOST_SUBJECTS_POSSIBLE']);
     expect(steps.nextStep).toHaveBeenCalled();
   });
@@ -395,67 +372,70 @@ describe('SubjectsStep', () => {
   });
 
   it('lists subjects not taken yet and enables "Próximo" at the minimum', async () => {
-    await render(<SubjectsStep />, 3, { min_subject_amount: 2 });
-    expect(rows().map(r => r.props.title)).toEqual([
+    await renderStep(<SubjectsStep />, 3, { min_subject_amount: 2 });
+    expectEachToShow(checkRows(), [
       'Compiladores',
       'Computação Gráfica',
       'Projeto Final I',
       'Aprendizado de Máquina',
     ]);
-    expect(hasText('Escolha 2 ou mais disciplinas')).toBe(true);
-    expect(hasText('Trava de 140 créditos')).toBe(true);
-    expect(button('Próximo').props.disabled).toBe(true);
+    expect(
+      screen.getByRole('header', { name: 'Escolha 2 ou mais disciplinas' }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText('Trava de 140 créditos')).toBeOnTheScreen();
+    expect(button('Próximo')).toBeDisabled();
 
-    await press(() => row('Compiladores').props.onPress());
-    await press(() => row('Projeto Final I').props.onPress());
+    await user.press(checkRow('Compiladores'));
+    await user.press(checkRow('Projeto Final I'));
     expect(form.getValues('selectedSubjects').map(s => s.id)).toEqual([
       'IME02-10871',
       'IME02-10950',
     ]);
-    expect(row('Compiladores').props.accessibilityState.checked).toBe(true);
-    expect(button('Próximo').props.disabled).toBe(false);
+    expect(checkRow('Compiladores')).toBeChecked();
+    expect(button('Próximo')).toBeEnabled();
 
-    await press(() => row('Compiladores').props.onPress());
+    await user.press(checkRow('Compiladores'));
     expect(form.getValues('selectedSubjects')).toHaveLength(1);
   });
 
   it('filters by type and by name or code', async () => {
-    await render(<SubjectsStep />, 3);
-    const chip = renderer.root
-      .findAllByType(FilterChip)
-      .find(c => c.props.label === 'Eletivas Restritas')!;
-    await press(() => chip.props.onPress());
-    expect(rows().map(r => r.props.title)).toEqual(['Aprendizado de Máquina']);
-
-    const all = renderer.root
-      .findAllByType(FilterChip)
-      .find(c => c.props.label === 'Todas')!;
-    await press(() => all.props.onPress());
-    const search = renderer.root.find(
-      n => n.props.placeholder === 'Pesquise pelo nome da disciplina',
+    await renderStep(<SubjectsStep />, 3);
+    await user.press(
+      screen.getByRole('togglebutton', { name: 'Eletivas Restritas' }),
     );
-    await press(() => search.props.onChangeText('10880'));
-    expect(rows().map(r => r.props.title)).toEqual(['Computação Gráfica']);
+    expectEachToShow(checkRows(), ['Aprendizado de Máquina']);
 
-    await press(() => search.props.onChangeText('inexistente'));
-    expect(renderer.root.findAllByType(EmptyState)).toHaveLength(1);
+    await user.press(screen.getByRole('togglebutton', { name: 'Todas' }));
+    const search = screen.getByLabelText('Pesquisar disciplina');
+    await user.type(search, '10880');
+    expectEachToShow(checkRows(), ['Computação Gráfica']);
+
+    await user.clear(search);
+    await user.type(search, 'inexistente');
+    expect(
+      screen.getByText(
+        'Parece que não há disciplinas a cursar nessa categoria.',
+      ),
+    ).toBeOnTheScreen();
   });
 
   it('shows a skeleton while loading and an error with retry', async () => {
     Object.assign(mockCurriculum, { data: undefined, isLoading: true });
-    await render(<SubjectsStep />, 3);
-    expect(renderer.root.findAllByType(SkeletonList)).toHaveLength(1);
-    expect(button('Anterior').props.disabled).toBe(true);
-    await act(async () => renderer.unmount());
+    await renderStep(<SubjectsStep />, 3);
+    expect(screen.getByLabelText('Carregando disciplinas…')).toBeBusy();
+    expect(button('Anterior')).toBeDisabled();
+    await screen.unmount();
 
     Object.assign(mockCurriculum, {
       data: undefined,
       isLoading: false,
       error: new AppError('NETWORK'),
     });
-    await render(<SubjectsStep />, 3);
-    const error = renderer.root.findByType(ErrorState);
-    error.props.onRetry();
+    await renderStep(<SubjectsStep />, 3);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Ops, ocorreu um erro ao buscar as disciplinas. Toque aqui para tentar novamente.',
+    );
+    await user.press(button('Tentar novamente'));
     expect(mockCurriculum.refetch).toHaveBeenCalled();
   });
 
@@ -465,11 +445,14 @@ describe('SubjectsStep', () => {
       isLoading: false,
       error: new AppError('POSSIBLY_BLOCKED'),
     });
-    await render(<SubjectsStep />, 3);
-    const blocked = renderer.root.findByType(EmptyState);
-    expect(blocked.props.icon).toBe('lock');
-    expect(blocked.props.tone).toBe('bad');
-    blocked.props.action.onPress();
+    await renderStep(<SubjectsStep />, 3);
+    // o tom crítico anuncia a mensagem como alerta
+    expect(screen.getByRole('alert')).toHaveTextContent(BLOCKED_TEXT);
+    // o cadeado é decorativo (fora da acessibilidade): confere o glifo desenhado
+    expect(
+      screen.container.queryAll(node => node.props.d === OUTLINED_GLYPHS.lock),
+    ).toHaveLength(1);
+    await user.press(button('Tentar novamente'));
     expect(mockCurriculum.refetch).toHaveBeenCalled();
   });
 });
@@ -496,19 +479,27 @@ describe('FetchDataStep', () => {
         },
       ],
     });
-    await render(<FetchDataStep />, 4, { selectedSubjects: selected });
-    expect(hasText('Dados carregados com sucesso!')).toBe(true);
+    await renderStep(<FetchDataStep />, 4, { selectedSubjects: selected });
     expect(
-      hasText('2 de 2 disciplinas processadas · 1 disponível, 1 recusada'),
-    ).toBe(true);
-    expect(row('Projeto Final I').props.accessibilityLabel).toBe(
-      'Projeto Final I, Recusada: você não possui créditos suficientes.',
-    );
-    expect(row('Computação Gráfica').props.accessibilityLabel).toBe(
-      'Computação Gráfica, IME02-10880 · dados carregados',
-    );
+      screen.getByRole('header', { name: 'Dados carregados com sucesso!' }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        '2 de 2 disciplinas processadas · 1 disponível, 1 recusada',
+      ),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByLabelText(
+        'Projeto Final I, Recusada: você não possui créditos suficientes.',
+      ),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByLabelText(
+        'Computação Gráfica, IME02-10880 · dados carregados',
+      ),
+    ).toBeOnTheScreen();
 
-    await press(() => button('Próximo').props.onPress());
+    await user.press(button('Próximo'));
     expect(form.getValues('subjects')).toEqual([DETAILS[0]]);
     expect(form.getValues('selectedClasses')).toHaveLength(2);
     expect(steps.nextStep).toHaveBeenCalled();
@@ -523,15 +514,18 @@ describe('FetchDataStep', () => {
         { subject: CURRICULUM[1], error: new Error('x'), eligible: false },
       ],
     });
-    await render(<FetchDataStep />, 4, { selectedSubjects: selected });
-    expect(row('Projeto Final I').props.accessibilityLabel).toBe(
-      'Projeto Final I, Aguardando…',
-    );
-    const notice = renderer.root
-      .findAllByType(Notice)
-      .find(n => n.props.onRetry === mockPlanning.retry)!;
-    expect(notice).toBeTruthy();
-    expect(button('Próximo').props.disabled).toBe(true);
+    await renderStep(<FetchDataStep />, 4, { selectedSubjects: selected });
+    expect(
+      screen.getByLabelText('Projeto Final I, Aguardando…'),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole('alert', {
+        name: 'Não foi possível carregar algumas disciplinas.',
+      }),
+    ).toBeOnTheScreen();
+    await user.press(button('Tentar novamente'));
+    expect(mockPlanning.retry).toHaveBeenCalled();
+    expect(button('Próximo')).toBeDisabled();
   });
 });
 
@@ -543,36 +537,39 @@ describe('ClassesStep', () => {
     }));
 
   it('lists the classes with teachers and meetings and toggles them', async () => {
-    await render(<ClassesStep />, 5, {
+    await renderStep(<ClassesStep />, 5, {
       subjects: DETAILS,
       selectedClasses: classes(),
     });
-    const first = classRows()[0];
-    expect(first.props.subtitle).toBe('Turma 1');
-    expect(first.props.meta).toEqual([
-      'Ana Beatriz Coelho',
-      'Seg e Qua · M3–M4',
-    ]);
-    expect(hasText('Preferencial')).toBe(true);
-    expect(button('Próximo').props.disabled).toBe(false);
+    const first = within(checkRows()[0]);
+    expect(first.getByText('IME02-10880 · Turma 1')).toBeOnTheScreen();
+    expect(first.getByText('Ana Beatriz Coelho')).toBeOnTheScreen();
+    expect(first.getByText('Seg e Qua · M3–M4')).toBeOnTheScreen();
+    expect(screen.getByText('Preferencial')).toBeOnTheScreen();
+    expect(button('Próximo')).toBeEnabled();
 
-    await press(() => classRows()[0].props.onPress());
-    await press(() => classRows()[1].props.onPress());
+    await user.press(checkRows()[0]);
+    await user.press(checkRows()[1]);
     expect(form.getValues('selectedClasses')).toEqual([]);
-    expect(button('Próximo').props.disabled).toBe(true);
+    expect(button('Próximo')).toBeDisabled();
   });
 
   it('filters by teacher', async () => {
-    await render(<ClassesStep />, 5, {
+    await renderStep(<ClassesStep />, 5, {
       subjects: DETAILS,
       selectedClasses: classes(),
     });
-    const select = renderer.root.findByType(SelectField);
-    expect(select.props.options.map((o: { label: string }) => o.label)).toEqual(
-      ['Todos os Professores', 'Ana Beatriz Coelho', 'Otávio Saldanha'],
+    await user.press(button('Docente: Todos os Professores. Trocar'));
+    const options = within(screen.getByLabelText('Docente')).getAllByRole(
+      'radio',
     );
-    await press(() => select.props.onChange('Otávio Saldanha'));
-    expect(classRows().map(r => r.props.subtitle)).toEqual(['Turma 2']);
+    expectEachToShow(options, [
+      'Todos os Professores',
+      'Ana Beatriz Coelho',
+      'Otávio Saldanha',
+    ]);
+    await user.press(options[2]);
+    expectEachToShow(checkRows(), ['IME02-10880 · Turma 2']);
   });
 });
 
@@ -594,19 +591,28 @@ describe('GenerationStep', () => {
   });
 
   it('summarizes the choices and generates from the footer', async () => {
-    await render(<GenerationStep />, 6, values);
-    expect(hasText('Tudo pronto para gerar sua grade')).toBe(true);
-    expect(hasText('2 a 4')).toBe(true);
-    await press(() => button('Gerar grades').props.onPress());
+    await renderStep(<GenerationStep />, 6, values);
+    expect(
+      screen.getByRole('header', { name: 'Tudo pronto para gerar sua grade' }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByLabelText('Disciplinas por período: 2 a 4'),
+    ).toBeOnTheScreen();
+    await user.press(button('Gerar grades'));
     expect(mockGeneration.mutate).toHaveBeenCalled();
   });
 
   it('shows progress while generating', async () => {
     Object.assign(mockGeneration, { isIdle: false, isPending: true });
-    await render(<GenerationStep />, 6, values);
-    expect(button('Gerar grades').props.loading).toBe(true);
-    expect(hasText('Combinando turmas e horários…')).toBe(true);
-    expect(renderer.root.findAllByType(SkeletonList)).toHaveLength(1);
+    await renderStep(<GenerationStep />, 6, values);
+    // carregando, "Gerar grades" troca o rótulo por "Gerando…"
+    expect(button('Gerando…')).toBeBusy();
+    expect(
+      screen.getByRole('progressbar', {
+        name: 'Combinando turmas e horários…',
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.getByLabelText('Gerando grades…')).toBeBusy();
   });
 
   it('shows the generated schedules with info and the weekly grid', async () => {
@@ -615,28 +621,31 @@ describe('GenerationStep', () => {
       isSuccess: true,
       data: RESULTS,
     });
-    await render(<GenerationStep />, 6, values);
-    const picker = renderer.root.findByType(SegmentedControl);
-    expect(picker.props.options.map((o: { label: string }) => o.label)).toEqual(
+    await renderStep(<GenerationStep />, 6, values);
+    expectEachToShow(
+      within(screen.getByLabelText('Grades geradas')).getAllByRole('tab'),
       ['Grade 1', 'Grade 2'],
     );
-    expect(hasText('créditos')).toBe(true);
-    expect(rows().map(r => r.props.title)).toEqual([
-      'Computação Gráfica',
-      'Inferência Estatística',
-    ]);
+    expect(
+      screen.getByLabelText('2 disciplinas, 8 créditos, 120 horas'),
+    ).toBeOnTheScreen();
+    // aba "Informações": uma linha por disciplina, em ordem alfabética
+    const titles = within(
+      screen.getByLabelText('Disciplinas da grade'),
+    ).getAllByText(/^(Computação Gráfica|Inferência Estatística)$/);
+    expect(titles).toHaveLength(2);
+    expect(titles[0]).toHaveTextContent('Computação Gráfica');
+    expect(titles[1]).toHaveTextContent('Inferência Estatística');
 
-    await press(() =>
-      renderer.root.findByType(Tabs).props.onChange('SCHEDULE'),
-    );
-    expect(hasText('CG')).toBe(true);
-    expect(hasText('Sáb')).toBe(true);
-    const grid = renderer.root.find(n => n.props.accessibilityRole === 'image');
-    expect(grid.props.accessibilityLabel).toContain(
-      'Computação Gráfica, turma 1: Seg e Qua · M3–M4 · 8:50–10:30',
+    await user.press(screen.getByRole('tab', { name: 'Horários' }));
+    // os dois encontros na grade e a legenda
+    expect(screen.getAllByText('CG')).toHaveLength(3);
+    expect(screen.getByText('Sáb')).toBeOnTheScreen();
+    expect(screen.getByRole('image')).toHaveAccessibleName(
+      /Computação Gráfica, turma 1: Seg e Qua · M3–M4 · 8:50–10:30/,
     );
 
-    await press(() => button('Gerar outra grade').props.onPress());
+    await user.press(button('Gerar outra grade'));
     expect(steps.setStep).toHaveBeenCalledWith(0);
     expect(form.getValues('min_subject_amount')).toBeNull();
   });
@@ -647,21 +656,24 @@ describe('GenerationStep', () => {
       isSuccess: true,
       data: [],
     });
-    await render(<GenerationStep />, 6, values);
-    expect(renderer.root.findAllByType(EmptyState)).toHaveLength(1);
-    await act(async () => renderer.unmount());
+    await renderStep(<GenerationStep />, 6, values);
+    expect(
+      screen.getByText(
+        'Não foi possível gerar nenhuma grade com os dados informados, clique aqui para gerar outra grade',
+      ),
+    ).toBeOnTheScreen();
+    await screen.unmount();
 
     Object.assign(mockGeneration, {
       isSuccess: false,
       data: undefined,
       error: new AppError('INVALID_INPUT', 'Selecione entre 1 e 30 turmas.'),
     });
-    await render(<GenerationStep />, 6, values);
-    const error = renderer.root.findByType(ErrorState);
-    expect(error.props.message).toBe(
+    await renderStep(<GenerationStep />, 6, values);
+    expect(screen.getByRole('alert')).toHaveTextContent(
       'Selecione entre 1 e 30 turmas. Toque aqui para tentar novamente.',
     );
-    await press(() => error.props.onRetry());
+    await user.press(button('Tentar novamente'));
     expect(mockGeneration.mutate).toHaveBeenCalled();
   });
 });

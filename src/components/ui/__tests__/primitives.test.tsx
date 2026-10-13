@@ -1,9 +1,8 @@
 import React from 'react';
-import { Text as RNText } from 'react-native';
-import { act, create, ReactTestRenderer } from 'react-test-renderer';
-import { ThemeProvider } from 'styled-components/native';
+import { screen, userEvent, within } from '@testing-library/react-native';
 
 import { LIGHT } from '@root/themes';
+import { renderWithProviders } from '@root/test-utils/render';
 import {
   AoLogo,
   Avatar,
@@ -64,37 +63,12 @@ import {
   toastConfig,
 } from '../index';
 
-jest.mock('react-native-modal', () => 'Modal');
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
-let renderer: ReactTestRenderer;
-const render = async (node: React.ReactElement) => {
-  await act(async () => {
-    renderer = create(<ThemeProvider theme={LIGHT}>{node}</ThemeProvider>);
-  });
-  return renderer;
-};
-const texts = () =>
-  renderer.root
-    .findAllByType(RNText)
-    .map(t =>
-      Array.isArray(t.props.children)
-        ? t.props.children.join('')
-        : String(t.props.children ?? ''),
-    );
-const byLabel = (label: string) =>
-  renderer.root.findAll(
-    n => n.props.accessibilityLabel === label && typeof n.type !== 'string',
-  )[0];
-
-afterEach(async () => {
-  await act(async () => renderer?.unmount());
-});
-
 it('renders every primitive with the light theme (styles parse at render time)', async () => {
-  await render(
+  await renderWithProviders(
     <>
       <Text variant="titleXL">Olá, Marina</Text>
       <Text variant="meta" tone="muted" tabular>
@@ -265,17 +239,13 @@ it('renders every primitive with the light theme (styles parse at render time)',
       />
     </>,
   );
-  const all = texts();
-  expect(all).toEqual(expect.arrayContaining(['Olá, Marina', 'Livre · 1h50']));
-  expect(all).toContain('Tentar novamente');
+  expect(screen.getByText('Olá, Marina')).toBeOnTheScreen();
+  expect(screen.getByText('Livre · 1h50')).toBeOnTheScreen();
+  expect(screen.getAllByText('Tentar novamente')).not.toHaveLength(0);
   // portal bloqueado: um texto só para o aviso e outro para o estado vazio
-  expect(all).toEqual(
-    expect.arrayContaining([
-      PORTAL_BLOCKED_TEXT,
-      PORTAL_BLOCKED_FULL_TEXT,
-      'Algo deu errado',
-    ]),
-  );
+  expect(screen.getByText(PORTAL_BLOCKED_TEXT)).toBeOnTheScreen();
+  expect(screen.getByText(PORTAL_BLOCKED_FULL_TEXT)).toBeOnTheScreen();
+  expect(screen.getByText('Algo deu errado')).toBeOnTheScreen();
 });
 
 it('formats grades, health, shifts, durations and initials', () => {
@@ -292,7 +262,7 @@ it('formats grades, health, shifts, durations and initials', () => {
 });
 
 it('labels grade cells by health so status is never color only', async () => {
-  await render(
+  await renderWithProviders(
     <>
       <GradeCell value={8.5} />
       <GradeCell value={6} />
@@ -300,36 +270,41 @@ it('labels grade cells by health so status is never color only', async () => {
       <GradeCell value={null} />
     </>,
   );
-  expect(byLabel('Nota 8,5, Bom')).toBeTruthy();
-  expect(byLabel('Nota 6,0, Atenção')).toBeTruthy();
-  expect(byLabel('Nota 4,5, Crítico')).toBeTruthy();
-  expect(byLabel('sem nota')).toBeTruthy();
+  expect(screen.getByLabelText('Nota 8,5, Bom')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Nota 6,0, Atenção')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Nota 4,5, Crítico')).toBeOnTheScreen();
+  expect(screen.getByLabelText('sem nota')).toBeOnTheScreen();
 });
 
 it('drops the divider of the last row only', async () => {
-  await render(
+  // o fio é decorativo (fora da acessibilidade)
+  const divider = (row: string) =>
+    within(screen.getByTestId(row)).queryByTestId('list-row-divider', {
+      includeHiddenElements: true,
+    });
+  await renderWithProviders(
     <List>
-      <ListRow title="A" />
-      <ListRow title="B" />
-      <ListRow title="C" divider />
+      <ListRow testID="a" title="A" />
+      <ListRow testID="b" title="B" />
+      <ListRow testID="c" title="C" divider />
     </List>,
   );
-  const rows = renderer.root.findAllByType(ListRow);
-  expect(rows.map(r => r.props.divider)).toEqual([undefined, undefined, true]);
-  await render(
+  for (const row of ['a', 'b', 'c']) {
+    expect(divider(row)).toBeOnTheScreen();
+  }
+  await screen.rerender(
     <List>
-      <ListRow title="A" />
-      <ListRow title="B" />
+      <ListRow testID="a" title="A" />
+      <ListRow testID="b" title="B" />
     </List>,
   );
-  expect(
-    renderer.root.findAllByType(ListRow).map(r => r.props.divider),
-  ).toEqual([undefined, false]);
+  expect(divider('a')).toBeOnTheScreen();
+  expect(divider('b')).not.toBeOnTheScreen();
 });
 
 it('blocks presses while a button is loading and exposes busy', async () => {
   const onPress = jest.fn();
-  await render(
+  await renderWithProviders(
     <Button
       label="Entrar"
       loading
@@ -337,18 +312,15 @@ it('blocks presses while a button is loading and exposes busy', async () => {
       onPress={onPress}
     />,
   );
-  const button = byLabel('Entrando…');
-  expect(button.props.accessibilityState).toMatchObject({
-    disabled: true,
-    busy: true,
-  });
-  expect(button.props.disabled).toBe(true);
+  const button = screen.getByRole('button', { name: 'Entrando…' });
+  expect(button).toBeDisabled();
+  expect(button).toBeBusy();
 });
 
 it('clears busy explicitly when loading ends (Android keeps a stale busy on undefined)', async () => {
   const onPress = jest.fn();
   const tree = (loading: boolean) => (
-    <ThemeProvider theme={LIGHT}>
+    <>
       <Button
         label="Entrar"
         loading={loading}
@@ -362,36 +334,29 @@ it('clears busy explicitly when loading ends (Android keeps a stale busy on unde
         loading={loading}
         onPress={onPress}
       />
-    </ThemeProvider>
+    </>
   );
-  // o nó que recebe o estado acessível (o Pressable), não o componente
-  const control = (label: string) =>
-    renderer.root.findAll(
-      n =>
-        n.props.accessibilityLabel === label &&
-        n.props.accessibilityState != null &&
-        typeof n.type !== 'string',
-    )[0];
-  await act(async () => {
-    renderer = create(tree(true));
-  });
-  expect(control('Entrando…').props.accessibilityState.busy).toBe(true);
-  expect(control('Enviar mensagem').props.accessibilityState.busy).toBe(true);
+  await renderWithProviders(tree(true));
+  expect(screen.getByRole('button', { name: 'Entrando…' })).toBeBusy();
+  expect(screen.getByRole('button', { name: 'Enviar mensagem' })).toBeBusy();
 
-  await act(async () => renderer.update(tree(false)));
-  const button = control('Entrar');
-  const iconButton = control('Enviar mensagem');
-  expect(button.props.accessibilityState.busy).toBe(false);
-  expect(button.props.accessibilityState.disabled).toBe(false);
-  expect(iconButton.props.accessibilityState.busy).toBe(false);
-  expect(iconButton.props.accessibilityState.disabled).toBe(false);
-  await act(async () => button.props.onPress());
+  await screen.rerender(tree(false));
+  // `false` de fato, não `undefined` (o toBeBusy não distingue os dois)
+  const idle = expect.objectContaining({ busy: false, disabled: false });
+  const button = screen.getByRole('button', { name: 'Entrar' });
+  expect(button).toHaveProp('accessibilityState', idle);
+  expect(screen.getByRole('button', { name: 'Enviar mensagem' })).toHaveProp(
+    'accessibilityState',
+    idle,
+  );
+  await userEvent.setup().press(button);
   expect(onPress).toHaveBeenCalledTimes(1);
 });
 
 it('clears a field and toggles password visibility', async () => {
   const onChangeText = jest.fn();
-  await render(
+  const user = userEvent.setup();
+  await renderWithProviders(
     <TextField
       label="Código"
       clearable
@@ -401,17 +366,34 @@ it('clears a field and toggles password visibility', async () => {
       onChangeText={onChangeText}
     />,
   );
-  await act(async () => byLabel('Limpar código').props.onPress());
+  await user.press(screen.getByRole('button', { name: 'Limpar código' }));
   expect(onChangeText).toHaveBeenCalledWith('');
-  await act(async () => byLabel('Mostrar senha').props.onPress());
-  expect(byLabel('Ocultar senha')).toBeTruthy();
+  await user.press(screen.getByRole('button', { name: 'Mostrar senha' }));
+  expect(
+    screen.getByRole('button', { name: 'Ocultar senha' }),
+  ).toBeOnTheScreen();
+});
+
+it('selects the number on focus so typing replaces it', async () => {
+  await renderWithProviders(
+    <NumberStepper
+      value="3"
+      onChangeText={() => undefined}
+      accessibilityLabel="mínimo de matérias"
+    />,
+  );
+  expect(screen.getByLabelText('mínimo de matérias')).toHaveProp(
+    'selectTextOnFocus',
+    true,
+  );
 });
 
 it('runs notice actions and selection callbacks', async () => {
   const retry = jest.fn();
   const onChange = jest.fn();
   const onSelect = jest.fn();
-  await render(
+  const user = userEvent.setup();
+  await renderWithProviders(
     <>
       <Notice
         kind="refreshFailed"
@@ -436,19 +418,19 @@ it('runs notice actions and selection callbacks', async () => {
       />
     </>,
   );
-  await act(async () => byLabel('Tentar novamente').props.onPress());
+  await user.press(screen.getByRole('button', { name: 'Tentar novamente' }));
   expect(retry).toHaveBeenCalled();
-  await act(async () => byLabel('Atendidas').props.onPress());
+  await user.press(screen.getByRole('tab', { name: 'Atendidas' }));
   expect(onChange).toHaveBeenCalledWith('done');
-  const radios = renderer.root.findAllByType(ListRow);
-  expect(radios[0].props.accessibilityState).toMatchObject({ checked: true });
-  await act(async () => radios[1].props.onPress());
+  expect(screen.getByRole('radio', { name: /^2026\.1/ })).toBeChecked();
+  await user.press(screen.getByRole('radio', { name: '2025.2' }));
   expect(onSelect).toHaveBeenCalledWith('2025.2');
 });
 
 it('opens the select sheet and reports the chosen option', async () => {
   const onChange = jest.fn();
-  await render(
+  const user = userEvent.setup();
+  await renderWithProviders(
     <SelectField
       label="Departamento"
       value=""
@@ -459,17 +441,27 @@ it('opens the select sheet and reports the chosen option', async () => {
       onChange={onChange}
     />,
   );
-  expect(texts()).toContain('Todos os departamentos');
-  const option = renderer.root.findAllByType(ListRow)[1];
-  await act(async () => option.props.onPress());
+  const field = () =>
+    screen.getByRole('button', {
+      name: 'Departamento: Todos os departamentos. Trocar',
+    });
+  expect(within(field()).getByText('Todos os departamentos')).toBeOnTheScreen();
+  await user.press(field());
+  expect(field()).toBeExpanded();
+  await user.press(screen.getByRole('radio', { name: 'IME' }));
   expect(onChange).toHaveBeenCalledWith('IME');
+  expect(field()).toBeCollapsed();
 });
 
 it('renders toast types through the snackbar config', async () => {
   const hide = jest.fn();
   const Success = toastConfig.success as React.ComponentType<any>;
-  await render(<Success text1="Relato enviado. Obrigado!" hide={hide} />);
-  expect(texts()).toContain('Relato enviado. Obrigado!');
-  await act(async () => byLabel('Relato enviado. Obrigado!').props.onPress());
+  await renderWithProviders(
+    <Success text1="Relato enviado. Obrigado!" hide={hide} />,
+  );
+  expect(screen.getByText('Relato enviado. Obrigado!')).toBeOnTheScreen();
+  await userEvent
+    .setup()
+    .press(screen.getByLabelText('Relato enviado. Obrigado!'));
   expect(hide).toHaveBeenCalled();
 });

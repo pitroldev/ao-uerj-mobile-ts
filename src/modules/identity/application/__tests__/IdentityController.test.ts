@@ -9,7 +9,11 @@ import type {
   CredentialStore,
   AccountDataLifecycle,
 } from '../ports';
-import { AppError, type ErrorCode } from '@root/shared/errors/AppError';
+import {
+  AppError,
+  errorMessage,
+  type ErrorCode,
+} from '@root/shared/errors/AppError';
 
 const profile: StudentProfile = {
   matricula: 'test-student',
@@ -153,6 +157,8 @@ it.each<ErrorCode>([
   'SESSION_EXPIRED',
   'PORTAL_LAYOUT_CHANGED',
   'POSSIBLY_BLOCKED',
+  // same portal warning for an unknown registration and for maintenance
+  'ACCOUNT_UNAVAILABLE',
 ])(
   'keeps saved identity when cold restore encounters %s at the portal',
   async code => {
@@ -162,9 +168,10 @@ it.each<ErrorCode>([
     expect(identity.getSnapshot()).toMatchObject({
       status: 'signedIn',
       account: saved.account,
-      error: expect.any(String),
+      error: errorMessage(new AppError(code)),
     });
     expect(stored()).toEqual(saved);
+    expect(auth.signOut).not.toHaveBeenCalled();
     expect(vault.clear).not.toHaveBeenCalled();
     expect(data.clear).not.toHaveBeenCalled();
   },
@@ -218,6 +225,7 @@ it.each<ErrorCode>([
   'SESSION_CHANGED',
   'PORTAL_LAYOUT_CHANGED',
   'POSSIBLY_BLOCKED',
+  'ACCOUNT_UNAVAILABLE',
   'NETWORK',
   'SERVICE_UNAVAILABLE',
   'RATE_LIMITED',
@@ -233,7 +241,7 @@ it.each<ErrorCode>([
     expect(identity.getSnapshot()).toMatchObject({
       status: 'signedIn',
       account: saved.account,
-      error: expect.any(String),
+      error: errorMessage(new AppError(code)),
     });
     expect(stored()).toEqual(saved);
     expect(auth.signOut).not.toHaveBeenCalled();

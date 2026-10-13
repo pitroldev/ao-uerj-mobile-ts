@@ -1,4 +1,7 @@
-import parsePartialRID from '../parsers/PartialRID';
+import { loadHtml } from '../html';
+import { parsePartialRID as parsePartialRIDPage } from '../parsers/PartialRID';
+
+const parsePartialRID = (html: string) => parsePartialRIDPage(loadHtml(html));
 
 const updatedAt = '03/02/2030 10:30';
 

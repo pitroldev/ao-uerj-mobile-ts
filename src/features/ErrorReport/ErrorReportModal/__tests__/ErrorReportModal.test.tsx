@@ -1,34 +1,31 @@
 import React from 'react';
-import TestRenderer, { act } from 'react-test-renderer';
-import { ThemeProvider } from 'styled-components/native';
+import { screen, userEvent } from '@testing-library/react-native';
 import { useAppServices } from '@root/app/providers/AppServicesProvider';
-import { LIGHT } from '@root/themes';
-import { Button } from '@components/ui';
-import ErrorReportModal from '../ErrorReportModal';
+import { renderWithProviders } from '@root/test-utils/render';
+import { ErrorReportModal } from '../ErrorReportModal';
 
 jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useAppServices: jest.fn(),
 }));
-jest.mock('react-native-modal', () => 'Modal');
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('react-native-toast-message', () => ({ show: jest.fn() }));
-jest.mock('../../FeatureSelectionStep', () => 'FeatureStep');
-jest.mock('../../ExplanationStep', () => 'ExplanationStep');
+
+const DESCRIPTION = 'Descreva o que aconteceu e o resultado esperado';
+const SUBJECT_CODE = 'Insira o código da disciplina';
 
 describe('support submission', () => {
-  let renderer: TestRenderer.ReactTestRenderer;
   const execute = jest.fn();
   const setVisibility = jest.fn();
+  let user: ReturnType<typeof userEvent.setup>;
 
-  const button = (label: string) =>
-    renderer.root.findAllByType(Button).find(b => b.props.label === label)!;
-  const press = async (label: string) => {
-    await act(async () => button(label).props.onPress());
-  };
+  const button = (label: string) => screen.getByRole('button', { name: label });
+  const press = (label: string) => user.press(button(label));
 
   beforeEach(async () => {
+    // o userEvent espera o tempo de cada toque e tecla; com timers falsos ele
+    // avança o relógio sozinho e o teste não fica lento
+    jest.useFakeTimers();
     jest.clearAllMocks();
     execute.mockResolvedValue(undefined);
     jest
@@ -36,33 +33,24 @@ describe('support submission', () => {
       .mockReturnValue({ support: { execute } } as unknown as ReturnType<
         typeof useAppServices
       >);
-    await act(async () => {
-      renderer = TestRenderer.create(
-        <ThemeProvider theme={LIGHT}>
-          <ErrorReportModal visible setVisibility={setVisibility} />
-        </ThemeProvider>,
-      );
-    });
-  });
-  afterEach(async () => {
-    await act(async () => renderer.unmount());
+    user = userEvent.setup();
+    await renderWithProviders(
+      <ErrorReportModal visible setVisibility={setVisibility} />,
+    );
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  // os passos são os de verdade: o relato é preenchido como o aluno faria
   async function selectFeature() {
-    expect(button('Próximo').props.disabled).toBe(true);
-    await act(async () =>
-      renderer.root
-        .findByType('FeatureStep' as never)
-        .props.onChangePage('Quadro de Notas'),
-    );
+    expect(button('Próximo')).toBeDisabled();
+    await user.press(screen.getByRole('radio', { name: 'Quadro de Notas' }));
     await press('Próximo');
   }
   async function describeProblem(description: string) {
-    await act(async () =>
-      renderer.root
-        .findByType('ExplanationStep' as never)
-        .props.onChangeDescription(description),
-    );
+    await user.type(screen.getByLabelText(DESCRIPTION), description);
   }
 
   it('submits the current description atomically with the selected feature', async () => {
@@ -74,6 +62,10 @@ describe('support submission', () => {
       description: 'Notas não aparecem.',
     });
     expect(setVisibility).toHaveBeenCalledWith(false);
+    // o aviso aparece no host de avisos da própria folha
+    expect(
+      await screen.findByText('Relato enviado. Obrigado!'),
+    ).toBeOnTheScreen();
   });
 
   it('preserves the report and leaves loading after a failed submission', async () => {
@@ -82,23 +74,27 @@ describe('support submission', () => {
     await describeProblem('Notas não aparecem.');
     await press('Enviar relato');
     expect(setVisibility).not.toHaveBeenCalled();
+    // por cima da folha, que continua aberta
     expect(
-      renderer.root.findByType('ExplanationStep' as never).props.description,
-    ).toBe('Notas não aparecem.');
-    expect(button('Enviar relato').props.loading).toBe(false);
-    expect(
-      renderer.root.findByType('ExplanationStep' as never).props.editable,
-    ).toBe(true);
+      await screen.findByText('Não foi possível concluir. Tente novamente.'),
+    ).toBeOnTheScreen();
+    expect(screen.getByLabelText(DESCRIPTION)).toHaveDisplayValue(
+      'Notas não aparecem.',
+    );
+    expect(button('Enviar relato')).not.toBeBusy();
+    expect(screen.getByLabelText(DESCRIPTION)).toBeEnabled();
   });
 
   it('asks for a valid subject code before leaving the first step', async () => {
-    const step = () => renderer.root.findByType('FeatureStep' as never);
-    await act(async () =>
-      step().props.onChangePage('Informações de uma disciplina específica'),
+    await user.press(
+      screen.getByRole('radio', {
+        name: 'Informações de uma disciplina específica',
+      }),
     );
-    await act(async () => step().props.onChangeSubjectCode('ime02'));
-    expect(button('Próximo').props.disabled).toBe(true);
-    await act(async () => step().props.onChangeSubjectCode(' ime02-01388 '));
+    await user.type(screen.getByLabelText(SUBJECT_CODE), 'ime02');
+    expect(button('Próximo')).toBeDisabled();
+    await user.clear(screen.getByLabelText(SUBJECT_CODE));
+    await user.type(screen.getByLabelText(SUBJECT_CODE), ' ime02-01388 ');
     await press('Próximo');
     await describeProblem('Turmas vazias.');
     await press('Enviar relato');

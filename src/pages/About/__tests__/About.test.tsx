@@ -1,79 +1,54 @@
 import React from 'react';
-import { Linking, Text as RNText } from 'react-native';
-import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { ThemeProvider } from 'styled-components/native';
-import Toast from 'react-native-toast-message';
+import { Linking } from 'react-native';
+import { act, screen, userEvent } from '@testing-library/react-native';
 
-import { LIGHT } from '@root/themes';
-import { Button, ListRow } from '@components/ui';
-import About from '../About';
+import { snackbar } from '@components/ui';
+import { renderWithProviders } from '@root/test-utils/render';
+import { AboutPage } from '../About';
 
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 24, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('react-native-modal', () => 'Modal');
-jest.mock('react-native-toast-message', () => ({ show: jest.fn() }));
-jest.mock('@features/ErrorReport/ErrorReportModal', () => 'ErrorReportModal');
-
-let renderer: ReactTestRenderer;
-const flatten = (children: unknown): string =>
-  Array.isArray(children)
-    ? children.map(flatten).join('')
-    : typeof children === 'string' || typeof children === 'number'
-      ? String(children)
-      : '';
+jest.mock('@features/ErrorReport/ErrorReportModal', () => ({
+  ErrorReportModal: 'ErrorReportModal',
+}));
 
 beforeEach(async () => {
   jest.mocked(Linking.openURL).mockReset().mockResolvedValue(undefined);
-  await act(async () => {
-    renderer = create(
-      <ThemeProvider theme={LIGHT}>
-        <About />
-      </ThemeProvider>,
-    );
-  });
+  await renderWithProviders(<AboutPage />);
 });
-afterEach(async () => {
-  await act(async () => renderer.unmount());
-});
-
-const row = (title: string) =>
-  renderer.root.findAllByType(ListRow).find(r => r.props.title === title)!;
-const button = (label: string) =>
-  renderer.root.findAllByType(Button).find(b => b.props.label === label)!;
 
 it('shows the app identity, the unofficial notice and the sections', () => {
-  const texts = renderer.root
-    .findAllByType(RNText)
-    .map(t => flatten(t.props.children));
-  expect(texts).toEqual(
-    expect.arrayContaining([
-      'AO UERJ',
-      expect.stringMatching(/^Versão \d+\.\d+\.\d+$/),
-      'Suporte',
-      'Contribua',
-      'Este projeto é open source e aceita contribuições!',
-      'Desenvolvedor',
-      'Petro Cardoso',
-    ]),
-  );
-  expect(texts.some(t => t.startsWith('Aplicativo não oficial'))).toBe(true);
+  expect(screen.getByRole('header', { name: 'AO UERJ' })).toBeOnTheScreen();
+  expect(screen.getByText(/^Versão \d+\.\d+\.\d+$/)).toBeOnTheScreen();
+  expect(screen.getByText(/^Aplicativo não oficial/)).toBeOnTheScreen();
+  for (const section of ['Suporte', 'Contribua', 'Desenvolvedor']) {
+    expect(screen.getByRole('header', { name: section })).toBeOnTheScreen();
+  }
+  expect(
+    screen.getByText('Este projeto é open source e aceita contribuições!'),
+  ).toBeOnTheScreen();
+  expect(screen.getByText('Petro Cardoso')).toBeOnTheScreen();
 });
 
 it('opens the report sheet from "Reportar problema"', async () => {
-  const sheet = () => renderer.root.findByType('ErrorReportModal' as never);
-  expect(sheet().props.visible).toBe(false);
-  await act(async () => row('Reportar problema').props.onPress());
-  expect(sheet().props.visible).toBe(true);
-  await act(async () => sheet().props.setVisibility(false));
-  expect(sheet().props.visible).toBe(false);
+  // a folha simulada vira um elemento host: as props são o contrato com ela
+  const sheet = () =>
+    screen.container.queryAll(node => node.type === 'ErrorReportModal')[0];
+  const user = userEvent.setup();
+  expect(sheet()).toHaveProp('visible', false);
+  await user.press(screen.getByRole('button', { name: /^Reportar problema/ }));
+  expect(sheet()).toHaveProp('visible', true);
+  await act(() => sheet().props.setVisibility(false));
+  expect(sheet()).toHaveProp('visible', false);
 });
 
 it('opens the support, repository and developer links', async () => {
-  await act(async () => row('Sugerir melhoria').props.onPress());
-  await act(async () => row('Ver repositório').props.onPress());
-  await act(async () => button('LinkedIn').props.onPress());
-  await act(async () => button('Email').props.onPress());
+  const user = userEvent.setup();
+  await user.press(screen.getByRole('link', { name: /^Sugerir melhoria/ }));
+  await user.press(screen.getByRole('link', { name: /^Ver repositório/ }));
+  await user.press(screen.getByRole('link', { name: 'LinkedIn' }));
+  await user.press(screen.getByRole('link', { name: 'Email' }));
   expect(jest.mocked(Linking.openURL).mock.calls.map(c => c[0])).toEqual([
     'https://github.com/pitroldev/ao-uerj-mobile-ts/issues',
     'https://github.com/pitroldev/ao-uerj-mobile-ts',
@@ -84,10 +59,9 @@ it('opens the support, repository and developer links', async () => {
 
 it('tells the student when a link cannot be opened', async () => {
   const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+  const showError = jest.spyOn(snackbar, 'error');
   jest.mocked(Linking.openURL).mockRejectedValueOnce(new Error('sem app'));
-  await act(async () => button('GitHub').props.onPress());
-  expect(Toast.show).toHaveBeenCalledWith(
-    expect.objectContaining({ type: 'error' }),
-  );
+  await userEvent.setup().press(screen.getByRole('link', { name: 'GitHub' }));
+  expect(showError).toHaveBeenCalledWith('Não foi possível abrir este link.');
   log.mockRestore();
 });

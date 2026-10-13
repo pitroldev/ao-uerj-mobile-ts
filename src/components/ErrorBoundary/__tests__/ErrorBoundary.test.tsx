@@ -1,9 +1,11 @@
 import React from 'react';
 import { Text } from 'react-native';
-import { act, create, ReactTestRenderer } from 'react-test-renderer';
-import ErrorBoundary from '../ErrorBoundary';
+import { render, screen, userEvent } from '@testing-library/react-native';
+import * as Sentry from '@sentry/react-native';
+import BootSplash from 'react-native-bootsplash';
+import { startObservability } from '@root/app/observability/sentry';
+import { ErrorBoundary } from '../ErrorBoundary';
 
-let renderer: ReactTestRenderer;
 let consoleError: jest.SpyInstance;
 
 beforeEach(() => {
@@ -12,8 +14,7 @@ beforeEach(() => {
     .mockImplementation(() => undefined);
 });
 
-afterEach(async () => {
-  await act(async () => renderer?.unmount());
+afterEach(() => {
   consoleError.mockRestore();
 });
 
@@ -23,25 +24,45 @@ it('renders and recovers from a child failure without any theme or app provider'
     if (fail) throw new Error('Falha de renderização de teste');
     return <Text>Aplicativo recuperado</Text>;
   };
-  await act(async () => {
-    renderer = create(
-      <ErrorBoundary>
-        <Child />
-      </ErrorBoundary>,
-    );
-  });
-  expect(
-    renderer.root.findAllByType(Text).map(node => node.props.children),
-  ).toContain('Oops! Algo deu errado');
-  const retry = renderer.root.find(
-    node =>
-      node.props.accessibilityRole === 'button' &&
-      node.props.accessibilityLabel === 'Tentar novamente' &&
-      typeof node.props.onPress === 'function',
+  // sem `renderWithProviders`: a tela de erro fica fora dos provedores do app
+  await render(
+    <ErrorBoundary>
+      <Child />
+    </ErrorBoundary>,
   );
+  expect(screen.getByText('Oops! Algo deu errado')).toBeOnTheScreen();
+  // a falha pode vir antes do onReady da navegação, com o splash ainda visível
+  expect(BootSplash.hide).toHaveBeenCalledWith({ fade: true });
+  const retry = screen.getByRole('button', { name: 'Tentar novamente' });
   fail = false;
-  await act(async () => retry.props.onPress());
-  expect(renderer.root.findByType(Text).props.children).toBe(
-    'Aplicativo recuperado',
+  await userEvent.setup().press(retry);
+  expect(screen.getByText('Aplicativo recuperado')).toBeOnTheScreen();
+  expect(screen.queryByText('Oops! Algo deu errado')).not.toBeOnTheScreen();
+});
+
+it('sends the caught error with its component stack', async () => {
+  // mesmo módulo que o ErrorBoundary usa, com o SDK simulado em jest/setup-sentry.js
+  startObservability({
+    dsn: 'https://chave@o1.ingest.de.sentry.io/1',
+    isDev: false,
+  });
+  const failure = new Error('Falha de renderização de teste');
+  const BrokenScreen = () => {
+    throw failure;
+  };
+  await render(
+    <ErrorBoundary>
+      <BrokenScreen />
+    </ErrorBoundary>,
   );
+  expect(screen.getByText('Oops! Algo deu errado')).toBeOnTheScreen();
+  expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+  expect(Sentry.captureException).toHaveBeenCalledWith(failure, {
+    mechanism: { type: 'react.errorboundary', handled: true },
+    captureContext: {
+      contexts: {
+        react: { componentStack: expect.stringContaining('BrokenScreen') },
+      },
+    },
+  });
 });

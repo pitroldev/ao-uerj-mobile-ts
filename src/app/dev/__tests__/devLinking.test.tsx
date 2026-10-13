@@ -10,6 +10,8 @@ import {
 type UrlListener = (event: { url: string }) => void;
 
 function setup({
+  // The assertion types the option; tsgolint misreads it as redundant.
+  // oxlint-disable-next-line typescript/no-unnecessary-type-assertion
   status = 'signedOut' as IdentityState['status'],
   activeScenario = null as string | null,
   initialURL = null as string | null,
@@ -36,7 +38,7 @@ function setup({
   };
   const linking = createDevLinking(
     services as unknown as Parameters<typeof createDevLinking>[0],
-    source as unknown as Parameters<typeof createDevLinking>[1],
+    source,
   );
   const open = (url: string) =>
     listeners.forEach(listener => listener({ url }));

@@ -1,27 +1,22 @@
 import React from 'react';
-import { Text } from 'react-native';
-import { act, create, ReactTestRenderer } from 'react-test-renderer';
-import { ThemeProvider } from 'styled-components/native';
-import Toast from 'react-native-toast-message';
-import { LIGHT } from '@root/themes';
+import {
+  fireEvent,
+  renderHook,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from '@testing-library/react-native';
 import type {
   SubjectsTaken,
   CurriculumSubject,
 } from '@root/modules/academics/domain/models';
 import { defaultElectiveCredits as mockDefaultElectiveCredits } from '@root/modules/academics/domain/rules/progress';
 import { AppError } from '@root/shared/errors/AppError';
-import {
-  BottomSheet,
-  Button,
-  EmptyState,
-  ErrorState,
-  NumberStepper,
-  ProgressBar,
-  StatGroup,
-} from '@components/ui';
-import MyProgress from '../MyProgress';
-import CrChart from '../CrChart';
-import { Polyline, Text as SvgText } from 'react-native-svg';
+import { SnackbarHost } from '@components/ui';
+import { renderWithProviders } from '@root/test-utils/render';
+import { MyProgressPage } from '../MyProgress';
+import { useMyProgress } from '../useMyProgress';
 
 const makeQuery = <T,>(data: T | undefined, error: Error | null = null) => ({
   data,
@@ -45,13 +40,10 @@ jest.mock('@hooks/useElectiveCreditsConfig', () => ({
     setConfig: mockSetConfig,
   }),
 }));
-jest.mock('react-native-modal', () => 'Modal');
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('react-native-toast-message', () => ({ show: jest.fn() }));
 
-let renderer: ReactTestRenderer;
 const history: SubjectsTaken[] = [
   {
     id: 'IME01-12345',
@@ -75,40 +67,33 @@ const curriculum: CurriculumSubject[] = ['IME01-12345', 'IME01-12346'].map(
     minimum_credits: null,
   }),
 );
-const render = async () => {
-  await act(async () => {
-    renderer = create(
-      <ThemeProvider theme={LIGHT}>
-        <MyProgress />
-      </ThemeProvider>,
-    );
-  });
-};
-const flatten = (children: unknown): string =>
-  Array.isArray(children)
-    ? children.map(flatten).join('')
-    : typeof children === 'string' || typeof children === 'number'
-      ? String(children)
-      : '';
-const textContent = () =>
-  renderer.root
-    .findAllByType(Text)
-    .map(node => flatten(node.props.children))
-    .join('\n');
-const pressButton = async (label: string) => {
-  const button = renderer.root
-    .findAllByType(Button)
-    .find(b => b.props.label === label);
-  if (!button) throw new Error(`Botão "${label}" não encontrado`);
-  await act(async () => button.props.onPress());
-};
+const renderPage = () => renderWithProviders(<MyProgressPage />);
+/** Ausência de texto vale também para o que está fora da acessibilidade. */
+const queryAnyText = (text: string | RegExp) =>
+  screen.queryByText(text, { includeHiddenElements: true });
+/** Números de destaque ("Disciplinas concluídas: 1"), na ordem da tela. */
+const stats = () =>
+  screen.queryAllByLabelText(/^(Disciplinas concluídas|CR aproximado): /);
+/** As barras do caminho são decorativas: a linha já anuncia o percentual. */
+const progressBars = () =>
+  screen.queryAllByRole('progressbar', { includeHiddenElements: true });
+/**
+ * A folha aberta: o `Modal` só fica na árvore enquanto ela está aberta (o
+ * mock do preset devolve `null` com `visible` falso, e a folha desmonta o
+ * `Modal` depois da animação de saída).
+ */
+const creditsSheet = () =>
+  screen.container
+    .queryAll(node => node.type === 'Modal')
+    .find(modal =>
+      within(modal).queryByRole('header', {
+        name: 'Configurar créditos exigidos',
+      }),
+    ) ?? null;
 
 beforeEach(() => {
   mockHistory = makeQuery(history);
   mockCurriculum = makeQuery(curriculum);
-});
-afterEach(async () => {
-  await act(async () => renderer?.unmount());
 });
 
 it('preserves completed courses from history without inventing curriculum totals after a partial failure', async () => {
@@ -116,45 +101,53 @@ it('preserves completed courses from history without inventing curriculum totals
     undefined,
     new AppError('NETWORK'),
   );
-  await render();
-  expect(textContent()).toContain('1 concluída · 4 créditos concluídos');
-  expect(textContent()).toContain('Currículo indisponível');
-  expect(textContent()).not.toMatch(/\d+ de 0 /);
-  expect(textContent()).not.toMatch(/\d+ no currículo/);
-  expect(renderer.root.findAllByType(ProgressBar)).toHaveLength(0);
+  await renderPage();
+  expect(
+    screen.getByText('1 concluída · 4 créditos concluídos'),
+  ).toBeOnTheScreen();
+  expect(screen.getByText(/^Currículo indisponível/)).toBeOnTheScreen();
+  expect(queryAnyText(/\d+ de 0 /)).not.toBeOnTheScreen();
+  expect(queryAnyText(/\d+ no currículo/)).not.toBeOnTheScreen();
+  expect(progressBars()).toHaveLength(0);
   // uma só ação de nova tentativa: a do aviso de falha no topo
   expect(
-    renderer.root
-      .findAllByType(Button)
-      .filter(b => b.props.label === 'Tentar novamente'),
+    screen.getAllByRole('button', { name: 'Tentar novamente' }),
   ).toHaveLength(1);
 });
 
 it('keeps a known denominator and progress when saved curriculum data survives a refresh failure', async () => {
   mockCurriculum = makeQuery(curriculum, new AppError('NETWORK'));
-  await render();
-  expect(textContent()).toContain('1 de 2 disciplinas · faltam 1');
-  expect(textContent()).toContain('50%');
-  expect(textContent()).not.toContain('Currículo indisponível');
-  expect(renderer.root.findAllByType(ProgressBar)).toHaveLength(1);
+  await renderPage();
+  expect(screen.getByText('1 de 2 disciplinas · faltam 1')).toBeOnTheScreen();
+  expect(screen.getByText('50%')).toBeOnTheScreen();
+  expect(queryAnyText(/Currículo indisponível/)).not.toBeOnTheScreen();
+  expect(progressBars()).toHaveLength(1);
+  expect(progressBars()[0]).toHaveAccessibilityValue({ now: 50 });
 });
 
 it('does not show a ratio or percentage for a successful empty curriculum', async () => {
   mockCurriculum = makeQuery<CurriculumSubject[]>([]);
-  await render();
-  expect(textContent()).not.toMatch(/\d+ de 0 /);
-  expect(textContent()).not.toContain('Currículo indisponível');
-  expect(renderer.root.findAllByType(ProgressBar)).toHaveLength(0);
+  await renderPage();
+  expect(queryAnyText(/\d+ de 0 /)).not.toBeOnTheScreen();
+  expect(queryAnyText(/Currículo indisponível/)).not.toBeOnTheScreen();
+  expect(progressBars()).toHaveLength(0);
 });
 
 it('shows the completed count and the approximate CR with its disclaimer', async () => {
-  await render();
-  expect(renderer.root.findByType(StatGroup).props.items).toEqual([
-    { value: '1', label: 'Disciplinas concluídas' },
-    { value: '8,00', label: 'CR aproximado' },
-  ]);
-  expect(textContent()).toContain('pode ser diferente do oficial');
-  expect(renderer.root.findByType(CrChart).props.points).toEqual([
+  await renderPage();
+  const items = stats();
+  expect(items).toHaveLength(2);
+  expect(items[0]).toHaveAccessibleName('Disciplinas concluídas: 1');
+  expect(within(items[0]).getByText('1')).toBeOnTheScreen();
+  expect(items[1]).toHaveAccessibleName('CR aproximado: 8,00');
+  expect(within(items[1]).getByText('8,00')).toBeOnTheScreen();
+  expect(screen.getByText(/pode ser diferente do oficial/)).toBeOnTheScreen();
+  expect(
+    screen.getByRole('image', { name: 'CR acumulado em 2024/1: 8,00' }),
+  ).toBeOnTheScreen();
+  // a média do período só aparece no desenho: o ponto completo vem do hook
+  const { result } = await renderHook(() => useMyProgress());
+  expect(result.current.crPoints).toEqual([
     { label: '2024/1', cra: 8, periodAverage: 8 },
   ]);
 });
@@ -165,24 +158,26 @@ it('shows a skeleton instead of empty numbers while the first load runs', async 
     ...makeQuery<CurriculumSubject[]>(undefined),
     isLoading: true,
   };
-  await render();
-  expect(
-    renderer.root.findAllByProps({ accessibilityLabel: 'Carregando dados…' })
-      .length,
-  ).toBeGreaterThan(0);
-  expect(renderer.root.findAllByType(StatGroup)).toHaveLength(0);
+  await renderPage();
+  const skeletons = screen.getAllByLabelText('Carregando dados…');
+  expect(skeletons.length).toBeGreaterThan(0);
+  expect(skeletons[0]).toBeBusy();
+  expect(stats()).toHaveLength(0);
 });
 
 it('offers a retry when nothing could be loaded', async () => {
   mockHistory = makeQuery<SubjectsTaken[]>(undefined, new AppError('NETWORK'));
   mockCurriculum = makeQuery<CurriculumSubject[]>(undefined);
-  await render();
-  const state = renderer.root.findByType(ErrorState);
-  expect(state.props.message).toBe(
-    'Não foi possível carregar seu progresso. Toque para tentar novamente.',
-  );
-  expect(renderer.root.findAllByType(StatGroup)).toHaveLength(0);
-  await pressButton('Tentar novamente');
+  await renderPage();
+  expect(
+    screen.getByRole('alert', {
+      name: 'Não foi possível carregar seu progresso. Toque para tentar novamente.',
+    }),
+  ).toBeOnTheScreen();
+  expect(stats()).toHaveLength(0);
+  await userEvent
+    .setup()
+    .press(screen.getByRole('button', { name: 'Tentar novamente' }));
   expect(mockHistory.refetch).toHaveBeenCalled();
   expect(mockCurriculum.refetch).toHaveBeenCalled();
 });
@@ -190,40 +185,53 @@ it('offers a retry when nothing could be loaded', async () => {
 it('explains when there is no history or curriculum yet', async () => {
   mockHistory = makeQuery<SubjectsTaken[]>([]);
   mockCurriculum = makeQuery<CurriculumSubject[]>([]);
-  await render();
-  expect(renderer.root.findByType(EmptyState).props.text).toBe(
-    'Ainda não há histórico ou currículo disponível.',
-  );
-  expect(renderer.root.findAllByType(StatGroup)).toHaveLength(0);
+  await renderPage();
+  expect(
+    screen.getByText('Ainda não há histórico ou currículo disponível.'),
+  ).toBeOnTheScreen();
+  expect(stats()).toHaveLength(0);
 });
 
 it('asks for the elective credits and saves them from the sheet', async () => {
   mockSetConfig.mockResolvedValue(true);
-  await render();
-  expect(textContent()).toContain(
-    'Configure os créditos necessários para ver o progresso.',
+  // o host de avisos da raiz, como no App
+  await renderWithProviders(
+    <>
+      <MyProgressPage />
+      <SnackbarHost />
+    </>,
   );
-  expect(textContent()).toContain('Sem meta');
-  expect(renderer.root.findByType(BottomSheet).props.visible).toBe(false);
+  expect(
+    screen.getByText('Configure os créditos necessários para ver o progresso.'),
+  ).toBeOnTheScreen();
+  expect(screen.getAllByText('Sem meta').length).toBeGreaterThan(0);
+  expect(creditsSheet()).not.toBeOnTheScreen();
 
-  await pressButton('Configurar créditos');
-  expect(renderer.root.findByType(BottomSheet).props.visible).toBe(true);
+  const user = userEvent.setup();
+  await user.press(screen.getByRole('button', { name: 'Configurar créditos' }));
+  expect(creditsSheet()).toBeOnTheScreen();
 
-  const restricted = renderer.root
-    .findAllByType(NumberStepper)
-    .find(s => s.props.accessibilityLabel.includes('Eletiva Restrita'))!;
-  await act(async () => restricted.props.onChangeText('16'));
-  await pressButton('Salvar');
+  const restricted = screen.getByLabelText(
+    'Créditos exigidos de Eletiva Restrita',
+  );
+  // ao focar, o valor fica selecionado e o que se digita o substitui
+  expect(restricted).toHaveProp('selectTextOnFocus', true);
+  await user.clear(restricted);
+  await user.type(restricted, '16');
+  await user.press(screen.getByRole('button', { name: 'Salvar' }));
 
   expect(mockSetConfig).toHaveBeenCalledWith({
     RESTRICTED: 16,
     DEFINED: 0,
     UNIVERSAL: 0,
   });
-  expect(renderer.root.findByType(BottomSheet).props.visible).toBe(false);
-  expect(Toast.show).toHaveBeenCalledWith(
-    expect.objectContaining({ type: 'success', text1: 'Créditos salvos' }),
-  );
+  await waitFor(() => expect(creditsSheet()).not.toBeOnTheScreen());
+  // o aviso nasceu no host da folha e passou para o da raiz quando ela fechou
+  expect(
+    await screen.findByLabelText(
+      'Créditos salvos. O progresso foi recalculado.',
+    ),
+  ).toBeOnTheScreen();
 });
 
 it('draws the CR line, the period average and the values once measured', async () => {
@@ -232,23 +240,19 @@ it('draws the CR line, the period average and the values once measured', async (
     { ...history[0], id: 'IME01-2', period: '2024/2', grade: 6 },
     { ...history[0], id: 'IME01-3', period: '2025/1', grade: 9 },
   ]);
-  await render();
-  const chart = renderer.root.findByType(CrChart);
-  const box = chart.findAll(
-    node => node.props.accessibilityRole === 'image' && node.props.onLayout,
-  )[0];
-  expect(box.props.accessibilityLabel).toBe(
-    'CR acumulado de 2024/1 a 2025/1: de 8,00 para 7,67',
-  );
-  await act(async () =>
-    box.props.onLayout({
-      nativeEvent: { layout: { width: 354, height: 200 } },
-    }),
-  );
-  expect(chart.findAllByType(Polyline)).toHaveLength(2);
+  await renderPage();
+  const chart = screen.getByRole('image', {
+    name: 'CR acumulado de 2024/1 a 2025/1: de 8,00 para 7,67',
+  });
+  // o desenho é decorativo (o gráfico se apresenta pelo rótulo): cada
+  // Polyline vira um caminho RNSVGPath e cada texto, um RNSVGTSpan com `content`
+  const lines = () => chart.queryAll(node => node.type === 'RNSVGPath');
+  expect(lines()).toHaveLength(0);
+  await fireEvent.layout(chart, { width: 354, height: 200 });
+  expect(lines()).toHaveLength(2);
   const labels = chart
-    .findAllByType(SvgText)
-    .map(node => flatten(node.props.children));
+    .queryAll(node => node.type === 'RNSVGTSpan')
+    .map(node => node.props.content);
   expect(labels).toEqual(
     expect.arrayContaining(['8,00', '7,00', '7,67', '2024/1', '2025/1']),
   );

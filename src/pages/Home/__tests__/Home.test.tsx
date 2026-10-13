@@ -1,7 +1,10 @@
 import React from 'react';
-import { StyleSheet, Text } from 'react-native';
-import { act, create, ReactTestRenderer } from 'react-test-renderer';
-import { ThemeProvider } from 'styled-components/native';
+import {
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from '@testing-library/react-native';
 
 import { LIGHT } from '@root/themes';
 import { AppError } from '@root/shared/errors/AppError';
@@ -10,16 +13,10 @@ import type {
   ClassGrade,
   PartialRidResult,
 } from '@root/modules/academics/domain/models';
-import {
-  BottomSheet,
-  EmptyState,
-  ErrorState,
-  ListRow,
-  Notice,
-  TableRow,
-} from '@components/ui';
-import HomePage from '../Home';
-import HomeSkeleton from '../components/HomeSkeleton';
+import { snackbar, type IconName } from '@components/ui';
+import { OUTLINED_GLYPHS } from '@components/ui/Icon/glyphs';
+import { renderWithProviders } from '@root/test-utils/render';
+import { HomePage } from '../Home';
 
 type QueryOverrides = Partial<{
   error: Error | null;
@@ -103,11 +100,6 @@ jest.mock('@react-navigation/native', () => ({
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('react-native-modal', () => 'Modal');
-jest.mock('react-native-toast-message', () => ({ show: jest.fn() }));
-const mockToast = jest.requireMock('react-native-toast-message') as {
-  show: jest.Mock;
-};
 
 const LOC_B = 'Pav. João Lyra Filho · 6º andar · Sala 6019 B';
 const LOC_D = 'Pav. João Lyra Filho · 6º andar · Sala 6113 D';
@@ -203,32 +195,32 @@ const rid: PartialRidResult = {
   ],
 };
 
-let renderer: ReactTestRenderer;
-const render = async () => {
-  await act(async () => {
-    renderer = create(
-      <ThemeProvider theme={LIGHT}>
-        <HomePage />
-      </ThemeProvider>,
-    );
-  });
+const renderHome = () => renderWithProviders(<HomePage />);
+/**
+ * Folha aberta com este título. A folha é um `Modal`, que só fica na árvore
+ * enquanto está aberto (o mock do preset devolve `null` com `visible` falso,
+ * e a folha desmonta o `Modal` depois da animação de saída).
+ */
+const sheet = (title: string) =>
+  screen.container
+    .queryAll(node => node.type === 'Modal')
+    .find(modal => within(modal).queryByRole('header', { name: title })) ??
+  null;
+/**
+ * Ícones sem rótulo são decorativos (fora da acessibilidade): confere o
+ * glifo desenhado.
+ */
+const drawsIcon = (name: IconName) =>
+  screen.container.queryAll(node => node.props.d === OUTLINED_GLYPHS[name])
+    .length > 0;
+/** Rolagem do painel (a que contém a saudação), dona do puxar para atualizar. */
+const panelScroll = () => {
+  let node = screen.getByRole('header', { name: 'Olá, Marina' }).parent;
+  while (node && node.type !== 'RCTScrollView') node = node.parent;
+  return node!;
 };
-const flatten = (children: unknown): string => {
-  if (Array.isArray(children)) return children.map(flatten).join('');
-  if (typeof children === 'string' || typeof children === 'number')
-    return String(children);
-  if (React.isValidElement(children))
-    return flatten((children.props as { children?: unknown }).children);
-  return '';
-};
-const texts = () =>
-  renderer.root.findAllByType(Text).map(node => flatten(node.props.children));
-const pressable = (label: string) =>
-  renderer.root.findAll(
-    node =>
-      node.props.accessibilityLabel === label &&
-      typeof node.props.onPress === 'function',
-  )[0];
+const RETRY = { name: 'Tentar novamente' };
+const NOT_STARTED = 'Parece que o período não se iniciou ainda.';
 
 beforeEach(() => {
   mockOnline = true;
@@ -237,90 +229,100 @@ beforeEach(() => {
   mockRid = makeQuery<PartialRidResult>({ subjects: [], updatedAt: '' });
 });
 
-afterEach(async () => {
-  await act(async () => renderer?.unmount());
+afterEach(() => {
   mockNavigate.mockClear();
   mockShare.mockReset();
 });
 
 it('greets the student and answers the next class first', async () => {
-  await render();
-  expect(texts()).toContain('Olá, Marina');
-  expect(texts()).toContain('Terça, 13 de outubro');
-  expect(texts()).toContain('Hoje · em 22 min');
+  await renderHome();
+  expect(screen.getByRole('header', { name: 'Olá, Marina' })).toBeOnTheScreen();
+  // a data de hoje aparece na saudação e no dia aberto da semana
+  expect(screen.getAllByText('Terça, 13 de outubro')).toHaveLength(2);
+  expect(screen.getByText('Hoje · em 22 min')).toBeOnTheScreen();
+  const next = screen.getByRole('button', {
+    name: 'Otimização Combinatória, 12:20 às 14:10, Sala 6019 B. Ver disciplinas em curso',
+  });
+  expect(within(next).getByText('T1–T2 · Sala 6019 B')).toBeOnTheScreen();
   expect(
-    pressable(
-      'Otimização Combinatória, 12:20 às 14:10, Sala 6019 B. Ver disciplinas em curso',
-    ),
-  ).toBeDefined();
-  expect(texts()).toContain('T1–T2 · Sala 6019 B');
-  expect(texts()).toContain('Pav. João Lyra Filho · 6º andar');
+    within(next).getByText('Pav. João Lyra Filho · 6º andar'),
+  ).toBeOnTheScreen();
 });
 
 it('lists the grades with health spelled out, never by color alone', async () => {
-  await render();
-  const rows = renderer.root.findAllByType(TableRow);
-  expect(rows.map(row => row.props.accessibilityLabel)).toEqual([
+  await renderHome();
+  const rows = screen.getAllByLabelText(/: P1 /);
+  const labels = [
     'Sistemas Distribuídos: P1 8,5, P2 sem nota, PF sem nota, Média sem nota. Bom na P1',
     'Compiladores: P1 6,0, P2 sem nota, PF sem nota, Média sem nota. Atenção na P1',
     'Ética e Computação: P1 sem nota, P2 sem nota, PF sem nota, Média 9,0. Bom na média',
-  ]);
-  expect(texts()).toContain('Atenção: 5 a 6,9');
+  ];
+  expect(rows).toHaveLength(labels.length);
+  rows.forEach((row, i) => expect(row).toHaveAccessibleName(labels[i]));
+  expect(screen.getByText('Atenção: 5 a 6,9')).toBeOnTheScreen();
 });
 
 it('shows today as a timeline with the free gap, the now line and finished classes', async () => {
-  await render();
-  expect(texts()).toContain('2 aulas');
-  expect(texts()).toContain('Hoje');
-  expect(texts()).toContain('Livre · 1h50');
-  expect(texts()).toContain('Encerrada');
-  expect(
-    renderer.root.findAll(n => n.props.accessibilityLabel === 'Agora, 11:58')
-      .length,
-  ).toBeGreaterThan(0);
-  expect(
-    pressable('Compiladores, 8:50 às 10:30, M3–M4, Sala 6113 D, encerrada'),
-  ).toBeDefined();
+  await renderHome();
+  expect(screen.getByText('2 aulas')).toBeOnTheScreen();
+  expect(screen.getByText('Hoje')).toBeOnTheScreen();
+  expect(screen.getByText('Livre · 1h50')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Agora, 11:58')).toBeOnTheScreen();
+  const finished = screen.getByRole('button', {
+    name: 'Compiladores, 8:50 às 10:30, M3–M4, Sala 6113 D, encerrada',
+  });
+  expect(within(finished).getByText('Encerrada')).toBeOnTheScreen();
 });
 
 it('switches days and marks canceled classes with a label', async () => {
-  await render();
-  await act(async () => pressable('Sábado, 17 de outubro').props.onPress());
-  expect(texts()).toContain('Sábado, 17 de outubro');
-  expect(texts()).toContain('Cancelada');
-  await act(async () =>
-    pressable('Sexta, 16 de outubro, sem aulas').props.onPress(),
+  const user = userEvent.setup();
+  await renderHome();
+  await user.press(screen.getByRole('tab', { name: 'Sábado, 17 de outubro' }));
+  expect(screen.getByText('Sábado, 17 de outubro')).toBeOnTheScreen();
+  const canceled = screen.getByRole('button', {
+    name: 'Computação Gráfica, 8:50 às 10:30, M3–M4, cancelada',
+  });
+  expect(within(canceled).getByText('Cancelada')).toBeOnTheScreen();
+  await user.press(
+    screen.getByRole('tab', { name: 'Sexta, 16 de outubro, sem aulas' }),
   );
-  expect(texts()).toContain('Sem aulas neste dia.');
+  expect(screen.getByText('Sem aulas neste dia.')).toBeOnTheScreen();
 });
 
 it('opens the classes sheet focused on the tapped class and navigates from it', async () => {
-  await render();
-  const sheet = () =>
-    renderer.root
-      .findAllByType(BottomSheet)
-      .find(s => s.props.title === 'Disciplinas em Curso')!;
-  expect(sheet().props.visible).toBe(false);
-  await act(async () =>
-    pressable(
-      'Otimização Combinatória, 12:20 às 14:10, T1–T2, Sala 6019 B, Tarde',
-    ).props.onPress(),
+  const user = userEvent.setup();
+  await renderHome();
+  const classes = () => sheet('Disciplinas em Curso');
+  expect(classes()).not.toBeOnTheScreen();
+  await user.press(
+    screen.getByRole('button', {
+      name: 'Otimização Combinatória, 12:20 às 14:10, T1–T2, Sala 6019 B, Tarde',
+    }),
   );
-  expect(sheet().props.visible).toBe(true);
-  expect(sheet().props.meta).toBe('3 ativas');
-  const rows = sheet().findAllByType(ListRow);
-  expect(rows.map(r => [r.props.title, Boolean(r.props.highlighted)])).toEqual([
-    ['Sistemas Distribuídos', false],
-    ['Compiladores', false],
-    ['Otimização Combinatória', true],
-    ['Computação Gráfica', false],
-  ]);
-  expect(rows[2].props.meta).toEqual([
-    'Ter e Qui · T1–T2 · 12:20–14:10',
-    LOC_B,
-  ]);
-  await act(async () => rows[2].props.onPress());
-  expect(sheet().props.visible).toBe(false);
+  const open = classes();
+  expect(open).toBeOnTheScreen();
+  expect(within(open!).getByText('3 ativas')).toBeOnTheScreen();
+  const rows = within(open!).getAllByHintText('Abre a Pesquisa de Disciplinas');
+  const titles = [
+    'Sistemas Distribuídos',
+    'Compiladores',
+    'Otimização Combinatória',
+    'Computação Gráfica',
+  ];
+  expect(rows).toHaveLength(titles.length);
+  rows.forEach((row, i) => {
+    expect(within(row).getByText(titles[i])).toBeOnTheScreen();
+    // só a aula tocada fica destacada, com o fundo de acento suave
+    expect(row).toHaveStyle({
+      backgroundColor: i === 2 ? LIGHT.colors.accentSoft : 'transparent',
+    });
+  });
+  expect(
+    within(rows[2]).getByText('Ter e Qui · T1–T2 · 12:20–14:10'),
+  ).toBeOnTheScreen();
+  expect(within(rows[2]).getByText(LOC_B)).toBeOnTheScreen();
+  await user.press(rows[2]);
+  await waitFor(() => expect(classes()).not.toBeOnTheScreen());
   expect(mockNavigate).toHaveBeenCalledWith('Pesquisa de Disciplinas', {
     subjectId: 'IME04-10933',
     sourceRoute: 'Início',
@@ -328,14 +330,18 @@ it('opens the classes sheet focused on the tapped class and navigates from it', 
 });
 
 it('reports a failed share with a snackbar', async () => {
+  const showError = jest.spyOn(snackbar, 'error');
   mockShare.mockRejectedValueOnce(new Error('boom'));
-  await render();
-  await act(async () =>
-    pressable('Compartilhar grade da semana').props.onPress(),
-  );
+  await renderHome();
+  await userEvent
+    .setup()
+    .press(
+      screen.getByRole('button', { name: 'Compartilhar grade da semana' }),
+    );
   expect(mockShare).toHaveBeenCalled();
-  expect(mockToast.show).toHaveBeenCalledWith(
-    expect.objectContaining({ type: 'error' }),
+  expect(showError).toHaveBeenCalledWith(
+    'Não foi possível compartilhar a grade.',
+    'Tente novamente.',
   );
 });
 
@@ -352,18 +358,20 @@ it('shows a skeleton instead of a spinner while nothing has loaded', async () =>
     isLoading: true,
     isFetching: true,
   });
-  await render();
-  expect(renderer.root.findAllByType(HomeSkeleton)).toHaveLength(1);
-  expect(renderer.root.findAllByType(EmptyState)).toHaveLength(0);
+  await renderHome();
+  expect(screen.getByLabelText('Carregando dados…')).toBeBusy();
+  expect(screen.queryByRole('progressbar')).not.toBeOnTheScreen();
+  // nenhum estado vazio: nem "não começou" nem bloqueado/erro
+  expect(screen.queryByText(NOT_STARTED)).not.toBeOnTheScreen();
+  expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
 });
 
 it('says the period has not started when there is nothing yet', async () => {
   mockSchedule = makeQuery<AttendedClassesSchedule[]>([]);
   mockGrades = makeQuery<ClassGrade[]>([]);
-  await render();
-  const empty = renderer.root.findByType(EmptyState);
-  expect(empty.props.text).toBe('Parece que o período não se iniciou ainda.');
-  expect(empty.props.icon).toBe('event_upcoming');
+  await renderHome();
+  expect(screen.getByText(NOT_STARTED)).toBeOnTheScreen();
+  expect(drawsIcon('event_upcoming')).toBe(true);
 });
 
 it('explains a blocked portal without saved data and retries', async () => {
@@ -373,12 +381,13 @@ it('explains a blocked portal without saved data and retries', async () => {
   });
   mockGrades = makeQuery<ClassGrade[]>(undefined, { error: blocked });
   mockRid = makeQuery<PartialRidResult>(undefined, { error: blocked });
-  await render();
-  const empty = renderer.root.findByType(EmptyState);
-  expect(empty.props.icon).toBe('lock');
-  expect(empty.props.tone).toBe('bad');
-  expect(empty.props.text).toContain('temporariamente bloqueado');
-  await act(async () => empty.props.action.onPress());
+  await renderHome();
+  // tom crítico: a mensagem é anunciada como alerta, ao lado do cadeado
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    /temporariamente bloqueado/,
+  );
+  expect(drawsIcon('lock')).toBe(true);
+  await userEvent.setup().press(screen.getByRole('button', RETRY));
   expect(mockSchedule.refetch).toHaveBeenCalled();
   expect(mockGrades.refetch).toHaveBeenCalled();
   expect(mockRid.refetch).toHaveBeenCalled();
@@ -388,27 +397,33 @@ it('keeps saved data visible under a single blocked notice', async () => {
   const blocked = new AppError('POSSIBLY_BLOCKED');
   mockSchedule = makeQuery(schedule, { error: blocked });
   mockGrades = makeQuery(grades, { error: blocked });
-  await render();
-  const notices = renderer.root.findAllByType(Notice);
-  expect(notices).toHaveLength(1);
-  expect(notices[0].props.kind).toBe('blocked');
-  expect(texts()).toContain('O Aluno Online está temporariamente bloqueado.');
-  await act(async () => notices[0].props.onRetry());
+  await renderHome();
+  // um só aviso (um só "Tentar novamente"), do tipo `blocked`: tom crítico
+  // (alerta), cadeado e o texto padrão
+  expect(screen.getAllByRole('button', RETRY)).toHaveLength(1);
+  expect(
+    screen.getByRole('alert', {
+      name: 'O Aluno Online está temporariamente bloqueado.',
+    }),
+  ).toBeOnTheScreen();
+  expect(drawsIcon('lock')).toBe(true);
+  await userEvent.setup().press(screen.getByRole('button', RETRY));
   expect(mockSchedule.refetch).toHaveBeenCalled();
   expect(mockGrades.refetch).toHaveBeenCalled();
-  expect(texts()).toContain('Olá, Marina');
-  expect(renderer.root.findAllByType(TableRow)).toHaveLength(3);
+  expect(screen.getByRole('header', { name: 'Olá, Marina' })).toBeOnTheScreen();
+  expect(screen.getAllByLabelText(/: P1 /)).toHaveLength(3);
 });
 
 it('shows one offline notice for all the saved data', async () => {
   mockOnline = false;
-  await render();
-  const notices = renderer.root.findAllByType(Notice);
-  expect(notices).toHaveLength(1);
-  expect(notices[0].props.kind).toBe('offline');
-  expect(notices[0].props.text).toContain(
-    'Sem conexão. Exibindo os últimos dados salvos.',
-  );
+  await renderHome();
+  // um só aviso, do tipo `offline`: neutro (sem alerta) e com a nuvem riscada
+  expect(screen.getAllByRole('button', RETRY)).toHaveLength(1);
+  expect(
+    screen.getByText(/^Sem conexão\. Exibindo os últimos dados salvos\./),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
+  expect(drawsIcon('cloud_off')).toBe(true);
 });
 
 it('does not keep the pull-to-refresh spinner going while offline', async () => {
@@ -420,16 +435,12 @@ it('does not keep the pull-to-refresh spinner going while offline', async () => 
     { subjects: [], updatedAt: '' },
     { refetch: jest.fn(never) },
   );
-  await render();
-  const control = () =>
-    renderer.root.find(
-      node =>
-        typeof node.props.onRefresh === 'function' &&
-        'refreshing' in node.props,
-    );
-  await act(async () => control().props.onRefresh());
+  await renderHome();
+  await userEvent.setup().pullToRefresh(panelScroll());
   expect(mockSchedule.refetch).toHaveBeenCalled();
-  expect(control().props.refreshing).toBe(false);
+  // o RefreshControl simulado não repassa props: o estado fica no elemento
+  // que o painel entrega ao ScrollView
+  expect(panelScroll().props.refreshControl.props.refreshing).toBe(false);
 });
 
 it('keeps the day timeline visible when the schedule arrives after mount', async () => {
@@ -437,22 +448,20 @@ it('keeps the day timeline visible when the schedule arrives after mount', async
     isLoading: true,
     isFetching: true,
   });
-  await render();
+  await renderHome();
   mockSchedule = makeQuery(schedule);
-  await act(async () => {
-    renderer.update(
-      <ThemeProvider theme={LIGHT}>
-        <HomePage />
-      </ThemeProvider>,
-    );
-  });
-  expect(texts()).toContain('Livre · 1h50');
-  const hidden = renderer.root.findAll(
-    node =>
-      (node.type as unknown) === 'View' &&
-      StyleSheet.flatten(node.props.style)?.opacity === 0,
-  );
-  expect(hidden).toHaveLength(0);
+  await screen.rerender(<HomePage />);
+  expect(screen.getByText('Livre · 1h50')).toBeVisible();
+  expect(
+    screen.getByRole('button', {
+      name: 'Compiladores, 8:50 às 10:30, M3–M4, Sala 6113 D, encerrada',
+    }),
+  ).toBeVisible();
+  expect(
+    screen.getByRole('button', {
+      name: 'Otimização Combinatória, 12:20 às 14:10, T1–T2, Sala 6019 B, Tarde',
+    }),
+  ).toBeVisible();
 });
 
 it('shows the error card and the help when several parts fail', async () => {
@@ -462,14 +471,21 @@ it('shows the error card and the help when several parts fail', async () => {
   mockGrades = makeQuery<ClassGrade[]>(undefined, {
     error: new AppError('NETWORK'),
   });
-  await render();
-  const error = renderer.root.findByType(ErrorState);
-  expect(error.props.variant).toBe('card');
-  expect(error.props.message).toBe(
-    'Ops, parece que houve um erro nos seguintes componentes: Grade de Horários, Quadro de notas. Toque aqui para tentar novamente.',
-  );
-  expect(texts()).toContain('Caso o erro persista');
-  await act(async () => error.props.onRetry());
+  await renderHome();
+  const message = screen.getByRole('alert', {
+    name: 'Ops, parece que houve um erro nos seguintes componentes: Grade de Horários, Quadro de notas. Toque aqui para tentar novamente.',
+  });
+  // variante `card`: caixa com fio e o ícone ao lado da mensagem (o estado
+  // centralizado não tem borda e centraliza o texto)
+  expect(message.parent?.parent).toHaveStyle({
+    flexDirection: 'row',
+    borderWidth: LIGHT.borders.hairline,
+  });
+  expect(message).not.toHaveStyle({ textAlign: 'center' });
+  expect(
+    screen.getByRole('header', { name: 'Caso o erro persista' }),
+  ).toBeOnTheScreen();
+  await userEvent.setup().press(screen.getByRole('button', RETRY));
   expect(mockSchedule.refetch).toHaveBeenCalled();
   expect(mockGrades.refetch).toHaveBeenCalled();
 });
@@ -478,16 +494,19 @@ it('shows the partial RID during enrollment, with the queue status spelled out',
   mockSchedule = makeQuery<AttendedClassesSchedule[]>([]);
   mockGrades = makeQuery<ClassGrade[]>([]);
   mockRid = makeQuery(rid);
-  await render();
-  expect(texts()).toContain('RID Parcial');
-  expect(texts()).toContain('Última atualização em 12/08/2026 14:32');
-  expect(texts()).toContain('Sem posição');
-  expect(texts()).toContain('Indeferida: choque de horário');
-  expect(texts()).toContain('Situação: Deferida');
-  const row = pressable(
-    'Sistemas Distribuídos, IME02-10892, Turma 2. Solicitadas/Oferecidas: 38 de 40, Crítico. Sua posição: 12, Bom. Situação: Deferida',
+  await renderHome();
+  expect(screen.getByRole('header', { name: 'RID Parcial' })).toBeOnTheScreen();
+  expect(
+    screen.getByText('Última atualização em 12/08/2026 14:32'),
+  ).toBeOnTheScreen();
+  expect(screen.getByText('Sem posição')).toBeOnTheScreen();
+  expect(screen.getByText('Indeferida: choque de horário')).toBeOnTheScreen();
+  expect(screen.getByText('Situação: Deferida')).toBeOnTheScreen();
+  await userEvent.setup().press(
+    screen.getByRole('button', {
+      name: 'Sistemas Distribuídos, IME02-10892, Turma 2. Solicitadas/Oferecidas: 38 de 40, Crítico. Sua posição: 12, Bom. Situação: Deferida',
+    }),
   );
-  await act(async () => row.props.onPress());
   expect(mockNavigate).toHaveBeenCalledWith('Pesquisa de Disciplinas', {
     subjectId: 'IME02-10892',
     sourceRoute: 'Início',
@@ -495,11 +514,11 @@ it('shows the partial RID during enrollment, with the queue status spelled out',
 });
 
 it('presents what is new in a sheet once per version', async () => {
-  await render();
-  const sheets = renderer.root.findAllByType(BottomSheet);
-  const whatsNew = sheets.find(
-    s => s.props.title === 'Funcionalidades exclusivas',
-  );
-  expect(whatsNew?.props.visible).toBe(true);
-  expect(texts()).toContain('O que o AO UERJ faz além do Aluno Online:');
+  await renderHome();
+  expect(
+    await screen.findByRole('header', { name: 'Funcionalidades exclusivas' }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText('O que o AO UERJ faz além do Aluno Online:'),
+  ).toBeOnTheScreen();
 });

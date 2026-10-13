@@ -1,5 +1,8 @@
-import parseLoginReqId from '../parsers/parseLoginReqId';
+import { loadHtml } from '../html';
+import { parseLoginReqId as parseLoginReqIdPage } from '../parsers/parseLoginReqId';
 import { loginPage } from '../__fixtures__/loginPages';
+
+const parseLoginReqId = (html: string) => parseLoginReqIdPage(loadHtml(html));
 
 describe('parseLoginReqId', () => {
   it('extracts the requisition and CSRF token from the login form', async () => {

@@ -28,6 +28,16 @@ export const rejectedLoginPage = `
   <br><table><tr><td><font>Matrícula ou senha inválida.</font></td></tr></table>
 `;
 
+/**
+ * Texto real do portal para uma matrícula que não existe (12/10/2026). O mesmo
+ * aviso vale para conta sem acesso e para manutenção, então não prova senha
+ * errada.
+ */
+export const unknownMatriculaLoginPage = `
+  ${loginPage}
+  <br><table><tr><td><font>Prezado Aluno, a matrícula informada não existe, ou não está habilitada para acesso ao Aluno Online, ou existe alguma manutenção no sistema impedindo o acesso neste momento!</font></td></tr></table>
+`;
+
 export const blockedHomePage = `
   ${studentHeader}
   <div id="menu_linha_item">

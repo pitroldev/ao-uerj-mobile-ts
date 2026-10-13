@@ -1,20 +1,11 @@
 import React from 'react';
-import { Text } from 'react-native';
-import { act, create, ReactTestRenderer } from 'react-test-renderer';
-import { ThemeProvider } from 'styled-components/native';
+import { screen, userEvent, within } from '@testing-library/react-native';
 
-import { LIGHT } from '@root/themes';
 import type { SubjectsTaken } from '@root/modules/academics/domain/models';
 import { AppError } from '@root/shared/errors/AppError';
-import {
-  EmptyState,
-  ErrorState,
-  GradeCell,
-  SelectField,
-  SkeletonList,
-  TableRow,
-} from '@components/ui';
-import SubjectsTakenScreen from '../SubjectsTaken';
+import { renderWithProviders } from '@root/test-utils/render';
+import { OUTLINED_GLYPHS } from '@components/ui';
+import { SubjectsTakenScreen } from '../SubjectsTaken';
 
 const makeQuery = <T,>(
   data: T | undefined,
@@ -54,7 +45,6 @@ jest.mock('@react-navigation/native', () => ({
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('react-native-modal', () => 'Modal');
 
 const subject = (
   period: string,
@@ -98,82 +88,81 @@ const history: SubjectsTaken[] = [
   ),
 ];
 
-let renderer: ReactTestRenderer;
-const render = async () => {
-  await act(async () => {
-    renderer = create(
-      <ThemeProvider theme={LIGHT}>
-        <SubjectsTakenScreen />
-      </ThemeProvider>,
-    );
-  });
+const renderScreen = () => renderWithProviders(<SubjectsTakenScreen />);
+const periodField = () => screen.getByRole('button', { name: /^Período: / });
+/** Linhas da tabela do período; cada uma abre a disciplina. */
+const rows = (period: string) =>
+  within(
+    screen.getByLabelText(`Disciplinas cursadas em ${period}`),
+  ).getAllByRole('button');
+/** Abre o seletor de período e escolhe a opção pelo nome lido na folha. */
+const choosePeriod = async (option: string) => {
+  const user = userEvent.setup();
+  await user.press(periodField());
+  await user.press(screen.getByRole('radio', { name: option }));
 };
-const flatten = (children: unknown): string => {
-  if (Array.isArray(children)) return children.map(flatten).join('');
-  if (typeof children === 'string' || typeof children === 'number')
-    return String(children);
-  if (React.isValidElement(children))
-    return flatten((children.props as { children?: unknown }).children);
-  return '';
-};
-const texts = () =>
-  renderer.root.findAllByType(Text).map(node => flatten(node.props.children));
-const rows = () => renderer.root.findAllByType(TableRow);
+/** O ícone do estado vazio é decorativo (fora da acessibilidade): confere o glifo desenhado. */
+const drawsIcon = (name: keyof typeof OUTLINED_GLYPHS) =>
+  screen.container.queryAll(node => node.props.d === OUTLINED_GLYPHS[name])
+    .length > 0;
 
-afterEach(async () => {
-  await act(async () => renderer?.unmount());
+afterEach(() => {
   mockNavigate.mockClear();
 });
 
 it('opens on the most recent period and labels each period with its CR', async () => {
   mockHistory = makeQuery(history);
-  await render();
-  const select = renderer.root.findByType(SelectField);
-  expect(select.props.value).toBe('2026.2');
+  await renderScreen();
   expect(
-    select.props.options.map((o: { value: string; aside?: string }) => [
-      o.value,
-      o.aside,
-    ]),
-  ).toEqual([
-    ['2026.2', 'Em curso'],
-    ['2026.1', 'CR atual 6,94'],
-    ['2025.2', 'CR 5,50'],
-  ]);
-  expect(rows()).toHaveLength(1);
-  expect(texts()).toContain('Em Preparo');
-  expect(renderer.root.findByType(GradeCell).props.value).toBeNull();
+    screen.getByRole('button', { name: 'Período: 2026.2, Em curso. Trocar' }),
+  ).toBeOnTheScreen();
+  await userEvent.setup().press(periodField());
+  expect(periodField()).toBeExpanded();
+  const options = screen.getAllByRole('radio');
+  expect(options).toHaveLength(3);
+  expect(options[0]).toHaveAccessibleName('2026.2 Em curso');
+  expect(options[1]).toHaveAccessibleName('2026.1 CR atual 6,94');
+  expect(options[2]).toHaveAccessibleName('2025.2 CR 5,50');
+  expect(options[0]).toBeChecked();
+  expect(rows('2026.2')).toHaveLength(1);
+  const [row] = rows('2026.2');
+  expect(within(row).getByText('Em Preparo')).toBeOnTheScreen();
+  expect(within(row).getByLabelText('sem nota')).toHaveTextContent('–');
 });
 
 it('summarises and lists the selected period in a table with status and grade', async () => {
   mockHistory = makeQuery(history);
-  await render();
-  await act(async () => {
-    renderer.root.findByType(SelectField).props.onChange('2026.1');
-  });
-  expect(texts()).toContain('2 disciplinas');
-  expect(texts()).toContain('6 créditos · 90 horas');
-  expect(texts()).toContain('IME02-10872 · Obrigatória');
-  expect(texts()).toContain('4 créditos · 60 h');
-  expect(texts()).toContain('96%');
-  expect(rows()).toHaveLength(2);
-  expect(rows()[0].props.accessibilityLabel).toBe(
+  await renderScreen();
+  await choosePeriod('2026.1 CR atual 6,94');
+  expect(screen.getByText('2 disciplinas')).toBeOnTheScreen();
+  expect(screen.getByText('6 créditos · 90 horas')).toBeOnTheScreen();
+  const periodRows = rows('2026.1');
+  expect(periodRows).toHaveLength(2);
+  expect(
+    within(periodRows[0]).getByText('IME02-10872 · Obrigatória'),
+  ).toBeOnTheScreen();
+  expect(
+    within(periodRows[0]).getByText('4 créditos · 60 h'),
+  ).toBeOnTheScreen();
+  expect(within(periodRows[0]).getByText('96%')).toBeOnTheScreen();
+  expect(periodRows[0]).toHaveAccessibleName(
     'Inteligência Artificial, IME02-10872, Obrigatória, Aprovado, Frequência 96%, Nota 8,8, Bom, 4 créditos, 60 horas',
   );
 
-  await act(async () => {
-    renderer.root.findByType(SelectField).props.onChange('2025.2');
-  });
-  expect(texts()).toContain('Reprovado por Nota');
-  expect(
-    renderer.root.findAllByType(GradeCell).map(cell => cell.props.value),
-  ).toEqual([7, 4]);
+  await choosePeriod('2025.2 CR 5,50');
+  expect(screen.getByText('Reprovado por Nota')).toBeOnTheScreen();
+  const grades = rows('2025.2').map(row =>
+    within(row).getByLabelText(/^Nota /),
+  );
+  expect(grades).toHaveLength(2);
+  expect(grades[0]).toHaveTextContent('7,0');
+  expect(grades[1]).toHaveTextContent('4,0');
 });
 
 it('opens the subject in the subject search when a row is pressed', async () => {
   mockHistory = makeQuery(history);
-  await render();
-  await act(async () => rows()[0].props.onPress());
+  await renderScreen();
+  await userEvent.setup().press(rows('2026.2')[0]);
   expect(mockNavigate).toHaveBeenCalledWith('Pesquisa de Disciplinas', {
     subjectId: 'IME02-10892',
     sourceRoute: 'Disciplinas Realizadas',
@@ -185,19 +174,22 @@ it('shows a skeleton while the first load is running', async () => {
     isLoading: true,
     isFetching: true,
   });
-  await render();
-  expect(renderer.root.findAllByType(SkeletonList)).toHaveLength(1);
-  expect(renderer.root.findByType(SelectField).props.disabled).toBe(true);
+  await renderScreen();
+  expect(screen.getByLabelText('Carregando disciplinas…')).toBeOnTheScreen();
+  expect(periodField()).toBeDisabled();
 });
 
 it('offers a retry when the history cannot be loaded', async () => {
   mockHistory = makeQuery<SubjectsTaken[]>(undefined, {
     error: new AppError('NETWORK'),
   });
-  await render();
-  const state = renderer.root.findByType(ErrorState);
-  expect(state.props.message).toContain('erro ao buscar as disciplinas');
-  await act(async () => state.props.onRetry());
+  await renderScreen();
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    /erro ao buscar as disciplinas/,
+  );
+  await userEvent
+    .setup()
+    .press(screen.getByRole('button', { name: 'Tentar novamente' }));
   expect(mockHistory.refetch).toHaveBeenCalled();
 });
 
@@ -205,34 +197,48 @@ it('explains a blocked portal when there is no saved history', async () => {
   mockHistory = makeQuery<SubjectsTaken[]>(undefined, {
     error: new AppError('POSSIBLY_BLOCKED'),
   });
-  await render();
-  const state = renderer.root.findByType(EmptyState);
-  expect(state.props.icon).toBe('lock');
-  expect(state.props.text).toContain('temporariamente bloqueado');
-  await act(async () => state.props.action.onPress());
+  await renderScreen();
+  expect(drawsIcon('lock')).toBe(true);
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    /temporariamente bloqueado/,
+  );
+  await userEvent
+    .setup()
+    .press(screen.getByRole('button', { name: 'Tentar novamente' }));
   expect(mockHistory.refetch).toHaveBeenCalled();
 });
 
 it('keeps saved rows visible when a refresh fails', async () => {
   mockHistory = makeQuery(history, { error: new AppError('NETWORK') });
-  await render();
-  expect(rows()).toHaveLength(1);
-  expect(renderer.root.findAllByType(ErrorState)).toHaveLength(0);
+  await renderScreen();
+  expect(rows('2026.2')).toHaveLength(1);
+  expect(
+    screen.queryByText(/erro ao buscar as disciplinas/),
+  ).not.toBeOnTheScreen();
 });
 
 it('shows the real empty message when there is no history', async () => {
   mockHistory = makeQuery<SubjectsTaken[]>([]);
-  await render();
-  expect(renderer.root.findByType(EmptyState).props.text).toBe(
-    'Parece que não há disciplinas cursadas no período selecionado.',
-  );
+  await renderScreen();
+  expect(
+    screen.getByText(
+      'Parece que não há disciplinas cursadas no período selecionado.',
+    ),
+  ).toBeOnTheScreen();
 });
 
 it('treats a saved empty history as data when a refresh fails', async () => {
   mockHistory = makeQuery<SubjectsTaken[]>([], {
     error: new AppError('NETWORK'),
   });
-  await render();
-  expect(renderer.root.findAllByType(ErrorState)).toHaveLength(0);
-  expect(renderer.root.findByType(EmptyState).props.icon).toBe('history_edu');
+  await renderScreen();
+  expect(
+    screen.queryByText(/erro ao buscar as disciplinas/),
+  ).not.toBeOnTheScreen();
+  expect(drawsIcon('history_edu')).toBe(true);
+  expect(
+    screen.getByText(
+      'Parece que não há disciplinas cursadas no período selecionado.',
+    ),
+  ).toBeOnTheScreen();
 });

@@ -8,6 +8,7 @@ import { AppError } from '@root/shared/errors/AppError';
 import {
   studentHeader,
   rejectedLoginPage,
+  unknownMatriculaLoginPage,
   blockedHomePage,
   loginPage,
   homePage,
@@ -130,6 +131,8 @@ describe.each(['signIn', 'refresh'] as const)('%s bootstrap recovery', mode => {
     const { app, authenticate, previousLogins } = await prepare();
     app.setLoginSequence(loginPage, undefined);
     const pending = authenticate();
+    // Only refresh() shares an attempt that is already in flight.
+    // oxlint-disable-next-line jest/no-conditional-expect
     if (mode === 'refresh') expect(app.authentication.refresh()).toBe(pending);
     await expect(pending).resolves.toMatchObject({
       matricula: credentials.matricula,
@@ -155,6 +158,7 @@ describe.each(['signIn', 'refresh'] as const)('%s bootstrap recovery', mode => {
 
   it.each([
     [rejectedLoginPage, 'LOGIN_FAILED'],
+    [unknownMatriculaLoginPage, 'ACCOUNT_UNAVAILABLE'],
     [studentHeader, 'PORTAL_LAYOUT_CHANGED'],
     [blockedHomePage, 'POSSIBLY_BLOCKED'],
   ])('does not retry authentication response %s', async (page, code) => {
@@ -409,6 +413,16 @@ it.each([
   ['blocked', blockedHomePage, 'POSSIBLY_BLOCKED'],
   ['missing menu', studentHeader, 'PORTAL_LAYOUT_CHANGED'],
   ['rejected', rejectedLoginPage, 'LOGIN_FAILED'],
+  [
+    'unknown, disabled or under maintenance registration',
+    unknownMatriculaLoginPage,
+    'ACCOUNT_UNAVAILABLE',
+  ],
+  [
+    'maintenance warning',
+    '<br><table><tr><td><font>Sistema em manutenção. Tente mais tarde.</font></td></tr></table>',
+    'ACCOUNT_UNAVAILABLE',
+  ],
   ['login form without credential rejection', loginPage, 'SESSION_EXPIRED'],
   ['portal session error', expired, 'SESSION_EXPIRED'],
   [

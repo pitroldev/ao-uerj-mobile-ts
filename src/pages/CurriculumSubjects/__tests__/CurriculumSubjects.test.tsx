@@ -1,23 +1,12 @@
 import React from 'react';
-import { Text } from 'react-native';
-import { act, create, ReactTestRenderer } from 'react-test-renderer';
-import { ThemeProvider } from 'styled-components/native';
+import { screen, userEvent, within } from '@testing-library/react-native';
+import type { TestInstance } from 'test-renderer';
 
-import { LIGHT } from '@root/themes';
 import type { CurriculumSubject } from '@root/modules/academics/domain/models';
 import { AppError } from '@root/shared/errors/AppError';
-import {
-  EmptyState,
-  ErrorState,
-  FilterChip,
-  ListRow,
-  SearchField,
-  SegmentedControl,
-  SkeletonList,
-  StatusLabel,
-  Tag,
-} from '@components/ui';
-import CurriculumSubjects from '../CurriculumSubjects';
+import { renderWithProviders } from '@root/test-utils/render';
+import { OUTLINED_GLYPHS } from '@components/ui';
+import { CurriculumSubjects } from '../CurriculumSubjects';
 
 const makeQuery = <T,>(
   data: T | undefined,
@@ -56,7 +45,6 @@ jest.mock('@react-navigation/native', () => ({
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('react-native-modal', () => 'Modal');
 
 const curriculum: CurriculumSubject[] = [
   {
@@ -98,101 +86,97 @@ const curriculum: CurriculumSubject[] = [
   },
 ];
 
-let renderer: ReactTestRenderer;
-const render = async () => {
-  await act(async () => {
-    renderer = create(
-      <ThemeProvider theme={LIGHT}>
-        <CurriculumSubjects />
-      </ThemeProvider>,
-    );
-  });
+const renderPage = () => renderWithProviders(<CurriculumSubjects />);
+/** Linhas de disciplina, na ordem da lista: cada uma abre a disciplina. */
+const subjectRows = () =>
+  screen.queryAllByHintText('Abre os detalhes da disciplina');
+const expectTitles = (titles: string[]) => {
+  const rows = subjectRows();
+  expect(rows).toHaveLength(titles.length);
+  titles.forEach((title, i) =>
+    expect(within(rows[i]).getByText(title)).toBeOnTheScreen(),
+  );
 };
-const flatten = (children: unknown): string => {
-  if (Array.isArray(children)) return children.map(flatten).join('');
-  if (typeof children === 'string' || typeof children === 'number')
-    return String(children);
-  if (React.isValidElement(children))
-    return flatten((children.props as { children?: unknown }).children);
-  return '';
-};
-const texts = () =>
-  renderer.root.findAllByType(Text).map(node => flatten(node.props.children));
-const titles = () =>
-  renderer.root.findAllByType(ListRow).map(row => row.props.title);
 const chip = (label: string) =>
-  renderer.root
-    .findAllByType(FilterChip)
-    .find(node => node.props.label === label)!;
+  screen.getByRole('togglebutton', { name: label });
+const searchField = () =>
+  screen.getByLabelText('Pesquise pelo nome da disciplina');
+/**
+ * Os ícones são decorativos (fora da acessibilidade): devolve os glifos
+ * desenhados no bloco mais próximo do texto (a etiqueta, o estado vazio).
+ */
+const glyphsBeside = (text: string | RegExp) => {
+  const isPath = (node: TestInstance) => node.type === 'RNSVGPath';
+  let block = screen.getByText(text).parent;
+  while (block && block.queryAll(isPath).length === 0) block = block.parent;
+  return block?.queryAll(isPath).map(path => path.props.d) ?? [];
+};
 
 beforeEach(() => {
   mockCurriculum = makeQuery(curriculum);
 });
-afterEach(async () => {
-  await act(async () => renderer?.unmount());
+afterEach(() => {
   mockNavigate.mockClear();
 });
 
 it('lists the subjects not yet taken with code, type, details and the credit lock', async () => {
-  await render();
-  expect(titles()).toEqual([
-    'Compiladores',
-    'Projeto Final I',
-    'Aprendizado de Máquina',
-  ]);
-  expect(texts()).toContain('Exibindo 3 disciplinas');
-  expect(texts()).toContain('IME02-10871 · Obrigatória');
-  expect(texts()).toContain('6º período · 4 créditos · 60 horas');
-  expect(texts()).toContain('Ramificação A · 4 créditos · 60 horas');
-  const lock = renderer.root.findByType(Tag);
-  expect(lock.props.label).toBe('Trava de 140 créditos');
-  expect(lock.props.icon).toBe('lock');
+  await renderPage();
+  expectTitles(['Compiladores', 'Projeto Final I', 'Aprendizado de Máquina']);
+  for (const text of [
+    'Exibindo 3 disciplinas',
+    'IME02-10871 · Obrigatória',
+    '6º período · 4 créditos · 60 horas',
+    'Ramificação A · 4 créditos · 60 horas',
+  ]) {
+    expect(screen.getByText(text)).toBeOnTheScreen();
+  }
+  // uma só trava na lista, com o cadeado ao lado
+  expect(screen.getByText(/^Trava de/)).toHaveTextContent(
+    'Trava de 140 créditos',
+  );
+  expect(glyphsBeside('Trava de 140 créditos')).toContain(OUTLINED_GLYPHS.lock);
 });
 
 it('filters by type, by situation and by name or code', async () => {
-  await render();
-  expect(chip('Todas').props.selected).toBe(true);
-  await act(async () => chip('Eletivas Restritas').props.onPress());
-  expect(titles()).toEqual(['Aprendizado de Máquina']);
-  await act(async () => chip('Todas').props.onPress());
+  await renderPage();
+  const user = userEvent.setup();
+  expect(chip('Todas')).toHaveProp(
+    'accessibilityState',
+    expect.objectContaining({ checked: true }),
+  );
+  await user.press(chip('Eletivas Restritas'));
+  expectTitles(['Aprendizado de Máquina']);
+  await user.press(chip('Todas'));
 
-  await act(async () =>
-    renderer.root.findByType(SegmentedControl).props.onChange('taken'),
-  );
-  expect(titles()).toEqual(['Cálculo I']);
-  expect(renderer.root.findByType(StatusLabel).props.label).toBe('Atendida');
-  expect(texts()).toContain('Exibindo 1 disciplina');
+  await user.press(screen.getByRole('tab', { name: 'Atendidas' }));
+  expect(screen.getByRole('tab', { name: 'Atendidas' })).toBeSelected();
+  expectTitles(['Cálculo I']);
+  expect(screen.getByText('Atendida')).toBeOnTheScreen();
+  expect(screen.getByText('Exibindo 1 disciplina')).toBeOnTheScreen();
 
-  await act(async () =>
-    renderer.root.findByType(SegmentedControl).props.onChange('pending'),
-  );
-  await act(async () =>
-    renderer.root.findByType(SearchField).props.onChangeText('maquina'),
-  );
-  expect(titles()).toEqual(['Aprendizado de Máquina']);
-  await act(async () =>
-    renderer.root.findByType(SearchField).props.onChangeText('10950'),
-  );
-  expect(titles()).toEqual(['Projeto Final I']);
+  await user.press(screen.getByRole('tab', { name: 'Não atendidas' }));
+  await user.type(searchField(), 'maquina');
+  expectTitles(['Aprendizado de Máquina']);
+  await user.clear(searchField());
+  await user.type(searchField(), '10950');
+  expectTitles(['Projeto Final I']);
 });
 
 it('shows the empty state when no subject matches the filters', async () => {
-  await render();
-  await act(async () =>
-    renderer.root.findByType(SearchField).props.onChangeText('inexistente'),
-  );
-  expect(titles()).toEqual([]);
-  expect(texts()).toContain('Exibindo 0 disciplinas');
-  expect(renderer.root.findByType(EmptyState).props.text).toBe(
-    'Nenhuma disciplina encontrada com os filtros selecionados.',
-  );
+  await renderPage();
+  await userEvent.setup().type(searchField(), 'inexistente');
+  expectTitles([]);
+  expect(screen.getByText('Exibindo 0 disciplinas')).toBeOnTheScreen();
+  expect(
+    screen.getByText(
+      'Nenhuma disciplina encontrada com os filtros selecionados.',
+    ),
+  ).toBeOnTheScreen();
 });
 
 it('opens the subject in the subject search', async () => {
-  await render();
-  await act(async () =>
-    renderer.root.findAllByType(ListRow)[0].props.onPress(),
-  );
+  await renderPage();
+  await userEvent.setup().press(subjectRows()[0]);
   expect(mockNavigate).toHaveBeenCalledWith('Pesquisa de Disciplinas', {
     subjectId: 'IME02-10871',
     sourceRoute: 'Disciplinas do Currículo',
@@ -204,17 +188,20 @@ it('shows a skeleton while loading and a retry on failure', async () => {
     isLoading: true,
     isFetching: true,
   });
-  await render();
-  expect(renderer.root.findAllByType(SkeletonList)).toHaveLength(1);
-  expect(texts().some(t => t.startsWith('Exibindo'))).toBe(false);
-  await act(async () => renderer.unmount());
+  await renderPage();
+  expect(screen.getAllByLabelText('Carregando disciplinas…')).toHaveLength(1);
+  expect(
+    screen.queryByText(/^Exibindo/, { includeHiddenElements: true }),
+  ).not.toBeOnTheScreen();
+  await screen.unmount();
 
   mockCurriculum = makeQuery<CurriculumSubject[]>(undefined, {
     error: new AppError('NETWORK'),
   });
-  await render();
-  const state = renderer.root.findByType(ErrorState);
-  await act(async () => state.props.onRetry());
+  await renderPage();
+  await userEvent
+    .setup()
+    .press(screen.getByRole('button', { name: 'Tentar novamente' }));
   expect(mockCurriculum.refetch).toHaveBeenCalled();
 });
 
@@ -222,8 +209,11 @@ it('explains a blocked portal when there is no saved curriculum', async () => {
   mockCurriculum = makeQuery<CurriculumSubject[]>(undefined, {
     error: new AppError('POSSIBLY_BLOCKED'),
   });
-  await render();
-  const state = renderer.root.findByType(EmptyState);
-  expect(state.props.icon).toBe('lock');
-  expect(state.props.text).toContain('temporariamente bloqueado');
+  await renderPage();
+  expect(
+    screen.getByRole('alert', { name: /temporariamente bloqueado/ }),
+  ).toBeOnTheScreen();
+  expect(glyphsBeside(/temporariamente bloqueado/)).toContain(
+    OUTLINED_GLYPHS.lock,
+  );
 });

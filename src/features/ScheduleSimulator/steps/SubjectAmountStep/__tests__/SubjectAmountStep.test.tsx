@@ -1,96 +1,137 @@
 import React from 'react';
-import { act, create, ReactTestRenderer } from 'react-test-renderer';
+import { screen, userEvent } from '@testing-library/react-native';
 import { FormProvider, useForm } from 'react-hook-form';
-import { ThemeProvider } from 'styled-components/native';
-import { LIGHT } from '@root/themes';
-import StepsProvider from '@hooks/useSteps';
+import { renderWithProviders } from '@root/test-utils/render';
+import { StepsProvider } from '@hooks/useSteps';
 import {
   createScheduleDraft,
   ScheduleCreationParams,
 } from '@root/modules/planning/domain/models';
-import { Button, NumberStepper } from '@components/ui';
-import SubjectAmountStep from '../SubjectAmountStep';
+import { SubjectAmountStep } from '../SubjectAmountStep';
 
-jest.mock('react-native-modal', () => 'Modal');
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
 const nextStep = jest.fn();
-let renderer: ReactTestRenderer;
 
-function Form() {
+type Amounts = Pick<
+  ScheduleCreationParams,
+  'min_subject_amount' | 'max_subject_amount'
+>;
+const FILLED: Amounts = { min_subject_amount: 3, max_subject_amount: 3 };
+/** Rascunho novo do gerador: os dois campos começam vazios. */
+const EMPTY: Amounts = { min_subject_amount: null, max_subject_amount: null };
+const RANGE_MESSAGE = 'Use um número de 1 a 12.';
+
+function StepForm({
+  amounts,
+  children,
+}: {
+  amounts: Amounts;
+  children: React.ReactNode;
+}) {
+  // mesmo modo do formulário da tela (ScheduleCreationPage)
   const form = useForm<ScheduleCreationParams>({
     mode: 'all',
-    defaultValues: {
-      ...createScheduleDraft(),
-      min_subject_amount: 3,
-      max_subject_amount: 3,
-    },
+    defaultValues: { ...createScheduleDraft(), ...amounts },
   });
   return (
-    <ThemeProvider theme={LIGHT}>
-      <FormProvider {...form}>
-        <StepsProvider
-          values={{
-            step: 0,
-            nextStep,
-            prevStep: jest.fn(),
-            setStep: jest.fn(),
-          }}
-        >
-          <SubjectAmountStep />
-        </StepsProvider>
-      </FormProvider>
-    </ThemeProvider>
+    <FormProvider {...form}>
+      <StepsProvider
+        values={{
+          step: 0,
+          nextStep,
+          prevStep: jest.fn(),
+          setStep: jest.fn(),
+        }}
+      >
+        {children}
+      </StepsProvider>
+    </FormProvider>
   );
 }
 
-beforeEach(async () => {
+let user: ReturnType<typeof userEvent.setup>;
+
+beforeEach(() => {
+  jest.useFakeTimers();
   nextStep.mockClear();
-  await act(async () => {
-    renderer = create(<Form />);
-  });
+  user = userEvent.setup();
 });
-afterEach(async () => {
-  await act(async () => renderer.unmount());
+afterEach(() => {
+  jest.useRealTimers();
 });
 
-const nextButton = () =>
-  renderer.root.find(
-    node => node.type === Button && node.props.label === 'Próximo',
+const renderStep = (amounts: Amounts = FILLED) =>
+  renderWithProviders(
+    <StepForm amounts={amounts}>
+      <SubjectAmountStep />
+    </StepForm>,
   );
-const enterAmounts = async (minimum: string, maximum: string) => {
-  const inputs = renderer.root.findAllByType(NumberStepper);
-  await act(async () => {
-    inputs[0].props.onChangeText(minimum);
-    inputs[1].props.onChangeText(maximum);
-  });
+const nextButton = () => screen.getByRole('button', { name: 'Próximo' });
+const minimumInput = () => screen.getByLabelText('mínimo de matérias');
+const maximumInput = () => screen.getByLabelText('máximo de matérias');
+const enterAmount = async (
+  input: ReturnType<typeof minimumInput>,
+  text: string,
+) => {
+  await user.clear(input);
+  if (text) await user.type(input, text);
 };
-const submit = async () => {
-  await act(async () => {
-    await nextButton().props.onPress();
-  });
+const enterAmounts = async (minimum: string, maximum: string) => {
+  await enterAmount(minimumInput(), minimum);
+  await enterAmount(maximumInput(), maximum);
+};
+const submit = () => user.press(nextButton());
+const expectRequiredMessages = () => {
+  expect(
+    screen.getByText('O mínimo de matérias é obrigatório'),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText('O máximo de matérias é obrigatório'),
+  ).toBeOnTheScreen();
 };
 
 it('advances when the student wants exactly one subject', async () => {
+  await renderStep();
   await enterAmounts('1', '1');
-  expect(nextButton().props.disabled).toBe(false);
+  expect(nextButton()).toBeEnabled();
+  await submit();
+  expect(nextStep).toHaveBeenCalledTimes(1);
+});
+
+it('validates a fresh draft on "Próximo" before anything is typed', async () => {
+  await renderStep(EMPTY);
+  // nada digitado ainda: sem erro, o botão fica habilitado e só o envio valida
+  expect(minimumInput()).toHaveDisplayValue('');
+  expect(maximumInput()).toHaveDisplayValue('');
+  expect(nextButton()).toBeEnabled();
+  await submit();
+  expect(nextStep).not.toHaveBeenCalled();
+  expectRequiredMessages();
+  expect(nextButton()).toBeDisabled();
+  await enterAmounts('2', '3');
+  expect(nextButton()).toBeEnabled();
   await submit();
   expect(nextStep).toHaveBeenCalledTimes(1);
 });
 
 it('clears both initial quantities and replaces them without restoring the previous digits', async () => {
-  const inputValues = () =>
-    renderer.root.findAllByType(NumberStepper).map(input => input.props.value);
-  expect(inputValues()).toEqual(['3', '3']);
+  await renderStep();
+  expect(minimumInput()).toHaveDisplayValue('3');
+  expect(maximumInput()).toHaveDisplayValue('3');
+  // ao focar, o valor fica selecionado e o que se digita o substitui
+  expect(minimumInput()).toHaveProp('selectTextOnFocus', true);
+  expect(maximumInput()).toHaveProp('selectTextOnFocus', true);
   await enterAmounts('', '');
-  expect(inputValues()).toEqual(['', '']);
-  expect(nextButton().props.disabled).toBe(true);
-  await submit();
-  expect(nextStep).not.toHaveBeenCalled();
+  expect(minimumInput()).toHaveDisplayValue('');
+  expect(maximumInput()).toHaveDisplayValue('');
+  expectRequiredMessages();
+  expect(nextButton()).toBeDisabled();
   await enterAmounts('1', '2');
-  expect(inputValues()).toEqual(['1', '2']);
+  expect(minimumInput()).toHaveDisplayValue('1');
+  expect(maximumInput()).toHaveDisplayValue('2');
   await submit();
   expect(nextStep).toHaveBeenCalledTimes(1);
 });
@@ -101,21 +142,28 @@ it.each([
 ])(
   'rejects a zero quantity (%s to %s) and accepts it after correction',
   async (minimum, maximum) => {
+    await renderStep();
     await enterAmounts(minimum, maximum);
-    expect(nextButton().props.disabled).toBe(true);
-    await submit();
-    expect(nextStep).not.toHaveBeenCalled();
+    expect(screen.getByText(RANGE_MESSAGE)).toBeOnTheScreen();
+    expect(nextButton()).toBeDisabled();
     await enterAmounts('1', '2');
-    expect(nextButton().props.disabled).toBe(false);
+    expect(screen.queryByText(RANGE_MESSAGE)).not.toBeOnTheScreen();
+    expect(nextButton()).toBeEnabled();
     await submit();
     expect(nextStep).toHaveBeenCalledTimes(1);
   },
 );
 
-it('keeps "Anterior" disabled on the first step', () => {
-  const previous = renderer.root.find(
-    node =>
-      node.type === Button && node.props.accessibilityLabel === 'Anterior',
-  );
-  expect(previous.props.disabled).toBe(true);
+it('swaps a minimum above the maximum before advancing', async () => {
+  await renderStep();
+  await enterAmounts('4', '2');
+  await submit();
+  expect(nextStep).toHaveBeenCalledTimes(1);
+  expect(minimumInput()).toHaveDisplayValue('2');
+  expect(maximumInput()).toHaveDisplayValue('4');
+});
+
+it('keeps "Anterior" disabled on the first step', async () => {
+  await renderStep();
+  expect(screen.getByRole('button', { name: 'Anterior' })).toBeDisabled();
 });

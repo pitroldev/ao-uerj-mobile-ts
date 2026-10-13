@@ -1,11 +1,34 @@
-import parseGrades, { parseGrade } from '../parsers/ClassGrades';
-import parseCurriculum from '../parsers/CurriculumSubjects';
-import parseHistory from '../parsers/SubjectsTaken';
-import parseUniversal from '../parsers/UniversalSubjects';
-import parsePartialRid from '../parsers/PartialRID';
-import parseSchedule from '../parsers/AttendedClassesSchedule';
-import parseSubject from '../parsers/SubjectInfo';
+import { loadHtml, type CheerioAPI } from '../html';
+import { parseClassGrades, parseGrade } from '../parsers/ClassGrades';
+import { parseCurriculumSubjects } from '../parsers/CurriculumSubjects';
+import { parseSubjectsTaken } from '../parsers/SubjectsTaken';
+import { parseUniversalSubjects } from '../parsers/UniversalSubjects';
+import { parsePartialRID } from '../parsers/PartialRID';
+import { parseAttendedClassesSchedule } from '../parsers/AttendedClassesSchedule';
+import { parseSubjectInfo } from '../parsers/SubjectInfo';
 import { optionalNumber } from '../parsers/contract';
+import {
+  parseLoginInfo,
+  rejectsCredentials,
+  reportsUnavailableAccount,
+} from '../parsers/parseLoginData';
+import { subjectPage } from '../__fixtures__/subjectPage';
+import {
+  rejectedLoginPage,
+  unknownMatriculaLoginPage,
+} from '../__fixtures__/loginPages';
+
+const fromHtml =
+  <T>(parser: ($: CheerioAPI) => T) =>
+  (html: string) =>
+    parser(loadHtml(html));
+const parseGrades = fromHtml(parseClassGrades);
+const parseCurriculum = fromHtml(parseCurriculumSubjects);
+const parseHistory = fromHtml(parseSubjectsTaken);
+const parseUniversal = fromHtml(parseUniversalSubjects);
+const parsePartialRid = fromHtml(parsePartialRID);
+const parseSchedule = fromHtml(parseAttendedClassesSchedule);
+const parseSubject = fromHtml(parseSubjectInfo);
 
 const cells = (values: string[]) =>
   `<tr>${values.map(value => `<td>${value}</td>`).join('')}</tr>`;
@@ -315,4 +338,65 @@ it('keeps disjoint schedule intervals separate while merging adjacent slots', ()
     [640, 690],
   ]);
   expect(result[0].endTimeAlias).toBe('8:40');
+});
+
+it('reads subject details and classes from a class table without an explicit tbody', () => {
+  const subject = parseSubject(subjectPage);
+  expect(subject).toMatchObject({
+    id: 'ABC01-04827',
+    code: 4827,
+    name: 'Álgebra Linear II',
+    credits: 4,
+    workload: 60,
+    timesPerWeek: 4,
+    universal: false,
+    conflito: true,
+    preparo: false,
+    prerequisite: [
+      [
+        { id: 'ABC01-04826', name: 'Álgebra Linear I' },
+        { id: 'ABC01-04825', name: 'Geometria Analítica' },
+      ],
+      [{ id: 'Trava de Créditos', name: '60 Créditos Obrigatórios' }],
+    ],
+  });
+  expect(subject.classes).toHaveLength(2);
+  expect(subject.classes[0]).toMatchObject({
+    classNumber: 1,
+    hasPreference: true,
+    schedule: [{ Segunda: [['M1', 'M2']] }, { Quarta: [['M1', 'M2']] }],
+    location: 'Pavilhão Central - Sala 6001',
+    teachers: ['Professora de Teste', 'Professor da Silva & Souza'],
+    vacancies: {
+      uerj: {
+        available: 40,
+        taken: 35,
+        requestedAvailable: 20,
+        requestedTaken: 15,
+        preferential: 5,
+      },
+      freshman: { requestedAvailable: 6, requestedTaken: 4, preferential: 1 },
+    },
+  });
+  expect(subject.classes[1]).toMatchObject({
+    classNumber: 2,
+    hasPreference: false,
+    schedule: [{ Terça: [['T3', 'T4']] }, { Sábado: [['M3']] }],
+    location: 'Sala 5038 — Bloco F',
+    teachers: ['Docente dos Santos'],
+    vacancies: { uerj: { available: 30, taken: 0, requestedTaken: 0 } },
+  });
+});
+
+it('does not read the unknown-or-maintenance warning as a wrong password', () => {
+  const warning = (html: string) => parseLoginInfo(loadHtml(html)).fail_reason;
+  const unavailable = warning(unknownMatriculaLoginPage);
+  expect(unavailable).toMatch(/manutenção/);
+  expect(rejectsCredentials(unavailable)).toBe(false);
+  expect(reportsUnavailableAccount(unavailable)).toBe(true);
+
+  const rejected = warning(rejectedLoginPage);
+  expect(rejectsCredentials(rejected)).toBe(true);
+  expect(reportsUnavailableAccount(rejected)).toBe(false);
+  expect(rejectsCredentials('Matrícula inexistente.')).toBe(true);
 });

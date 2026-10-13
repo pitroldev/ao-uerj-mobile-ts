@@ -1,7 +1,9 @@
 import React from 'react';
-import TestRenderer, { act } from 'react-test-renderer';
+import { screen, userEvent } from '@testing-library/react-native';
 import { useQuery } from '@tanstack/react-query';
-import TeacherSearch from '../TeacherSearch';
+
+import { renderWithProviders } from '@root/test-utils/render';
+import { TeacherSearch } from '../TeacherSearch';
 
 jest.mock('@tanstack/react-query', () => ({ useQuery: jest.fn() }));
 jest.mock('@root/app/providers/AppServicesProvider', () => ({
@@ -9,29 +11,15 @@ jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useIdentity: () => ({ account: { scope: 'test-account' } }),
 }));
 jest.mock('@hooks/useBackHandler', () => ({ useBackHandler: jest.fn() }));
-jest.mock('react-native', () => ({ FlatList: 'FlatList' }));
-jest.mock('@features/TeacherDetails/TeacherView', () => 'TeacherView');
-jest.mock('@templates/ScreenPanel', () => ({
-  __esModule: true,
-  default: 'ScreenPanel',
+jest.mock('@features/TeacherDetails/TeacherView', () => ({
+  TeacherView: 'TeacherView',
 }));
 jest.mock('@templates/Header', () => ({ useHeaderBack: jest.fn() }));
-jest.mock('@components/ui', () => ({
-  SearchField: 'SearchField',
-  ListRow: 'ListRow',
-  ListSeparator: 'ListSeparator',
-  SkeletonList: 'SkeletonList',
-  EmptyState: 'EmptyState',
-  ErrorState: 'ErrorState',
-}));
-jest.mock('../TeacherSearch.styles', () => ({
-  SearchArea: 'SearchArea',
-  StateArea: 'StateArea',
-  useListContentStyle: () => ({}),
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
 describe('teacher search', () => {
-  let renderer: TestRenderer.ReactTestRenderer;
   beforeEach(async () => {
     jest.mocked(useQuery).mockImplementation((options: any) =>
       options.queryKey[2] === 'teachers'
@@ -46,39 +34,35 @@ describe('teacher search', () => {
             error: null,
           } as any),
     );
-    await act(async () => {
-      renderer = TestRenderer.create(<TeacherSearch />);
-    });
-  });
-  afterEach(async () => {
-    await act(async () => renderer.unmount());
+    await renderWithProviders(<TeacherSearch />);
   });
 
   it('treats search text literally and matches names without accents', async () => {
-    await act(async () =>
-      renderer.root.findByType('SearchField' as never).props.onChangeText('['),
-    );
-    expect(renderer.root.findByType('FlatList' as never).props.data).toEqual([
-      'Ana [Teste]',
-    ]);
-    await act(async () =>
-      renderer.root
-        .findByType('SearchField' as never)
-        .props.onChangeText('alvaro'),
-    );
-    expect(renderer.root.findByType('FlatList' as never).props.data).toEqual([
-      'Álvaro Souza',
-    ]);
+    const user = userEvent.setup();
+    const search = screen.getByLabelText('Pesquise pelo nome do professor');
+    await user.type(search, '[');
+    expect(
+      screen.getByRole('button', { name: 'Ana [Teste]' }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText('Álvaro Souza')).not.toBeOnTheScreen();
+    await user.clear(search);
+    await user.type(search, 'alvaro');
+    expect(
+      screen.getByRole('button', { name: 'Álvaro Souza' }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText('Ana [Teste]')).not.toBeOnTheScreen();
   });
 
   it('keeps the selected teacher while details are still loading', async () => {
-    const item = renderer.root
-      .findByType('FlatList' as never)
-      .props.renderItem({ item: 'Álvaro Souza' });
-    await act(async () => item.props.onPress());
-    expect(renderer.root.findAllByType('SkeletonList' as never)).toHaveLength(
-      1,
-    );
-    expect(renderer.root.findAllByType('FlatList' as never)).toHaveLength(0);
+    await userEvent
+      .setup()
+      .press(screen.getByRole('button', { name: 'Álvaro Souza' }));
+    expect(screen.getByLabelText('Carregando professor…')).toBeOnTheScreen();
+    // a busca e a lista de nomes saem de cena
+    expect(
+      screen.queryByLabelText('Pesquise pelo nome do professor'),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByText('Álvaro Souza')).not.toBeOnTheScreen();
+    expect(screen.queryByText('Ana [Teste]')).not.toBeOnTheScreen();
   });
 });

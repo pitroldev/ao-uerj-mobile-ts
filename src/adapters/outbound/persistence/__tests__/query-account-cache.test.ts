@@ -1,8 +1,18 @@
-import { QueryClient } from '@tanstack/react-query';
-import { createQueryAccountCache } from '../query-account-cache';
+import {
+  environmentManager,
+  isServer,
+  QueryClient,
+} from '@tanstack/react-query';
+import { createQueryClient } from '@root/app/queryClient';
+import { createQueryAccountCache, MAX_CACHE_AGE } from '../query-account-cache';
 import type { KeyValueStorage } from '../storage';
 
-function setup(records = new Map<string, string>()) {
+function setup(
+  records = new Map<string, string>(),
+  client = new QueryClient({
+    defaultOptions: { queries: { gcTime: Infinity } },
+  }),
+) {
   const storage: KeyValueStorage = {
     getItem: async key => records.get(key) ?? null,
     setItem: async (key, value) => {
@@ -12,9 +22,6 @@ function setup(records = new Map<string, string>()) {
       records.delete(key);
     },
   };
-  const client = new QueryClient({
-    defaultOptions: { queries: { gcTime: Infinity } },
-  });
   const cache = createQueryAccountCache(client, storage);
   return { records, storage, client, cache };
 }
@@ -117,4 +124,65 @@ it('discards expired, malformed and foreign-scope cached queries', async () => {
   expect(records.has('ao:v2:academic-cache:a')).toBe(false);
   cache.dispose();
   client.clear();
+});
+
+describe('queries that no screen observes', () => {
+  const HISTORY = ['academics', 'a', 'history'];
+  const DETAILS = ['academics', 'a', 'subject-details', 'IME02-10892'];
+  // Far beyond TanStack's 5-minute default, still inside the cache window.
+  const ALMOST_EXPIRED = MAX_CACHE_AGE - 60 * 60 * 1000;
+
+  beforeEach(() => {
+    // React Native defines `window`, so on the device TanStack collects
+    // unobserved queries. Under Jest's node environment it assumes a server
+    // and never collects them, which would hide the bug.
+    environmentManager.setIsServer(() => false);
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+    environmentManager.setIsServer(() => isServer);
+  });
+
+  /** Saves the history in a previous session and restores it into `client`. */
+  async function restoreHistory(client: QueryClient) {
+    const previous = setup();
+    await previous.cache.lifecycle.activate('a');
+    previous.client.setQueryData(HISTORY, ['saved-history']);
+    await previous.cache.flush();
+    previous.cache.dispose();
+    previous.client.clear();
+    const next = setup(previous.records, client);
+    await next.cache.lifecycle.activate('a');
+    return next;
+  }
+
+  it('stay in memory and on disk until the cache expires (production client)', async () => {
+    const { cache, client, records } =
+      await restoreHistory(createQueryClient());
+    // Fetched without an observer, as the planning screen does.
+    await client.fetchQuery({
+      queryKey: DETAILS,
+      queryFn: async () => ['fetched-details'],
+    });
+    jest.advanceTimersByTime(ALMOST_EXPIRED);
+    await cache.flush();
+    expect(client.getQueryData(HISTORY)).toEqual(['saved-history']);
+    expect(client.getQueryData(DETAILS)).toEqual(['fetched-details']);
+    const raw = records.get('ao:v2:academic-cache:a')!;
+    expect(raw).toContain('saved-history');
+    expect(raw).toContain('fetched-details');
+    cache.dispose();
+    client.clear();
+  });
+
+  it('stay after being restored even when the client collects after 5 minutes', async () => {
+    const { cache, client, records } = await restoreHistory(new QueryClient());
+    jest.advanceTimersByTime(ALMOST_EXPIRED);
+    await cache.flush();
+    expect(client.getQueryData(HISTORY)).toEqual(['saved-history']);
+    expect(records.get('ao:v2:academic-cache:a')).toContain('saved-history');
+    cache.dispose();
+    client.clear();
+  });
 });

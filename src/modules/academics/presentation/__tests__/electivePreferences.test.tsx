@@ -1,7 +1,12 @@
-import React from 'react';
-import { act, create, ReactTestRenderer } from 'react-test-renderer';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  act,
+  renderHook,
+  waitFor,
+  type RenderHookResult,
+} from '@testing-library/react-native';
+import { QueryClient } from '@tanstack/react-query';
 import { useElectiveCreditsConfig } from '@hooks/useElectiveCreditsConfig';
+import { createTestQueryClient, createWrapper } from '@root/test-utils/render';
 
 let mockScope: string | null;
 const mockPreferences = { read: jest.fn(), write: jest.fn() };
@@ -14,13 +19,12 @@ jest.mock('@root/app/providers/AppServicesProvider', () => ({
     },
   }),
 }));
-let config: ReturnType<typeof useElectiveCreditsConfig>;
-function Probe() {
-  config = useElectiveCreditsConfig();
-  return <>{JSON.stringify(config.config)}</>;
-}
 let client: QueryClient;
-let renderer: ReactTestRenderer;
+let hook: RenderHookResult<
+  ReturnType<typeof useElectiveCreditsConfig>,
+  unknown
+>;
+const config = () => hook.result.current;
 const settle = () =>
   act(async () => {
     await new Promise<void>(resolve => setTimeout(resolve, 5));
@@ -35,43 +39,30 @@ beforeEach(async () => {
         : null,
     );
   mockPreferences.write.mockReset().mockResolvedValue(undefined);
-  client = new QueryClient({
-    defaultOptions: { queries: { gcTime: Infinity } },
-  });
-  await act(async () => {
-    renderer = create(
-      <QueryClientProvider client={client}>
-        <Probe />
-      </QueryClientProvider>,
-    );
+  client = createTestQueryClient();
+  hook = await renderHook(() => useElectiveCreditsConfig(), {
+    wrapper: createWrapper({ queryClient: client }),
   });
   await settle();
 });
-afterEach(async () => {
-  await act(async () => renderer.unmount());
+afterEach(() => {
   client.clear();
 });
 
 it('reads and writes preferences for the current account only', async () => {
-  expect(config.config.UNIVERSAL).toBe(6);
+  expect(config().config.UNIVERSAL).toBe(6);
   mockScope = 'account-b';
-  await act(async () => {
-    renderer.update(
-      <QueryClientProvider client={client}>
-        <Probe />
-      </QueryClientProvider>,
-    );
-  });
+  await hook.rerender(undefined);
   await settle();
-  expect(config.config.UNIVERSAL).toBe(0);
-  await act(async () => {
-    expect(await config.updateCredits('UNIVERSAL', 8)).toBe(true);
-  });
+  expect(config().config.UNIVERSAL).toBe(0);
+  const saved = await act(() => config().updateCredits('UNIVERSAL', 8));
+  expect(saved).toBe(true);
   expect(mockPreferences.write).toHaveBeenCalledWith(
     'account-b',
     'elective-credits',
     { RESTRICTED: 0, DEFINED: 0, UNIVERSAL: 8 },
   );
+  await waitFor(() => expect(config().config.UNIVERSAL).toBe(8));
 });
 
 it('does not repopulate a removed account cache after a late storage write', async () => {
@@ -82,7 +73,7 @@ it('does not repopulate a removed account cache after a late storage write', asy
         completeWrite = resolve;
       }),
   );
-  const pending = config.updateCredits('UNIVERSAL', 9);
+  const pending = config().updateCredits('UNIVERSAL', 9);
   mockScope = null;
   client.removeQueries({ queryKey: ['preferences', 'account-a'] });
   completeWrite();
@@ -94,6 +85,6 @@ it('does not repopulate a removed account cache after a late storage write', asy
 
 it('reports a failed persistence write instead of pretending the form was saved', async () => {
   mockPreferences.write.mockRejectedValue(new Error('disk full'));
-  await expect(config.updateCredits('UNIVERSAL', 9)).resolves.toBe(false);
-  expect(config.config.UNIVERSAL).toBe(6);
+  await expect(config().updateCredits('UNIVERSAL', 9)).resolves.toBe(false);
+  expect(config().config.UNIVERSAL).toBe(6);
 });
