@@ -16,6 +16,15 @@ tags:
 - tapOn: Senha
 - inputText: demo
 - tapOn: Entrar
+# O iOS oferece guardar a senha nas Senhas do sistema (também em aparelhos).
+- extendedWaitUntil:
+    visible: 'Save Password\?|Salvar senha\?|Olá, Marina|Funcionalidades exclusivas'
+    timeout: 60000
+- runFlow:
+    when:
+      visible: 'Save Password\?|Salvar senha\?'
+    commands:
+      - tapOn: 'Not Now|Agora Não|Agora não'
 - runFlow: ../subflows/fechar-novidades.yaml
 - extendedWaitUntil:
     visible: Olá, Marina
