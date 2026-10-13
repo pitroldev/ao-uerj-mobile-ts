@@ -169,15 +169,28 @@ jobs:
           xcrun simctl install "$udid" ios/build/Build/Products/Debug-iphonesimulator/aouerjmobile.app
           echo "SIM_UDID=$udid" >> "$GITHUB_ENV"
 
-      # Em ordem: o login do primeiro fluxo vale para os seguintes.
+      # Em ordem: o login do primeiro fluxo vale para os seguintes. O driver
+      # XCTest do Maestro às vezes não sobe na primeira tentativa no runner:
+      # tempo maior de início, um aquecimento e uma nova tentativa por fluxo.
       - name: Fluxos iOS
+        env:
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: '240000'
         run: |
           out="$RUNNER_TEMP/e2e-ios"
+          for _ in 1 2 3; do
+            maestro --device "$SIM_UDID" hierarchy > /dev/null 2>&1 && break
+            sleep 10
+          done
           status=0
           for flow in .maestro/ios/0*.yaml; do
             name=$(basename "$flow" .yaml)
-            maestro --device "$SIM_UDID" test "$flow" \
-              --format JUNIT --output "$out/$name.xml" --test-output-dir "$out/$name" || status=1
+            for attempt in 1 2; do
+              if maestro --device "$SIM_UDID" test "$flow" \
+                --format JUNIT --output "$out/$name.xml" --test-output-dir "$out/$name-$attempt"; then
+                break
+              fi
+              if [ "$attempt" = 2 ]; then status=1; fi
+            done
           done
           exit $status
 
