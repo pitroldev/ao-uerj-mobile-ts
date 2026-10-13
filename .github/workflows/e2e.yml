@@ -151,7 +151,9 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/e2e-ios"
           nohup pnpm start > "$RUNNER_TEMP/e2e-ios/metro.log" 2>&1 &
-          timeout 120 sh -c 'until curl -fs http://localhost:8081/status; do sleep 2; done'
+          # o macOS não tem o timeout do GNU
+          for _ in $(seq 60); do curl -fs http://localhost:8081/status && break; sleep 2; done
+          curl -fs http://localhost:8081/status > /dev/null
           curl -fsS -o /dev/null --max-time 600 \
             'http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false&app=org.reactjs.native.example.aouerjmobile'
 
