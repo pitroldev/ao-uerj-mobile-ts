@@ -35,13 +35,14 @@ tags:
     timeout: 10000
 
 - runFlow: ../subflows/abrir-menu.yaml
+# No iOS, cada opção é um elemento só: "Padrão do sistema, Acompanha o modo…".
 - tapOn: 'Tema: .*'
 - extendedWaitUntil:
-    visible: Acompanha o modo claro ou escuro do aparelho
+    visible: '.*Acompanha o modo claro ou escuro do aparelho.*'
     timeout: 10000
 - tapOn: Escuro
 - extendedWaitUntil:
-    notVisible: Acompanha o modo claro ou escuro do aparelho
+    notVisible: '.*Acompanha o modo claro ou escuro do aparelho.*'
     timeout: 10000
 - assertVisible: 'Tema: Escuro'
 - tapOn: Fechar menu
@@ -52,9 +53,9 @@ tags:
 - runFlow: ../subflows/abrir-menu.yaml
 - tapOn: 'Tema: Escuro'
 - extendedWaitUntil:
-    visible: Acompanha o modo claro ou escuro do aparelho
+    visible: '.*Acompanha o modo claro ou escuro do aparelho.*'
     timeout: 10000
-- tapOn: Padrão do sistema
+- tapOn: 'Padrão do sistema.*'
 - extendedWaitUntil:
     visible: 'Tema: Padrão do sistema'
     timeout: 10000
