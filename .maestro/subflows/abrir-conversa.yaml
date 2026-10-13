@@ -1,0 +1,12 @@
+# Abre a conversa de Sistemas Distribuídos no Mural (tela com a seta de voltar
+# no cabeçalho e o compositor no rodapé).
+appId: com.aouerjmobile
+---
+- openLink: aouerj-dev://mural
+- extendedWaitUntil:
+    visible: Escolha a disciplina para abrir o mural da turma\.
+    timeout: 15000
+- tapOn: Sistemas Distribuídos
+- extendedWaitUntil:
+    visible: Voltar para as disciplinas
+    timeout: 10000

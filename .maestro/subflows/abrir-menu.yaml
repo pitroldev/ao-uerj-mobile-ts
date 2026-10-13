@@ -1,0 +1,9 @@
+# Abre o menu lateral pelo botão do cabeçalho e espera os itens.
+appId: com.aouerjmobile
+---
+- tapOn: Abrir menu
+- extendedWaitUntil:
+    visible: Fechar menu
+    timeout: 5000
+- waitForAnimationToEnd:
+    timeout: 3000

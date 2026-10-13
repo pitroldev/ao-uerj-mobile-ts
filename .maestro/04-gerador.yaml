@@ -1,0 +1,92 @@
+# Gerador de Grade de ponta a ponta, no gerador local do modo demo: os sete
+# passos, gerar as grades, ver os horários e recomeçar.
+appId: com.aouerjmobile
+name: Gerador de Grade de ponta a ponta
+tags:
+  - gerador
+---
+- stopApp
+- runFlow:
+    file: subflows/entrar-demo.yaml
+    env:
+      CENARIO: padrao
+- openLink: aouerj-dev://gerador
+
+# 1. quantidade de disciplinas
+- extendedWaitUntil:
+    visible: Conte-nos um pouco sobre você
+    timeout: 15000
+- tapOn: mínimo de matérias
+- inputText: '2'
+- tapOn: máximo de matérias
+- inputText: '4'
+- hideKeyboard
+- tapOn: Próximo
+
+# 2. horários ocupados: a noite inteira
+- extendedWaitUntil:
+    visible: Quando você está ocupado\?
+    timeout: 10000
+- tapOn: Noite ocupada
+- assertVisible: 'Ocupado: 30 tempos'
+- tapOn: Próximo
+
+# 3. prioridades: atalho recomendado
+- extendedWaitUntil:
+    visible: Quais são suas prioridades\?
+    timeout: 10000
+- tapOn: Poucas lacunas \(recomendado\)
+- assertVisible: 3 ligadas
+- tapOn: Próximo
+
+# 4. disciplinas
+- extendedWaitUntil:
+    visible: Escolha 2 ou mais disciplinas
+    timeout: 10000
+- tapOn: Compiladores
+- tapOn: Computação Gráfica
+- tapOn: Sistemas Distribuídos
+- tapOn: Otimização Combinatória
+- assertVisible: 4 selecionadas.*
+- tapOn: Próximo
+
+# 5. carregar dados das turmas
+- extendedWaitUntil:
+    visible: Dados carregados com sucesso!
+    timeout: 30000
+- assertVisible: .*4 disponíveis, 0 recusadas
+- tapOn: Próximo
+
+# 6. turmas
+- extendedWaitUntil:
+    visible: Deseja remover alguma outra turma\?
+    timeout: 10000
+- assertVisible: \d+ de \d+ turmas selecionadas
+- tapOn: Próximo
+
+# 7. gerar
+- extendedWaitUntil:
+    visible: Tudo pronto para gerar sua grade
+    timeout: 10000
+- assertVisible: 'Disciplinas escolhidas: 4'
+- tapOn: Gerar grades
+- extendedWaitUntil:
+    visible: Veja abaixo as grades geradas
+    timeout: 60000
+- assertVisible: Grade 1
+- assertVisible: \d+ disciplinas, \d+ créditos, \d+ horas
+- takeScreenshot: 04-grade-informacoes
+- tapOn: Horários
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 04-grade-horarios
+# as outras grades geradas ficam nas abas de cima
+- tapOn: Grade 2
+- assertVisible: \d+ disciplinas, \d+ créditos, \d+ horas
+- takeScreenshot: 04-grade-2
+# "Gerar outra grade" recomeça o gerador do passo 1, com o formulário limpo
+- tapOn: Gerar outra grade
+- extendedWaitUntil:
+    visible: Conte-nos um pouco sobre você
+    timeout: 10000
+- assertVisible: 'Passo 1 de 7: Qtd\. Disciplinas, atual'

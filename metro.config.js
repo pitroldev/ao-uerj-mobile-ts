@@ -1,7 +1,7 @@
 const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
+const { withSentryConfig } = require('@sentry/react-native/metro');
 
 const defaultConfig = getDefaultConfig(__dirname);
-const { assetExts, sourceExts } = defaultConfig.resolver;
 
 /**
  * Metro configuration
@@ -10,8 +10,18 @@ const { assetExts, sourceExts } = defaultConfig.resolver;
  * @type {import('@react-native/metro-config').MetroConfig}
  */
 const config = {
+  resolver: {
+    // Native build outputs (also inside node_modules packages) churn during
+    // Gradle/Xcode builds; watching them stalls Metro.
+    blockList: [
+      ...[defaultConfig.resolver.blockList ?? []].flat(),
+      /[\\/]android[\\/](app[\\/])?build[\\/].*/,
+      /[\\/]android[\\/]\.cxx[\\/].*/,
+      /[\\/]ios[\\/]build[\\/].*/,
+      /[\\/]\.claude[\\/]worktrees[\\/].*/,
+    ],
+  },
   transformer: {
-    babelTransformerPath: require.resolve('react-native-svg-transformer'),
     minifierConfig: {
       mangle: {
         keep_fnames: true,
@@ -30,10 +40,11 @@ const config = {
       },
     },
   },
-  resolver: {
-    assetExts: assetExts.filter(ext => ext !== 'svg'),
-    sourceExts: [...sourceExts, 'svg'],
-  },
 };
 
-module.exports = mergeConfig(defaultConfig, config);
+// Debug ID no bundle e no source map, para o Sentry simbolizar o Hermes. As
+// opções do SDK ficam no código (src/app/observability), sem sentry.options.json.
+module.exports = withSentryConfig(mergeConfig(defaultConfig, config), {
+  optionsFile: false,
+  enableSourceContextInDevelopment: false,
+});

@@ -1,0 +1,95 @@
+name: E2E
+
+# Fluxos do Maestro (.maestro/) no modo demonstração, sem rede nem conta real.
+# Manual ou noturno: o emulador leva de 15 a 30 minutos, caro demais para cada PR.
+on:
+  workflow_dispatch:
+  schedule:
+    # 03:30 em Brasília
+    - cron: '30 6 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MAESTRO_VERSION: 2.11.0
+  # SHA-256 do maestro.zip da release cli-2.11.0 (checksums_sha256.txt da própria release)
+  MAESTRO_SHA256: 5384593cb4e7a106489e75a821d157dd43f4e438df6bc308b72e82c685e1283a
+  MAESTRO_CLI_NO_ANALYTICS: '1'
+  MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED: 'true'
+
+jobs:
+  maestro:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # v6.1.0 ou mais nova: a v6.0.x não tem suporte nativo ao pnpm 12 (pnpm/action-setup#289).
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-provider: basic
+      - run: sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0' 'ndk;27.1.12297006' 'cmake;3.22.1'
+      - run: pnpm install --frozen-lockfile
+
+      # O modo demonstração só existe no build de debug, que lê o JS do Metro.
+      - run: pnpm build:debug --no-daemon -PreactNativeArchitectures=x86_64
+
+      - name: Maestro CLI
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/maestro.zip" \
+            "https://github.com/mobile-dev-inc/maestro/releases/download/cli-$MAESTRO_VERSION/maestro.zip"
+          echo "$MAESTRO_SHA256  $RUNNER_TEMP/maestro.zip" | sha256sum --check --strict
+          unzip -q "$RUNNER_TEMP/maestro.zip" -d "$RUNNER_TEMP/maestro-cli"
+          echo "$RUNNER_TEMP/maestro-cli/maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Metro em segundo plano
+        run: |
+          mkdir -p "$RUNNER_TEMP/e2e"
+          nohup pnpm start > "$RUNNER_TEMP/e2e/metro.log" 2>&1 &
+          timeout 120 sh -c 'until curl -fs http://localhost:8081/status; do sleep 2; done'
+          # Monta o bundle uma vez antes do emulador: a primeira abertura do app fica rápida.
+          curl -fsS -o /dev/null --max-time 600 \
+            'http://localhost:8081/index.bundle?platform=android&dev=true&minify=false&app=com.aouerjmobile'
+
+      - name: KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          cores: 4
+          ram-size: 4096M
+          disk-size: 6000M
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          # Cada linha roda num `sh -c` separado: a lógica fica no script.
+          script: bash scripts/dev/e2e-ci.sh android/app/build/outputs/apk/debug/com.aouerjmobile-*.apk "$RUNNER_TEMP/e2e"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: e2e-maestro
+          path: ${{ runner.temp }}/e2e
+          retention-days: 14
+          if-no-files-found: warn

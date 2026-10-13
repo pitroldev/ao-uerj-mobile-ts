@@ -1,0 +1,19 @@
+# Recriação pela fonte do sistema, etapa 2 de 2: depois da troca de fonte com
+# o app aberto, a activity é recriada. Sem restaurar fragmentos (fe88f27), o
+# app volta ao Início e segue funcionando, em vez de fechar com erro.
+appId: com.aouerjmobile
+name: Recriação pela fonte, depois
+tags:
+  - recriacao-fonte
+---
+- runFlow:
+    file: ../subflows/esperar-inicio.yaml
+    env:
+      MATRICULA: demo
+- assertVisible: Abrir menu
+- takeScreenshot: recriacao-2-depois
+- runFlow:
+    file: ../subflows/ir-pelo-menu.yaml
+    env:
+      TELA: Mural de Mensagens
+      MARCA: Escolha a disciplina para abrir o mural da turma\.

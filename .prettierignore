@@ -1,0 +1,9 @@
+# Native projects and generated files (Prettier also skips .gitignore entries).
+android/
+ios/
+coverage/
+pnpm-lock.yaml
+# Written by release-please.
+CHANGELOG.md
+# Standalone design prototypes, outside the app.
+docs/design-proposals/

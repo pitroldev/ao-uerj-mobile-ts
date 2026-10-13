@@ -1,0 +1,8 @@
+# Fluxos E2E do Maestro sobre o modo demonstração do build de debug (sem rede
+# e sem conta real). Como rodar: scripts/dev/README.md, "Testes E2E (Maestro)".
+#
+# `maestro test .maestro` roda só os fluxos deste nível. subflows/ guarda
+# trechos usados por `runFlow`; recriacao/ roda em duas etapas, com o adb
+# mudando a fonte do sistema entre elas (scripts/dev/e2e-ci.sh).
+flows:
+  - '*'

@@ -1,0 +1,13 @@
+# Espera o Início da conta MATRICULA ("demo", "demo-rid"...). A folha
+# "Funcionalidades exclusivas" pode abrir por cima dele (e esconder do Maestro
+# o resto da tela): ela é fechada antes de conferir a saudação.
+appId: com.aouerjmobile
+---
+- extendedWaitUntil:
+    visible: Matrícula ${MATRICULA}|Funcionalidades exclusivas
+    timeout: 120000
+- runFlow: fechar-novidades.yaml
+- extendedWaitUntil:
+    visible: Olá, Marina
+    timeout: 30000
+- assertVisible: Matrícula ${MATRICULA}

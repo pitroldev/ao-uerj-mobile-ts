@@ -1,0 +1,35 @@
+# Recriação da activity com estado salvo (bug corrigido em fe88f27: "Screen
+# fragments should never be restored"). O `killApp` do Maestro usa `am kill`:
+# o sistema encerra o processo em segundo plano, e ao voltar o Android recria
+# a MainActivity com o estado salvo, como depois de liberar memória.
+#
+# Mudar o tamanho da fonte com o app aberto (outro gatilho do mesmo bug) exige
+# o adb, que um fluxo do Maestro não roda: os fluxos de recriacao/ fazem isso
+# em duas etapas, com `adb shell settings put system font_scale` no meio
+# (ver scripts/dev/e2e-ci.sh e scripts/dev/README.md).
+appId: com.aouerjmobile
+name: Recriação da activity
+tags:
+  - recriacao
+---
+- stopApp
+- runFlow:
+    file: subflows/entrar-demo.yaml
+    env:
+      CENARIO: padrao
+- runFlow: subflows/abrir-conversa.yaml
+- pressKey: Home
+- killApp
+- launchApp:
+    stopApp: false
+# sem restaurar fragmentos, o app volta ao Início em vez de fechar com erro
+- runFlow:
+    file: subflows/esperar-inicio.yaml
+    env:
+      MATRICULA: demo
+- assertVisible: Abrir menu
+- runFlow:
+    file: subflows/ir-pelo-menu.yaml
+    env:
+      TELA: Meu Progresso
+      MARCA: CR aproximado

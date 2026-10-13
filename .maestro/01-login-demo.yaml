@@ -1,0 +1,48 @@
+# Login demo pelo formulário (matrícula e senha "demo") e conteúdo do Início.
+# Começa conectado pelo deep link, sai pelo menu e entra de novo pela tela.
+appId: com.aouerjmobile
+name: Login demo e Início
+tags:
+  - login
+---
+- stopApp
+- runFlow:
+    file: subflows/entrar-demo.yaml
+    env:
+      CENARIO: padrao
+- runFlow: subflows/abrir-menu.yaml
+- tapOn: Sair
+- extendedWaitUntil:
+    visible: Entre com sua conta
+    timeout: 20000
+
+# "demo" na matrícula e na senha é a conta de demonstração (só no debug);
+# qualquer outra combinação iria para o Aluno Online real.
+- tapOn: Matrícula
+- eraseText
+- inputText: demo
+- tapOn: Senha
+- eraseText
+- inputText: demo
+- tapOn: Mostrar senha
+- assertVisible:
+    text: demo
+    index: 1
+- hideKeyboard
+- tapOn: Entrar
+- runFlow:
+    file: subflows/esperar-inicio.yaml
+    env:
+      MATRICULA: demo
+
+# Início do cenário padrão: cabeçalho com o período, próxima aula, notas e semana
+- assertVisible: Abrir menu
+- assertVisible: '2026\.2'
+- assertVisible: Próxima aula
+- assertVisible: Notas
+- assertVisible: Sistemas Distribuídos
+- scrollUntilVisible:
+    element: Semana
+    direction: DOWN
+- assertVisible: Dias da semana
+- takeScreenshot: 01-inicio

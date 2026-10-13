@@ -1,0 +1,54 @@
+# Tema pelo botão do rodapé do menu lateral: Escuro e de volta para
+# "Padrão do sistema" (o fluxo deixa o app como encontrou).
+appId: com.aouerjmobile
+name: Troca de tema
+tags:
+  - tema
+---
+- stopApp
+- runFlow:
+    file: subflows/entrar-demo.yaml
+    env:
+      CENARIO: padrao
+- runFlow: subflows/abrir-menu.yaml
+- tapOn: 'Tema: .*'
+- extendedWaitUntil:
+    visible: Acompanha o modo claro ou escuro do aparelho
+    timeout: 10000
+- tapOn: Escuro
+- extendedWaitUntil:
+    visible: 'Tema: Escuro'
+    timeout: 10000
+- extendedWaitUntil:
+    notVisible: Acompanha o modo claro ou escuro do aparelho
+    timeout: 10000
+- takeScreenshot: 06-tema-escuro-menu
+- back
+- extendedWaitUntil:
+    visible: Abrir menu
+    timeout: 5000
+- assertVisible: Olá, Marina
+- takeScreenshot: 06-tema-escuro-inicio
+
+# a escolha vale ao abrir o app de novo
+- stopApp
+- launchApp
+- runFlow:
+    file: subflows/esperar-inicio.yaml
+    env:
+      MATRICULA: demo
+- runFlow: subflows/abrir-menu.yaml
+- assertVisible: 'Tema: Escuro'
+
+- tapOn: 'Tema: Escuro'
+- extendedWaitUntil:
+    visible: Acompanha o modo claro ou escuro do aparelho
+    timeout: 10000
+- tapOn: Padrão do sistema
+- extendedWaitUntil:
+    visible: 'Tema: Padrão do sistema'
+    timeout: 10000
+- back
+- extendedWaitUntil:
+    visible: Abrir menu
+    timeout: 5000

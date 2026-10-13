@@ -80,3 +80,6 @@ buck-out/
 !.yarn/versions
 
 .env
+
+# Claude Code worktrees (parallel sessions).
+.claude/worktrees/

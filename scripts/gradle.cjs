@@ -10,7 +10,9 @@ function gradleCommand(args, platform = process.platform) {
   if (platform === 'win32') {
     return {
       command: process.env.ComSpec || 'cmd.exe',
-      args: ['/d', '/s', '/c', `gradlew.bat ${args.join(' ')}`],
+      // Explicit .\ so cmd finds the wrapper even when the current directory
+      // is not searched (NoDefaultCurrentDirectoryInExePath).
+      args: ['/d', '/s', '/c', `.\\gradlew.bat ${args.join(' ')}`],
     };
   }
   return { command: 'sh', args: ['./gradlew', ...args] };

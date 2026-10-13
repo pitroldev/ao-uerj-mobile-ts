@@ -141,7 +141,13 @@ main()
     report({ ok: false, code });
     process.exitCode = 1;
   })
-  .finally(async () => {
+  // main() errors were handled above, so this runs on both outcomes.
+  .then(async () => {
     if (adapter) await adapter.authentication.signOut();
     else await cookies.clear();
+  })
+  .catch(() => {
+    // Same rule as above: never print the error itself.
+    report({ ok: false, code: 'CLEANUP_FAILED' });
+    process.exitCode = 1;
   });

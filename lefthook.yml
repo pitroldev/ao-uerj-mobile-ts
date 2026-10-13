@@ -1,0 +1,23 @@
+# Git hooks (https://lefthook.dev), installed by `pnpm install`.
+pre-commit:
+  parallel: true
+  jobs:
+    - name: lint
+      glob: '*.{js,cjs,mjs,jsx,ts,tsx}'
+      # Type-aware (options.typeAware in .oxlintrc.json). Files under the
+      # config's ignorePatterns are skipped without failing the hook.
+      run: pnpm exec oxlint --deny-warnings --no-error-on-unmatched-pattern {staged_files}
+    - name: format
+      glob: '*.{js,cjs,mjs,jsx,ts,tsx,json,jsonc,json5,md,yml,yaml}'
+      # Files in .prettierignore are skipped.
+      run: pnpm exec prettier --check {staged_files}
+
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: pnpm exec commitlint --edit {1}
+
+pre-push:
+  jobs:
+    - name: type-check
+      run: pnpm type-check

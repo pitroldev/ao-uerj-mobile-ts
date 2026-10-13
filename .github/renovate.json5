@@ -1,0 +1,99 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
+    ':configMigration',
+    // Flags packages without a release for a long time in the dashboard.
+    'abandonments:recommended',
+    // `uses: owner/action@<sha> # vX.Y.Z`, updated by digest.
+    'helpers:pinGitHubActionDigests',
+  ],
+  timezone: 'America/Sao_Paulo',
+  // Monday early morning; security fixes ignore the schedule.
+  schedule: ['* 0-5 * * 1'],
+  labels: ['dependencies'],
+  // fix(deps)/chore(deps) prefixes, which commitlint and release-please expect.
+  semanticCommits: 'enabled',
+  // Gives the registry time to pull compromised releases before they reach the
+  // lockfile. The 3 days apply only to the versions Renovate proposes.
+  // pnpm-workspace.yaml does not set minimumReleaseAge, so pnpm itself keeps
+  // its default of 1 day for local installs and transitive dependencies.
+  minimumReleaseAge: '3 days',
+  internalChecksFilter: 'strict',
+  osvVulnerabilityAlerts: true,
+  postUpdateOptions: ['pnpmDedupe'],
+  lockFileMaintenance: {
+    enabled: true,
+    schedule: ['* 0-5 * * 1'],
+  },
+  packageRules: [
+    {
+      // Keeps package.json ranges in step with the lockfile.
+      matchManagers: ['npm'],
+      matchDepTypes: ['dependencies', 'devDependencies'],
+      rangeStrategy: 'bump',
+    },
+    {
+      description: 'Lint, format, test and git-hook tooling (majors stay separate).',
+      groupName: 'lint and test tooling',
+      matchUpdateTypes: ['minor', 'patch'],
+      matchPackageNames: [
+        'oxlint',
+        'oxlint-*',
+        'prettier',
+        'jest',
+        'jest-*',
+        'babel-jest',
+        '@types/jest',
+        '@testing-library/**',
+        'knip',
+        'lefthook',
+        '@commitlint/**',
+      ],
+    },
+    {
+      groupName: 'React Navigation',
+      matchPackageNames: ['@react-navigation/**'],
+    },
+    {
+      groupName: 'TanStack',
+      matchPackageNames: ['@tanstack/**'],
+    },
+    {
+      description: 'Reanimated requires the matching react-native-worklets release.',
+      groupName: 'Reanimated',
+      matchPackageNames: ['react-native-reanimated', 'react-native-worklets'],
+    },
+    {
+      description: 'React Native core: upgrade together following the Upgrade Helper (android/ and ios/ diffs), only after approval in the dashboard.',
+      groupName: 'React Native',
+      matchPackageNames: [
+        'react-native',
+        '@react-native/**',
+        '@react-native-community/cli',
+        '@react-native-community/cli-*',
+        'react',
+        'react-test-renderer',
+        'test-renderer',
+      ],
+      dependencyDashboardApproval: true,
+      addLabels: ['react-native'],
+    },
+    {
+      description: 'Gradle majors must match the React Native template.',
+      matchManagers: ['gradle-wrapper'],
+      matchUpdateTypes: ['major'],
+      dependencyDashboardApproval: true,
+    },
+    {
+      description: 'The Gemfile follows the React Native template (Upgrade Helper).',
+      matchManagers: ['bundler'],
+      enabled: false,
+    },
+    {
+      groupName: 'GitHub Actions',
+      matchManagers: ['github-actions'],
+      matchUpdateTypes: ['minor', 'patch', 'digest'],
+    },
+  ],
+}

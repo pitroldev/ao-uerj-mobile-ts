@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "1a95bc6a3045ad25aeeeb0d803f71ef1c4e35d27",
+  "include-component-in-tag": false,
+  "include-v-in-tag": true,
+  "pull-request-title-pattern": "chore: release ${version}",
+  "pull-request-header": "Release preparado pelo release-please. O merge cria a tag e o GitHub Release e envia o AAB para o teste interno da Play.",
+  "changelog-sections": [
+    { "type": "feat", "section": "Novidades" },
+    { "type": "fix", "section": "Correções" },
+    { "type": "perf", "section": "Desempenho" },
+    { "type": "revert", "section": "Reversões" },
+    { "type": "refactor", "section": "Refatoração", "hidden": true },
+    { "type": "docs", "section": "Documentação", "hidden": true },
+    { "type": "test", "section": "Testes", "hidden": true },
+    { "type": "build", "section": "Build", "hidden": true },
+    { "type": "ci", "section": "CI", "hidden": true },
+    { "type": "style", "section": "Estilo", "hidden": true },
+    { "type": "chore", "section": "Manutenção", "hidden": true }
+  ],
+  "packages": {
+    ".": {
+      "release-type": "node"
+    }
+  }
+}

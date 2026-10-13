@@ -20,7 +20,7 @@ test('Gradle forwards tasks/options on Windows and POSIX', () => {
     '/d',
     '/s',
     '/c',
-    `gradlew.bat ${args.join(' ')}`,
+    `.\\gradlew.bat ${args.join(' ')}`,
   ]);
   assert.throws(() => gradleCommand(['clean & echo unwanted'], 'win32'));
   assert.throws(() => gradleCommand([], 'linux'));

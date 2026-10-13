@@ -1,0 +1,15 @@
+# Recriação pela fonte do sistema, etapa 1 de 2: deixa o app aberto numa
+# conversa do Mural. Em seguida o script muda a fonte pelo adb
+# (`settings put system font_scale 1.3`) e roda a etapa 2.
+appId: com.aouerjmobile
+name: Recriação pela fonte, antes
+tags:
+  - recriacao-fonte
+---
+- stopApp
+- runFlow:
+    file: ../subflows/entrar-demo.yaml
+    env:
+      CENARIO: padrao
+- runFlow: ../subflows/abrir-conversa.yaml
+- takeScreenshot: recriacao-1-antes

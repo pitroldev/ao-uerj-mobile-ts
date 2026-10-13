@@ -1,5 +1,4 @@
 const axios = require('axios');
-const iconv = require('iconv-lite');
 
 /** Node counterpart of the native transport. This isolated jar never reads
  * browser cookies and only sends credentials to the configured AO origin. */
@@ -48,7 +47,8 @@ function createNodePortalTransport() {
           }
           return {
             status: response.status,
-            body: iconv.decode(Buffer.from(response.data), 'iso-8859-1'),
+            // Same decoding as the app (WHATWG windows-1252).
+            body: new TextDecoder('windows-1252').decode(response.data),
           };
         })
         .finally(() => {

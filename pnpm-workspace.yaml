@@ -8,18 +8,13 @@ nodeLinker: hoisted
 # Dependencies whose install scripts may run.
 allowBuilds:
   '@parcel/watcher': true
+  # Checks the sentry-cli binary used to upload source maps.
+  '@sentry/cli': true
+  # Installs the git hooks from lefthook.yml.
+  lefthook: true
   unrs-resolver: true
 
-# ESLint 10 is newer than these legacy plugins declare. eslint.config.js
-# adapts them (@eslint/compat) or drops them (Babel parser, Flow plugin).
-peerDependencyRules:
-  allowedVersions:
-    '@react-native/eslint-config>eslint': '10'
-    eslint-plugin-react>eslint: '10'
-    eslint-plugin-react-native>eslint: '10'
-    eslint-plugin-ft-flow>eslint: '10'
-    '@babel/eslint-parser>eslint': '10'
-
-patchedDependencies:
-  # Removes InteractionManager, which React Native 0.87 removed.
-  react-native-modal@14.0.0-rc.1: patches/react-native-modal@14.0.0-rc.1.patch
+# 1.22.7 fixes a crash with Reanimated 4.7 and was published less than a day
+# before it was added. Remove once it is older than minimumReleaseAge.
+minimumReleaseAgeExclude:
+  - react-native-keyboard-controller@1.22.7

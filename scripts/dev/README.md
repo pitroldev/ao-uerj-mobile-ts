@@ -7,14 +7,14 @@ não contém o modo demonstração, os dados fictícios nem o scheme `aouerj-dev
 
 No login de um build de debug:
 
-| Matrícula              | Senha  | Cenário                                                        |
-| ---------------------- | ------ | -------------------------------------------------------------- |
-| `demo`                 | `demo` | `padrao`: período em andamento, com todos os dados             |
-| `demo-rid`             | `demo` | período de inscrição: sem grade e sem notas; Início mostra o RID |
-| `demo-vazio`           | `demo` | período não iniciado: sem grade, notas nem RID                 |
-| `demo-bloqueado`       | `demo` | Aluno Online bloqueado: leituras acadêmicas falham             |
-| `demo-erro`            | `demo` | layout inesperado: leituras acadêmicas falham                  |
-| `demo-lento`           | `demo` | respostas de 30 s (estados de carregamento)                    |
+| Matrícula        | Senha  | Cenário                                                          |
+| ---------------- | ------ | ---------------------------------------------------------------- |
+| `demo`           | `demo` | `padrao`: período em andamento, com todos os dados               |
+| `demo-rid`       | `demo` | período de inscrição: sem grade e sem notas; Início mostra o RID |
+| `demo-vazio`     | `demo` | período não iniciado: sem grade, notas nem RID                   |
+| `demo-bloqueado` | `demo` | Aluno Online bloqueado: leituras acadêmicas falham               |
+| `demo-erro`      | `demo` | layout inesperado: leituras acadêmicas falham                    |
+| `demo-lento`     | `demo` | respostas de 30 s (estados de carregamento)                      |
 
 - Os dados espelham `docs/design-proposals/shared/data.js`: a aluna fictícia
   Marina Albuquerque Teixeira, período 2026.2, notas, grade, RID, histórico,
@@ -42,20 +42,20 @@ foco digita normalmente. Mais simples: o deep link abaixo.
 O intent-filter fica em `android/app/src/debug/AndroidManifest.xml` e a
 configuração do React Navigation em `src/app/dev/devLinking.ts`.
 
-| Link                                 | Abre                                   |
-| ------------------------------------ | -------------------------------------- |
-| `aouerj-dev://demo`                  | login demo (cenário `padrao`) e Início |
-| `aouerj-dev://demo/<cenário>`        | login demo no cenário indicado         |
-| `aouerj-dev://inicio`                | Início                                 |
-| `aouerj-dev://progresso`             | Meu Progresso                          |
-| `aouerj-dev://gerador`               | Gerador de Grade                       |
-| `aouerj-dev://mural`                 | Mural de Mensagens                     |
-| `aouerj-dev://realizadas`            | Disciplinas Realizadas                 |
-| `aouerj-dev://curriculo`             | Disciplinas do Currículo               |
-| `aouerj-dev://universais`            | Disciplinas Universais                 |
-| `aouerj-dev://pesquisa`              | Pesquisa de Disciplinas                |
-| `aouerj-dev://pesquisa/IME02-10892`  | detalhe de uma disciplina              |
-| `aouerj-dev://sobre`                 | Sobre                                  |
+| Link                                | Abre                                   |
+| ----------------------------------- | -------------------------------------- |
+| `aouerj-dev://demo`                 | login demo (cenário `padrao`) e Início |
+| `aouerj-dev://demo/<cenário>`       | login demo no cenário indicado         |
+| `aouerj-dev://inicio`               | Início                                 |
+| `aouerj-dev://progresso`            | Meu Progresso                          |
+| `aouerj-dev://gerador`              | Gerador de Grade                       |
+| `aouerj-dev://mural`                | Mural de Mensagens                     |
+| `aouerj-dev://realizadas`           | Disciplinas Realizadas                 |
+| `aouerj-dev://curriculo`            | Disciplinas do Currículo               |
+| `aouerj-dev://universais`           | Disciplinas Universais                 |
+| `aouerj-dev://pesquisa`             | Pesquisa de Disciplinas                |
+| `aouerj-dev://pesquisa/IME02-10892` | detalhe de uma disciplina              |
+| `aouerj-dev://sobre`                | Sobre                                  |
 
 ```sh
 adb shell am start -W -a android.intent.action.VIEW -d "aouerj-dev://demo" com.aouerjmobile
@@ -117,6 +117,43 @@ Rotas: `inicio`, `progresso`, `gerador`, `mural`, `realizadas`, `curriculo`,
 `universais`, `pesquisa`, `disciplina` (`pesquisa/IME02-10892`) e `sobre`.
 Opções: `--serial`, `--scenario`, `--wait <ms>` (padrão 2500),
 `--login-timeout <ms>`, `--no-login`, `--no-reverse`, `--adb`, `--help`.
+
+## Testes E2E (Maestro)
+
+Os fluxos ficam em `.maestro/` e usam só o modo demonstração e os deep links
+acima: login, menu lateral, folhas, gerador, mural, tema, cenários do Início e
+recriação da activity. No CI, rodam no workflow `E2E` (manual e noturno).
+
+Pré-requisitos: build de debug instalado, Metro rodando e o
+[Maestro CLI 2.11.0](https://github.com/mobile-dev-inc/maestro/releases/tag/cli-2.11.0)
+(o `maestro.zip`, conferido com o `checksums_sha256.txt` da release). No Windows
+(Git Bash), com o zip extraído em `%LOCALAPPDATA%\maestro-cli`:
+
+```sh
+export JAVA_HOME="C:/Program Files/Android/Android Studio/jbr"
+# o Maestro chama o `adb` do PATH para listar os emuladores
+export PATH="$LOCALAPPDATA/maestro-cli/maestro/bin:$ANDROID_HOME/platform-tools:$PATH"
+export MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
+
+pnpm e2e --device emulator-5554 -e API_LEVEL=35 --test-output-dir "$TEMP/aouerj-e2e"
+maestro test .maestro/05-mural.yaml --device emulator-5554   # um fluxo só
+```
+
+- `API_LEVEL` (opcional) liga a conferência da cópia no mural: do Android 13
+  em diante, quem confirma a cópia é o sistema, e não um aviso do app.
+- Para os fluxos não esperarem o `10.0.2.2` do emulador, que pode travar no meio
+  do bundle, e o Fast Refresh não recarregar o app no meio de um fluxo: menu de
+  desenvolvimento > "Change Bundle Location" > `localhost:8081` (com
+  `adb reverse tcp:8081 tcp:8081`) e "Disable Fast Refresh". O
+  `scripts/dev/e2e-ci.sh` faz o mesmo no CI.
+- Com um emulador `offline` na lista do `adb devices`, o Maestro 2.11 não acha
+  nenhum aparelho ("Device with id ... is not connected"). Feche esse emulador
+  ou conecte direto na porta adb do seu (a do console + 1):
+  `maestro --host localhost --port 5555 test .maestro`.
+- A recriação pela fonte do sistema roda em duas etapas, com o adb no meio:
+  `maestro test .maestro/recriacao/1-abrir-conversa.yaml`, depois
+  `adb shell settings put system font_scale 1.3` e
+  `maestro test .maestro/recriacao/2-conferir.yaml` (volte a fonte para `1.0`).
 
 ## Limitações
 

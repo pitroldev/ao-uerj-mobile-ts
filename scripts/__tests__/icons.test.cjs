@@ -14,6 +14,7 @@ const {
 const root = path.resolve(__dirname, '../..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
+/** @param {string} source @param {string} start @param {string} end */
 function keysOf(source, start, end) {
   const block = source.split(start)[1].split(end)[0];
   return [...block.matchAll(/^\s{2}([a-z0-9_]+):/gm)].map(m => m[1]).sort();

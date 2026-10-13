@@ -380,7 +380,7 @@ async function glyph(name, fill) {
 }
 
 async function mapLimit(items, limit, fn) {
-  const out = new Array(items.length);
+  const out = Array.from({ length: items.length });
   let next = 0;
   async function worker() {
     while (next < items.length) {

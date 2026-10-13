@@ -1,0 +1,26 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  // index.js (Metro), tests and tool configs (Babel, Metro, Jest, Oxlint,
+  // lefthook, commitlint, GitHub Actions) are found by Knip's plugins. The
+  // .cjs scripts are run directly with `node`.
+  "entry": ["scripts/**/*.cjs"],
+  "project": [
+    "*.js",
+    "src/**/*.{js,ts,tsx}",
+    "scripts/**/*.cjs",
+    "jest/**/*.js",
+  ],
+  "ignoreDependencies": [
+    // @react-native/babel-preset injects @babel/runtime helpers into the bundle.
+    "@babel/runtime",
+  ],
+  // Maestro CLI (pnpm e2e) is installed apart, outside npm: scripts/dev/README.md.
+  "ignoreBinaries": ["maestro"],
+  "ignoreIssues": {
+    // The design system's types (ButtonProps, NoticeKind, TabItem, ...) are its
+    // public API: each primitive exports its props so screens can type
+    // wrappers. Unused values there are still reported, and so are unused
+    // types everywhere else.
+    "src/components/ui/**": ["types"],
+  },
+}

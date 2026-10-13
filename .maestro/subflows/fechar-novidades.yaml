@@ -1,0 +1,16 @@
+# A folha "Funcionalidades exclusivas" abre uma vez por conta e versão, logo
+# depois do Início. Espera um pouco por ela e, se abrir, fecha em "Entendi".
+appId: com.aouerjmobile
+---
+- extendedWaitUntil:
+    visible: Funcionalidades exclusivas
+    timeout: 4000
+    optional: true
+- runFlow:
+    when:
+      visible: Funcionalidades exclusivas
+    commands:
+      - tapOn: Entendi
+      - extendedWaitUntil:
+          notVisible: Funcionalidades exclusivas
+          timeout: 10000

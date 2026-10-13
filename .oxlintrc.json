@@ -1,0 +1,248 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // Setting "plugins" replaces Oxlint's default set, so the defaults
+  // (eslint, typescript, unicorn, oxc) are listed along with the extra ones.
+  "plugins": [
+    "eslint",
+    "typescript",
+    "unicorn",
+    "oxc",
+    "react",
+    "jest",
+    "node"
+  ],
+  // Oxlint's recommended baseline: code that is outright wrong. It includes
+  // the React Compiler rules (react/purity, react/refs, ...) and the
+  // type-aware correctness rules (no-floating-promises, await-thenable, ...).
+  "categories": { "correctness": "error" },
+  "options": {
+    // Type-aware rules run through oxlint-tsgolint, on top of TypeScript 7.
+    "typeAware": true,
+    "reportUnusedDisableDirectives": "error"
+  },
+  "ignorePatterns": [
+    "android/**",
+    "ios/**",
+    "coverage/**",
+    "docs/design-proposals/**"
+  ],
+  "settings": {
+    "react": { "version": "19.2.3" },
+    "jest": { "version": 30 }
+  },
+  "rules": {
+    // Rules of @react-native/eslint-config, at the preset's levels.
+    "no-cond-assign": ["warn", "except-parens"],
+    "no-control-regex": "warn",
+    "no-debugger": "warn",
+    "no-ex-assign": "warn",
+    "no-extra-boolean-cast": "warn",
+    "no-func-assign": "warn",
+    "no-invalid-regexp": "warn",
+    "no-unsafe-negation": "warn",
+    "no-obj-calls": "warn",
+    "no-regex-spaces": "warn",
+    "no-sparse-arrays": "warn",
+    "use-isnan": "warn",
+    "valid-typeof": "warn",
+    "typescript/dot-notation": "warn",
+    "eqeqeq": ["warn", "always", { "null": "ignore" }],
+    "no-alert": "warn",
+    "no-caller": "warn",
+    "no-div-regex": "warn",
+    "no-extend-native": "warn",
+    "no-extra-bind": "warn",
+    "no-fallthrough": "warn",
+    "no-implied-eval": "warn",
+    "no-labels": "warn",
+    "no-iterator": "warn",
+    "no-lone-blocks": "warn",
+    "no-new": "warn",
+    "no-new-func": "error",
+    "no-new-wrappers": "warn",
+    "no-proto": "warn",
+    "no-return-assign": ["warn", "except-parens"],
+    "no-script-url": "warn",
+    "no-self-compare": "warn",
+    "no-sequences": "warn",
+    "no-useless-escape": "warn",
+    "no-with": "warn",
+    "radix": "warn",
+    "yoda": "warn",
+    "no-delete-var": "warn",
+    "no-label-var": "warn",
+    "no-shadow-restricted-names": "warn",
+    "node/handle-callback-err": "warn",
+    "node/no-mixed-requires": "warn",
+    "node/no-new-require": "warn",
+    "node/no-path-concat": "warn",
+    "unicorn/no-abusive-eslint-disable": "warn",
+    "no-array-constructor": "warn",
+    "no-empty-character-class": "warn",
+    "no-object-constructor": "warn",
+    "no-bitwise": "warn",
+    "react/jsx-no-comment-textnodes": "error",
+    "react/no-did-mount-set-state": "warn",
+    "react/no-did-update-set-state": "warn",
+    "react/no-unstable-nested-components": "warn",
+    "react/self-closing-comp": "warn",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error",
+    "jest/no-disabled-tests": "warn",
+    "jest/no-focused-tests": "warn",
+    "jest/no-identical-title": "warn",
+    "jest/valid-expect": "warn",
+
+    // React Compiler rules: levels of eslint-plugin-react-hooks' recommended
+    // preset (the error-level ones come from the correctness category).
+    "react/incompatible-library": "warn",
+    "react/unsupported-syntax": "warn",
+
+    // Assertion helpers are named expect* (expectCopiedSnackbar, ...).
+    "jest/expect-expect": [
+      "error",
+      { "assertFunctionNames": ["expect", "expect*"] }
+    ],
+    // afterEach hooks check that each test released its handlers.
+    "jest/no-standalone-expect": [
+      "error",
+      { "additionalTestBlockFunctions": ["afterEach"] }
+    ],
+
+    // Type-aware rules beyond the correctness category, from typescript-eslint's
+    // recommended-type-checked set. Left out: the no-unsafe-* family (over a
+    // thousand hits, mostly the untyped .cjs scripts and Jest mocks) and
+    // require-await (async port implementations without await are fine).
+    "typescript/no-misused-promises": "error",
+    // A `default` branch counts as handling the remaining union members; the
+    // rule still catches switches without one when a union grows.
+    "typescript/switch-exhaustiveness-check": [
+      "error",
+      { "considerDefaultExhaustiveForUnions": true }
+    ],
+    "typescript/only-throw-error": "error",
+    "typescript/prefer-promise-reject-errors": "error",
+    "typescript/restrict-plus-operands": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-unsafe-enum-comparison": "error"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.{js,cjs,mjs,jsx}"],
+      "env": { "node": true },
+      "rules": {
+        "no-undef": "error",
+        "no-unused-vars": [
+          "warn",
+          { "vars": "all", "args": "none", "ignoreRestSiblings": true }
+        ],
+        "no-shadow": ["warn", { "hoist": "functions" }],
+        "no-void": "warn"
+      }
+    },
+    {
+      "files": ["jest/**"],
+      "env": { "jest": true }
+    },
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "rules": {
+        "no-unused-vars": [
+          "error",
+          { "argsIgnorePattern": "^_", "destructuredArrayIgnorePattern": "^_" }
+        ],
+        "no-shadow": "error",
+        "no-void": ["error", { "allowAsStatement": true }],
+        "react/exhaustive-deps": "off"
+      }
+    },
+    {
+      "files": ["**/__tests__/**", "**/*.test.{ts,tsx}"],
+      "rules": {
+        // Test probes hand hook results to the test through module variables.
+        "react/globals": "off",
+        // expect(mock.method).toHaveBeenCalled() is how Jest mocks are checked.
+        "typescript/unbound-method": "off"
+      }
+    },
+    {
+      "files": ["src/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "cheerio",
+                "message": "A raiz do cheerio importa undici e node:stream e quebra no Metro. Carregue HTML com loadHtml() (src/adapters/outbound/aluno-online/html.ts), que usa cheerio/slim com parse5."
+              },
+              {
+                "name": "react-native-cheerio",
+                "message": "Substituída por loadHtml() (src/adapters/outbound/aluno-online/html.ts), que usa cheerio/slim com parse5."
+              },
+              {
+                "name": "react-native-toast-message",
+                "message": "Use a fachada snackbar.success/error/info de '@components/ui' (o SnackbarHost desenha o aviso, inclusive sobre folhas abertas)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // Hexagonal boundary: domain and application depend on ports only.
+      // Replaces the src/** restriction above (and already forbids both
+      // cheerio packages and react-native-toast-message).
+      "files": [
+        "src/modules/**/domain/**/*.ts",
+        "src/modules/**/application/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              "react",
+              "react-redux",
+              "redux",
+              "redux-persist",
+              "axios",
+              "cheerio"
+            ],
+            "patterns": [
+              {
+                "group": [
+                  "react-native*",
+                  "@react-native*/*",
+                  "@react-navigation/*",
+                  "styled-components",
+                  "styled-components/*",
+                  "@reduxjs/*",
+                  "@tanstack/*",
+                  "**/adapters",
+                  "**/adapters/**",
+                  "**/app",
+                  "**/app/**",
+                  "**/presentation",
+                  "**/presentation/**",
+                  "**/services",
+                  "**/services/**",
+                  "**/features",
+                  "**/features/**",
+                  "**/store",
+                  "**/store/**",
+                  "**/reducers/**"
+                ],
+                "message": "Domínio e aplicação dependem de portas; conecte implementações na composição."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/modules/**/*.{ts,tsx}", "src/app/**/*.{ts,tsx}"],
+      "rules": { "react/exhaustive-deps": "error" }
+    }
+  ]
+}
