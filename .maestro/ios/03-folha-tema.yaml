@@ -23,7 +23,9 @@ tags:
 - extendedWaitUntil:
     visible: Disciplinas em Curso
     timeout: 10000
-- tapOn: Fechar folha
+# véu: toque acima da folha (o centro do véu fica embaixo dela)
+- tapOn:
+    point: 50%,7%
 - extendedWaitUntil:
     notVisible: Disciplinas em Curso
     timeout: 10000

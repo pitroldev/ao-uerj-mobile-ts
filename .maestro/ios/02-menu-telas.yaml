@@ -1,4 +1,6 @@
 # iOS: navega pelo menu lateral pelas telas principais (sessão do fluxo 01).
+# No iOS, um grupo acessível junta rótulo e valor ("CR aproximado: 7,77"),
+# por isso as marcas aceitam texto em volta.
 appId: org.reactjs.native.example.aouerjmobile
 name: iOS - menu lateral
 tags:
@@ -12,25 +14,25 @@ tags:
     file: ../subflows/ir-pelo-menu.yaml
     env:
       TELA: Meu Progresso
-      MARCA: CR aproximado
+      MARCA: '.*CR aproximado.*'
 - takeScreenshot: ios-02-meu-progresso
 - runFlow:
     file: ../subflows/ir-pelo-menu.yaml
     env:
       TELA: Disciplinas do Currículo
-      MARCA: Não atendidas
+      MARCA: '.*Não atendidas.*'
 - takeScreenshot: ios-02-curriculo
 - runFlow:
     file: ../subflows/ir-pelo-menu.yaml
     env:
       TELA: Gerador de Grade
-      MARCA: Conte-nos um pouco sobre você
+      MARCA: '.*Conte-nos um pouco sobre você.*'
 - takeScreenshot: ios-02-gerador
 - runFlow:
     file: ../subflows/ir-pelo-menu.yaml
     env:
       TELA: Mural de Mensagens
-      MARCA: Escolha a disciplina para abrir o mural da turma\.
+      MARCA: '.*Escolha a disciplina para abrir o mural da turma\..*'
 - takeScreenshot: ios-02-mural
 - runFlow:
     file: ../subflows/ir-pelo-menu.yaml
