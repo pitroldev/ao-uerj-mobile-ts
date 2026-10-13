@@ -1,25 +1,63 @@
 # Changelog
 
-## [2.0.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.3.5...v2.0.0) (2026-10-13)
+## [2.0.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/707f6ea...v2.0.0) (2026-10-13)
 
+A maior atualização do AO UERJ desde o lançamento: visual novo em todas as telas, tema escuro, um app mais estável e acessível e uma base técnica renovada.
 
 ### Novidades
 
-* add parser tests for PartialRID and improve parsing logic ([f6bca41](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/f6bca4164ac824d5d59d52e49ee68e6a1f89ab87))
-* **android:** harden the native layer and add splash, updates and edge-to-edge ([e6d35a9](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/e6d35a910d33bbb1799852b7388ee32dbb02290d))
-* implement the "Agenda limpa" design system (light mode) ([fa66c80](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/fa66c80cbc41a2455bfc8f642805b6903a801b65))
-* implement the dependency plan (dark theme, sheets, Sentry, delivery) ([b897183](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/b8971834cdd8d54592366c58d3f00d17b1165f93))
-
+- **Visual novo, "Agenda limpa"**, em todas as telas:
+  - Início com a próxima aula, as notas do período e a agenda da semana;
+  - Meu Progresso com a evolução do CR e o caminho no currículo;
+  - Gerador de Grade em 7 passos;
+  - Mural da turma, pesquisa e detalhe de disciplinas, histórico, currículo e universais.
+- **Tema escuro.** No rodapé do menu, escolha entre Padrão do sistema, Claro ou Escuro.
+- **Folhas inferiores novas.** Fecham arrastando, tocando fora ou pelo voltar. Os avisos aparecem por cima delas e são lidos pelos leitores de tela.
+- **Teclado que não atrapalha.** No login, no mural, no Gerador e nas folhas, o campo e o botão principal ficam sempre acima do teclado.
+- **Tela inteira (edge-to-edge)** em todas as versões do Android, com as barras do sistema seguindo o tema.
+- **Abertura mais rápida e sem piscar.** O logo do splash nativo fica na tela até a primeira tela estar pronta.
+- **Avisos do app.** Recados no Início e telas desativadas temporariamente, com explicação, quando o Aluno Online mudar.
+- **Atualizações pela Play dentro do app**, com aviso de "Reiniciar" quando a nova versão termina de baixar.
+- **Pedido de avaliação na Play** depois de momentos positivos, como compartilhar a grade ou gerar grades. Nunca por botão, e no máximo uma vez a cada 120 dias.
 
 ### Correções
 
-* **android:** stop restoring screen fragments when the activity is recreated ([fac85e6](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/fac85e69a48d6c4ea98e54a466073cd7e410de87))
-* **e2e:** keep animations on and hide the reduced-motion dev warning ([df1e297](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/df1e29739b11cb95e4c2b776cac0f44e1c94da37))
+- O app não fecha mais ao voltar do segundo plano depois de o Android recriar a tela.
+- **Android 7 a 13:** a conexão com o Aluno Online funciona nesses aparelhos, que não reconheciam a cadeia de certificados atual do portal (raiz GlobalSign R46).
+- **Modo offline:** o app guardava só as telas abertas na última sessão. Agora mantém todos os dados por até 7 dias.
+- **Matrícula inexistente ou portal em manutenção:** antes aparecia "formato inesperado". Agora há uma mensagem clara, e os dados salvos não são apagados.
+- Aspas, travessões e outros símbolos das páginas do portal aparecem corretamente.
+- Cabeçalho, menu e logo voltam a responder depois de mudar o tamanho da fonte ou a navegação do sistema.
+- O título do cabeçalho não fica mais preso na tela anterior.
+- Arrastar a folha pela alça ou pelo título agora fecha.
+- O menu lateral recolhe o teclado ao abrir.
+- O Mural mantém o teclado aberto depois de enviar e atualiza "Hoje" e "Ontem" na virada do dia.
+- A confirmação de "Copiado" não aparece mais em dobro no Android 13 ou superior.
+- Nos campos numéricos (créditos e Gerador), o valor é selecionado ao tocar, para digitar por cima.
 
+### Privacidade e segurança
 
-### Manutenção
+- Backups na nuvem e a transferência entre aparelhos não levam mais os dados do app.
+- O compartilhamento da grade só expõe arquivos temporários.
+- Registro de falhas opcional (Sentry), com coleta mínima e desligado até ser configurado. Não envia nome, matrícula, notas, endereços do portal nem textos da tela.
+- Os links dos avisos do app só abrem endereços conhecidos (UERJ, pitrol.dev, o repositório e a página do app na Play).
+- Páginas de exemplo com dados do portal foram removidas do repositório e do histórico.
 
-* release 2.0.0 ([22a7207](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/22a720726080fc3c564ca7035f1129103892523f))
+### Desempenho
+
+- O React Compiler otimiza todos os componentes e hooks, com menos renderizações desnecessárias.
+- Cada página do portal é lida uma vez só, em vez de três a cinco vezes.
+- APK mais leve: saíram as fontes de ícones (cerca de 2 MB) e bibliotecas sem uso.
+- Bibliotecas nativas alinhadas a páginas de 16 KB, exigência da Play.
+
+### Por dentro do app
+
+- React Native 0.83 → 0.87.1 (React 19.2, Hermes, nova arquitetura), TypeScript 7, pnpm 12, Gradle 9.4 e Android SDK 37.
+- Nova camada de erros (`AppError`) e acesso ao Aluno Online reorganizado; `react-native-cheerio` (2017) trocado por `cheerio` + `parse5`.
+- Modo demonstração e links de desenvolvimento para testar sem uma conta real.
+- Testes: 828 testes com a Testing Library, E2E com o Maestro no Android e no iOS, e build de release em todo PR.
+- Ferramentas: Oxlint com regras por tipos (lint de 17,5 s para cerca de 1 s), Prettier, Knip, Renovate, lefthook + commitlint e release-please, com publicação na trilha interna da Play.
+- `versionCode` passa a seguir a versão (2.0.0 → 20000000).
 
 ## [v1.2.5](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v1.2.3...v1.2.5)
 
