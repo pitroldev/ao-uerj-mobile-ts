@@ -18,6 +18,7 @@ module.exports = {
         '<rootDir>/jest/setup-sentry.js',
         '<rootDir>/jest/setup-keyboard-controller.js',
         '<rootDir>/jest/setup-reanimated.js',
+        '<rootDir>/jest/setup-gesture-handler.js',
         '<rootDir>/jest/setup-bootsplash.js',
       ],
       // ESM-only packages that still need Babel.

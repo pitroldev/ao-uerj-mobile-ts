@@ -6,6 +6,7 @@ Complemento de [DESIGN.md](DESIGN.md); descreve a implementação React Native, 
 
 - É o único recurso disponível sem conta, pelo botão **Explorar o mapa** na tela de entrada. O visitante tem um cabeçalho com retorno ao login, sem acesso ao menu ou à tela Sobre; as rotas privadas só são registradas após autenticação.
 - SVG local com arraste, pinça e botões de zoom/reenquadramento; não depende de tiles remotos.
+- Pan e pinça movem uma camada em cache na thread de UI com Gesture Handler/Reanimated. O SVG tem margem de 160 dp e redesenha perto dos limites do cache; a área de toque fica limitada à janela visível. O campus atualiza seus rótulos ao finalizar o arraste; a planta conserva o cache, e a pinça finaliza com texto nítido. A planta memoiza o desenho e agrupa segmentos de degraus, sem eliminar detalhes.
 - Alvos nativos e botões têm pelo menos 48 dp. Em escala densa, os blocos se agrupam num alvo do pavilhão; a lista **Escolher bloco** permite a escolha individual.
 - Campus aponta o norte para cima. Andar mantém F embaixo e A à direita; corredores longos usam recortes com a extensão omitida marcada. Seletores no topo e rodapé curto preservam espaço para a planta.
 - Voltar fecha a busca ou limpa o destino. Selecionar um resultado dispensa o teclado; o rodapé respeita o inset inferior. Blocos, andares e instruções abrem em folhas inferiores.
