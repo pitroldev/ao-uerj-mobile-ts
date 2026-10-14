@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.0.0...v2.1.0) (2026-10-14)
+
+### Novidades
+
+- Mapa offline da UERJ, com busca de salas e plantas dos andares.
+- Orientação pelos portões, blocos e corredores do campus.
+- Acesso pelo botão "Explorar o mapa" antes do login, com melhorias de enquadramento e legibilidade.
+
 ## [2.0.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/707f6ea...v2.0.0) (2026-10-13)
 
 A maior atualização do AO UERJ desde o lançamento: visual novo em todas as telas, tema escuro, um app mais estável e acessível e uma base técnica renovada.
