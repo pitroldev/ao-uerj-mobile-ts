@@ -209,12 +209,12 @@ export const DrawerNavigator = ({
                   <Icon
                     name={icon}
                     filled={active}
-                    color={active ? c.onBrand : c.onBrandMuted}
+                    color={active ? c.onBrandSelected : c.onBrandMuted}
                   />
                   <ItemLabel
                     variant="body"
                     weight={active ? 'semibold' : 'regular'}
-                    tone="onBrand"
+                    color={active ? c.onBrandSelected : c.onBrand}
                     numberOfLines={2}
                   >
                     {route}

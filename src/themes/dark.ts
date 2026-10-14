@@ -8,7 +8,6 @@ import {
   spacing,
   typeScale,
 } from './tokens';
-import { colors as lightColors } from './light';
 import type {
   AppTheme,
   ShiftTone,
@@ -27,9 +26,8 @@ const tone = (
 ): StatusToneColors => ({ ink, bg, line, wash, washLine });
 
 /**
- * Cores do tema escuro (`:root[data-theme="dark"]` do protótipo V3): "a mesma
- * agenda, à noite". Cabeçalho e menu ficam no mesmo azul UERJ do claro; as
- * superfícies são azul-marinho no matiz da UERJ, com elevação por degraus
+ * Tema escuro com cabeçalho, menu e moldura em marinho profundo. As
+ * superfícies seguem o matiz da UERJ, com elevação por degraus
  * (painel < elevada < mais alta) em vez de sombras. O acento claro fica para
  * texto, ícones, indicadores e fios; o preenchimento (`fill`) é um azul médio
  * com texto branco.
@@ -41,14 +39,15 @@ const tone = (
  * 3,1:1 ou mais contra as superfícies onde há campos.
  */
 const colors: ThemeColors = {
-  brand: lightColors.brand,
-  brandHighlight: lightColors.brandHighlight,
-  onBrand: lightColors.onBrand,
-  onBrandMuted: lightColors.onBrandMuted,
-  brandRule: lightColors.brandRule,
-  onBrandPressed: lightColors.onBrandPressed,
-  onBrandTrack: lightColors.onBrandTrack,
-  onBrandRing: lightColors.onBrandRing,
+  brand: '#071425',
+  brandHighlight: '#173A60',
+  onBrand: '#E6EDF6',
+  onBrandSelected: '#CFE6FF',
+  onBrandMuted: '#A7B4C6',
+  brandRule: '#2C4058',
+  onBrandPressed: 'rgba(230,237,246,0.12)',
+  onBrandTrack: '#2C4058',
+  onBrandRing: '#2C4058',
 
   background: '#0B1626',
   surface: '#111F33',

@@ -31,6 +31,7 @@ export const colors: ThemeColors = {
   brand: '#003468',
   brandHighlight: '#004891',
   onBrand: '#FFFFFF',
+  onBrandSelected: '#FFFFFF',
   onBrandMuted: 'rgba(255,255,255,0.76)',
   brandRule: 'rgba(255,255,255,0.14)',
   onBrandPressed: 'rgba(255,255,255,0.16)',

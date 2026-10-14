@@ -34,12 +34,14 @@ export type StatusTone = 'good' | 'warn' | 'bad' | 'neutral' | 'info';
 export type ShiftTone = 'morning' | 'afternoon' | 'night';
 
 export type ThemeColors = {
-  /** Azul UERJ: barra de status, cabeçalho e menu lateral. */
+  /** Cabeçalho e menu: azul UERJ no claro, marinho profundo no escuro. */
   brand: string;
   /** Azul de destaque sobre o `brand` (item ativo do menu, avatar). */
   brandHighlight: string;
   /** Texto e ícones sobre o `brand`. */
   onBrand: string;
+  /** Texto e ícones do item selecionado sobre `brandHighlight`. */
+  onBrandSelected: string;
   /** Texto secundário sobre o `brand`. */
   onBrandMuted: string;
   /** Fios sobre o `brand`. */
