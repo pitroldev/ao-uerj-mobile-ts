@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.0.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.1.0...v2.0.0) (2026-10-14)
+
+
+### Novidades
+
+* add parser tests for PartialRID and improve parsing logic ([f6bca41](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/f6bca4164ac824d5d59d52e49ee68e6a1f89ab87))
+* **android:** harden the native layer and add splash, updates and edge-to-edge ([e6d35a9](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/e6d35a910d33bbb1799852b7388ee32dbb02290d))
+* implement the "Agenda limpa" design system (light mode) ([fa66c80](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/fa66c80cbc41a2455bfc8f642805b6903a801b65))
+* implement the dependency plan (dark theme, sheets, Sentry, delivery) ([b897183](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/b8971834cdd8d54592366c58d3f00d17b1165f93))
+
+
+### Correções
+
+* **android:** stop restoring screen fragments when the activity is recreated ([fac85e6](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/fac85e69a48d6c4ea98e54a466073cd7e410de87))
+* **e2e:** keep animations on and hide the reduced-motion dev warning ([df1e297](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/df1e29739b11cb95e4c2b776cac0f44e1c94da37))
+
+
+### Manutenção
+
+* release 2.0.0 ([22a7207](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/22a720726080fc3c564ca7035f1129103892523f))
+
 ## [2.1.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.0.0...v2.1.0) (2026-10-14)
 
 ### Novidades
