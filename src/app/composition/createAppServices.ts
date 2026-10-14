@@ -1,4 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { bundledCampusMap } from '@root/adapters/outbound/campus-map';
+import { CampusMap } from '@root/modules/campus-map/application/CampusMap';
 import { createAlunoOnlineAdapter } from '@root/adapters/outbound/aluno-online';
 import {
   createNativeCookieJar,
@@ -72,6 +74,7 @@ export function createAppServices() {
   const currentAccount = () => identity.getSnapshot().account;
   let startup: Promise<string | null> | null = null;
   return {
+    campusMap: new CampusMap(bundledCampusMap),
     queryClient,
     identity,
     preferences: ports.preferences,

@@ -1,5 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { Linking, StyleSheet, type TextInputInstance } from 'react-native';
+import {
+  Keyboard,
+  Linking,
+  StyleSheet,
+  type TextInputInstance,
+} from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +23,7 @@ import {
   Text,
 } from '@components/ui';
 import { version } from '@/package.json';
+import * as RootNavigation from '@services/rootNavigation';
 
 import {
   Footer,
@@ -80,6 +86,16 @@ export const LoginPage = () => {
       >
         <Top $inset={insets.top}>
           <AoLogo width={164} />
+          <Button
+            label="Explorar o mapa"
+            icon="location_on"
+            variant="text"
+            color={theme.colors.onBrand}
+            onPress={() => {
+              Keyboard.dismiss();
+              RootNavigation.navigate('Mapa');
+            }}
+          />
         </Top>
         <Panel $inset={insets.bottom}>
           <Text variant="titleL" accessibilityRole="header">
@@ -92,7 +108,7 @@ export const LoginPage = () => {
             <FieldGroupRow
               icon="badge"
               label="Matrícula"
-              placeholder="Digite sua matrícula"
+              placeholder="Matrícula"
               accessibilityLabel="Matrícula"
               autoComplete="username"
               autoCapitalize="none"
@@ -108,7 +124,7 @@ export const LoginPage = () => {
               ref={passwordInputRef}
               icon="lock"
               label="Senha"
-              placeholder="Digite sua senha"
+              placeholder="Senha"
               accessibilityLabel="Senha"
               autoComplete="password"
               autoCapitalize="none"

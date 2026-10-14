@@ -1,0 +1,57 @@
+appId: com.aouerjmobile
+---
+- runFlow:
+    file: subflows/entrar-demo.yaml
+    env:
+      CENARIO: padrao
+- runFlow: subflows/fechar-novidades.yaml
+- openLink: aouerj-dev://mapa/6019%20B
+- assertVisible: Sala 6019 B
+- assertVisible: 6º andar · Bloco B
+- tapOn: Ampliar mapa
+- tapOn: Reenquadrar mapa
+- tapOn: Como chegar
+- assertVisible: Entre pelo Portão 1, na Av. Rei Pelé.
+- tapOn: Portão 5
+- assertVisible: Entre pelo Portão 5, na São Francisco Xavier, 524.
+- tapOn: Ver andar
+- assertVisible: Sala 6019 B
+- assertVisible: Posição pela numeração
+- tapOn: Ampliar planta
+- tapOn: Reenquadrar planta
+- tapOn: Campus
+- tapOn: Ver campus inteiro
+- assertVisible: Campus Maracanã
+- tapOn: Bibliotecas
+- tapOn: Biblioteca CTC/A
+- assertVisible: 6º andar · Bloco C · Sala 6002
+- tapOn: Andar
+- assertVisible: Área da biblioteca
+- openLink: aouerj-dev://mapa/9023%20D
+- assertVisible: Sala 9023 D
+- tapOn: Andar
+- assertVisible: Planta DAENG · 2024
+- tapOn: Escolher andar
+- tapOn: 8º andar
+- assertNotVisible: Sala 9023 D
+- assertVisible: 8º andar
+- tapOn: Escolher bloco
+- tapOn: Selecionar Bloco B
+- assertVisible: Bloco B
+- assertVisible: 8º andar
+- openLink: aouerj-dev://mapa/6019
+- assertVisible: 6º andar · Escolha o bloco
+- tapOn: Escolher bloco
+- tapOn: Selecionar Bloco B
+- assertVisible: Sala 6019 B
+- openLink: aouerj-dev://inicio
+- openLink: aouerj-dev://mapa/6019
+- assertVisible: 6º andar · Escolha o bloco
+- tapOn: 'No mapa: Pavilhão João Lyra Filho'
+- assertVisible: 6º andar · Escolha o bloco
+- tapOn: Escolher bloco
+- tapOn: Selecionar Bloco B
+- assertVisible: Sala 6019 B
+- assertVisible: 6º andar · Bloco B
+- openLink: aouerj-dev://mapa/AVA
+- assertVisible: Aula virtual · não há local físico.

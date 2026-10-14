@@ -8,6 +8,11 @@ import { LoginPage } from '../Login';
 import { AppError } from '@root/shared/errors/AppError';
 
 const mockSignIn = jest.fn();
+const mockNavigate = jest.fn();
+
+jest.mock('@services/rootNavigation', () => ({
+  navigate: (...args: unknown[]) => mockNavigate(...args),
+}));
 
 jest.mock('@tanstack/react-query', () => ({
   useMutation: jest.fn(() => ({ isPending: false, mutate: jest.fn() })),
@@ -64,6 +69,16 @@ describe('LoginPage feedback', () => {
     expect(
       screen.queryByText('Matrícula ou senha inválida. Confira seus dados.'),
     ).not.toBeOnTheScreen();
+  });
+
+  it('opens the public map without credentials or signing in', async () => {
+    await userEvent
+      .setup()
+      .press(screen.getByRole('button', { name: 'Explorar o mapa' }));
+    expect(mockNavigate).toHaveBeenCalledWith('Mapa');
+    expect(signIns()).toBe(0);
+    expect(mockSignIn).not.toHaveBeenCalled();
+    expect(formError()).not.toBeOnTheScreen();
   });
 
   it('displays the server rejection reason', async () => {

@@ -7,3 +7,7 @@ pnpm-lock.yaml
 CHANGELOG.md
 # Standalone design prototypes, outside the app.
 docs/design-proposals/
+# Measured source data; preserve compact JSON and source precision.
+scripts/campus-map/data/
+# Compact, reproducible offline map data (scripts/generate-campus-map.cjs).
+src/adapters/outbound/campus-map/atlas.json

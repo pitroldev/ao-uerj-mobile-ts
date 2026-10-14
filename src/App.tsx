@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
-import { LogBox } from 'react-native';
+import { LogBox, View } from 'react-native';
 import { enableScreens } from 'react-native-screens';
 import {
   NavigationContainer,
@@ -80,7 +80,9 @@ export const App = () => {
           <SafeAreaProvider initialMetrics={initialWindowMetrics}>
             <ThemeProvider theme={theme}>
               <KeyboardProvider>
-                {isReady && <Header navigationState={navigationState} />}
+                <View collapsable={false}>
+                  {isReady && <Header navigationState={navigationState} />}
+                </View>
                 <NavigationContainer
                   theme={navigationTheme(theme)}
                   linking={devLinking}

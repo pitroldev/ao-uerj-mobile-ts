@@ -70,6 +70,8 @@ buck-out/
 .metro-health-check*
 # testing
 /coverage
+/.impeccable/
+/artifacts/
 
 # Yarn
 .yarn/*

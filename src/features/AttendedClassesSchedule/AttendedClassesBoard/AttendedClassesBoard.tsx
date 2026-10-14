@@ -1,7 +1,10 @@
 import React from 'react';
+import { View } from 'react-native';
+import { useTheme } from 'styled-components/native';
 import { useNavigation } from '@react-navigation/native';
 
-import { BottomSheet, List, ListRow, StatusLabel } from '@components/ui';
+import { BottomSheet, Button, ListRow, StatusLabel } from '@components/ui';
+import { parseLocation } from '@root/modules/campus-map/domain/parseLocation';
 import { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
 
 import {
@@ -33,6 +36,7 @@ export const AttendedClassesBoard = React.memo(function AttendedClassesBoard({
   focusId,
 }: Props) {
   const navigation = useNavigation();
+  const theme = useTheme();
   const safeData = data ?? [];
 
   const subjects = safeData.reduce((acc, c) => {
@@ -66,22 +70,35 @@ export const AttendedClassesBoard = React.memo(function AttendedClassesBoard({
             : []),
         ];
     return (
-      <ListRow
-        key={id}
-        title={name}
-        code={id}
-        subtitle={`Turma ${item.class}`}
-        meta={meta}
-        facts={
-          isItemCanceled ? (
-            <StatusLabel tone="neutral" icon="block" label="Cancelada" />
-          ) : undefined
-        }
-        highlighted={focusId === id}
-        chevron
-        onPress={() => handleOnPress(item)}
-        accessibilityHint="Abre a Pesquisa de Disciplinas"
-      />
+      <React.Fragment key={id}>
+        <ListRow
+          title={name}
+          code={id}
+          subtitle={`Turma ${item.class}`}
+          meta={meta}
+          facts={
+            isItemCanceled ? (
+              <StatusLabel tone="neutral" icon="block" label="Cancelada" />
+            ) : undefined
+          }
+          highlighted={focusId === id}
+          chevron
+          onPress={() => handleOnPress(item)}
+          accessibilityHint="Abre a Pesquisa de Disciplinas"
+        />
+        {!isItemCanceled && parseLocation(item.uerjLocation).kind === 'room' ? (
+          <Button
+            label="Ver no mapa"
+            accessibilityLabel={`Ver sala de ${name} no mapa`}
+            icon="location_on"
+            variant="text"
+            onPress={() => {
+              onClose();
+              navigation.navigate('Mapa', { location: item.uerjLocation });
+            }}
+          />
+        ) : null}
+      </React.Fragment>
     );
   }
 
@@ -92,7 +109,9 @@ export const AttendedClassesBoard = React.memo(function AttendedClassesBoard({
       title="Disciplinas em Curso"
       meta={plural(active.length, 'ativa', 'ativas')}
     >
-      <List>{[...active, ...canceled].map(renderItem)}</List>
+      <View style={{ marginHorizontal: -theme.layout.gutter }}>
+        {[...active, ...canceled].map(renderItem)}
+      </View>
     </BottomSheet>
   );
 });

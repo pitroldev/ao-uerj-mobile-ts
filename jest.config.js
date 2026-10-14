@@ -22,7 +22,7 @@ module.exports = {
       ],
       // ESM-only packages that still need Babel.
       transformIgnorePatterns: [
-        'node_modules/(?!((jest-)?react-native|@react-native(-community)?|react-native-hyperlink|react-native-keyboard-controller|react-native-toast-message|@react-native-async-storage|@preeternal)/)',
+        'node_modules/(?!((jest-)?react-native|@react-native(-community)?|@react-navigation|react-native-hyperlink|react-native-keyboard-controller|react-native-toast-message|@react-native-async-storage|@preeternal)/)',
       ],
       clearMocks: true,
     },

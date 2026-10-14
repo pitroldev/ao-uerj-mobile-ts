@@ -20,6 +20,7 @@ export const DEV_LINK_PREFIX = 'aouerj-dev://';
 
 const DEV_ROUTE_PATHS = {
   Início: 'inicio',
+  Mapa: 'mapa/:location?',
   'Meu Progresso': 'progresso',
   'Gerador de Grade': 'gerador',
   'Mural de Mensagens': 'mural',

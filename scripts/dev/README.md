@@ -16,7 +16,7 @@ No login de um build de debug:
 | `demo-erro`      | `demo` | layout inesperado: leituras acadêmicas falham                    |
 | `demo-lento`     | `demo` | respostas de 30 s (estados de carregamento)                      |
 
-- Os dados espelham `docs/design-proposals/shared/data.js`: a aluna fictícia
+- Os dados ficam em `src/adapters/outbound/demo/data.ts`: a aluna fictícia
   Marina Albuquerque Teixeira, período 2026.2, notas, grade, RID, histórico,
   currículo, universais, detalhes de disciplinas, mural e gerador de grade.
 - Casos de borda incluídos: sala "Não Informado" (Ética e Computação), sala
@@ -27,8 +27,8 @@ No login de um build de debug:
   do app; "Reportar problema" não envia nada.
 - A matrícula exibida é a digitada (`demo`, `demo-rid`...), como no adaptador
   real: o cofre de credenciais exige que perfil e login tenham a mesma
-  matrícula. A do protótipo (202310045612) não é usada.
-- Créditos eletivos vêm configurados (16/8/4), como no protótipo; "Resetar"
+  matrícula.
+- Créditos eletivos vêm configurados (16/8/4); "Resetar"
   em Meu Progresso mostra o estado "Configure os créditos".
 - Qualquer outra matrícula/senha segue para o Aluno Online real.
 - Implementação: `src/adapters/outbound/demo/` (adaptadores e dados) e
@@ -154,6 +154,22 @@ maestro test .maestro/05-mural.yaml --device emulator-5554   # um fluxo só
   `maestro test .maestro/recriacao/1-abrir-conversa.yaml`, depois
   `adb shell settings put system font_scale 1.3` e
   `maestro test .maestro/recriacao/2-conferir.yaml` (volte a fonte para `1.0`).
+
+No iOS, execute os fluxos em `.maestro/ios/` num simulador dedicado. O fluxo de
+login limpa também o Keychain para que uma nova tentativa comece desconectada.
+Antes dos testes, desative o preenchimento de senhas nesse simulador, como faz
+o CI:
+
+```sh
+xcrun simctl spawn "$SIM_UDID" defaults write com.apple.WebUI AutoFillPasswords -int 0
+maestro --device "$SIM_UDID" test .maestro/ios/01-login-inicio.yaml
+```
+
+É a [mesma preferência usada pelo Appium](https://github.com/appium/appium-ios-simulator/blob/master/lib/extensions/settings.ts).
+O alerta “Save Password?” pode aparecer depois do login sem ser exposto pelo
+driver do Maestro ([problema upstream](https://github.com/mobile-dev-inc/Maestro/issues/3277)).
+A configuração vale só para o simulador; o app continua oferecendo autofill.
+Os fluxos continuam exigindo Início, menu e dados da conta de demonstração.
 
 ## Limitações
 

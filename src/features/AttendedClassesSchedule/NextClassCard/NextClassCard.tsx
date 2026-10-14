@@ -1,8 +1,11 @@
 import React from 'react';
+import { useNavigation } from '@react-navigation/native';
+import { parseLocation } from '@root/modules/campus-map/domain/parseLocation';
 import { useTheme } from 'styled-components/native';
 
 import {
   Card,
+  Button,
   Icon,
   Section,
   SHIFT_LABEL,
@@ -67,6 +70,7 @@ export const NextClassCard = React.memo(function NextClassCard({
   onPress,
 }: Props) {
   const theme = useTheme();
+  const navigation = useNavigation();
   const next = findNextClass(data ?? [], now);
   if (!next) return null;
 
@@ -114,6 +118,16 @@ export const NextClassCard = React.memo(function NextClassCard({
           </Chevron>
         </Row>
       </Card>
+      {parseLocation(item.class.uerjLocation).kind === 'room' ? (
+        <Button
+          label="Ver no mapa"
+          icon="location_on"
+          variant="text"
+          onPress={() =>
+            navigation.navigate('Mapa', { location: item.class.uerjLocation })
+          }
+        />
+      ) : null}
     </Section>
   );
 });

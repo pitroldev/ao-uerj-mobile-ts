@@ -22,11 +22,23 @@ import { headerStore, useHeaderBack } from '../Header/headerStore';
 import { DrawerNavigator } from '../CustomDrawerNavigator';
 
 const mockSignOut = jest.fn(() => Promise.resolve());
+let mockAccount: {
+  scope: string;
+  name: string;
+  matricula: string;
+  period: string;
+} | null;
 let mockBottomInset = 0;
 const mockNativeAppearance = { apply: jest.fn() };
 const mockSavedTheme = new Map<string, unknown>();
 let mockAppearance: ThemePreferences;
 beforeEach(() => {
+  mockAccount = {
+    scope: 's',
+    name: 'Marina Albuquerque Teixeira',
+    matricula: '202310045612',
+    period: '2026.2',
+  };
   mockSavedTheme.clear();
   mockAppearance = new ThemePreferences({
     store: {
@@ -56,14 +68,9 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useIdentity: () => ({
-    status: 'signedIn',
+    status: mockAccount ? 'signedIn' : 'signedOut',
     error: null,
-    account: {
-      scope: 's',
-      name: 'Marina Albuquerque Teixeira',
-      matricula: '202310045612',
-      period: '2026.2',
-    },
+    account: mockAccount,
   }),
   useAppServices: () => ({
     identity: { signOut: mockSignOut },
@@ -194,6 +201,18 @@ it('shows the period on Início, toggles the menu and opens Sobre from the logo'
   expect(mockNavigation.toggleDrawer).toHaveBeenCalled();
   await user.press(screen.getByRole('button', { name: 'Sobre o AO UERJ' }));
   expect(mockNavigation.navigate).toHaveBeenCalledWith('Sobre');
+});
+
+it('shows only a return to Login in the public map header', async () => {
+  mockAccount = null;
+  await renderWithProviders(<Header navigationState={drawerState('Mapa')} />);
+  expect(screen.getByRole('header', { name: 'Mapa' })).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Abrir menu' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Sobre o AO UERJ' })).toBeNull();
+  await userEvent
+    .setup()
+    .press(screen.getByRole('button', { name: 'Voltar para o login' }));
+  expect(mockNavigation.navigate).toHaveBeenCalledWith('Login');
 });
 
 it('follows the active route after the first render', async () => {

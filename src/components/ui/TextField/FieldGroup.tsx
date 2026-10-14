@@ -89,10 +89,6 @@ const Row = styled.View`
   padding: 0px 4px 0px 14px;
 `;
 
-const RowLabel = styled(Text)`
-  width: 78px;
-`;
-
 const HIDDEN = { opacity: 0 } as const;
 
 /**
@@ -150,7 +146,7 @@ export function FieldGroup({
 
 export type FieldGroupRowProps = Omit<TextInputProps, 'style'> & {
   icon: IconName;
-  /** Rótulo da coluna esquerda ("Matrícula", "Senha"). */
+  /** Nome do campo, usado pelo leitor de tela e pelas ações. */
   label: string;
   clearable?: boolean;
   clearLabel?: string;
@@ -159,7 +155,7 @@ export type FieldGroupRowProps = Omit<TextInputProps, 'style'> & {
   secureToggle?: boolean;
 };
 
-/** Linha do `FieldGroup`: ícone, rótulo à esquerda, campo e ação. */
+/** Linha do `FieldGroup`: ícone, campo e ação. */
 export const FieldGroupRow = forwardRef<TextInputInstance, FieldGroupRowProps>(
   function (
     {
@@ -203,14 +199,6 @@ export const FieldGroupRow = forwardRef<TextInputInstance, FieldGroupRowProps>(
           size={theme.sizes.icon.lg}
           color={tint ?? theme.colors.inkMuted}
         />
-        <RowLabel
-          weight="medium"
-          color={tint}
-          importantForAccessibility="no"
-          accessibilityElementsHidden
-        >
-          {label}
-        </RowLabel>
         <RNTextInput
           ref={ref}
           value={value}

@@ -170,6 +170,10 @@ jobs:
           print(next(d["udid"] for r in runtimes for d in devices[r] if d["name"].startswith("iPhone")))')
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
+          # O diálogo tardio de salvar senha não aparece na árvore do Maestro.
+          # Mesma preferência de setAutoFillPasswords(false) do Appium; só no simulador de CI.
+          xcrun simctl spawn "$udid" defaults write com.apple.WebUI AutoFillPasswords -int 0
+          test "$(xcrun simctl spawn "$udid" defaults read com.apple.WebUI AutoFillPasswords)" = 0
           xcrun simctl install "$udid" ios/build/Build/Products/Debug-iphonesimulator/aouerjmobile.app
           echo "SIM_UDID=$udid" >> "$GITHUB_ENV"
 

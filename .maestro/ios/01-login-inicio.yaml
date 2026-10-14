@@ -7,6 +7,8 @@ tags:
 ---
 - launchApp:
     clearState: true
+    # clearState sozinho preserva a sessão no Keychain e quebra a segunda tentativa.
+    clearKeychain: true
 - extendedWaitUntil:
     visible: Entre com sua conta
     # a primeira abertura monta o bundle no Metro
@@ -16,20 +18,11 @@ tags:
 - tapOn: Senha
 - inputText: demo
 - tapOn: Entrar
-# O iOS oferece guardar a senha nas Senhas do sistema (também em aparelhos),
-# alguns segundos depois de o Início aparecer.
+# O CI desativa AutoFillPasswords no simulador: o alerta de salvar senha pode
+# surgir tarde e ficar invisível ao driver. Setup local: scripts/dev/README.md.
 - extendedWaitUntil:
-    visible: 'Save Password\?|Salvar senha\?|Olá, Marina|Funcionalidades exclusivas'
+    visible: 'Olá, Marina|Funcionalidades exclusivas'
     timeout: 60000
-- extendedWaitUntil:
-    visible: 'Save Password\?|Salvar senha\?'
-    timeout: 15000
-    optional: true
-- runFlow:
-    when:
-      visible: 'Save Password\?|Salvar senha\?'
-    commands:
-      - tapOn: 'Not Now|Agora Não|Agora não'
 - runFlow: ../subflows/fechar-novidades.yaml
 - extendedWaitUntil:
     visible: Olá, Marina

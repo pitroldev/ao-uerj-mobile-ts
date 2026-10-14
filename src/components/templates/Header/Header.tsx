@@ -1,5 +1,5 @@
 import React from 'react';
-import { StatusBar } from 'react-native';
+import { Keyboard, StatusBar } from 'react-native';
 import type { NavigationState } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
@@ -48,6 +48,7 @@ export const Header = ({ navigationState }: Props) => {
 
   const isSignedIn =
     Boolean(account) && currentRoute !== 'Login' && Boolean(currentRoute);
+  const isGuestMap = !account && currentRoute === 'Mapa';
 
   const isDrawerOpen = Boolean(
     navigationState?.history?.some(
@@ -71,11 +72,11 @@ export const Header = ({ navigationState }: Props) => {
   // Carregando antes de entrar. Por isso os ícones ficam sempre claros.
   const statusBar = <StatusBar barStyle="light-content" animated />;
 
-  if (!isSignedIn) {
+  if (!isSignedIn && !isGuestMap) {
     return statusBar;
   }
 
-  const showBack = Boolean(onBack) && !isDrawerOpen;
+  const showBack = isGuestMap || (Boolean(onBack) && !isDrawerOpen);
 
   return (
     <Container $top={insets.top}>
@@ -84,8 +85,15 @@ export const Header = ({ navigationState }: Props) => {
         <IconButton
           icon="arrow_back"
           onBrand
-          accessibilityLabel={backLabel}
-          onPress={() => onBack?.()}
+          accessibilityLabel={isGuestMap ? 'Voltar para o login' : backLabel}
+          onPress={() => {
+            if (isGuestMap) {
+              Keyboard.dismiss();
+              RootNavigation.navigate('Login');
+            } else {
+              onBack?.();
+            }
+          }}
         />
       ) : (
         <IconButton
@@ -98,6 +106,7 @@ export const Header = ({ navigationState }: Props) => {
       )}
       {/* tocar no título também abre/fecha o menu, como antes */}
       <TitleButton
+        disabled={isGuestMap}
         onPress={RootNavigation.toggleDrawer}
         accessible={false}
         importantForAccessibility="no"
@@ -112,9 +121,12 @@ export const Header = ({ navigationState }: Props) => {
         </Title>
       </TitleButton>
       <LogoButton
+        disabled={isGuestMap}
+        accessible={!isGuestMap}
+        importantForAccessibility={isGuestMap ? 'no-hide-descendants' : 'auto'}
         onPress={() => RootNavigation.navigate('Sobre')}
         accessibilityRole="button"
-        accessibilityLabel="Sobre o AO UERJ"
+        accessibilityLabel={isGuestMap ? undefined : 'Sobre o AO UERJ'}
         style={({ pressed }) =>
           pressed && { backgroundColor: theme.colors.onBrandPressed }
         }

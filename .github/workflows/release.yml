@@ -3,6 +3,12 @@ name: Release
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag existente para publicar ou retomar (ex. v2.1.0)
+        required: true
+        type: string
 
 permissions: {}
 
@@ -10,6 +16,7 @@ jobs:
   # Mantém o PR de release (versão no package.json + CHANGELOG.md). O merge desse PR
   # cria a tag vX.Y.Z e o GitHub Release.
   release-please:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
@@ -26,11 +33,45 @@ jobs:
       - id: release
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
 
-  # A tag criada com o GITHUB_TOKEN não dispara outros workflows, então a publicação
-  # fica neste mesmo workflow. Os secrets ficam no environment `play`, com aprovação.
-  play:
+  # O retry usa uma tag existente, nunca cria outra versão. Resolve uma vez para
+  # que testes e publicação consumam o mesmo commit mesmo se uma tag for movida.
+  prepare:
     needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+    if: >-
+      always() && !cancelled() && github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' || needs.release-please.outputs.release_created == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      sha: ${{ steps.release.outputs.sha }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: release
+        name: Conferir tag, versão e origem na main
+        run: node scripts/ci/release-ref.cjs
+        env:
+          RELEASE_TAG: ${{ inputs.tag || needs.release-please.outputs.tag_name }}
+
+  quality:
+    needs: prepare
+    if: always() && !cancelled() && needs.prepare.result == 'success'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/quality.yml
+    with:
+      ref: ${{ needs.prepare.outputs.sha }}
+
+  # A tag criada com o GITHUB_TOKEN não dispara outros workflows, então a publicação
+  # fica neste mesmo workflow. Os secrets ficam no environment `play`.
+  play:
+    needs: [prepare, quality]
+    if: always() && !cancelled() && needs.prepare.result == 'success' && needs.quality.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     environment: play
@@ -43,8 +84,47 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
+          ref: ${{ needs.prepare.outputs.sha }}
           persist-credentials: false
+      - name: Conferir configuração de publicação
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        run: |
+          missing=0
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD PLAY_SERVICE_ACCOUNT_JSON; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret $name ausente no environment play."
+              missing=1
+            fi
+          done
+          if [ -n "$SENTRY_AUTH_TOKEN" ]; then
+            for name in SENTRY_ORG SENTRY_PROJECT; do
+              if [ -z "${!name}" ]; then
+                echo "::error::Variável $name ausente: necessária com SENTRY_AUTH_TOKEN."
+                missing=1
+              fi
+            done
+          fi
+          [ "$missing" = 0 ] || exit 1
+          node -e '
+            try {
+              const account = JSON.parse(process.env.PLAY_SERVICE_ACCOUNT_JSON);
+              if (account.type !== "service_account" || !account.client_email || !account.private_key) throw new Error();
+            } catch {
+              console.error("::error::PLAY_SERVICE_ACCOUNT_JSON deve conter um JSON de conta de serviço válido.");
+              process.exit(1);
+            }'
+          umask 077
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/upload.keystore"
+          test -s "$RUNNER_TEMP/upload.keystore"
+          echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/upload.keystore" >> "$GITHUB_ENV"
       # v6.1.0 ou mais nova: a v6.0.x não tem suporte nativo ao pnpm 12 (pnpm/action-setup#289).
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       # Sem caches neste job: ele tem a chave de upload, e um cache envenenado entraria no AAB.
@@ -56,22 +136,24 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Conferir assinatura antes do build
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if ! keytool -certreq -keystore "$ANDROID_KEYSTORE_FILE" \
+            -storepass:env ANDROID_KEYSTORE_PASSWORD -alias "$ANDROID_KEY_ALIAS" \
+            -keypass:env ANDROID_KEY_PASSWORD > /dev/null 2>&1; then
+            echo '::error::A keystore, o alias ou as senhas de upload são inválidos.'
+            exit 1
+          fi
       - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           cache-disabled: true
       - run: sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0' 'ndk;27.1.12297006' 'cmake;3.22.1'
       - run: pnpm install --frozen-lockfile
-      - name: Chave de upload
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: |
-          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
-            echo '::error::Secret ANDROID_KEYSTORE_BASE64 ausente no environment play.'
-            exit 1
-          fi
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/upload.keystore"
-          echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/upload.keystore" >> "$GITHUB_ENV"
       - name: AAB assinado
         run: pnpm bundle --no-daemon
         env:
@@ -85,7 +167,7 @@ jobs:
           SENTRY_URL: https://de.sentry.io/
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: android-release-${{ needs.release-please.outputs.tag_name }}
+          name: android-release-${{ needs.prepare.outputs.tag }}
           path: |
             android/app/build/outputs/bundle/release/app-release.aab
             android/app/build/outputs/mapping/release/mapping.txt
@@ -99,6 +181,9 @@ jobs:
           packageName: com.aouerjmobile
           releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
           mappingFile: android/app/build/outputs/mapping/release/mapping.txt
-          releaseName: ${{ needs.release-please.outputs.tag_name }}
+          releaseName: ${{ needs.prepare.outputs.tag }}
           tracks: internal
           status: completed
+      - name: Remover chave temporária
+        if: always()
+        run: rm -f -- "$RUNNER_TEMP/upload.keystore"

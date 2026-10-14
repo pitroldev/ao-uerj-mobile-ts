@@ -22,11 +22,13 @@ import { AboutPage } from '@root/pages/About';
 import { ScheduleCreationPage } from '@root/pages/ScheduleSimulator';
 import { MyProgressPage } from '@root/pages/MyProgress';
 import { LoadingPage } from './pages/Loading';
+import { CampusMapPage } from './pages/CampusMap/CampusMap';
 
 export type RootDrawerParamList = {
   Login: undefined;
 
   Início: undefined;
+  Mapa: { location?: string } | undefined;
   'Mural de Mensagens': undefined;
   'Disciplinas Realizadas': undefined;
   'Disciplinas do Currículo': undefined;
@@ -94,6 +96,11 @@ export const MainRoutes = () => {
       {!showLoading && isSignedIn && (
         <Drawer.Group navigationKey={account!.scope}>
           <Drawer.Screen name="Início" component={HomePage} />
+          <Drawer.Screen
+            name="Mapa"
+            component={CampusMapPage}
+            options={{ swipeEnabled: false }}
+          />
           <Drawer.Screen name="Meu Progresso" component={MyProgressPage} />
           <Drawer.Screen
             name="Gerador de Grade"
@@ -126,6 +133,11 @@ export const MainRoutes = () => {
       {!showLoading && !isSignedIn && (
         <Drawer.Group navigationKey="signed-out">
           <Drawer.Screen name="Login" component={LoginPage} />
+          <Drawer.Screen
+            name="Mapa"
+            component={CampusMapPage}
+            options={{ swipeEnabled: false }}
+          />
         </Drawer.Group>
       )}
     </Drawer.Navigator>

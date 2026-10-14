@@ -1,8 +1,7 @@
 /*
  * Dados FICTÍCIOS do modo demonstração (somente builds de desenvolvimento).
  *
- * Espelham docs/design-proposals/shared/data.js (aluna Marina Albuquerque
- * Teixeira, período 2026.2) nos formatos que os parsers do Aluno Online
+ * Aluna Marina Albuquerque Teixeira, período 2026.2, nos formatos que os parsers do Aluno Online
  * entregam ao domínio. Nomes, matrícula, notas, salas, docentes e mensagens
  * foram inventados; nada aqui vem do portal real.
  */

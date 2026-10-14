@@ -14,6 +14,7 @@ export const Top = styled.View<{ $inset: number }>`
   padding-top: ${({ $inset }) => $inset}px;
   align-items: center;
   justify-content: center;
+  gap: ${({ theme }) => theme.spacing.md}px;
 `;
 
 /** ".login-panel": o painel de conteúdo, com o canto superior esquerdo de 48. */
