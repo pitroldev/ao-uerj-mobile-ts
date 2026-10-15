@@ -27,7 +27,7 @@ const tone = (ink: string, bg: string, line: string): StatusToneColors => ({
 });
 
 /** Cores do tema claro (":root" do protótipo V3). */
-export const colors: ThemeColors = {
+const colors: ThemeColors = {
   brand: '#003468',
   brandHighlight: '#004891',
   onBrand: '#FFFFFF',
