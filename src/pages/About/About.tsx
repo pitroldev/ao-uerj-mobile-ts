@@ -3,45 +3,39 @@ import { Linking, useWindowDimensions } from 'react-native';
 import { useTheme } from 'styled-components/native';
 
 import { ErrorReportModal } from '@features/ErrorReport/ErrorReportModal';
-import {
-  AoLogo,
-  Avatar,
-  Button,
-  IconTile,
-  List,
-  ListRow,
-  Section,
-  Text,
-  snackbar,
-  type IconName,
-} from '@components/ui';
+import { AoLogo, Icon, Section, Text, snackbar } from '@components/ui';
 import { ScreenPanel } from '@templates/ScreenPanel';
 
 import {
   AppName,
+  Bio,
   Callout,
-  DevLink,
-  DevLinks,
-  Developer,
+  Creator,
   Hero,
+  SocialLabel,
+  SocialLink,
+  SocialLinks,
+  SupportList,
+  SupportRow,
   Version,
+  WebsiteCopy,
+  WebsiteLink,
 } from './About.styles';
+import { BrandIcon } from './BrandIcon';
 
 import { version } from '@/package.json';
 
 const LINKEDIN_PROFILE_URL = 'https://www.linkedin.com/in/petrocardoso/';
+const GITHUB_PROFILE_URL = 'https://github.com/pitroldev';
 const GITHUB_REPO_URL = 'https://github.com/pitroldev/ao-uerj-mobile-ts';
+const WEBSITE_URL = 'https://pitrol.dev/';
 const CREATOR_EMAIL = 'mailto:contato@pitrol.dev?subject=AO UERJ';
-const DEVELOPER = 'Petro Cardoso';
 
-const DEV_LINKS: { label: string; icon: IconName; url: string }[] = [
-  { label: 'GitHub', icon: 'code', url: GITHUB_REPO_URL },
-  { label: 'LinkedIn', icon: 'work', url: LINKEDIN_PROFILE_URL },
-  { label: 'Email', icon: 'mail', url: CREATOR_EMAIL },
-];
-
-/** Largura base de cada link do desenvolvedor (3 lado a lado no tamanho padrão). */
-const DEV_LINK_BASIS = 96;
+const DEV_LINKS = [
+  { label: 'GitHub', icon: 'github', url: GITHUB_PROFILE_URL },
+  { label: 'LinkedIn', icon: 'linkedin', url: LINKEDIN_PROFILE_URL },
+  { label: 'E-mail', icon: 'mail', url: CREATOR_EMAIL },
+] as const;
 
 export const AboutPage = () => {
   const theme = useTheme();
@@ -64,88 +58,119 @@ export const AboutPage = () => {
 
       <Hero>
         <AoLogo
-          width={108}
+          width={84}
           color={theme.colors.logo}
           accessibilityLabel={null}
         />
-        <AppName variant="titleL" align="center" accessibilityRole="header">
+        <AppName variant="titleXL" align="center" accessibilityRole="header">
           AO UERJ
         </AppName>
-        <Version tone="muted" align="center">
+        <Version variant="meta" tone="muted" align="center">
           Versão {version}
         </Version>
       </Hero>
 
-      <Callout
-        tone="neutral"
-        icon="info"
-        iconColor={theme.colors.accent}
-        text="Aplicativo não oficial e de código aberto. A UERJ não mantém este app; ele apenas lê o Aluno Online com a sua conta."
-      />
+      <Callout tone="neutral" icon="info" iconColor={theme.colors.accent}>
+        <Text variant="meta" tone="muted">
+          App de código aberto, sem vínculo com a UERJ. Usa sua conta do Aluno
+          Online.
+        </Text>
+      </Callout>
 
-      <Section title="Suporte">
-        <List>
-          <ListRow
-            leading={<IconTile icon="bug_report" />}
+      <Creator>
+        <Text variant="titleM" accessibilityRole="header">
+          Fala! Sou o Petro.
+        </Text>
+        <Bio variant="body" tone="muted">
+          Criei o AO UERJ pra facilitar seu dia a dia na faculdade.
+        </Bio>
+        <WebsiteLink
+          accessibilityRole="link"
+          accessibilityLabel="pitrol.dev"
+          accessibilityHint="Abre o site de Petro no navegador"
+          onPress={() => openUrl(WEBSITE_URL)}
+          style={({ pressed }) => ({
+            backgroundColor: pressed
+              ? theme.colors.surfacePressed
+              : theme.colors.surfaceMuted,
+          })}
+        >
+          <WebsiteCopy>
+            <Text variant="appBar" tone="accent">
+              pitrol.dev
+            </Text>
+            <Text variant="meta" tone="muted">
+              O que ando fazendo e escrevendo
+            </Text>
+          </WebsiteCopy>
+          <Icon name="open_in_new" size={20} color={theme.colors.inkMuted} />
+        </WebsiteLink>
+        <SocialLinks>
+          {DEV_LINKS.map(link => (
+            <SocialLink
+              key={link.label}
+              $expanded={fontScale > 1}
+              accessibilityRole="link"
+              accessibilityLabel={link.label}
+              accessibilityHint="Abre fora do app"
+              onPress={() => openUrl(link.url)}
+              style={({ pressed }) => ({
+                backgroundColor: pressed
+                  ? theme.colors.surfacePressed
+                  : 'transparent',
+              })}
+            >
+              {link.icon === 'mail' ? (
+                <Icon name="mail" size={22} color={theme.colors.accent} />
+              ) : (
+                <BrandIcon name={link.icon} />
+              )}
+              <SocialLabel variant="meta" weight="medium">
+                {link.label}
+              </SocialLabel>
+            </SocialLink>
+          ))}
+        </SocialLinks>
+      </Creator>
+
+      <Section title="Ajude a melhorar">
+        <SupportList bleed={false}>
+          <SupportRow
+            inset={0}
+            leading={
+              <Icon name="bug_report" size={24} color={theme.colors.accent} />
+            }
             title="Reportar problema"
-            meta="Conte o que aconteceu e em qual tela"
+            titleWeight="medium"
+            meta="Conte o que aconteceu"
             chevron
             onPress={() => setIsErrorModalOpen(true)}
           />
-          <ListRow
-            leading={<IconTile icon="lightbulb" />}
+          <SupportRow
+            inset={0}
+            leading={
+              <Icon name="lightbulb" size={24} color={theme.colors.accent} />
+            }
             title="Sugerir melhoria"
-            meta="Abre as sugestões no GitHub"
+            titleWeight="medium"
+            meta="Deixe sua ideia no GitHub"
             external
             accessibilityRole="link"
             accessibilityHint="Abre no navegador"
             onPress={() => openUrl(`${GITHUB_REPO_URL}/issues`)}
           />
-        </List>
-      </Section>
-
-      <Section
-        title="Contribua"
-        description="Este projeto é open source e aceita contribuições!"
-      >
-        <List>
-          <ListRow
-            leading={<IconTile icon="code" />}
-            title="Ver repositório"
-            meta="github.com/pitroldev/ao-uerj-mobile-ts"
+          <SupportRow
+            inset={0}
+            leading={<BrandIcon name="github" />}
+            title="Ver código no GitHub"
+            titleWeight="medium"
+            meta="Dá pra contribuir por lá também"
             external
             accessibilityRole="link"
             accessibilityHint="Abre no navegador"
             onPress={() => openUrl(GITHUB_REPO_URL)}
           />
-        </List>
-      </Section>
-
-      <Section title="Desenvolvedor">
-        <Developer>
-          <Avatar name={DEVELOPER} />
-          <Text variant="body" weight="semibold">
-            {DEVELOPER}
-          </Text>
-        </Developer>
-        <DevLinks>
-          {DEV_LINKS.map(link => (
-            <DevLink
-              key={link.label}
-              $basis={Math.round(DEV_LINK_BASIS * Math.max(1, fontScale))}
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                icon={link.icon}
-                label={link.label}
-                accessibilityRole="link"
-                accessibilityHint="Abre fora do app"
-                onPress={() => openUrl(link.url)}
-              />
-            </DevLink>
-          ))}
-        </DevLinks>
+        </SupportList>
       </Section>
     </ScreenPanel>
   );
