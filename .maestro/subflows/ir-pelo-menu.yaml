@@ -1,11 +1,25 @@
 # Abre o menu, toca na tela TELA e confere um texto MARCA que só ela mostra.
 # Com o menu fechado, os itens dele continuam na árvore (atrás do painel):
 # por isso a conferência usa a MARCA, e não o título.
+# A marca pode ficar abaixo da dobra em telas menores ou com fonte ampliada.
 appId: com.aouerjmobile
 ---
 - runFlow: abrir-menu.yaml
-- tapOn: ${TELA}
-- extendedWaitUntil:
-    visible: ${MARCA}
-    timeout: 15000
+- scrollUntilVisible:
+    element: ${TELA}(, indisponível)?
+    direction: DOWN
+- runFlow:
+    when:
+      notVisible: ${TELA}, indisponível
+    commands:
+      - tapOn: ${TELA}
+      - scrollUntilVisible:
+          element: ${MARCA}
+          direction: DOWN
+          timeout: 60000
+- runFlow:
+    when:
+      visible: ${TELA}, indisponível
+    commands:
+      - tapOn: Fechar menu
 - assertVisible: Abrir menu

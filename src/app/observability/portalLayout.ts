@@ -1,10 +1,12 @@
 import type { AcademicRecordsPort } from '@root/modules/academics/application/ports';
+import type { DocumentsPort } from '@root/modules/documents/application/ports';
 import type { AuthenticationPort } from '@root/modules/identity/application/ports';
 import { AppError } from '@root/shared/errors/AppError';
 
 type PortalPorts = {
   authentication: AuthenticationPort;
   records: AcademicRecordsPort;
+  documents: DocumentsPort;
 };
 
 export type PortalLayoutReport = (error: AppError, operation: string) => void;
@@ -62,5 +64,16 @@ export function reportPortalLayoutChanges<T extends PortalPorts>(
       source.getUniversalSubjects.bind(source),
     ),
   };
-  return { ...ports, authentication, records };
+  const documents: DocumentsPort = {
+    list: watch('documents-list', ports.documents.list.bind(ports.documents)),
+    issue: watch(
+      'documents-issue',
+      ports.documents.issue.bind(ports.documents),
+    ),
+    remove: watch(
+      'documents-remove',
+      ports.documents.remove.bind(ports.documents),
+    ),
+  };
+  return { ...ports, authentication, records, documents };
 }

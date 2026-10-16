@@ -1,0 +1,11 @@
+# A autenticação real ocorre antes do Maestro, em scripts/dev/login.cjs.
+# O fluxo não recebe nem registra matrícula ou senha.
+appId: com.aouerjmobile
+name: Início da conta autenticada
+tags:
+  - inicio
+---
+- runFlow: subflows/iniciar-sessao-autenticada.yaml
+- assertVisible: Abrir menu
+- assertVisible: Olá, .+
+- assertNotVisible: Entre com sua conta

@@ -1,9 +1,6 @@
 appId: com.aouerjmobile
 ---
-- runFlow:
-    file: subflows/entrar-demo.yaml
-    env:
-      CENARIO: padrao
+- runFlow: subflows/iniciar-sessao-autenticada.yaml
 - runFlow: subflows/fechar-novidades.yaml
 - openLink: aouerj-dev://mapa/6019%20B
 - assertVisible: Sala 6019 B

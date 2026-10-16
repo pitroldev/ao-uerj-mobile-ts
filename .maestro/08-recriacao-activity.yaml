@@ -12,24 +12,21 @@ name: Recriação da activity
 tags:
   - recriacao
 ---
-- stopApp
+- runFlow: subflows/iniciar-sessao-autenticada.yaml
 - runFlow:
-    file: subflows/entrar-demo.yaml
+    file: subflows/ir-pelo-menu.yaml
     env:
-      CENARIO: padrao
-- runFlow: subflows/abrir-conversa.yaml
+      TELA: Sobre
+      MARCA: Reportar problema
 - pressKey: Home
 - killApp
 - launchApp:
     stopApp: false
 # sem restaurar fragmentos, o app volta ao Início em vez de fechar com erro
-- runFlow:
-    file: subflows/esperar-inicio.yaml
-    env:
-      MATRICULA: demo
+- runFlow: subflows/esperar-inicio.yaml
 - assertVisible: Abrir menu
 - runFlow:
     file: subflows/ir-pelo-menu.yaml
     env:
-      TELA: Meu Progresso
-      MARCA: CR aproximado
+      TELA: Sobre
+      MARCA: Reportar problema

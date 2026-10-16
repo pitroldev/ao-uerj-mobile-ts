@@ -4,6 +4,14 @@ import type {
 } from '@root/modules/academics/application/ports';
 import type { AuthenticationPort } from '@root/modules/identity/application/ports';
 import type {
+  DocumentsPort,
+  DocumentRequestOptions,
+} from '@root/modules/documents/application/ports';
+import type {
+  StudentDocument,
+  DocumentPdf,
+} from '@root/modules/documents/domain/models';
+import type {
   Credentials,
   StudentProfile,
 } from '@root/modules/identity/domain/types';
@@ -14,6 +22,7 @@ import type {
   PortalOperation,
   PortalOperationParams,
   PortalResponse,
+  PortalRequest,
 } from './contracts';
 import { loadHtml, type CheerioAPI } from './html';
 import { isSessionExpiredResponse } from './isSessionExpiredResponse';
@@ -32,6 +41,11 @@ import { parseAttendedClassesSchedule } from './parsers/AttendedClassesSchedule'
 import { parsePartialRID } from './parsers/PartialRID';
 import { parseSubjectInfo } from './parsers/SubjectInfo';
 import { parseUniversalSubjects } from './parsers/UniversalSubjects';
+import {
+  parseDocumentCatalog,
+  documentFormParams,
+  parseDocumentPdfPath,
+} from './parsers/Documents';
 
 type Dependencies = {
   transport: PortalTransport;
@@ -40,7 +54,7 @@ type Dependencies = {
 };
 
 /** A response loaded once; session detection and the parser share `$`. */
-type PortalPage = { html: string; $: CheerioAPI };
+type PortalPage = { html: string; $: CheerioAPI; session: Session };
 
 type Session = {
   generation: number;
@@ -57,6 +71,7 @@ const operationKeys: Record<PortalOperation, string[]> = {
   partialRid: ['RidParcial'],
   subjectDetails: ['DadosDisciplina'],
   universalSubjects: ['UniversaisCursar'],
+  documents: ['Emissão de Documentos'],
 };
 
 function checkStatus(response: PortalResponse) {
@@ -86,6 +101,7 @@ export function createAlunoOnlineAdapter({
   let cleanup: Promise<void> = Promise.resolve();
   let cookieMutation: Promise<void> = Promise.resolve();
   const activeRequests = new Set<Promise<PortalResponse>>();
+  const documentMutations = new Set<number>();
 
   function clearCookies() {
     cookieMutation = cookieMutation
@@ -105,10 +121,11 @@ export function createAlunoOnlineAdapter({
     path: string,
     params?: Record<string, string | undefined>,
     signal?: AbortSignal,
+    mode: Pick<PortalRequest, 'method' | 'responseType'> = {},
   ) {
     guard(identity, signal);
     try {
-      const pending = transport.request({ path, params, signal });
+      const pending = transport.request({ path, params, signal, ...mode });
       activeRequests.add(pending);
       let response: PortalResponse;
       try {
@@ -273,7 +290,10 @@ export function createAlunoOnlineAdapter({
     const requisition = operationKeys[operation]
       .map(key => snapshot.dictionary[key])
       .find(Boolean);
-    if (!requisition) throw new AppError('SESSION_EXPIRED');
+    if (!requisition)
+      throw new AppError(
+        operation === 'documents' ? 'DOCUMENT_UNAVAILABLE' : 'SESSION_EXPIRED',
+      );
     const response = await request(
       identity,
       '/requisicaoaluno/',
@@ -296,7 +316,7 @@ export function createAlunoOnlineAdapter({
       throw new AppError('SESSION_EXPIRED');
     }
     checkStatus(response);
-    return { html: response.body, $ };
+    return { html: response.body, $, session: snapshot };
   }
 
   async function fetchPage(
@@ -398,9 +418,127 @@ export function createAlunoOnlineAdapter({
       read('universalSubjects', parseUniversalSubjects, options),
   };
 
+  function checkDocumentResponse(response: PortalResponse, snapshot: Session) {
+    if (session !== snapshot) throw new AppError('SESSION_CHANGED');
+    const $ = loadHtml(response.body);
+    if (
+      [401, 403, 419].includes(response.status) ||
+      (!response.pdfBase64 && isSessionExpiredResponse(response.body, $))
+    ) {
+      throw new AppError('SESSION_EXPIRED');
+    }
+    checkStatus(response);
+    return $;
+  }
+
+  async function changeDocument(
+    operation: 'issue' | 'remove',
+    selected: Pick<StudentDocument, 'id' | 'revision'>,
+    options: DocumentRequestOptions = {},
+  ): Promise<DocumentPdf | void> {
+    const identity = identityGeneration;
+    guard(identity, options.signal);
+    if (!/^\d+:\d+:[\w.-]+$/.test(selected.id))
+      throw new AppError('INVALID_INPUT');
+    if (documentMutations.has(identity)) throw new AppError('CANCELLED');
+    documentMutations.add(identity);
+    try {
+      // Resolve every action from a fresh catalog: requisitions belong to the
+      // current session, and the user may have changed the document on the web.
+      const page = await fetchPage('documents', {}, options);
+      guard(identity, options.signal);
+      const catalog = parse(parseDocumentCatalog, page.$);
+      const entry = catalog.entries.find(
+        item => item.document.id === selected.id,
+      );
+      const action = entry?.[operation];
+      if (!entry && operation === 'remove')
+        throw new AppError('DOCUMENT_CHANGED');
+      if (!entry || !action) throw new AppError('DOCUMENT_UNAVAILABLE');
+      if (
+        operation === 'remove' &&
+        (!selected.revision || selected.revision !== entry.document.revision)
+      ) {
+        throw new AppError('DOCUMENT_CHANGED');
+      }
+      if (inFlightRefresh) await inFlightRefresh;
+      guard(identity, options.signal);
+      if (session !== page.session) throw new AppError('SESSION_CHANGED');
+      // Never automatically replay a POST: a lost response may already have
+      // changed the portal. Only catalog reads have session recovery/replay.
+      const response = await request(
+        identity,
+        '/requisicaoaluno/',
+        documentFormParams(action, catalog.token),
+        options.signal,
+        {
+          method: 'POST',
+          responseType: operation === 'issue' ? 'pdf' : 'text',
+        },
+      );
+      const $ = checkDocumentResponse(response, page.session);
+      if (operation === 'remove') {
+        const confirmed = await fetchPage('documents', {}, options);
+        guard(identity, options.signal);
+        const updated = parse(parseDocumentCatalog, confirmed.$);
+        if (
+          updated.entries.some(
+            item => item.document.revision === selected.revision,
+          )
+        ) {
+          throw new AppError('DOCUMENT_NOT_REMOVED');
+        }
+        return;
+      }
+      let pdf = response;
+      if (!pdf.pdfBase64) {
+        const path = parse(parseDocumentPdfPath, $);
+        // A concurrent academic request may have begun refreshing while the
+        // POST was in flight. Do not start a new cookie-bearing download after
+        // that refresh has already taken its snapshot of active requests.
+        if (inFlightRefresh) await inFlightRefresh;
+        guard(identity, options.signal);
+        if (session !== page.session) throw new AppError('SESSION_CHANGED');
+        pdf = await request(identity, path, undefined, options.signal, {
+          responseType: 'pdf',
+        });
+        checkDocumentResponse(pdf, page.session);
+      }
+      if (!pdf.pdfBase64) throw new AppError('PORTAL_LAYOUT_CHANGED');
+      guard(identity, options.signal);
+      return {
+        base64: pdf.pdfBase64,
+        filename: `documento-uerj-${action.option}-${action.subOption}.pdf`,
+        mimeType: 'application/pdf',
+      };
+    } finally {
+      documentMutations.delete(identity);
+    }
+  }
+
+  const documents: DocumentsPort = {
+    list: options =>
+      read(
+        'documents',
+        $ => parseDocumentCatalog($).entries.map(entry => entry.document),
+        options,
+      ),
+    async issue(id, options) {
+      return (await changeDocument(
+        'issue',
+        { id, revision: null },
+        options,
+      )) as DocumentPdf;
+    },
+    async remove(document, options) {
+      await changeDocument('remove', document, options);
+    },
+  };
+
   return {
     authentication,
     records,
+    documents,
     diagnostics: {
       async fetch(...args: Parameters<typeof fetchPage>) {
         return (await fetchPage(...args)).html;

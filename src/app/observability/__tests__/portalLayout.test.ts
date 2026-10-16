@@ -1,4 +1,5 @@
 import type { AcademicRecordsPort } from '@root/modules/academics/application/ports';
+import type { DocumentsPort } from '@root/modules/documents/application/ports';
 import type { AuthenticationPort } from '@root/modules/identity/application/ports';
 import { AppError } from '@root/shared/errors/AppError';
 import { reportPortalLayoutChanges } from '../portalLayout';
@@ -25,13 +26,18 @@ function setup() {
     getSubjectDetails: jest.fn(),
     getUniversalSubjects: jest.fn().mockResolvedValue([]),
   } as jest.Mocked<AcademicRecordsPort>;
+  const documents: jest.Mocked<DocumentsPort> = {
+    list: jest.fn().mockResolvedValue([]),
+    issue: jest.fn(),
+    remove: jest.fn().mockResolvedValue(undefined),
+  };
   const diagnostics = { snapshot: jest.fn() };
   const report = jest.fn();
   const ports = reportPortalLayoutChanges(
-    { authentication, records, diagnostics },
+    { authentication, records, documents, diagnostics },
     report,
   );
-  return { authentication, records, diagnostics, report, ports };
+  return { authentication, records, documents, diagnostics, report, ports };
 }
 
 it('reports a layout change once per operation and still rejects every call', async () => {
@@ -50,6 +56,25 @@ it('reports a layout change once per operation and still rejects every call', as
   expect(report.mock.calls).toEqual([
     [changed, 'grades'],
     [changed, 'subject-details'],
+  ]);
+});
+
+it('reports document layout failures by operation without including document data', async () => {
+  const { documents, report, ports } = setup();
+  const changed = new AppError('PORTAL_LAYOUT_CHANGED');
+  documents.list.mockRejectedValue(changed);
+  documents.issue.mockRejectedValue(changed);
+  documents.remove.mockRejectedValue(changed);
+  const selected = { id: 'matricula', revision: 'sensitive-revision' };
+  await expect(ports.documents.list()).rejects.toBe(changed);
+  await expect(ports.documents.list()).rejects.toBe(changed);
+  await expect(ports.documents.issue(selected.id)).rejects.toBe(changed);
+  await expect(ports.documents.remove(selected)).rejects.toBe(changed);
+  expect(documents.remove).toHaveBeenCalledWith(selected);
+  expect(report.mock.calls).toEqual([
+    [changed, 'documents-list'],
+    [changed, 'documents-issue'],
+    [changed, 'documents-remove'],
   ]);
 });
 

@@ -6,6 +6,8 @@ Legenda de esforço: **P** (horas), **M** (1 a 3 dias), **G** (uma semana ou mai
 
 ## Status da implementação (12/10/2026)
 
+**Atualização de 16/10/2026:** o modo de demonstração e seus cenários foram removidos. Os fluxos Android atuais usam a conta real do `.env` e executam somente leitura; o smoke de documentos consulta exclusivamente o catálogo. A execução em CI passou a ser manual e não publica artefatos da conta. As referências a demonstração, execução noturna e E2E iOS abaixo são registro histórico da implementação de 12/10, não instruções vigentes. Consulte [as ferramentas de desenvolvimento](../scripts/dev/README.md) para o fluxo atual.
+
 Todos os itens abaixo foram implementados e verificados com lint (Oxlint com tipos), type-check (TS 7), Prettier, Knip, Jest, build de debug e de release do Android (as 4 ABIs) e QA nos emuladores API 35 e API 33. No CI do GitHub (PR #9) passaram o Quality (JavaScript, Android debug e release), o E2E com os 8 fluxos do Maestro e o build do iOS no simulador. O resto deste documento continua como registro do porquê de cada decisão.
 
 | Item                                  | Como ficou                                                                                                                                                                                                                    |

@@ -343,6 +343,28 @@ describe('remote notices', () => {
 });
 
 describe('disabled features', () => {
+  it('does not mount document queries when document issuance is disabled', async () => {
+    const { delivery } = createDelivery({
+      saved: doc({ disabledFeatures: ['documents'] }),
+    });
+    await delivery.status.start();
+    const mounted = jest.fn();
+    function DocumentsProbe() {
+      mounted();
+      return <Text>Catálogo de documentos</Text>;
+    }
+    await mount(
+      delivery,
+      <FeatureGate routeName="Emissão de Documentos">
+        <DocumentsProbe />
+      </FeatureGate>,
+      false,
+    );
+    expect(
+      await screen.findByRole('header', { name: 'Indisponível no momento' }),
+    ).toBeOnTheScreen();
+    expect(mounted).not.toHaveBeenCalled();
+  });
   it('replaces a disabled screen with an explanation', async () => {
     const { delivery } = createDelivery({
       saved: doc({ disabledFeatures: ['message-board'] }),

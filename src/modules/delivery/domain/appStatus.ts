@@ -41,6 +41,7 @@ export type AppStatus = {
 
 /** Recursos que o aviso remoto pode desligar (um por tela do menu). */
 export type FeatureId =
+  | 'documents'
   | 'progress'
   | 'schedule-generator'
   | 'message-board'

@@ -1,0 +1,7 @@
+# Reutiliza a sessão real. Execute scripts/dev/login.cjs antes da suíte.
+# Nunca limpa o armazenamento nem preenche credenciais pelo Maestro.
+appId: com.aouerjmobile
+---
+- launchApp
+- openLink: aouerj-dev://inicio
+- runFlow: esperar-inicio.yaml

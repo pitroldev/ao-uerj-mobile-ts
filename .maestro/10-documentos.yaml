@@ -1,0 +1,30 @@
+# Consulta somente o catálogo da conta real já autenticada.
+# Downloads, emissões, compartilhamento e exclusões não fazem parte do smoke.
+appId: com.aouerjmobile
+name: Documentos da conta autenticada
+tags:
+  - documentos
+---
+- runFlow: subflows/iniciar-sessao-autenticada.yaml
+- runFlow: subflows/abrir-menu.yaml
+- scrollUntilVisible:
+    element: Emissão de Documentos(, indisponível)?
+    direction: DOWN
+- runFlow:
+    when:
+      notVisible: Emissão de Documentos, indisponível
+    commands:
+      - tapOn: Emissão de Documentos
+      - runFlow:
+          when:
+            visible: Fechar documento
+          commands:
+            - tapOn: Fechar documento
+      - extendedWaitUntil:
+          visible: Documentos disponíveis|Nenhum documento disponível
+          timeout: 60000
+- runFlow:
+    when:
+      visible: Emissão de Documentos, indisponível
+    commands:
+      - tapOn: Fechar menu

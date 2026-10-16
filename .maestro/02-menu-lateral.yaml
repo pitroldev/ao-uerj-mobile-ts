@@ -1,91 +1,58 @@
-# Navegação pelo menu lateral por todas as telas, o logo AO (Sobre) e uma
-# pesquisa de disciplina por código.
+# Smoke de navegação e leitura da conta autenticada, sem conteúdo fixo.
+# O helper ignora itens marcados como indisponíveis no menu.
 appId: com.aouerjmobile
-name: Menu lateral por todas as telas
+name: Menu lateral da conta autenticada
 tags:
   - navegacao
 ---
-- stopApp
-- runFlow:
-    file: subflows/entrar-demo.yaml
-    env:
-      CENARIO: padrao
-
+- runFlow: subflows/iniciar-sessao-autenticada.yaml
 - runFlow:
     file: subflows/ir-pelo-menu.yaml
     env:
       TELA: Meu Progresso
-      MARCA: CR aproximado
-- takeScreenshot: 02-meu-progresso
-
+      MARCA: CR aproximado|Ainda não há histórico ou currículo disponível\.
 - runFlow:
     file: subflows/ir-pelo-menu.yaml
     env:
       TELA: Disciplinas Realizadas
-      MARCA: 6 disciplinas
-- takeScreenshot: 02-disciplinas-realizadas
-
+      MARCA: Período
 - runFlow:
     file: subflows/ir-pelo-menu.yaml
     env:
       TELA: Disciplinas do Currículo
       MARCA: Não atendidas
-- takeScreenshot: 02-disciplinas-curriculo
-
 - runFlow:
     file: subflows/ir-pelo-menu.yaml
     env:
       TELA: Disciplinas Universais
       MARCA: Todos os departamentos
-- takeScreenshot: 02-disciplinas-universais
-
 - runFlow:
     file: subflows/ir-pelo-menu.yaml
     env:
       TELA: Pesquisa de Disciplinas
       MARCA: Buscar disciplina
-- tapOn: Código da disciplina
-- inputText: IME02-10892
-- tapOn: Buscar disciplina
-- extendedWaitUntil:
-    visible: Sistemas Distribuídos
-    timeout: 15000
-- takeScreenshot: 02-pesquisa-disciplina
-# no detalhe, a seta do cabeçalho substitui o menu e volta para a pesquisa
-- tapOn: Voltar
-- extendedWaitUntil:
-    visible: Abrir menu
-    timeout: 10000
-
 - runFlow:
     file: subflows/ir-pelo-menu.yaml
     env:
       TELA: Gerador de Grade
       MARCA: Conte-nos um pouco sobre você
-- takeScreenshot: 02-gerador
-
 - runFlow:
     file: subflows/ir-pelo-menu.yaml
     env:
       TELA: Mural de Mensagens
       MARCA: Escolha a disciplina para abrir o mural da turma\.
-- takeScreenshot: 02-mural
-
 - runFlow:
     file: subflows/ir-pelo-menu.yaml
     env:
       TELA: Sobre
       MARCA: Reportar problema
-- takeScreenshot: 02-sobre
-
 - runFlow:
     file: subflows/ir-pelo-menu.yaml
     env:
       TELA: Início
-      MARCA: Olá, Marina
-
-# o logo AO do cabeçalho também abre "Sobre"
+      MARCA: Olá, .+
 - tapOn: Sobre o AO UERJ
-- extendedWaitUntil:
-    visible: Reportar problema
+- scrollUntilVisible:
+    element: Reportar problema
+    direction: DOWN
     timeout: 15000

@@ -23,6 +23,7 @@ import { ScheduleCreationPage } from '@root/pages/ScheduleSimulator';
 import { MyProgressPage } from '@root/pages/MyProgress';
 import { LoadingPage } from './pages/Loading';
 import { CampusMapPage } from './pages/CampusMap/CampusMap';
+import { DocumentsPage } from '@root/pages/Documents';
 
 export type RootDrawerParamList = {
   Login: undefined;
@@ -38,6 +39,7 @@ export type RootDrawerParamList = {
   'Pesquisa de Professores': undefined;
   'Gerador de Grade': undefined;
   'Meu Progresso': undefined;
+  'Emissão de Documentos': undefined;
   Sobre: undefined;
 
   Loading: undefined;
@@ -102,6 +104,10 @@ export const MainRoutes = () => {
             options={{ swipeEnabled: false }}
           />
           <Drawer.Screen name="Meu Progresso" component={MyProgressPage} />
+          <Drawer.Screen
+            name="Emissão de Documentos"
+            component={DocumentsPage}
+          />
           <Drawer.Screen
             name="Gerador de Grade"
             component={ScheduleCreationPage}

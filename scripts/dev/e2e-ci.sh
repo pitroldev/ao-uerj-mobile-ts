@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 # Roda os fluxos E2E do Maestro (.maestro/) no emulador já ligado, com o Metro
-# rodando na máquina: o modo demonstração só existe no build de debug.
+# rodando na máquina e as credenciais reais AO_MATRICULA/AO_PASSWORD no ambiente.
 # Usado pelo .github/workflows/e2e.yml; serve também em Linux e macOS.
 #
 # Uso: scripts/dev/e2e-ci.sh <apk de debug> <pasta de saída>
 set -euo pipefail
+
+if [[ -z "${AO_MATRICULA:-}" || -z "${AO_PASSWORD:-}" ]]; then
+  echo 'Configure AO_MATRICULA e AO_PASSWORD para executar os E2E reais.' >&2
+  exit 1
+fi
 
 apk="$1"
 out="$2"
@@ -35,6 +40,11 @@ adb shell settings put global hide_error_dialogs 1
 adb shell settings put global anr_show_background 0
 adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null || true
 
+# Login pelo formulário normal, antes do Maestro e de qualquer captura.
+# O helper envia os valores pelo stdin do adb, sem argumentos ou arquivos.
+node scripts/dev/login.cjs
+unset AO_MATRICULA AO_PASSWORD
+
 api_level="$(adb shell getprop ro.build.version.sdk | tr -d '\r')"
 
 # maestro test <fluxos> <pasta>
@@ -51,11 +61,10 @@ run_maestro .maestro fluxos || status=1
 
 # Recriação pela fonte do sistema: mudar o font_scale com o app aberto recria
 # a activity (ver .maestro/08-recriacao-activity.yaml).
-run_maestro .maestro/recriacao/1-abrir-conversa.yaml recriacao-1 || status=1
+run_maestro .maestro/recriacao/1-abrir-sobre.yaml recriacao-1 || status=1
 adb shell settings put system font_scale 1.3
 sleep 5
 run_maestro .maestro/recriacao/2-conferir.yaml recriacao-2 || status=1
 adb shell settings put system font_scale 1.0
 
-adb logcat -d >"$out/logcat.txt" || true
 exit "$status"

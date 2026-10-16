@@ -11,6 +11,9 @@ export type ErrorCode =
   | 'RATE_LIMITED'
   | 'CANCELLED'
   | 'STORAGE_FAILED'
+  | 'DOCUMENT_UNAVAILABLE'
+  | 'DOCUMENT_CHANGED'
+  | 'DOCUMENT_NOT_REMOVED'
   | 'INVALID_INPUT';
 
 export class AppError extends Error {
@@ -50,6 +53,12 @@ export function errorMessage(error: unknown): string {
     CANCELLED: 'Operação cancelada.',
     STORAGE_FAILED:
       'Não foi possível salvar seu acesso com segurança. Tente novamente.',
+    DOCUMENT_UNAVAILABLE:
+      'Este documento não está disponível para sua conta no Aluno Online.',
+    DOCUMENT_CHANGED:
+      'O documento mudou no Aluno Online. Atualize a lista e tente novamente.',
+    DOCUMENT_NOT_REMOVED:
+      'O Aluno Online não confirmou a exclusão. Atualize a lista antes de tentar novamente.',
     INVALID_INPUT: 'Confira os dados informados.',
   };
   return messages[error.code];

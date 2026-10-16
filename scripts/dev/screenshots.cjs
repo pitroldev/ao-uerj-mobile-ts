@@ -1,27 +1,29 @@
 #!/usr/bin/env node
 /*
  * Capturas de tela do app (build de DEBUG) em um emulador/dispositivo Android,
- * usando o modo demonstração e os deep links aouerj-dev://. Ver README.md.
+ * usando a conta real do .env e os deep links aouerj-dev://. Ver README.md.
  *
  *   node scripts/dev/screenshots.cjs [opções] [rota | nome=caminho ...]
  */
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+const {
+  PACKAGE,
+  createAdb,
+  findAdb,
+  parseDevices,
+  pickDevice,
+} = require('./android.cjs');
+const { ensureRealLogin } = require('./login.cjs');
 
 const PREFIX = 'aouerj-dev://';
-const PACKAGE = 'com.aouerjmobile';
-const SCENARIOS = ['padrao', 'rid', 'vazio', 'bloqueado', 'erro', 'lento'];
-/** Texto que só aparece depois do login demo (nome da aluna fictícia). */
-const SIGNED_IN_MARKER = 'Marina';
-/** Título da folha de novidades exibida no primeiro acesso. */
-const WHATS_NEW_MARKER = 'Funcionalidades exclusivas';
-
 /** Nome do arquivo → caminho do deep link. */
 const ROUTES = {
   inicio: 'inicio',
+  mapa: 'mapa',
   progresso: 'progresso',
+  documentos: 'documentos',
   gerador: 'gerador',
   mural: 'mural',
   realizadas: 'realizadas',
@@ -41,10 +43,9 @@ por exemplo: sd=pesquisa/IME02-10892
 Opções:
   --out <pasta>          pasta de saída (padrão: <tmp>/aouerj-screenshots/<data>)
   --serial <id>          dispositivo do adb (padrão: ANDROID_SERIAL ou o único online)
-  --scenario <nome>      cenário demo: ${SCENARIOS.join(', ')} (padrão: padrao)
   --wait <ms>            espera depois de abrir cada rota (padrão: 2500)
-  --login-timeout <ms>   espera máxima pelo login demo (padrão: 180000)
-  --no-login             não garante o login demo antes das capturas
+  --login-timeout <ms>   espera máxima pelo login real (padrão: 180000)
+  --no-login             usa a sessão real já autenticada, sem ler credenciais
   --no-reverse           não executa "adb reverse tcp:8081 tcp:8081"
   --adb <caminho>        executável do adb (padrão: ANDROID_HOME/platform-tools)
   --help                 mostra esta ajuda`;
@@ -53,7 +54,6 @@ function parseArgs(argv) {
   const options = {
     out: null,
     serial: process.env.ANDROID_SERIAL || null,
-    scenario: 'padrao',
     wait: 2500,
     loginTimeout: 180000,
     login: true,
@@ -87,9 +87,6 @@ function parseArgs(argv) {
       case '--serial':
         options.serial = valueOf(arg, index++);
         break;
-      case '--scenario':
-        options.scenario = valueOf(arg, index++);
-        break;
       case '--wait':
         options.wait = number(arg, valueOf(arg, index++));
         break;
@@ -110,10 +107,6 @@ function parseArgs(argv) {
         options.shots.push(arg);
     }
   }
-  if (!SCENARIOS.includes(options.scenario))
-    throw new Error(
-      `Cenário desconhecido: ${options.scenario}. Use ${SCENARIOS.join(', ')}.`,
-    );
   return options;
 }
 
@@ -148,158 +141,8 @@ function resolveShots(args) {
   return shots;
 }
 
-function demoUrl(scenario) {
-  return scenario === 'padrao' ? `${PREFIX}demo` : `${PREFIX}demo/${scenario}`;
-}
-
-/** Saída de "adb devices" → [{ serial, state }]. */
-function parseDevices(output) {
-  return output
-    .split(/\r?\n/)
-    .slice(1)
-    .map(line => line.trim().split(/\s+/))
-    .filter(([serial, state]) => serial && state)
-    .map(([serial, state]) => ({ serial, state }));
-}
-
-function pickDevice(devices, requested) {
-  const online = devices.filter(device => device.state === 'device');
-  if (requested) {
-    const found = devices.find(device => device.serial === requested);
-    if (!found) throw new Error(`Dispositivo ${requested} não encontrado.`);
-    if (found.state !== 'device')
-      throw new Error(`Dispositivo ${requested} está "${found.state}".`);
-    return requested;
-  }
-  const emulators = online.filter(device =>
-    device.serial.startsWith('emulator-'),
-  );
-  const candidates = emulators.length ? emulators : online;
-  if (candidates.length === 1) return candidates[0].serial;
-  if (!candidates.length)
-    throw new Error(
-      'Nenhum dispositivo online. Inicie o emulador (ver scripts/dev/README.md).',
-    );
-  throw new Error(
-    `Vários dispositivos online (${candidates
-      .map(device => device.serial)
-      .join(', ')}). Use --serial ou ANDROID_SERIAL.`,
-  );
-}
-
-function findAdb(explicit) {
-  if (explicit) return explicit;
-  const executable = process.platform === 'win32' ? 'adb.exe' : 'adb';
-  const roots = [
-    process.env.ANDROID_HOME,
-    process.env.ANDROID_SDK_ROOT,
-    process.env.LOCALAPPDATA &&
-      path.join(process.env.LOCALAPPDATA, 'Android', 'Sdk'),
-    path.join(os.homedir(), 'Library', 'Android', 'sdk'),
-    path.join(os.homedir(), 'Android', 'Sdk'),
-  ].filter(Boolean);
-  for (const root of roots) {
-    const candidate = path.join(root, 'platform-tools', executable);
-    if (fs.existsSync(candidate)) return candidate;
-  }
-  return 'adb';
-}
-
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function createAdb(executable, serial) {
-  const run = (args, { binary = false, allowFailure = false } = {}) => {
-    const result = spawnSync(
-      executable,
-      serial ? ['-s', serial, ...args] : args,
-      {
-        encoding: binary ? undefined : 'utf8',
-        maxBuffer: 64 * 1024 * 1024,
-        windowsHide: true,
-      },
-    );
-    if (result.error) throw result.error;
-    if (result.status !== 0 && !allowFailure) {
-      const stderr = Buffer.isBuffer(result.stderr)
-        ? result.stderr.toString('utf8')
-        : result.stderr;
-      throw new Error(
-        `adb ${args.join(' ')} falhou: ${stderr || result.status}`,
-      );
-    }
-    return result.stdout;
-  };
-  return {
-    run,
-    open(url) {
-      // -W espera a Activity; o pacote garante que só o app trate o link.
-      run([
-        'shell',
-        'am',
-        'start',
-        '-W',
-        '-a',
-        'android.intent.action.VIEW',
-        '-d',
-        url,
-        PACKAGE,
-      ]);
-    },
-    screenshot(file) {
-      const png = run(['exec-out', 'screencap', '-p'], { binary: true });
-      if (!png || png.length < 8 || png.readUInt32BE(0) !== 0x89504e47)
-        throw new Error('screencap não devolveu um PNG.');
-      fs.writeFileSync(file, png);
-    },
-    /** Texto da janela em primeiro plano ('' se o dump falhar). */
-    screenText() {
-      const dump = '/sdcard/aouerj-ui.xml';
-      // Remove o dump anterior: um dump que falha não pode parecer atual.
-      run(['shell', 'rm', '-f', dump], { allowFailure: true });
-      run(['shell', 'uiautomator', 'dump', dump], { allowFailure: true });
-      return String(
-        run(['exec-out', 'cat', dump], { allowFailure: true }) || '',
-      );
-    },
-    back() {
-      run(['shell', 'input', 'keyevent', 'KEYCODE_BACK']);
-    },
-  };
-}
-
-/**
- * Abre o link de login demo e espera o Início. A folha "Funcionalidades
- * exclusivas" aparece no primeiro acesso de cada conta: ela é capturada em
- * novidades.png e fechada, senão cobriria as outras telas.
- */
-async function ensureDemoLogin(adb, options, out) {
-  adb.open(demoUrl(options.scenario));
-  const deadline = Date.now() + options.loginTimeout;
-  let confirmations = 0;
-  while (Date.now() < deadline) {
-    const text = adb.screenText();
-    if (text.includes(WHATS_NEW_MARKER)) {
-      await sleep(1000);
-      const file = path.join(out, 'novidades.png');
-      adb.screenshot(file);
-      console.log(`${'novidades'.padEnd(12)} (primeiro acesso) -> ${file}`);
-      adb.back();
-      confirmations = 0;
-      await sleep(1500);
-      continue;
-    }
-    // Two consecutive sightings: the sheet opens shortly after the Início.
-    confirmations = text.includes(SIGNED_IN_MARKER) ? confirmations + 1 : 0;
-    if (confirmations >= 2) return;
-    await sleep(confirmations ? 1500 : 2000);
-  }
-  throw new Error(
-    `O login demo não apareceu em ${Math.round(
-      options.loginTimeout / 1000,
-    )} s. Confira se o Metro está rodando (pnpm start) e se o build de debug está instalado.`,
-  );
 }
 
 async function main(argv) {
@@ -336,10 +179,8 @@ async function main(argv) {
   fs.mkdirSync(out, { recursive: true });
 
   if (options.login) {
-    console.log(
-      `[${serial}] Entrando no modo demonstração (${options.scenario})...`,
-    );
-    await ensureDemoLogin(adb, options, out);
+    console.log(`[${serial}] Conferindo a sessão da conta real...`);
+    await ensureRealLogin(adb, options);
     await sleep(options.wait);
   }
   for (const shot of shots) {
@@ -361,8 +202,6 @@ if (require.main === module) {
 
 module.exports = {
   ROUTES,
-  SCENARIOS,
-  demoUrl,
   parseArgs,
   parseDevices,
   pickDevice,

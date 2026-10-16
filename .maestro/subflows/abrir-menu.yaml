@@ -7,3 +7,6 @@ appId: com.aouerjmobile
     timeout: 5000
 - waitForAnimationToEnd:
     timeout: 3000
+- scrollUntilVisible:
+    element: Início
+    direction: UP

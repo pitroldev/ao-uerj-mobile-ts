@@ -3,8 +3,8 @@
   Debug only: merged over src/main/AndroidManifest.xml by the Android manifest
   merger for the debug build type. Release builds never contain this scheme.
 
-  aouerj-dev://<rota> abre telas do app (src/app/dev/devLinking.ts);
-  aouerj-dev://demo entra na conta de demonstração. Ver scripts/dev/README.md.
+  aouerj-dev://<rota> abre telas do app (src/app/dev/devLinking.ts).
+  A autenticação usa o formulário e a conta real. Ver scripts/dev/README.md.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
   xmlns:tools="http://schemas.android.com/tools">

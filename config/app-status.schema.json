@@ -78,7 +78,8 @@
           "curriculum-subjects",
           "universal-subjects",
           "subject-search",
-          "teacher-search"
+          "teacher-search",
+          "documents"
         ]
       }
     }

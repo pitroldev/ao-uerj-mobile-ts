@@ -13,7 +13,7 @@ import type { PreferencesStore } from '@root/modules/identity/application/Prefer
 
 /**
  * Entrega: aviso remoto, atualização pela loja e pedido de avaliação. Usa as
- * preferências reais (não as do modo demo): valem para o app, não para a conta.
+ * preferências globais: valem para o app, não para a conta.
  */
 export function createDelivery({
   appVersion,

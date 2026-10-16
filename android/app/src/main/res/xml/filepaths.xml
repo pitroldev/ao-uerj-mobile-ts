@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Só o compartilhamento da grade passa por aqui: o view-shot grava o PNG na raiz
-  do cache interno ou do externo (o que tiver mais espaço livre), e o fallback em
-  SVG do react-native-share vai para <cache externo>/Download.
+  A grade e os documentos são compartilhados a partir do cache: o view-shot
+  grava o PNG no cache interno ou externo, o fallback SVG usa o cache externo,
+  e os PDFs oficiais usam exclusivamente <cache interno>/Download.
 -->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
   <cache-path name="cache" path="." />

@@ -1,10 +1,17 @@
 export type PortalRequest = {
   path: string;
+  method?: 'GET' | 'POST';
+  responseType?: 'text' | 'pdf';
   params?: Record<string, string | undefined>;
   signal?: AbortSignal;
 };
 
-export type PortalResponse = { status: number; body: string };
+export type PortalResponse = {
+  status: number;
+  body: string;
+  pdfBase64?: string;
+  contentType?: string;
+};
 
 /** The transport decodes the declared ISO-8859-1 as windows-1252, as browsers
  * do, and must settle requests after native cookie processing has finished.
@@ -26,6 +33,7 @@ export type PortalOperation =
   | 'schedule'
   | 'partialRid'
   | 'subjectDetails'
-  | 'universalSubjects';
+  | 'universalSubjects'
+  | 'documents';
 
 export type PortalOperationParams = { subjectId?: string };

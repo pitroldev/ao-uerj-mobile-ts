@@ -6,14 +6,10 @@ name: Recriação pela fonte, depois
 tags:
   - recriacao-fonte
 ---
-- runFlow:
-    file: ../subflows/esperar-inicio.yaml
-    env:
-      MATRICULA: demo
+- runFlow: ../subflows/esperar-inicio.yaml
 - assertVisible: Abrir menu
-- takeScreenshot: recriacao-2-depois
 - runFlow:
     file: ../subflows/ir-pelo-menu.yaml
     env:
-      TELA: Mural de Mensagens
-      MARCA: Escolha a disciplina para abrir o mural da turma\.
+      TELA: Sobre
+      MARCA: Reportar problema

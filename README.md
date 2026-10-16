@@ -162,7 +162,7 @@ O script compõe o mesmo adaptador e parsers com transporte e cookies em memóri
 - [Dependências: decisões, status e pendências](docs/dependencias.md)
 - [Contexto de produto e design](PRODUCT.md)
 - [Design system “Agenda limpa”: tokens e componentes](src/components/ui/README.md)
-- [Ferramentas de desenvolvimento: modo demonstração, deep links, capturas e E2E](scripts/dev/README.md)
+- [Ferramentas de desenvolvimento: conta real, deep links, capturas e E2E](scripts/dev/README.md)
 - [Direção do redesenho visual](docs/design-brief.md)
 
 Alterações no portal podem exigir atualização dos parsers. O app preserva dados já carregados e informa falhas de atualização; use o relatório em “Sobre” para descrever problemas persistentes.

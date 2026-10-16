@@ -70,6 +70,7 @@ function MockPage({ route }: { route: { name: string } }) {
 jest.mock('@root/pages/Login', () => ({ LoginPage: MockPage }));
 jest.mock('@root/pages/Home', () => ({ HomePage: MockPage }));
 jest.mock('@root/pages/MyProgress', () => ({ MyProgressPage: MockPage }));
+jest.mock('@root/pages/Documents', () => ({ DocumentsPage: MockPage }));
 jest.mock('@root/pages/ScheduleSimulator', () => ({
   ScheduleCreationPage: MockPage,
 }));
@@ -129,6 +130,20 @@ async function setup(identity = signedOut) {
 }
 
 describe('MainRoutes authorization', () => {
+  it('exposes documents only to the signed-in account and drops it on sign out', async () => {
+    const { navigation, changeIdentity, unhandled } = await setup(signedIn);
+    await act(() => navigation.navigate('Emissão de Documentos'));
+    expect(screen.getByText('Tela: Emissão de Documentos')).toBeOnTheScreen();
+    await changeIdentity(signedOut);
+    expect(navigation.getRootState()?.routeNames).not.toContain(
+      'Emissão de Documentos',
+    );
+    await act(() =>
+      navigation.dispatch(CommonActions.navigate('Emissão de Documentos')),
+    );
+    expect(unhandled).toHaveBeenCalledTimes(1);
+    expect(navigation.getCurrentRoute()?.name).toBe('Login');
+  });
   it('lets a guest open only Login and Mapa, with Back returning to Login', async () => {
     const { navigation, unhandled } = await setup();
     expect(navigation.getRootState()?.routeNames).toEqual(['Login', 'Mapa']);

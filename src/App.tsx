@@ -30,7 +30,7 @@ import { Header } from '@components/templates/Header/Header';
 import { SnackbarHost } from '@components/ui/Snackbar';
 
 const services = createAppServices();
-const devLinking = loadDevLinking(services);
+const devLinking = loadDevLinking();
 
 enableScreens(true);
 

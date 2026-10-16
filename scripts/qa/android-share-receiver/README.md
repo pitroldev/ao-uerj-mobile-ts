@@ -1,6 +1,6 @@
-# Receptor local de PNG para teste Android
+# Receptor local de PNG e PDF para teste Android
 
-Aplicativo auxiliar independente, sem dependências do AO UERJ, Gradle ou bibliotecas externas. Recebe `ACTION_SEND` com `image/png` para validar o compartilhamento até outro aplicativo Android. O manifest não solicita permissões de rede, armazenamento ou contatos; a imagem é lida e exibida em memória, sem upload nem cópia persistida.
+Aplicativo auxiliar independente, sem dependências do AO UERJ, Gradle ou bibliotecas externas. Recebe `ACTION_SEND` com `image/png` ou `application/pdf` para validar o compartilhamento até outro aplicativo Android. O manifest não solicita permissões de rede, armazenamento ou contatos. O arquivo é lido em memória, sem upload nem cópia persistida; PNG também é exibido, e PDF tem a assinatura verificada sem renderização.
 
 ## Compilar
 
@@ -17,17 +17,17 @@ O script funciona em Windows, Linux e macOS por meio dos executáveis do SDK/JDK
 
 1. Se houver uma versão anterior do receptor assinada por outro build, remova somente o helper com `adb -s SERIAL uninstall dev.aouerj.shareprobe`. Cada compilação gera uma chave diferente.
 2. Instale o APK cujo caminho foi informado: `adb -s SERIAL install --no-incremental CAMINHO_DO_APK`. Use aspas se o caminho contiver espaços.
-3. No AO UERJ, abra o horário e compartilhe a imagem. No seletor Android, escolha **AO PNG local**. Nenhuma opção de envio para terceiros é necessária.
-4. Aguarde pelo menos 1,5 segundo. O receptor deve mostrar **PNG RECEBIDO E VALIDADO**, os metadados e a imagem. Confira visualmente se o horário aparece completo.
+3. No AO UERJ, entre com a conta real pelo formulário, compartilhe a imagem do horário ou obtenha um documento na tela **Emissão de Documentos**. No seletor Android, escolha **AO Arquivo local**. Nenhuma opção de envio para terceiros é necessária. Para repetir a validação, prefira obter uma cópia de um documento vigente.
+4. Aguarde pelo menos 1,5 segundo. O receptor deve mostrar **PNG RECEBIDO E VALIDADO** ou **PDF RECEBIDO E VALIDADO**, com os metadados. Para PNG, confira visualmente se o horário aparece completo. Para PDF, o receptor verifica assinatura e leitura; não verifica o conteúdo visual ou a autenticidade do documento.
 5. Toque em **Concluir teste local** para fechar o receptor e voltar ao app de origem.
 
 Identificadores: pacote `dev.aouerj.shareprobe`, activity `dev.aouerj.shareprobe.ShareReceiverActivity`. A abertura pelo launcher mostra instruções; o teste exige a ação de compartilhamento do AO UERJ.
 
 ## Critérios e evidência
 
-O receptor exige URI `content://`, MIME `image/png` no intent e `FLAG_GRANT_READ_URI_PERMISSION`. Lê no máximo 32 MiB, verifica os oito bytes da assinatura PNG, dimensões positivas e decodificação da imagem. Reabre a mesma URI após 1,5 segundo e compara os bytes; isso exercita a disponibilidade do arquivo depois de a escolha do destinatário resolver a promise de compartilhamento do app.
+O receptor exige URI `content://`, MIME `image/png` ou `application/pdf` no intent, `FLAG_GRANT_READ_URI_PERMISSION` e a concessão de leitura efetiva consultada no Android. Para PNG, lê no máximo 32 MiB, verifica os oito bytes da assinatura, dimensões positivas e decodificação da imagem. Para PDF, lê no máximo 20 MiB e exige a assinatura `%PDF-`. Reabre a mesma URI após 1,5 segundo e compara os bytes; isso exercita a disponibilidade do arquivo depois de a escolha do destinatário resolver a promise de compartilhamento do app.
 
-O resultado contém `ok: true`, `delayedReadMatches: true`, tamanho, dimensões e SHA-256. `providerMime` também é registrado para inspeção. A tag `AOShareProbe` do logcat registra esse JSON, sem bytes da imagem nem seu caminho completo:
+O resultado contém `ok: true`, `delayedReadMatches: true`, `readPermissionGranted: true`, formato, tamanho e SHA-256. PNG inclui dimensões; PDF inclui `signature: "%PDF-"` e `rendered: false`. `providerMime` também é registrado para inspeção. A tag `AOShareProbe` do logcat registra esse JSON, sem bytes do arquivo nem seu caminho completo:
 
 ```sh
 adb -s SERIAL logcat -d -s AOShareProbe:I

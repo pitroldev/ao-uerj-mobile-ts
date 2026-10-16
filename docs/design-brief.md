@@ -2,7 +2,7 @@
 
 O app preserva sua identidade: azul institucional no cabeçalho e menu, painel com canto superior esquerdo amplo, logo AO e canto superior direito reto em campos e cards. O visual deve continuar reconhecível como AO UERJ.
 
-As fontes atuais são [PRODUCT.md](../PRODUCT.md), os [tokens](../src/themes/tokens.ts), os temas [claro](../src/themes/light.ts) e [escuro](../src/themes/dark.ts), e os componentes em `src/components/ui`. Os dados fictícios de desenvolvimento ficam em [demo/data.ts](../src/adapters/outbound/demo/data.ts).
+As fontes atuais são [PRODUCT.md](../PRODUCT.md), os [tokens](../src/themes/tokens.ts), os temas [claro](../src/themes/light.ts) e [escuro](../src/themes/dark.ts), e os componentes em `src/components/ui`. A validação do app usa a conta real configurada no `.env`; dados pessoais não devem entrar no Git, em fixtures nem em artefatos públicos.
 
 - Dar prioridade à informação que responde à tarefa: próxima aula, nota, sala, posição no RID ou progresso.
 - Usar português brasileiro direto, vocabulário acadêmico da UERJ e status identificáveis por texto ou ícone além da cor.

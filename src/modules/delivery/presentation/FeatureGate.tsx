@@ -8,6 +8,7 @@ import { useRemoteStatus } from './DeliveryProvider';
 /** Telas do menu que o aviso remoto pode desativar (`disabledFeatures`). */
 const ROUTE_FEATURES: Readonly<Record<string, FeatureId>> = {
   'Meu Progresso': 'progress',
+  'Emissão de Documentos': 'documents',
   'Gerador de Grade': 'schedule-generator',
   'Mural de Mensagens': 'message-board',
   'Disciplinas Realizadas': 'subjects-taken',

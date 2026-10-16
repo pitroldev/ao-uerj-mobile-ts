@@ -5,7 +5,7 @@ import { AppError } from '@root/shared/errors/AppError';
 
 const service = 'br.uerj.ao.credentials.v2';
 
-export function isSavedAccount(value: unknown): value is SavedAccount {
+function isSavedAccount(value: unknown): value is SavedAccount {
   if (!value || typeof value !== 'object') return false;
   const record = value as Partial<SavedAccount>;
   return (

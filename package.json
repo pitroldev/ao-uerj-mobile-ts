@@ -18,6 +18,7 @@
     "test:tooling": "node --test scripts/__tests__/*.test.cjs",
     "e2e": "maestro test .maestro",
     "diagnose:ao": "node scripts/diagnose-ao.cjs",
+    "diagnose:documents": "node scripts/diagnose-documents.cjs",
     "lint": "oxlint --type-aware --deny-warnings",
     "knip": "knip"
   },

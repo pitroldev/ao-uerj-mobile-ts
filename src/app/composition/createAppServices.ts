@@ -11,6 +11,7 @@ import { createPreferencesStore } from '@root/adapters/outbound/persistence/pref
 import { createQueryAccountCache } from '@root/adapters/outbound/persistence/query-account-cache';
 import { migrateLegacyStorage } from '@root/adapters/outbound/persistence/migrate-legacy';
 import { NativeScheduleSharing } from '@root/adapters/outbound/native/NativeScheduleSharing';
+import { NativeDocumentSharing } from '@root/adapters/outbound/native/NativeDocumentSharing';
 import { nativeAppearance } from '@root/adapters/outbound/native/NativeAppearance';
 import { createAppKeyValueStore } from '@root/adapters/outbound/delivery/appStore';
 import { createPrivateApiAdapters } from '@root/adapters/outbound/private-api';
@@ -29,7 +30,6 @@ import {
 } from '../observability';
 import { initializeIdentity } from './initializeIdentity';
 import { createDelivery } from './createDelivery';
-import { loadDemoBackend, withDemoMode } from './demoMode';
 
 function createScope() {
   return `account-${Date.now().toString(36)}-${Math.random()
@@ -53,21 +53,10 @@ export function createAppServices() {
     }),
     reportPortalLayoutChange,
   );
-  // Development builds route demo credentials to fictitious adapters;
-  // release builds (and every real credential) use the real ports unchanged.
-  const ports = withDemoMode(
-    {
-      authentication: portal.authentication,
-      records: portal.records,
-      ...createPrivateApiAdapters(),
-      scheduleGenerator: createScheduleGeneratorAdapter(),
-      preferences,
-    },
-    loadDemoBackend(),
-  );
+  const privateApi = createPrivateApiAdapters();
   const identity = new IdentityController({
     credentials,
-    authentication: ports.authentication,
+    authentication: portal.authentication,
     accountData: cache.lifecycle,
     createScope,
   });
@@ -77,30 +66,30 @@ export function createAppServices() {
     campusMap: new CampusMap(bundledCampusMap),
     queryClient,
     identity,
-    preferences: ports.preferences,
+    preferences,
     community: new Community({
-      messageBoard: ports.messageBoard,
-      teacherDirectory: ports.teacherDirectory,
+      messageBoard: privateApi.messageBoard,
+      teacherDirectory: privateApi.teacherDirectory,
       currentAccount,
     }),
     support: new SubmitErrorReport(
-      ports.errorReporter,
+      privateApi.errorReporter,
       { appVersion: version, parserVersion: '2' },
       currentAccount,
       errorMonitor,
     ),
-    scheduleGenerator: ports.scheduleGenerator,
-    academicRecords: ports.records,
+    scheduleGenerator: createScheduleGeneratorAdapter(),
+    academicRecords: portal.records,
     scheduleSharing: new NativeScheduleSharing(),
+    documents: portal.documents,
+    documentSharing: new NativeDocumentSharing(),
     delivery: createDelivery({ appVersion: version, preferences, identity }),
-    // app-wide (not per account, not demo): the theme survives logout
+    // App-wide: the theme survives logout.
     appearance: new ThemePreferences({
       store: createAppKeyValueStore(preferences),
       native: nativeAppearance,
     }),
     flushCache: cache.flush,
-    /** null in release builds; see demoMode.ts. */
-    demo: ports.demo,
     initialize() {
       startup ??= initializeIdentity(
         () =>

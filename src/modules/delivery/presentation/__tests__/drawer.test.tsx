@@ -44,7 +44,7 @@ it('marks the screens disabled by the remote notice, which still explain themsel
       schemaVersion: 1,
       minSupportedVersion: '1.0.0',
       notices: [],
-      disabledFeatures: ['message-board'],
+      disabledFeatures: ['message-board', 'documents'],
     },
   });
   const now = () => 0;
@@ -70,7 +70,12 @@ it('marks the screens disabled by the remote notice, which still explain themsel
       <DrawerNavigator
         {...({
           state: {
-            routeNames: ['Início', 'Mural de Mensagens', 'Meu Progresso'],
+            routeNames: [
+              'Início',
+              'Mural de Mensagens',
+              'Meu Progresso',
+              'Emissão de Documentos',
+            ],
             index: 0,
           },
           navigation,
@@ -88,4 +93,10 @@ it('marks the screens disabled by the remote notice, which still explain themsel
   // continua navegável: a tela troca o conteúdo pela explicação
   await user.press(board);
   expect(navigation.navigate).toHaveBeenCalledWith('Mural de Mensagens');
+  const documents = screen.getByRole('menuitem', {
+    name: 'Emissão de Documentos, indisponível',
+  });
+  expect(documents).toHaveTextContent(/Indisponível/);
+  await user.press(documents);
+  expect(navigation.navigate).toHaveBeenCalledWith('Emissão de Documentos');
 });

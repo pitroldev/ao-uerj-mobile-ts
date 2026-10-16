@@ -1,66 +1,27 @@
-# Folha inferior (BottomSheet sobre o Modal): abre pelo cartão "Próxima aula"
-# e fecha pelo véu, pelo voltar do Android, pelo X e arrastando para baixo.
-# Depois, uma folha com campo de texto e teclado ("Reportar problema").
+# Abre a folha de relato e o teclado, sem preencher nem enviar uma mensagem.
 appId: com.aouerjmobile
-name: Folha inferior
+name: Folha inferior e teclado
 tags:
   - folha
 ---
-- stopApp
-- runFlow:
-    file: subflows/entrar-demo.yaml
-    env:
-      CENARIO: padrao
-
-# 1. véu: toque acima da folha (ela ocupa no máximo 86% da altura)
-- tapOn: .*Ver disciplinas em curso
+- runFlow: subflows/iniciar-sessao-autenticada.yaml
+- tapOn: Sobre o AO UERJ
+- scrollUntilVisible:
+    element: Reportar problema
+    direction: DOWN
+    timeout: 15000
+- tapOn: Reportar problema
 - extendedWaitUntil:
-    visible: Disciplinas em Curso
-    timeout: 10000
-- assertVisible: IME02-10892 · Turma 2
-- takeScreenshot: 03-folha-aberta
-- tapOn:
-    point: 50%,7%
-- extendedWaitUntil:
-    notVisible: Disciplinas em Curso
-    timeout: 10000
-
-# 2. voltar do Android: fecha a folha e continua no Início
-- tapOn: .*Ver disciplinas em curso
-- extendedWaitUntil:
-    visible: Disciplinas em Curso
+    visible: Passo 1 de 2
     timeout: 10000
 - back
 - extendedWaitUntil:
-    notVisible: Disciplinas em Curso
+    notVisible: Passo 1 de 2
     timeout: 10000
-- assertVisible: Olá, Marina
-
-# 3. botão fechar (X)
-- tapOn: .*Ver disciplinas em curso
-- extendedWaitUntil:
-    visible: Disciplinas em Curso
-    timeout: 10000
-- tapOn: Fechar
-- extendedWaitUntil:
-    notVisible: Disciplinas em Curso
-    timeout: 10000
-
-# 4. arrastar o título para baixo
-- tapOn: .*Ver disciplinas em curso
-- extendedWaitUntil:
-    visible: Disciplinas em Curso
-    timeout: 10000
-- swipe:
-    from: Disciplinas em Curso
+- scrollUntilVisible:
+    element: Reportar problema
     direction: DOWN
-    duration: 400
-- extendedWaitUntil:
-    notVisible: Disciplinas em Curso
-    timeout: 10000
-
-# 5. folha com teclado: o rodapé fica acima dele
-- tapOn: Sobre o AO UERJ
+    timeout: 15000
 - tapOn: Reportar problema
 - extendedWaitUntil:
     visible: Passo 1 de 2
@@ -71,14 +32,14 @@ tags:
     visible: Passo 2 de 2
     timeout: 10000
 - tapOn: Descreva o que aconteceu e o resultado esperado
-- inputText: Teste do teclado na folha
-- assertVisible: Teste do teclado na folha
 - assertVisible: Enviar relato
-- takeScreenshot: 03-folha-teclado
-# fecha o teclado e depois a folha pelo voltar, sem enviar o relato
 - hideKeyboard
 - back
 - extendedWaitUntil:
     notVisible: Passo 2 de 2
     timeout: 10000
+- scrollUntilVisible:
+    element: Sugerir melhoria
+    direction: DOWN
+    timeout: 15000
 - assertVisible: Sugerir melhoria

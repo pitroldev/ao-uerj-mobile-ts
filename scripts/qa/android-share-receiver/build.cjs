@@ -3,7 +3,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
-const usage = `Compila o receptor Android local de PNG em uma pasta temporária.
+const usage = `Compila o receptor Android local de PNG e PDF em uma pasta temporária.
 
 Uso: node scripts/qa/android-share-receiver/build.cjs [--check]
 
@@ -60,7 +60,7 @@ function main() {
     return;
   }
 
-  const output = fs.mkdtempSync(path.join(os.tmpdir(), 'ao-png-share-probe-'));
+  const output = fs.mkdtempSync(path.join(os.tmpdir(), 'ao-file-share-probe-'));
   const classes = path.join(output, 'classes');
   const dex = path.join(output, 'dex');
   fs.mkdirSync(classes);
@@ -69,7 +69,7 @@ function main() {
   const unsigned = path.join(output, 'unsigned.apk');
   const aligned = path.join(output, 'aligned.apk');
   const keystore = path.join(output, 'local-probe.keystore');
-  const apk = path.join(output, 'ao-png-share-probe.apk');
+  const apk = path.join(output, 'ao-file-share-probe.apk');
   console.log(`Artefatos temporários: ${output}`);
   run(files.javac, [
     '-encoding',
@@ -155,7 +155,7 @@ function main() {
   ]);
   run(files.java, ['-jar', files.apksigner, 'verify', '--verbose', apk]);
   console.log(`APK: ${apk}`);
-  console.log('Pacote: dev.aouerj.shareprobe — seletor: AO PNG local');
+  console.log('Pacote: dev.aouerj.shareprobe — seletor: AO Arquivo local');
   console.log('A instalação é manual. Cada build gera uma chave local nova.');
 }
 

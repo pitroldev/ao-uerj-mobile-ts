@@ -1,0 +1,12 @@
+# Etapa 1 de 2: abre uma tela sem operações remotas antes de mudar a fonte.
+appId: com.aouerjmobile
+name: Recriação pela fonte, antes
+tags:
+  - recriacao-fonte
+---
+- runFlow: ../subflows/iniciar-sessao-autenticada.yaml
+- runFlow:
+    file: ../subflows/ir-pelo-menu.yaml
+    env:
+      TELA: Sobre
+      MARCA: Reportar problema

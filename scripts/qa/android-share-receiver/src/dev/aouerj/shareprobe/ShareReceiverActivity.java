@@ -3,7 +3,9 @@ package dev.aouerj.shareprobe;
 import android.app.Activity;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.os.Process;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -22,6 +24,7 @@ import org.json.JSONObject;
 
 public final class ShareReceiverActivity extends Activity {
   private static final byte[] PNG = new byte[] {(byte)137,80,78,71,13,10,26,10};
+  private static final byte[] PDF = new byte[] {37,80,68,70,45};
   private TextView result;
   private ImageView preview;
 
@@ -55,22 +58,22 @@ public final class ShareReceiverActivity extends Activity {
 
   private void receive(Intent intent) {
     if (!Intent.ACTION_SEND.equals(intent.getAction())) {
-      result.setText("AO PNG local\nReceptor de teste sem rede.\nNo AO UERJ, compartilhe o horario e escolha AO PNG local.\nA imagem sera lida apenas na memoria deste aplicativo.");
+      result.setText("AO Arquivo local\nReceptor de teste sem rede.\nNo AO UERJ, compartilhe o horario ou emita um documento e escolha AO Arquivo local.\nO PNG ou PDF sera lido apenas na memoria deste aplicativo.");
       return;
     }
-    result.setText("Recebendo PNG local...\nValidando leitura imediata e apos 1,5 segundos.");
+    result.setText("Recebendo arquivo local...\nValidando leitura imediata e apos 1,5 segundos.");
     preview.setImageDrawable(null);
-    new Thread(() -> inspect(intent), "png-local-inspection").start();
+    new Thread(() -> inspect(intent), "file-local-inspection").start();
   }
 
-  private byte[] read(Uri uri) throws Exception {
+  private byte[] read(Uri uri, int maxBytes) throws Exception {
     try (InputStream input = getContentResolver().openInputStream(uri);
          ByteArrayOutputStream bytes = new ByteArrayOutputStream()) {
       if (input == null) throw new IllegalStateException("NULL_STREAM");
       byte[] buffer = new byte[8192];
       int count;
       while ((count = input.read(buffer)) != -1) {
-        if (bytes.size() + count > 32 * 1024 * 1024) throw new IllegalStateException("IMAGE_TOO_LARGE");
+        if (bytes.size() + count > maxBytes) throw new IllegalStateException("FILE_TOO_LARGE");
         bytes.write(buffer, 0, count);
       }
       return bytes.toByteArray();
@@ -96,35 +99,52 @@ public final class ShareReceiverActivity extends Activity {
       report.put("providerMime", getContentResolver().getType(uri));
       report.put("readPermissionFlag", readGrant);
       if (!"content".equals(uri.getScheme())) throw new IllegalStateException("EXPECTED_CONTENT_URI");
-      if (!"image/png".equals(intent.getType())) throw new IllegalStateException("EXPECTED_PNG_MIME");
+      boolean isPdf = "application/pdf".equals(intent.getType());
+      if (!isPdf && !"image/png".equals(intent.getType())) throw new IllegalStateException("EXPECTED_PNG_OR_PDF_MIME");
       if (!readGrant) throw new IllegalStateException("MISSING_READ_GRANT");
-      byte[] data = read(uri);
-      if (data.length < 24 || !Arrays.equals(PNG, Arrays.copyOf(data, 8))) throw new IllegalStateException("INVALID_PNG_SIGNATURE");
-      BitmapFactory.Options bounds = new BitmapFactory.Options();
-      bounds.inJustDecodeBounds = true;
-      BitmapFactory.decodeByteArray(data, 0, data.length, bounds);
-      if (bounds.outWidth <= 0 || bounds.outHeight <= 0 || !"image/png".equals(bounds.outMimeType)) throw new IllegalStateException("INVALID_PNG_DIMENSIONS");
+      boolean granted = checkUriPermission(uri, Process.myPid(), Process.myUid(), Intent.FLAG_GRANT_READ_URI_PERMISSION) == PackageManager.PERMISSION_GRANTED;
+      report.put("readPermissionGranted", granted);
+      if (!granted) throw new IllegalStateException("URI_PERMISSION_DENIED");
+      int maxBytes = (isPdf ? 20 : 32) * 1024 * 1024;
+      byte[] data = read(uri, maxBytes);
+      Bitmap bitmap = null;
+      if (isPdf) {
+        if (data.length < PDF.length || !Arrays.equals(PDF, Arrays.copyOf(data, PDF.length))) throw new IllegalStateException("INVALID_PDF_SIGNATURE");
+        report.put("format", "PDF");
+        report.put("signature", "%PDF-");
+        report.put("rendered", false);
+      } else {
+        if (data.length < 24 || !Arrays.equals(PNG, Arrays.copyOf(data, 8))) throw new IllegalStateException("INVALID_PNG_SIGNATURE");
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        BitmapFactory.decodeByteArray(data, 0, data.length, bounds);
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0 || !"image/png".equals(bounds.outMimeType)) throw new IllegalStateException("INVALID_PNG_DIMENSIONS");
+        report.put("format", "PNG");
+        report.put("width", bounds.outWidth);
+        report.put("height", bounds.outHeight);
+        BitmapFactory.Options decode = new BitmapFactory.Options();
+        decode.inSampleSize = 1;
+        while (bounds.outWidth / decode.inSampleSize > 1400 || bounds.outHeight / decode.inSampleSize > 2000) decode.inSampleSize *= 2;
+        bitmap = BitmapFactory.decodeByteArray(data, 0, data.length, decode);
+        if (bitmap == null) throw new IllegalStateException("PNG_DECODE_FAILED");
+        report.put("rendered", true);
+      }
       report.put("bytes", data.length);
-      report.put("width", bounds.outWidth);
-      report.put("height", bounds.outHeight);
+      report.put("maxBytes", maxBytes);
       report.put("sha256", sha256(data));
       SystemClock.sleep(1500);
-      byte[] delayed = read(uri);
+      byte[] delayed = read(uri, maxBytes);
       if (!Arrays.equals(data, delayed)) throw new IllegalStateException("DELAYED_READ_CHANGED");
       report.put("delayedReadMatches", true);
       report.put("networkPermission", false);
       report.put("savedCopy", false);
       report.put("ok", true);
-      BitmapFactory.Options decode = new BitmapFactory.Options();
-      decode.inSampleSize = 1;
-      while (bounds.outWidth / decode.inSampleSize > 1400 || bounds.outHeight / decode.inSampleSize > 2000) decode.inSampleSize *= 2;
-      Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length, decode);
-      if (bitmap == null) throw new IllegalStateException("PNG_DECODE_FAILED");
-      String summary = "PNG RECEBIDO E VALIDADO\n\n" + report.toString(2) + "\n\nSem envio, sem rede, sem copia persistida.\n";
+      String summary = (isPdf ? "PDF" : "PNG") + " RECEBIDO E VALIDADO\n\n" + report.toString(2) + "\n\nSem envio, sem rede, sem copia persistida.\n" + (isPdf ? "PDF: assinatura e leitura verificadas; conteudo nao renderizado.\n" : "");
       Log.i("AOShareProbe", report.toString());
+      final Bitmap renderedBitmap = bitmap;
       runOnUiThread(() -> {
         result.setText(summary);
-        preview.setImageBitmap(bitmap);
+        preview.setImageBitmap(renderedBitmap);
         setResult(RESULT_OK, new Intent().putExtra("probe_result", report.toString()));
       });
     } catch (Exception error) {

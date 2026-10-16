@@ -1,15 +1,14 @@
 name: E2E
 
-# Fluxos do Maestro (.maestro/) no modo demonstração, sem rede nem conta real.
-# Manual, noturno ou num PR com o rótulo "e2e": o emulador leva de 15 a 30
-# minutos, caro demais para rodar em todo PR.
+# A conta real é usada somente em execuções manuais autorizadas.
 on:
   workflow_dispatch:
-  pull_request:
-    types: [labeled]
-  schedule:
-    # 03:30 em Brasília
-    - cron: '30 6 * * *'
+    inputs:
+      run_real_account:
+        description: 'Autenticar no Aluno Online com os secrets AO e executar leituras'
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
@@ -27,10 +26,19 @@ env:
 
 jobs:
   maestro:
-    if: github.event_name != 'pull_request' || github.event.label.name == 'e2e'
+    if: inputs.run_real_account
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
+      - name: Exigir credenciais reais
+        env:
+          AO_MATRICULA: ${{ secrets.AO_MATRICULA }}
+          AO_PASSWORD: ${{ secrets.AO_PASSWORD }}
+        run: |
+          if [ -z "$AO_MATRICULA" ] || [ -z "$AO_PASSWORD" ]; then
+            echo 'Configure os secrets AO_MATRICULA e AO_PASSWORD para executar os E2E reais.' >&2
+            exit 1
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -51,7 +59,7 @@ jobs:
       - run: sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0' 'ndk;27.1.12297006' 'cmake;3.22.1'
       - run: pnpm install --frozen-lockfile
 
-      # O modo demonstração só existe no build de debug, que lê o JS do Metro.
+      # O build de debug lê o JS do Metro e oferece deep links de navegação.
       - run: pnpm build:debug --no-daemon -PreactNativeArchitectures=x86_64
 
       - name: Maestro CLI
@@ -78,6 +86,9 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        env:
+          AO_MATRICULA: ${{ secrets.AO_MATRICULA }}
+          AO_PASSWORD: ${{ secrets.AO_PASSWORD }}
         with:
           api-level: 35
           target: google_apis
@@ -93,119 +104,5 @@ jobs:
           # Cada linha roda num `sh -c` separado: a lógica fica no script.
           script: bash scripts/dev/e2e-ci.sh android/app/build/outputs/apk/debug/com.aouerjmobile-*.apk "$RUNNER_TEMP/e2e"
 
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
-        with:
-          name: e2e-maestro
-          path: ${{ runner.temp }}/e2e
-          retention-days: 14
-          if-no-files-found: warn
-
-  # iOS: mesmo app de debug (modo demonstração) num iPhone do simulador. Os
-  # fluxos de .maestro/ios entram pelo formulário, porque o scheme aouerj-dev
-  # só existe no Android.
-  maestro-ios:
-    if: github.event_name != 'pull_request' || github.event.label.name == 'e2e'
-    runs-on: macos-15
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
-        with:
-          ruby-version: '3.3'
-          bundler-cache: true
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
-        with:
-          distribution: temurin
-          java-version: '17'
-      - run: pnpm install --frozen-lockfile
-      - run: bundle exec pod install --project-directory=ios
-      # Assinatura ad-hoc ("Sign to Run Locally"): sem ela o app do simulador
-      # não tem os entitlements do Keychain, e o login falha ao guardar a sessão.
-      - name: Build de debug para o simulador
-        run: >-
-          xcodebuild
-          -workspace ios/AOUerjMobile.xcworkspace
-          -scheme AOUerjMobile
-          -configuration Debug
-          -sdk iphonesimulator
-          -destination 'generic/platform=iOS Simulator'
-          -derivedDataPath ios/build
-          CODE_SIGN_IDENTITY=-
-          CODE_SIGN_STYLE=Manual
-          DEVELOPMENT_TEAM=
-          build
-
-      - name: Maestro CLI
-        run: |
-          curl -fsSL --retry 3 -o "$RUNNER_TEMP/maestro.zip" \
-            "https://github.com/mobile-dev-inc/maestro/releases/download/cli-$MAESTRO_VERSION/maestro.zip"
-          echo "$MAESTRO_SHA256  $RUNNER_TEMP/maestro.zip" | shasum -a 256 --check --strict
-          unzip -q "$RUNNER_TEMP/maestro.zip" -d "$RUNNER_TEMP/maestro-cli"
-          echo "$RUNNER_TEMP/maestro-cli/maestro/bin" >> "$GITHUB_PATH"
-
-      - name: Metro em segundo plano
-        run: |
-          mkdir -p "$RUNNER_TEMP/e2e-ios"
-          nohup pnpm start > "$RUNNER_TEMP/e2e-ios/metro.log" 2>&1 &
-          # o macOS não tem o timeout do GNU
-          for _ in $(seq 60); do curl -fs http://localhost:8081/status && break; sleep 2; done
-          curl -fs http://localhost:8081/status > /dev/null
-          curl -fsS -o /dev/null --max-time 600 \
-            'http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false&app=org.reactjs.native.example.aouerjmobile'
-
-      - name: Simulador
-        run: |
-          udid=$(xcrun simctl list devices available -j | python3 -c '
-          import json, sys
-          devices = json.load(sys.stdin)["devices"]
-          runtimes = sorted((r for r in devices if "iOS" in r), reverse=True)
-          print(next(d["udid"] for r in runtimes for d in devices[r] if d["name"].startswith("iPhone")))')
-          xcrun simctl boot "$udid"
-          xcrun simctl bootstatus "$udid" -b
-          # O diálogo tardio de salvar senha não aparece na árvore do Maestro.
-          # Mesma preferência de setAutoFillPasswords(false) do Appium; só no simulador de CI.
-          xcrun simctl spawn "$udid" defaults write com.apple.WebUI AutoFillPasswords -int 0
-          test "$(xcrun simctl spawn "$udid" defaults read com.apple.WebUI AutoFillPasswords)" = 0
-          xcrun simctl install "$udid" ios/build/Build/Products/Debug-iphonesimulator/aouerjmobile.app
-          echo "SIM_UDID=$udid" >> "$GITHUB_ENV"
-
-      # Em ordem: o login do primeiro fluxo vale para os seguintes. O driver
-      # XCTest do Maestro às vezes não sobe na primeira tentativa no runner:
-      # tempo maior de início, um aquecimento e uma nova tentativa por fluxo.
-      - name: Fluxos iOS
-        env:
-          MAESTRO_DRIVER_STARTUP_TIMEOUT: '240000'
-        run: |
-          out="$RUNNER_TEMP/e2e-ios"
-          for _ in 1 2 3; do
-            maestro --device "$SIM_UDID" hierarchy > /dev/null 2>&1 && break
-            sleep 10
-          done
-          status=0
-          for flow in .maestro/ios/0*.yaml; do
-            name=$(basename "$flow" .yaml)
-            for attempt in 1 2; do
-              if maestro --device "$SIM_UDID" test "$flow" \
-                --format JUNIT --output "$out/$name.xml" --test-output-dir "$out/$name-$attempt"; then
-                break
-              fi
-              if [ "$attempt" = 2 ]; then status=1; fi
-            done
-          done
-          exit $status
-
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
-        with:
-          name: e2e-maestro-ios
-          path: ${{ runner.temp }}/e2e-ios
-          retention-days: 14
-          if-no-files-found: warn
+      # A execução manipula dados reais. Relatórios, telas, árvores e logcat
+      # não são publicados como artifacts do GitHub.
