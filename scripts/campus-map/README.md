@@ -19,4 +19,6 @@ O primeiro comando escreve `src/adapters/outbound/campus-map/atlas.json`. O segu
 
 O app carrega somente o atlas. O modelo de geração não contém telas, renderizador ou código de demonstração. Alterações nas fontes devem ser acompanhadas de regeneração e revisão dos testes em `src/adapters/outbound/campus-map/__tests__` e `src/modules/campus-map/domain/__tests__`.
 
+O Lago dos Peixinhos usa um símbolo original gerado por [schematic-lake.cjs](schematic-lake.cjs), sob a GPL-3.0 do projeto. O octógono é calculado apenas a partir da extensão do pátio A–B: sua forma, seu tamanho e seu centro não representam medidas ou a posição exata do lago. O contorno anteriormente traçado sobre ortofotos foi removido das fontes atuais e do atlas. O GeoJSON mantém uma cópia do símbolo em WGS84, verificada pelos testes contra o atlas; ao mudar a geometria do pátio, essa cópia também precisa ser atualizada.
+
 A [proveniência das medidas](PLANTA.md) registra o levantamento de 13/10/2026, suas fontes e limites. Os dados preservam a atribuição do IPP/Prefeitura do Rio (CC BY 4.0) e do OpenStreetMap (ODbL). As cinco salas numeradas na planta DAENG têm limites documentados; as demais divisões são modeladas. As bibliotecas do C são zonas, sem porta confirmada. Mudanças posteriores no prédio exigem nova conferência.

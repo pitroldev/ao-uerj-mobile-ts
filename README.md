@@ -43,11 +43,11 @@ pnpm test:tooling
 
 Os scripts Gradle funcionam no Windows, Linux e macOS. Debug não exige assinatura de publicação. `pnpm build` e `pnpm bundle` exigem `android/keystore.properties` com `keyAlias`, `keyPassword`, `storeFile` e `storePassword`; `storeFile` é relativo a `android/app` ou um caminho absoluto. As variáveis `ANDROID_KEYSTORE_FILE`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` e `ANDROID_KEY_PASSWORD`, quando definidas, têm prioridade sobre o arquivo. Esses segredos ficam fora do Git.
 
-`pnpm type-check` usa o TypeScript 7 nativo (`@typescript/native`). O pacote `typescript` é o alias `@typescript/typescript6`, que mantém a API JS do TypeScript 6 para o editor (o `@styled/typescript-styled-plugin` roda no tsserver) e para o peer do commitlint. `pnpm lint` roda o Oxlint (`.oxlintrc.json`), com as regras que usam tipos (`oxlint-tsgolint`, sobre o TypeScript 7), e falha com qualquer aviso. A formatação fica só com o Prettier: `pnpm format:check` confere o repositório e `pnpm format` corrige. O CI (`quality.yml`) executa instalação congelada, lint, formatação, TypeScript, Knip (dependências, arquivos e exports sem uso), testes, build debug e AAB release (R8) com uma keystore descartável. Esse AAB serve apenas à validação. O workflow iOS é acionado manualmente em macOS.
+`pnpm type-check` usa o TypeScript 7 nativo (`@typescript/native`). O pacote `typescript` é o alias `@typescript/typescript6`, que mantém a API JS do TypeScript 6 para o editor (o `@styled/typescript-styled-plugin` roda no tsserver). `pnpm lint` roda o Oxlint (`.oxlintrc.json`), com as regras que usam tipos (`oxlint-tsgolint`, sobre o TypeScript 7), e falha com qualquer aviso. A formatação fica só com o Prettier: `pnpm format:check` confere o repositório e `pnpm format` corrige. O CI (`quality.yml`) executa instalação congelada, lint, formatação, TypeScript, Knip (dependências, arquivos e exports sem uso), testes, build debug e AAB release (R8) com uma keystore descartável. Esse AAB serve apenas à validação. O workflow iOS é acionado manualmente em macOS.
 
 ## Commits, versão e release
 
-- **Commits:** [Conventional Commits](https://www.conventionalcommits.org/pt-br/) (`feat:`, `fix(android):`, `chore:`…), validados pelo commitlint. O `pnpm install` instala os hooks do lefthook (`lefthook.yml`): Oxlint e Prettier nos arquivos staged, commitlint na mensagem e type-check no push.
+- **Commits:** a mensagem é livre, sem prefixo obrigatório. O `pnpm install` instala os hooks do lefthook (`lefthook.yml`): Oxlint e Prettier nos arquivos staged no pre-commit e type-check no pre-push. Prefixos como `feat:` e `fix:` continuam opcionais para que o release-please reconheça mudanças na geração automática da versão e do changelog.
 - **Versão:** o `package.json` é a fonte do Android. O Gradle deriva `versionName` (`vX.Y.Z`) e `versionCode` (`MAJOR × 10⁷ + MINOR × 10⁴ + PATCH`). No iOS, `MARKETING_VERSION` e `CURRENT_PROJECT_VERSION` do `project.pbxproj` são atualizados manualmente antes da publicação; ficam fora do release-please porque o Xcode reescreve esse arquivo.
 - **Release:** a cada push na `main`, o release-please (`release.yml`) mantém um PR com a próxima versão e o `CHANGELOG.md`. O merge cria a tag `vX.Y.Z` e o GitHub Release. O workflow confere a versão e a origem da tag na `main`, roda o Quality no commit exato e só então compila o AAB com a chave de upload no environment `play`. O envio é para o teste interno; a promoção para produção é feita no Play Console. A criação do PR pelo `GITHUB_TOKEN` não dispara CI, mas o gate da publicação sempre executa os checks.
 - **Release manual:** registre a versão no `CHANGELOG.md` e no `.release-please-manifest.json`, crie a tag correspondente na `main` e publique o GitHub Release. Depois acione o workflow Release informando essa tag. O manifest registra a última release e evita que o release-please proponha novamente uma versão já publicada.
@@ -148,7 +148,7 @@ O `config/app-status.json` da `main` chega a todos os apps instalados em até 15
 
 ## Diagnóstico do portal real
 
-Os testes comuns usam dados sintéticos e não acessam contas reais. Para o diagnóstico opcional, defina `AO_MATRICULA` e `AO_PASSWORD` no `.env` local:
+Os testes comuns usam dados sintéticos e não acessam contas reais. Para o diagnóstico opcional, copie `.env.example` para `.env` e preencha `AO_MATRICULA` e `AO_PASSWORD` apenas nesse arquivo local, que é ignorado pelo Git:
 
 ```sh
 pnpm diagnose:ao
@@ -156,6 +156,10 @@ pnpm diagnose:ao --expire-session
 ```
 
 O script compõe o mesmo adaptador e parsers com transporte e cookies em memória no Node. O segundo comando simula perda de sessão e verifica a recuperação, inclusive de IDs derivados. A saída contém etapas, contagens e códigos de erro, sem credenciais ou HTML. Essa checagem não substitui a jornada no transporte nativo.
+
+## Licença e atribuições
+
+O código do projeto é distribuído sob a [GPLv3](LICENSE). Fontes, ícones, dados e marcas de terceiros conservam suas próprias condições, descritas em [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt), com os textos das licenças e links de origem. A licença do código não concede direitos sobre símbolos ou marcas da UERJ e de outros titulares. O AO UERJ é um aplicativo não oficial, sem vínculo com a universidade.
 
 ## Documentação
 

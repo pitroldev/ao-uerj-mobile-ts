@@ -627,8 +627,9 @@ export function MapScreen({ initialLocation }: { initialLocation?: string }) {
             Mapa salvo no app · {atlas.version.split('-').reverse().join('/')}
           </Text>
           <Text tone="muted">
-            Contornos e proporções seguem as medidas do IPP. O trecho do 9º
-            andar do Bloco D segue a planta DAENG de 2024.
+            Os contornos dos prédios seguem as medidas do IPP. O trecho do 9º
+            andar do Bloco D segue a planta DAENG de 2024. O lago é um símbolo
+            esquemático no pátio A–B, sem contorno ou posição exatos.
           </Text>
           <Text tone="muted">
             Nos demais andares, a posição das salas é calculada pela numeração.

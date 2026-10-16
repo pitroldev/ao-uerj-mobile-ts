@@ -35,6 +35,36 @@ it('preserves all block outlines from the source, within the 1 mm rounding', () 
   }
 });
 
+it('uses an original schematic lake symbol inside the known courtyard', () => {
+  const lake = source.agua.find(item => item.id === 'lago-dos-peixinhos')!;
+  expect(lake.representacao).toBe('simbolo-esquematico');
+  expect(lake).not.toHaveProperty('poligono');
+  expect(lake).not.toHaveProperty('dimensoes');
+  expect(lake.confianca).toContain('aproximada');
+
+  const courtyard = source.patios.find(item => item.id === lake.patio)!;
+  const ring = atlas.shapes.find(item => item.id === lake.id)!.rings[0];
+  expect(ring).toHaveLength(8);
+  const xs = courtyard.poligono.externo.map(point => point[0]);
+  const ys = courtyard.poligono.externo.map(point => point[1]);
+  const center = [
+    (Math.min(...xs) + Math.max(...xs)) / 2,
+    (Math.min(...ys) + Math.max(...ys)) / 2,
+  ];
+  const radii = ring.map(point =>
+    Math.hypot(point[0] - center[0], point[1] - center[1]),
+  );
+  // Equal radii and a convex octagon characterize a generic symbol, not the
+  // removed shoreline. Keep it away from the courtyard's surrounding blocks.
+  expect(Math.max(...radii) - Math.min(...radii)).toBeLessThan(0.002);
+  for (const [x, y] of ring) {
+    expect(x).toBeGreaterThan(39.8);
+    expect(x).toBeLessThan(62.69);
+    expect(y).toBeGreaterThan(28.68);
+    expect(y).toBeLessThan(54.8);
+  }
+});
+
 it('uses exactly the published rooms and door extents', () => {
   expect(atlas.officialRooms).toHaveLength(5);
   for (const room of atlas.officialRooms) {

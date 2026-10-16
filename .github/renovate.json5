@@ -12,7 +12,7 @@
   // Monday early morning; security fixes ignore the schedule.
   schedule: ['* 0-5 * * 1'],
   labels: ['dependencies'],
-  // fix(deps)/chore(deps) prefixes, which commitlint and release-please expect.
+  // Bot commits keep fix(deps)/chore(deps) prefixes for release-please.
   semanticCommits: 'enabled',
   // Gives the registry time to pull compromised releases before they reach the
   // lockfile. The 3 days apply only to the versions Renovate proposes.
@@ -48,7 +48,6 @@
         '@testing-library/**',
         'knip',
         'lefthook',
-        '@commitlint/**',
       ],
     },
     {

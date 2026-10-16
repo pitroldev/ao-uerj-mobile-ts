@@ -3,6 +3,7 @@
  * Gera os glifos do design system a partir dos SVGs oficiais do Material
  * Symbols Outlined (peso 300, tamanho óptico 24, Apache 2.0) e o desenho do
  * logo AO a partir de src/assets/AO_Logo.svg.
+ * Licença dos ícones: licenses/Apache-2.0.txt; créditos: THIRD_PARTY_NOTICES.txt.
  *
  *   node scripts/generate-icons.cjs            baixa os ícones e reescreve tudo
  *   node scripts/generate-icons.cjs --logo     só reescreve o logo (offline)
@@ -421,6 +422,8 @@ async function writeGlyphs() {
 
   const source = `/* Gerado por scripts/generate-icons.cjs. Não edite à mão. */
 /* Material Symbols Outlined, peso 300, tamanho óptico 24 (Apache License 2.0). */
+/* SVGs do Google convertidos em constantes TypeScript pelo projeto AO UERJ. */
+/* Licença: licenses/Apache-2.0.txt. Créditos: THIRD_PARTY_NOTICES.txt. */
 
 /** viewBox comum a todos os glifos do Material Symbols. */
 export const ICON_VIEWBOX = '0 -960 960 960';

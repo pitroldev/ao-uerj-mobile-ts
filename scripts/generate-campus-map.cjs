@@ -1,6 +1,7 @@
 /* Rebuild the offline atlas from measured geometry and the room model. */
 const fs = require('node:fs');
 const path = require('node:path');
+const { schematicLake } = require('./campus-map/schematic-lake.cjs');
 const {
   Sala,
   floorRoute,
@@ -89,7 +90,16 @@ const measuredShapes = [
   ...scheme.ligacoes,
   ...scheme.passarela,
   ...scheme.patios,
-  ...scheme.agua,
+  ...scheme.agua.map(shape => ({
+    ...shape,
+    // The lake is an original symbol inside its known courtyard. No traced
+    // shoreline or surveyed lake dimensions are stored in the source model.
+    poligono: {
+      externo: schematicLake(
+        scheme.patios.find(patio => patio.id === shape.patio),
+      ).ring,
+    },
+  })),
   ...scheme.vizinhos,
 ];
 const roomModels = [],
@@ -247,7 +257,7 @@ for (const block of ['A', 'B', 'D', 'E', 'F']) {
   });
 }
 const atlas = {
-  version: '2026-10-13',
+  version: scheme.versao,
   north: scheme.referencial.azimute_verdadeiro_y_graus,
   campus: scheme.campus.contorno.externo,
   shapes: catalogue.shapes.map(p => ({

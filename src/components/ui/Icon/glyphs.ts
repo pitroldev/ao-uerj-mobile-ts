@@ -1,5 +1,7 @@
 /* Gerado por scripts/generate-icons.cjs. Não edite à mão. */
 /* Material Symbols Outlined, peso 300, tamanho óptico 24 (Apache License 2.0). */
+/* SVGs do Google convertidos em constantes TypeScript pelo projeto AO UERJ. */
+/* Licença: licenses/Apache-2.0.txt. Créditos: THIRD_PARTY_NOTICES.txt. */
 
 /** viewBox comum a todos os glifos do Material Symbols. */
 export const ICON_VIEWBOX = '0 -960 960 960';

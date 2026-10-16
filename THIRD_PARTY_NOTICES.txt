@@ -1,0 +1,49 @@
+AO UERJ — componentes e ativos de terceiros
+
+A licença GPLv3 do código do projeto está em LICENSE. Os componentes e
+ativos abaixo mantêm suas próprias licenças e avisos. Este inventário não
+substitui as licenças das dependências instaladas pelos gerenciadores de
+pacotes.
+
+Material Symbols — Google
+-------------------------
+Fonte: https://github.com/google/material-design-icons
+Arquivos: src/components/ui/Icon/glyphs.ts
+Licença: Apache License 2.0; cópia integral em licenses/Apache-2.0.txt.
+Original: https://github.com/google/material-design-icons/blob/master/LICENSE
+
+O projeto seleciona os ícones Material Symbols Outlined, peso 300 e tamanho
+óptico 24, com variantes de preenchimento 0 e 1. scripts/generate-icons.cjs
+extrai os caminhos dos SVGs e os reúne em constantes TypeScript. Essa
+conversão é uma modificação local de formato; o arquivo gerado conserva o
+aviso de origem e a referência à licença.
+
+Inter
+-----
+Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter)
+Arquivos: src/assets/fonts/Inter*.ttf e suas cópias nos projetos nativos.
+Licença: SIL Open Font License 1.1, preservada integralmente em
+src/assets/fonts/LICENSE-Inter.txt.
+
+Dados do mapa
+-------------
+As fontes, licenças e atribuições por geometria estão documentadas em
+scripts/campus-map/PLANTA.md e nos dados de scripts/campus-map/data/.
+Incluem dados do IPP/Prefeitura do Rio sob CC BY 4.0 e do OpenStreetMap sob
+ODbL. As atribuições e os links também aparecem na tela do mapa.
+
+Símbolos, nomes e marcas de terceiros
+------------------------------------
+Os nomes, símbolos e marcas de terceiros, incluindo UERJ, GitHub e
+LinkedIn, não são relicenciados pela licença do código do AO UERJ. Os
+respectivos direitos permanecem com seus titulares; este arquivo não
+concede autorização de uso nem declara apoio ou vínculo institucional.
+
+Os vetores GitHub e LinkedIn usados em src/pages/About/BrandIcon.tsx
+identificam os links para os perfis do autor. Fontes dos desenhos:
+https://brand.github.com/GitHub_Logos.zip
+https://brand.linkedin.com/downloads
+
+O AO UERJ é um aplicativo não oficial, sem vínculo com a UERJ. A licença
+do código não constitui autorização da universidade para reutilizar seus
+símbolos ou representar o projeto como um produto oficial.
