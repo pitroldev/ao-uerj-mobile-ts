@@ -63,6 +63,28 @@ it('counts exempt credits without counting a repeated completed course twice', (
   ).toBe(false);
 });
 
+it('accepts an official completed prerequisite absent from history without inventing credits', () => {
+  const required = { ...curriculum, id: 'IME01-11111', alreadyTaken: true };
+  const target = { ...details, prerequisite: [[prereq(required.id)]] };
+  expect(subjectEligibility(curriculum, target, [], [required]).eligible).toBe(
+    true,
+  );
+  expect(
+    subjectEligibility(
+      { ...curriculum, minimum_credits: 1 },
+      target,
+      [],
+      [required],
+    ),
+  ).toMatchObject({
+    eligible: false,
+    reason: 'Você não possui créditos suficientes.',
+  });
+  expect(
+    prerequisitesSatisfied([[prereq('IME01-22222')]], [], [required]),
+  ).toBe(false);
+});
+
 it('uses Monday=0 for both the busy-hours picker and class data', () => {
   const [interval] = scheduleIntervals([{ Segunda: [['M1', 'M2']] }]);
   const busy = { ...interval, week_day: academicWeekdayToPlanningDay(1) };

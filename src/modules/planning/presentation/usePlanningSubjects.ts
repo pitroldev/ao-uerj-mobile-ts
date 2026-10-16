@@ -15,9 +15,12 @@ import {
   PlanningLoadProgress,
 } from '../application/LoadPlanningSubjects';
 
+const NO_CURRICULUM: readonly CurriculumSubject[] = [];
+
 export function usePlanningSubjects(
   subjects: CurriculumSubject[],
   history?: SubjectsTaken[],
+  completedCurriculum: readonly CurriculumSubject[] = NO_CURRICULUM,
 ) {
   const { academicRecords } = useAppServices();
   const { account } = useIdentity();
@@ -40,6 +43,7 @@ export function usePlanningSubjects(
     period,
     subjects,
     history,
+    completedCurriculum,
     attempt,
   ];
   const [loadedFor, setLoadedFor] = useState(inputs);
@@ -82,12 +86,27 @@ export function usePlanningSubjects(
         }),
     });
     void loader
-      .execute(subjects, history, controller.signal, setProgress)
+      .execute(
+        subjects,
+        history,
+        controller.signal,
+        setProgress,
+        completedCurriculum,
+      )
       .catch(() => undefined)
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [academicRecords, queryClient, scope, period, subjects, history, attempt]);
+  }, [
+    academicRecords,
+    queryClient,
+    scope,
+    period,
+    subjects,
+    history,
+    completedCurriculum,
+    attempt,
+  ]);
   return { ...progress, loading, retry: () => setAttempt(value => value + 1) };
 }

@@ -96,6 +96,16 @@ beforeEach(() => {
   mockCurriculum = makeQuery(curriculum);
 });
 
+it('preserves curriculum-confirmed completion when history is unavailable without displaying a fabricated zero CR', async () => {
+  mockHistory = makeQuery<SubjectsTaken[]>(undefined, new AppError('NETWORK'));
+  mockCurriculum = makeQuery([{ ...curriculum[0], alreadyTaken: true }]);
+  await renderPage();
+  expect(stats()[0]).toHaveAccessibleName('Disciplinas concluídas: 1');
+  expect(stats()[1]).toHaveAccessibleName('CR aproximado: –');
+  expect(screen.getByText('1 de 1 disciplinas · concluído')).toBeOnTheScreen();
+  expect(queryAnyText('CR aproximado: 0,00')).not.toBeOnTheScreen();
+});
+
 it('preserves completed courses from history without inventing curriculum totals after a partial failure', async () => {
   mockCurriculum = makeQuery<CurriculumSubject[]>(
     undefined,

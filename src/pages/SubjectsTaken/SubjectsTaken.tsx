@@ -9,7 +9,7 @@ import {
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
 import type { SubjectsTaken } from '@root/modules/academics/domain/models';
 
-import { SelectField } from '@components/ui';
+import { FootNote, SelectField } from '@components/ui';
 import { ScreenPanel } from '@templates/ScreenPanel';
 import {
   TakenSubjectsSummary,
@@ -62,7 +62,11 @@ export const SubjectsTakenScreen = () => {
   };
 
   return (
-    <ScreenPanel scrollRef={scrollRef}>
+    <ScreenPanel
+      scrollRef={scrollRef}
+      refreshing={query.isFetching && !query.isPaused}
+      onRefresh={retry}
+    >
       <QueryNotice
         dataUpdatedAt={query.dataUpdatedAt}
         isPaused={query.isPaused}
@@ -82,6 +86,9 @@ export const SubjectsTakenScreen = () => {
         }
         disabled={periodOptions.length === 0}
       />
+      {data.length > 0 ? (
+        <FootNote text="O CR é calculado pelo app a partir do seu histórico e pode ser diferente do oficial." />
+      ) : null}
       {subjects.length > 0 ? (
         <>
           <TakenSubjectsSummary subjects={subjects} />

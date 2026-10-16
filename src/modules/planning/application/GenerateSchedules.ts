@@ -45,6 +45,7 @@ export class GenerateSchedules {
         curriculum,
         details,
         form.takenSubjects,
+        form.curriculumSubjects,
       );
       if (!eligibility.eligible)
         throw new AppError(
@@ -67,8 +68,8 @@ export class GenerateSchedules {
         'INVALID_INPUT',
         'Selecione turmas de disciplinas suficientes para atingir o mínimo.',
       );
-    // The deployed generator ignores busy_schedules; enforce the student's
-    // unavailable hours before sending even manually reselected classes.
+    // Keep unavailable hours enforced locally too, including manually
+    // reselected classes and compatibility with older generator deployments.
     const compatibleClasses = form.selectedClasses.filter(
       group =>
         !hasScheduleConflict(

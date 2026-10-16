@@ -96,6 +96,31 @@ describe('approximate CR policy', () => {
 });
 
 describe('curriculum progress', () => {
+  it('counts a completion confirmed by the curriculum without inventing historical credits or a grade', () => {
+    const progress = calculateAcademicProgress(
+      [],
+      [curriculumCourse({ alreadyTaken: true })],
+      defaultElectiveCredits,
+    );
+    expect(progress.approvedCount).toBe(1);
+    expect(progress.byType.completed.MANDATORY).toBe(1);
+    expect(progress.byType.percent.MANDATORY).toBe(100);
+    expect(progress.byType.completedCredits.MANDATORY).toBe(0);
+    expect(calculateCumulativeAverage([])).toBe(0);
+  });
+  it('deduplicates canonical subject codes across history and curriculum without matching names', () => {
+    const progress = calculateAcademicProgress(
+      [course({ id: 'ime01-12345' }), course({ id: '12345' })],
+      [
+        curriculumCourse({ alreadyTaken: true }),
+        curriculumCourse({ id: 'IME01-12346' }),
+      ],
+      defaultElectiveCredits,
+    );
+    expect(progress.approvedCount).toBe(1);
+    expect(progress.byType.completedCredits.MANDATORY).toBe(4);
+    expect(progress.byType.percent.MANDATORY).toBe(50);
+  });
   it('counts repeated approval only once, counts exemptions, excludes failures and cancellations', () => {
     const history = [
       course(),

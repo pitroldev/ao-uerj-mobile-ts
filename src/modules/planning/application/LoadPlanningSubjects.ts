@@ -30,6 +30,7 @@ export class LoadPlanningSubjects {
     history: readonly SubjectsTaken[],
     signal: AbortSignal,
     onProgress: (progress: PlanningLoadProgress) => void,
+    completedCurriculum: readonly CurriculumSubject[] = [],
   ): Promise<PlanningSubjectResult[]> {
     const unique = [
       ...new Map(subjects.map(subject => [subject.id, subject])).values(),
@@ -52,7 +53,12 @@ export class LoadPlanningSubjects {
           result = {
             subject,
             details,
-            ...subjectEligibility(subject, details, history),
+            ...subjectEligibility(
+              subject,
+              details,
+              history,
+              completedCurriculum,
+            ),
           };
         } catch (error) {
           assertActive();

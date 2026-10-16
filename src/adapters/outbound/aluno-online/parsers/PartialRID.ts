@@ -6,11 +6,18 @@ import { PartialRID } from '@root/modules/academics/domain/models';
 import { parseSubjectName, parseSubjectID } from './values';
 
 export function parsePartialRID($: CheerioAPI) {
+  const hasResultTable = $('table.reportTable').length > 0;
+  const pageText = $.root().text().replace(/\s+/g, ' ').trim();
   requireStructure(
-    $('table.reportTable').length > 0 ||
-      /não há resultado provisório disponível/i.test($.root().text()),
+    hasResultTable ||
+      /não há resultado (?:provisório disponível|parcial a ser apresentado)/i.test(
+        pageText,
+      ),
   );
   const subjects: PartialRID[] = [];
+  if (!hasResultTable) {
+    return { subjects, updatedAt: '' };
+  }
 
   // Receipt and layout tables share this page with the provisional results.
   $('table.reportTable > tr, table.reportTable > tbody > tr').each(

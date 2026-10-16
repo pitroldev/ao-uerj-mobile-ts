@@ -26,8 +26,8 @@ it('marks the period in progress, the current CR and leaves exemptions without C
   ]);
   expect(options).toEqual([
     { value: '2026.1', label: '2026.1', aside: 'Em curso' },
-    { value: '2025.2', label: '2025.2', aside: 'CR atual 7,00' },
-    { value: '2025.1', label: '2025.1', aside: 'CR 8,00' },
+    { value: '2025.2', label: '2025.2', aside: 'CR aprox. atual 7,00' },
+    { value: '2025.1', label: '2025.1', aside: 'CR aprox. 8,00' },
     { value: 'Isenções', label: 'Isenções' },
   ]);
 });

@@ -13,6 +13,8 @@ import {
   reportsUnavailableAccount,
 } from '../parsers/parseLoginData';
 import { subjectPage } from '../__fixtures__/subjectPage';
+import { historyPage, historyRow } from '../__fixtures__/historyPage';
+import { calculateCraProgression } from '@root/modules/academics/domain/rules/progress';
 import {
   rejectedLoginPage,
   unknownMatriculaLoginPage,
@@ -289,6 +291,42 @@ it('accepts explicit exemption rows and rejects unknown completion status', () =
     ),
   );
   expect(() => parseHistory(unknown)).toThrow('PORTAL_LAYOUT_CHANGED');
+});
+
+it('reads the nested full history page without turning summary or complementary activity cells into attempts', () => {
+  const history = parseHistory(
+    historyPage(
+      [
+        historyRow('', 'ABC01-00101', 'Isento', '-'),
+        historyRow('', 'ABC01-00102', 'Isento', '-'),
+        historyRow('2024/2', 'ABC01-00103', 'Aprov. Nota', '8,0'),
+        historyRow('', 'ABC01-00104', 'Aprov. Nota', '9,0'),
+        historyRow('2025/2', 'ABC01-00103', 'Reprov. Nota', '4,0'),
+        historyRow('', 'ABC01-00105', 'Cancelado', '-'),
+      ].join(''),
+    ),
+  );
+  expect(history).toHaveLength(6);
+  expect(
+    history.map(({ id, period, status }) => ({ id, period, status })),
+  ).toEqual([
+    { id: 'ABC01-00101', period: 'Isento', status: 'EXEMPT' },
+    { id: 'ABC01-00102', period: 'Isento', status: 'EXEMPT' },
+    { id: 'ABC01-00103', period: '2024.2', status: 'APPROVED' },
+    { id: 'ABC01-00104', period: '2024.2', status: 'APPROVED' },
+    { id: 'ABC01-00103', period: '2025.2', status: 'FAILED_BY_GRADE' },
+    { id: 'ABC01-00105', period: '2025.2', status: 'CANCELED' },
+  ]);
+  expect(history.every(item => item.name === 'Disciplina de Teste II')).toBe(
+    true,
+  );
+  expect(calculateCraProgression(history)).toEqual({
+    currentCRA: 7,
+    pointsOverTime: [
+      { label: '2024.2', cra: 8.5 },
+      { label: '2025.2', cra: 7 },
+    ],
+  });
 });
 
 it('rejects nonnumeric RID availability without leaking NaN into the domain', () => {

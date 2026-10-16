@@ -30,8 +30,8 @@ export function createScheduleGeneratorAdapter(
         const minimum = request.preferences.minimumSubjects;
         if (maximum < minimum) return [];
 
-        // The legacy server enumerates sizes >= 3 plus the exact maximum.
-        // It always ranks subject count first. Probe its omitted sizes only
+        // Older server versions enumerate sizes >= 3 plus the exact maximum.
+        // They rank subject count first. Probe their omitted sizes only
         // after an empty result; this preserves ranking with at most 3 POSTs.
         const candidateMaximums = [maximum, 2, 1].filter(
           (amount, index, values) =>

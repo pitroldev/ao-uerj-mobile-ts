@@ -26,6 +26,13 @@ const firstSubject = `<tr>
   <td>32</td><td>12</td><td>Classificado</td>
 </tr>`;
 
+const registrationReceipt = `<table id="smallfont">
+  <tr><th></th><th>Disciplina</th><th>Turma</th><th>Tipo</th>
+    <th>Ramif.</th><th>Mensagem</th><th>Data</th><th>Orig.</th></tr>
+  <tr><td>1.</td><td>ABC01-10001 ÁLGEBRA I</td><td>1</td><td>OBR</td>
+    <td></td><td>Pedido de inclusão</td><td>01/01/2030</td><td>1</td></tr>
+</table>`;
+
 describe('parsePartialRID', () => {
   it('reads only provisional results, excluding layout, notes and receipt tables', () => {
     const html = page(
@@ -132,10 +139,38 @@ describe('parsePartialRID', () => {
     ).toEqual({ subjects: [], updatedAt });
   });
 
-  it.each(['<div><div>Não há resultado provisório disponível</div></div>'])(
-    'returns an empty result when no result table or update time exists',
-    html => {
+  it.each([
+    '<div><div>Não há resultado provisório disponível</div></div>',
+    '<div><div>não há resultado parcial a ser apresentado</div></div>',
+    '<div><div>Não&nbsp;há resultado\n <span>provisório</span> disponível</div></div>',
+    '<div><div>NÃO&nbsp;HÁ resultado\n <span>parcial</span> a ser apresentado</div></div>',
+  ])('returns an empty result for a recognized portal message: %s', html => {
+    expect(parsePartialRID(html)).toEqual({ subjects: [], updatedAt: '' });
+  });
+
+  it.each([
+    'não há resultado parcial a ser apresentado',
+    'Não há resultado provisório disponível',
+  ])(
+    'keeps receipt rows and headings out of an unavailable partial result: %s',
+    message => {
+      const html = `<p>${message}, aguarde o processamento.</p>
+        <div class="divContentBox"><div class="divContentBoxBody">
+          <b>Recibo de inscrição</b>${registrationReceipt}
+        </div></div>`;
+
       expect(parsePartialRID(html)).toEqual({ subjects: [], updatedAt: '' });
+    },
+  );
+
+  it.each([
+    '<div>Não há resultado por um motivo desconhecido</div>',
+    '<div>Portal temporariamente indisponível</div>',
+    registrationReceipt,
+  ])(
+    'rejects unknown pages instead of silently returning no results: %s',
+    html => {
+      expect(() => parsePartialRID(html)).toThrow('PORTAL_LAYOUT_CHANGED');
     },
   );
 });

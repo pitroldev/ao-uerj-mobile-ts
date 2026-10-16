@@ -62,6 +62,7 @@ export function MyProgressPage() {
     initialLoading,
     isEmpty,
     curriculumAvailable,
+    historyAvailable,
     approvedCount,
     currentCRA,
     crPoints,
@@ -120,7 +121,10 @@ export function MyProgressPage() {
         <StatGroup
           items={[
             { value: String(approvedCount), label: 'Disciplinas concluídas' },
-            { value: formatCr(Number(currentCRA)), label: 'CR aproximado' },
+            {
+              value: historyAvailable ? formatCr(currentCRA) : '–',
+              label: 'CR aproximado',
+            },
           ]}
         />
         <FootNote text={COPY.approxCr} />
@@ -190,7 +194,9 @@ export function MyProgressPage() {
 
   return (
     <>
-      <ScreenPanel>{content}</ScreenPanel>
+      <ScreenPanel refreshing={isFetching && !isPaused} onRefresh={retry}>
+        {content}
+      </ScreenPanel>
       <CreditsSheet
         visible={sheetVisible}
         onClose={() => setSheetVisible(false)}

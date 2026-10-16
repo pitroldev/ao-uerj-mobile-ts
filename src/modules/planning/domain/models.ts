@@ -35,6 +35,8 @@ export type ScheduleCreationParams = {
   subjectsToTake: CurriculumSubject[];
   selectedSubjects: CurriculumSubject[];
   takenSubjects: SubjectsTaken[];
+  /** Portal-confirmed completion; never supplies fabricated grades or credits. */
+  curriculumSubjects?: CurriculumSubject[];
   subjects: SubjectInfo[];
   selectedClasses: SubjectClasses[];
 };

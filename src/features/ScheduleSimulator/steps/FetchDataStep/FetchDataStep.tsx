@@ -3,7 +3,10 @@ import { useFormContext, useWatch } from 'react-hook-form';
 import styled, { useTheme } from 'styled-components/native';
 
 import { useStepsContext } from '@hooks/useSteps';
-import { useHistory } from '@root/modules/academics/presentation/queries';
+import {
+  useCurriculum,
+  useHistory,
+} from '@root/modules/academics/presentation/queries';
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
 import { usePlanningSubjects } from '@root/modules/planning/presentation/usePlanningSubjects';
 import { ScheduleCreationParams } from '@root/modules/planning/domain/models';
@@ -78,7 +81,12 @@ export const FetchDataStep = () => {
     useFormContext<ScheduleCreationParams>();
   const selectedSubjects = useWatch({ control, name: 'selectedSubjects' });
   const history = useHistory();
-  const progress = usePlanningSubjects(selectedSubjects, history.data);
+  const curriculum = useCurriculum();
+  const progress = usePlanningSubjects(
+    selectedSubjects,
+    history.data,
+    curriculum.data,
+  );
   const complete =
     history.isSuccess &&
     progress.completed === selectedSubjects.length &&
@@ -92,6 +100,7 @@ export const FetchDataStep = () => {
       .map(result => result.details!);
     setValue('subjects', subjects);
     setValue('takenSubjects', history.data);
+    setValue('curriculumSubjects', curriculum.data);
     setValue(
       'selectedClasses',
       availableClasses(subjects, getValues('busy_schedules')),
@@ -188,6 +197,15 @@ export const FetchDataStep = () => {
         hasData={history.data !== undefined}
         retry={history.refetch}
       />
+      {curriculum.error ? (
+        <RetryNotice
+          tone="warn"
+          text="Não foi possível conferir o currículo. Os pré-requisitos serão verificados com os dados disponíveis."
+          onRetry={() => {
+            void curriculum.refetch();
+          }}
+        />
+      ) : null}
       <StepIntro
         live
         title={

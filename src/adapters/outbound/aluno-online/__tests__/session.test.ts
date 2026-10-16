@@ -244,6 +244,35 @@ it('does not treat short valid responses as an expired session', async () => {
   expect(app.loginCount()).toBe(1);
 });
 
+it('recovers a missing history request ID from the refreshed menu', async () => {
+  const app = setup();
+  await app.authentication.signIn(credentials);
+  // The saved session has no history operation. A fresh portal menu supplies it.
+  app.setLoginResult(`${studentHeader}<div id="menu_linha_item">
+    <a onclick="go('${key('history', 2)}')">Requisitos realizados</a>
+  </div>`);
+  app.handle(async () => response(shortPage));
+
+  await expect(app.diagnostics.fetch('history')).resolves.toBe(shortPage);
+  expect(app.loginCount()).toBe(2);
+  expect(app.operations).toHaveLength(1);
+  expect(app.operations[0].params).toMatchObject({
+    requisicao: key('history', 2),
+    _token: 'token-2',
+  });
+});
+
+it('does not fabricate an empty history when its request ID remains unavailable', async () => {
+  const app = setup();
+  await app.authentication.signIn(credentials);
+
+  await expect(app.records.getHistory()).rejects.toMatchObject({
+    code: 'SESSION_EXPIRED',
+  });
+  expect(app.loginCount()).toBe(2);
+  expect(app.operations).toHaveLength(0);
+});
+
 it('rejects a second expiry without entering a login loop', async () => {
   const app = setup();
   await app.authentication.signIn(credentials);

@@ -3,6 +3,7 @@
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": [
     "node_modules",
+    "artifacts",
     "babel.config.js",
     "metro.config.js",
     "jest.config.js",

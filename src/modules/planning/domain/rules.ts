@@ -6,6 +6,7 @@ import {
   CurriculumSubject,
 } from '@root/modules/academics/domain/models';
 import { normalizeSubjectId } from '@root/modules/academics/domain/rules/subjectId';
+import { completedSubjectIds } from '@root/modules/academics/domain/rules/completion';
 import { TIME_DICTIONARY } from '@utils/constants/time';
 import { Schedule, SubjectClasses } from './models';
 import { AppError } from '@root/shared/errors/AppError';
@@ -81,10 +82,9 @@ function completedSubjects(history: readonly SubjectsTaken[]) {
 export function prerequisitesSatisfied(
   groups: readonly Prereq[][],
   history: readonly SubjectsTaken[],
+  curriculum: readonly CurriculumSubject[] = [],
 ): boolean {
-  const completed = new Set(
-    completedSubjects(history).map(subject => normalizeSubjectId(subject.id)),
-  );
+  const completed = completedSubjectIds(history, curriculum);
   return groups
     .filter(
       group => group.length && !group[0].id.toUpperCase().includes('TRAVA'),
@@ -100,10 +100,12 @@ export function subjectEligibility(
   curriculum: CurriculumSubject,
   details: SubjectInfo,
   history: readonly SubjectsTaken[],
+  completedCurriculum: readonly CurriculumSubject[] = [],
 ) {
   const hasPrerequisites = prerequisitesSatisfied(
     details.prerequisite ?? [],
     history,
+    completedCurriculum,
   );
   const credits = completedSubjects(history).reduce(
     (sum, subject) =>

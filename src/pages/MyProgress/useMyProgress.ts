@@ -35,6 +35,7 @@ export function useMyProgress() {
     initialLoading: subjectsTakenQuery.isLoading || curriculumQuery.isLoading,
     isEmpty: !subjectsTakenQuery.data?.length && !curriculumQuery.data?.length,
     curriculumAvailable: curriculumQuery.data !== undefined,
+    historyAvailable: subjectsTakenQuery.data !== undefined,
     ...progress,
     ...cra,
     crPoints,

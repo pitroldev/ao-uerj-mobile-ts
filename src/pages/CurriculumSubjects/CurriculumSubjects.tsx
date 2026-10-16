@@ -1,18 +1,21 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import type { FlatList, ListRenderItemInfo } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import styled from 'styled-components/native';
 
 import {
   useCurriculum,
+  useHistory,
   isPortalBlocked,
 } from '@root/modules/academics/presentation/queries';
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
 import type { CurriculumSubject } from '@root/modules/academics/domain/models';
+import { reconcileCurriculumCompletion } from '@root/modules/academics/domain/rules/completion';
 
 import {
   ChipGroup,
   FilterChip,
+  Notice,
   SearchField,
   SegmentedControl,
 } from '@components/ui';
@@ -51,11 +54,19 @@ export const CurriculumSubjects = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const query = useCurriculum();
+  const history = useHistory();
   const { error, refetch } = query;
   const retry = () => {
     void refetch();
   };
-  const data = query.data ?? NO_SUBJECTS;
+  const data = useMemo(
+    () =>
+      reconcileCurriculumCompletion(
+        query.data ?? NO_SUBJECTS,
+        history.data ?? [],
+      ),
+    [query.data, history.data],
+  );
 
   const navigation = useNavigation();
   const listRef = useRef<FlatList<CurriculumSubject>>(null);
@@ -117,6 +128,17 @@ export const CurriculumSubjects = () => {
         hasData={query.data !== undefined}
         retry={refetch}
       />
+      {history.error ? (
+        <Spaced>
+          <Notice
+            tone="warn"
+            text="Não foi possível conferir o histórico. As conclusões disponíveis continuam visíveis."
+            onRetry={() => {
+              void history.refetch();
+            }}
+          />
+        </Spaced>
+      ) : null}
       <ChipGroup layout="scroll" accessibilityLabel="Tipo de disciplina">
         {CURRICULUM_TYPE_FILTERS.map(({ value, label }) => (
           <FilterChip

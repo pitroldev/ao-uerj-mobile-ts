@@ -13,7 +13,7 @@ function formatCra(cra: number): string {
 /**
  * Opções do seletor de período (mais recente primeiro, como em
  * `getPeriodList`), com o CR acumulado à direita: "Em curso" no período que
- * ainda tem disciplinas em andamento, "CR atual 7,77" no último período
+ * ainda tem disciplinas em andamento, "CR aprox. atual 7,77" no último período
  * encerrado e "CR 7,65" nos anteriores. Períodos de isenção ficam sem CR.
  * Os valores de CR vêm das regras de domínio (`calculateCraProgression`).
  */
@@ -37,7 +37,7 @@ export function buildPeriodOptions(
       return { value, label: value, aside: 'Em curso' };
     const cra = craByPeriod.get(value);
     if (cra === undefined) return { value, label: value };
-    const prefix = currentMarked ? 'CR' : 'CR atual';
+    const prefix = currentMarked ? 'CR aprox.' : 'CR aprox. atual';
     currentMarked = true;
     return { value, label: value, aside: `${prefix} ${formatCra(cra)}` };
   });

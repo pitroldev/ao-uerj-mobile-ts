@@ -1,4 +1,6 @@
 import { CurriculumSubject, SubjectsTaken } from '../models';
+import { completedSubjectIds } from './completion';
+import { normalizeSubjectId } from './subjectId';
 
 const subjectTypes = [
   'MANDATORY',
@@ -123,20 +125,33 @@ export function calculateAcademicProgress(
   const validCredits = (credits: number | null) =>
     credits !== null && Number.isFinite(credits) ? Math.max(0, credits) : 0;
   for (const subject of new Map(
-    curriculum.map(item => [item.id, item]),
+    curriculum.map(item => [normalizeSubjectId(item.id), item]),
   ).values()) {
     if (!subjectTypes.includes(subject.type)) continue;
     totals[subject.type] += 1;
     totalCredits[subject.type] += validCredits(subject.credits);
   }
   // Repeating an approved course does not earn the same curriculum credits twice.
-  const approved = new Map(
+  const approved = new Map<string, Pick<SubjectsTaken, 'type' | 'credits'>>(
     taken
       .filter(
         subject => subject.status === 'APPROVED' || subject.status === 'EXEMPT',
       )
-      .map(subject => [subject.id, subject]),
+      .map(subject => [normalizeSubjectId(subject.id), subject]),
   );
+  // A completed curriculum entry may have no attempt in this history (e.g.
+  // transferred credits). Count the confirmed completion without inventing a
+  // grade or completed credit amount absent from the historical record.
+  const completedIds = completedSubjectIds(taken, curriculum);
+  for (const subject of curriculum) {
+    const id = normalizeSubjectId(subject.id);
+    if (completedIds.has(id) && !approved.has(id)) {
+      approved.set(id, {
+        type: subject.type,
+        credits: null,
+      });
+    }
+  }
   for (const subject of approved.values()) {
     const type = subject.type as SubjectType;
     if (!subjectTypes.includes(type)) continue;

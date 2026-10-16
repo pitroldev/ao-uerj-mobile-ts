@@ -2,7 +2,10 @@ import React from 'react';
 import { screen, userEvent, within } from '@testing-library/react-native';
 import type { TestInstance } from 'test-renderer';
 
-import type { CurriculumSubject } from '@root/modules/academics/domain/models';
+import type {
+  CurriculumSubject,
+  SubjectsTaken,
+} from '@root/modules/academics/domain/models';
 import { AppError } from '@root/shared/errors/AppError';
 import { renderWithProviders } from '@root/test-utils/render';
 import { OUTLINED_GLYPHS } from '@components/ui';
@@ -27,6 +30,7 @@ const makeQuery = <T,>(
 });
 
 let mockCurriculum: ReturnType<typeof makeQuery<CurriculumSubject[]>>;
+let mockHistory: ReturnType<typeof makeQuery<SubjectsTaken[]>>;
 const mockNavigate = jest.fn();
 
 jest.mock('@root/modules/academics/presentation/queries', () => {
@@ -35,6 +39,7 @@ jest.mock('@root/modules/academics/presentation/queries', () => {
   >('@root/shared/errors/AppError');
   return {
     useCurriculum: () => mockCurriculum,
+    useHistory: () => mockHistory,
     isPortalBlocked: (error: unknown) =>
       error instanceof MockAppError && error.code === 'POSSIBLY_BLOCKED',
   };
@@ -114,6 +119,7 @@ const glyphsBeside = (text: string | RegExp) => {
 
 beforeEach(() => {
   mockCurriculum = makeQuery(curriculum);
+  mockHistory = makeQuery<SubjectsTaken[]>([]);
 });
 afterEach(() => {
   mockNavigate.mockClear();
@@ -135,6 +141,39 @@ it('lists the subjects not yet taken with code, type, details and the credit loc
     'Trava de 140 créditos',
   );
   expect(glyphsBeside('Trava de 140 créditos')).toContain(OUTLINED_GLYPHS.lock);
+});
+
+it('moves an approved course into attended even when the curriculum flag is negative', async () => {
+  mockHistory = makeQuery<SubjectsTaken[]>([
+    {
+      ...curriculum[0],
+      period: '2024.2',
+      status: 'APPROVED',
+      grade: 8,
+      frequency: 100,
+    },
+  ]);
+  await renderPage();
+  expectTitles(['Projeto Final I', 'Aprendizado de Máquina']);
+  await userEvent.setup().press(screen.getByRole('tab', { name: 'Atendidas' }));
+  expectTitles(['Compiladores', 'Cálculo I']);
+});
+
+it('keeps curriculum usable and explains a failed history lookup', async () => {
+  mockHistory = makeQuery<SubjectsTaken[]>(undefined, {
+    error: new AppError('NETWORK'),
+  });
+  await renderPage();
+  expectTitles(['Compiladores', 'Projeto Final I', 'Aprendizado de Máquina']);
+  expect(
+    screen.getByText(/^Não foi possível conferir o histórico/),
+  ).toBeOnTheScreen();
+  await userEvent
+    .setup()
+    .press(screen.getByRole('button', { name: 'Tentar novamente' }));
+  expect(mockHistory.refetch).toHaveBeenCalledTimes(1);
+  await userEvent.setup().press(screen.getByRole('tab', { name: 'Atendidas' }));
+  expectTitles(['Cálculo I']);
 });
 
 it('filters by type, by situation and by name or code', async () => {

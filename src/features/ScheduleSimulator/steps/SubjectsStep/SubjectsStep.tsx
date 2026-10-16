@@ -1,6 +1,14 @@
-import { useCurriculum } from '@root/modules/academics/presentation/queries';
+import {
+  useCurriculum,
+  useHistory,
+} from '@root/modules/academics/presentation/queries';
+import {
+  completedSubjectIds,
+  reconcileCurriculumCompletion,
+} from '@root/modules/academics/domain/rules/completion';
+import { normalizeSubjectId } from '@root/modules/academics/domain/rules/subjectId';
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
-import React, { memo, useCallback, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, ListRenderItemInfo, StyleSheet } from 'react-native';
 import { useFormContext, useWatch } from 'react-hook-form';
 import styled from 'styled-components/native';
@@ -15,6 +23,7 @@ import {
   ErrorState,
   FilterChip,
   ListRow,
+  Notice,
   SearchField,
   SkeletonList,
   Tag,
@@ -116,7 +125,16 @@ export const SubjectsStep = () => {
   const { nextStep, prevStep } = useStepsContext();
 
   const query = useCurriculum();
-  const { data = [], error, refetch, isLoading: loading } = query;
+  const history = useHistory();
+  const { error, refetch, isLoading: loading } = query;
+  const data = useMemo(
+    () => reconcileCurriculumCompletion(query.data ?? [], history.data ?? []),
+    [query.data, history.data],
+  );
+  const completed = useMemo(
+    () => completedSubjectIds(history.data ?? [], query.data ?? []),
+    [query.data, history.data],
+  );
   const retry = () => {
     void refetch();
   };
@@ -128,6 +146,15 @@ export const SubjectsStep = () => {
     control,
   });
   const minimum = min_subject_amount ?? 1;
+
+  useEffect(() => {
+    const selected = getValues('selectedSubjects') ?? [];
+    const pending = selected.filter(
+      subject => !completed.has(normalizeSubjectId(subject.id)),
+    );
+    if (pending.length !== selected.length)
+      setValue('selectedSubjects', pending);
+  }, [completed, getValues, setValue]);
 
   const handleNextPress = handleSubmit(nextStep);
 
@@ -197,6 +224,15 @@ export const SubjectsStep = () => {
         hasData={query.data !== undefined}
         retry={refetch}
       />
+      {history.error ? (
+        <Notice
+          tone="warn"
+          text="Não foi possível conferir o histórico. As conclusões disponíveis continuam visíveis."
+          onRetry={() => {
+            void history.refetch();
+          }}
+        />
+      ) : null}
       <StepIntro title={`Escolha ${minimum} ou mais disciplinas`} />
 
       <ChipGroup

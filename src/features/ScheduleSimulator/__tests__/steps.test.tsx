@@ -241,6 +241,12 @@ let user: ReturnType<typeof userEvent.setup>;
 beforeEach(() => {
   jest.useFakeTimers();
   user = userEvent.setup();
+  Object.assign(mockHistory, { data: [], error: null });
+  Object.assign(mockCurriculum, {
+    data: CURRICULUM,
+    error: null,
+    isLoading: false,
+  });
 });
 afterEach(() => {
   jest.useRealTimers();
@@ -363,6 +369,26 @@ describe('PriorityStep', () => {
 });
 
 describe('SubjectsStep', () => {
+  it('removes an approved selection even if the curriculum still marks it pending', async () => {
+    mockHistory.data = [
+      {
+        ...CURRICULUM[0],
+        period: '2024.2',
+        status: 'APPROVED',
+        grade: 8,
+        frequency: 100,
+      },
+    ];
+    await renderStep(<SubjectsStep />, 3, {
+      min_subject_amount: 1,
+      selectedSubjects: [CURRICULUM[0]],
+    });
+    expect(
+      screen.queryByRole('checkbox', { name: /^Compiladores / }),
+    ).not.toBeOnTheScreen();
+    expect(form.getValues('selectedSubjects')).toEqual([]);
+    expect(button('Próximo')).toBeDisabled();
+  });
   beforeEach(() => {
     Object.assign(mockCurriculum, {
       data: CURRICULUM,
@@ -501,6 +527,7 @@ describe('FetchDataStep', () => {
 
     await user.press(button('Próximo'));
     expect(form.getValues('subjects')).toEqual([DETAILS[0]]);
+    expect(form.getValues('curriculumSubjects')).toEqual(CURRICULUM);
     expect(form.getValues('selectedClasses')).toHaveLength(2);
     expect(steps.nextStep).toHaveBeenCalled();
   });

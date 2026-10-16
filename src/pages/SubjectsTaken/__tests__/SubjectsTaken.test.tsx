@@ -113,6 +113,7 @@ afterEach(() => {
 it('opens on the most recent period and labels each period with its CR', async () => {
   mockHistory = makeQuery(history);
   await renderScreen();
+  expect(screen.getByText(/^O CR é calculado pelo app/)).toBeOnTheScreen();
   expect(
     screen.getByRole('button', { name: 'Período: 2026.2, Em curso. Trocar' }),
   ).toBeOnTheScreen();
@@ -121,8 +122,8 @@ it('opens on the most recent period and labels each period with its CR', async (
   const options = screen.getAllByRole('radio');
   expect(options).toHaveLength(3);
   expect(options[0]).toHaveAccessibleName('2026.2 Em curso');
-  expect(options[1]).toHaveAccessibleName('2026.1 CR atual 6,94');
-  expect(options[2]).toHaveAccessibleName('2025.2 CR 5,50');
+  expect(options[1]).toHaveAccessibleName('2026.1 CR aprox. atual 6,94');
+  expect(options[2]).toHaveAccessibleName('2025.2 CR aprox. 5,50');
   expect(options[0]).toBeChecked();
   expect(rows('2026.2')).toHaveLength(1);
   const [row] = rows('2026.2');
@@ -130,10 +131,20 @@ it('opens on the most recent period and labels each period with its CR', async (
   expect(within(row).getByLabelText('sem nota')).toHaveTextContent('–');
 });
 
+it('allows a manual refresh of a successful history instead of waiting for its cache lifetime', async () => {
+  mockHistory = makeQuery(history);
+  await renderScreen();
+  let scroll = periodField().parent;
+  while (scroll && scroll.type !== 'RCTScrollView') scroll = scroll.parent;
+  expect(scroll).not.toBeNull();
+  await userEvent.setup().pullToRefresh(scroll!);
+  expect(mockHistory.refetch).toHaveBeenCalledTimes(1);
+});
+
 it('summarises and lists the selected period in a table with status and grade', async () => {
   mockHistory = makeQuery(history);
   await renderScreen();
-  await choosePeriod('2026.1 CR atual 6,94');
+  await choosePeriod('2026.1 CR aprox. atual 6,94');
   expect(screen.getByText('2 disciplinas')).toBeOnTheScreen();
   expect(screen.getByText('6 créditos · 90 horas')).toBeOnTheScreen();
   const periodRows = rows('2026.1');
@@ -149,7 +160,7 @@ it('summarises and lists the selected period in a table with status and grade', 
     'Inteligência Artificial, IME02-10872, Obrigatória, Aprovado, Frequência 96%, Nota 8,8, Bom, 4 créditos, 60 horas',
   );
 
-  await choosePeriod('2025.2 CR 5,50');
+  await choosePeriod('2025.2 CR aprox. 5,50');
   expect(screen.getByText('Reprovado por Nota')).toBeOnTheScreen();
   const grades = rows('2025.2').map(row =>
     within(row).getByLabelText(/^Nota /),

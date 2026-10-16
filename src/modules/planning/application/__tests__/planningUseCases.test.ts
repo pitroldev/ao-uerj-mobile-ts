@@ -4,6 +4,27 @@ import { form, curriculum, details } from '../testFixtures';
 import { SubjectClasses } from '../../domain/models';
 
 describe('GenerateSchedules', () => {
+  it('retains the same curriculum completion evidence during final validation', async () => {
+    const generator = { generate: jest.fn().mockResolvedValue([]) };
+    const prerequisite = {
+      ...curriculum,
+      id: 'IME01-11111',
+      alreadyTaken: true,
+    };
+    await expect(
+      new GenerateSchedules(generator).execute({
+        ...form,
+        subjects: [
+          {
+            ...details,
+            prerequisite: [[{ id: prerequisite.id, name: 'Pré-requisito' }]],
+          },
+        ],
+        curriculumSubjects: [prerequisite],
+      }),
+    ).resolves.toEqual([]);
+    expect(generator.generate).toHaveBeenCalledTimes(1);
+  });
   it('passes domain inputs and abort signal to the generator', async () => {
     const generator = { generate: jest.fn().mockResolvedValue([]) };
     const signal = new AbortController().signal;
@@ -75,6 +96,27 @@ describe('GenerateSchedules', () => {
 });
 
 describe('LoadPlanningSubjects', () => {
+  it('uses portal-confirmed completion when loading prerequisite eligibility', async () => {
+    const prerequisite = {
+      ...curriculum,
+      id: 'IME01-11111',
+      alreadyTaken: true,
+    };
+    const records = {
+      getSubjectDetails: jest.fn().mockResolvedValue({
+        ...details,
+        prerequisite: [[{ id: prerequisite.id, name: 'Pré-requisito' }]],
+      }),
+    };
+    const result = await new LoadPlanningSubjects(records).execute(
+      [curriculum],
+      [],
+      new AbortController().signal,
+      jest.fn(),
+      [prerequisite],
+    );
+    expect(result[0].eligible).toBe(true);
+  });
   it('bounds concurrent requests, preserves input order and reports individual failures', async () => {
     const selected = [1, 2, 3, 4].map(code => ({
       ...curriculum,
