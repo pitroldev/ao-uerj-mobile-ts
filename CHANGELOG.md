@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.2.0 (2026-10-16)
+
+### Novidades
+
+- Emissão, consulta, download e compartilhamento de documentos do Aluno Online pelo app.
+- Atualização manual do histórico e do progresso ao puxar a tela.
+
+### Correções
+
+- RID Parcial reconhece corretamente quando ainda não há resultado disponível.
+- Disciplinas aprovadas e isentas são conciliadas entre histórico, currículo, progresso e Gerador de Grade.
+- CR calculado pelo app é identificado como aproximado; histórico vazio não exibe um CR inventado.
+- Gerador de Grade respeita horários indisponíveis e opções de conflito, inclusive quando encontra poucas combinações.
+- Melhorias na recuperação da sessão e na estabilidade da conexão com o portal.
+- Remoção do modo demo e dos dados simulados de execução do app.
+
 ## [2.1.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.0.0...v2.1.0) (2026-10-14)
 
 ### Novidades
