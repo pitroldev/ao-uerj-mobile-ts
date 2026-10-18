@@ -1,5 +1,35 @@
 # Changelog
 
+## 2.5.0 (2026-10-18)
+
+### Novidades
+
+- Quanto preciso na PF, no quadro de notas do Início, pela regra do regime de créditos (art. 95 da Deliberação nº 33/1995):
+  - cada disciplina diz o que falta: "Precisa de X na PF" (com a nota tracejada na coluna da PF), "Dispensado da PF", "Sem direito à PF" ou quanto a outra prova precisa;
+  - com a PF lançada ou a média publicada, mostra a média final e se ela aprova.
+- Simular PF e CR: ajuste a PF de 0,5 em 0,5 e veja a média final de cada disciplina e o CR aproximado com as notas do período.
+- Controle de faltas: marque as aulas em que faltou na agenda da semana ou em Disciplinas em Curso e veja quantos tempos ainda pode faltar, pelo limite de 25% da carga horária. As faltas ficam só no aparelho.
+- A agenda da semana marca "Encerrada" ou "Falta" nos dias anteriores, e Disciplinas em Curso mostra a barra de faltas de cada disciplina.
+
+### Correções
+
+- Notas com duas casas aparecem como o portal lança ("4,95"), sem arredondar para cima.
+- O card "Próxima aula" ignora aulas sem horário informado pelo portal.
+- O atalho "Notas" só diz que o período não tem notas depois que elas carregam.
+- Uma página que o Aluno Online não oferece à conta no momento mostra que ela não está disponível, em vez de "Sua sessão expirou".
+- Notificações no Android:
+  - a verificação em segundo plano faz um só login por rodada e pausa por 12 horas quando o portal recusa a entrada ou a senha;
+  - de madrugada, não acessa a rede nem inicia o app;
+  - uma leitura em branco do portal não gera mais avisos repetidos de nota, RID ou inscrição;
+  - os lembretes de aula voltam sozinhos depois de retirar "Alarmes e lembretes", não chegam atrasados quando o app abre pouco antes da aula e não se repetem ao mudar a antecedência;
+  - o desligamento remoto cancela lembretes e verificação também com o app fechado;
+  - o logout automático por senha recusada também tira os avisos da barra.
+- Widget e atalhos no Android:
+  - os atalhos do ícone não reiniciam mais o app aberto;
+  - o widget não pede login a quem já entrou: antes da primeira grade, pede para abrir o app;
+  - o widget troca de aula no minuto certo quando o app pode agendar alarmes exatos e não acorda mais o aparelho a cada 3 horas;
+  - o horário do bloco do dia não corta com fonte grande, e o dia fica mais legível no tema escuro.
+
 ## 2.4.0 (2026-10-18)
 
 ### Novidades
