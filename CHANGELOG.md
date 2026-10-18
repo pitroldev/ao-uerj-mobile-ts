@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.4.0 (2026-10-18)
+
+### Novidades
+
+- Widget "Próxima aula" no Android, em uma linha na tela inicial, a partir da grade salva no aparelho e sem acessar o portal:
+  - o dia ("Agora", "Hoje" ou o dia da semana), o horário, a disciplina, a sala e o local;
+  - atualiza sozinho quando a aula começa ou termina, à meia-noite e quando o relógio muda;
+  - sem conta, pede o login; sem disciplinas em curso com horário, avisa. O toque abre o Início.
+- Atalhos no ícone do app no Android (tocar e segurar): Próxima aula, Notas, Mapa e Documentos. "Notas" abre o Início no quadro de notas ou avisa quando o período ainda não tem notas.
+
 ## [2.3.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.1.1...v2.3.0) (2026-10-18)
 
 ### Novidades
