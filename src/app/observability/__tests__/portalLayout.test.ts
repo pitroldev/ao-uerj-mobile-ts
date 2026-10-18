@@ -23,6 +23,7 @@ function setup() {
     getCurriculum: jest.fn().mockResolvedValue([]),
     getSchedule: jest.fn().mockResolvedValue([]),
     getPartialRid: jest.fn(),
+    getEnrollmentResult: jest.fn(),
     getSubjectDetails: jest.fn(),
     getUniversalSubjects: jest.fn().mockResolvedValue([]),
   } as jest.Mocked<AcademicRecordsPort>;
@@ -45,6 +46,7 @@ it('reports a layout change once per operation and still rejects every call', as
   const changed = new AppError('PORTAL_LAYOUT_CHANGED');
   records.getGrades.mockRejectedValue(changed);
   records.getSubjectDetails.mockRejectedValue(changed);
+  records.getEnrollmentResult.mockRejectedValue(changed);
 
   await expect(ports.records.getGrades()).rejects.toBe(changed);
   await expect(ports.records.getGrades()).rejects.toBe(changed);
@@ -52,10 +54,13 @@ it('reports a layout change once per operation and still rejects every call', as
     changed,
   );
 
+  await expect(ports.records.getEnrollmentResult()).rejects.toBe(changed);
+
   expect(records.getSubjectDetails).toHaveBeenCalledWith('IME02-01388', {});
   expect(report.mock.calls).toEqual([
     [changed, 'grades'],
     [changed, 'subject-details'],
+    [changed, 'enrollment-result'],
   ]);
 });
 

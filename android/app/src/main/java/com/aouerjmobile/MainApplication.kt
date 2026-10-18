@@ -1,6 +1,7 @@
 package com.aouerjmobile
 
 import android.app.Application
+import com.aouerjmobile.notifications.AppNotificationsPackage
 import com.aouerjmobile.updates.InAppUpdatesPackage
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
@@ -18,6 +19,7 @@ class MainApplication : Application(), ReactApplication {
         PackageList(this).packages.apply {
           // App-local TurboModules (codegenConfig in package.json) are not autolinked.
           add(InAppUpdatesPackage())
+          add(AppNotificationsPackage())
         },
     )
   }

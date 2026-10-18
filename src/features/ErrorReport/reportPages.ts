@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 /** Telas que o aluno pode apontar no relato de problema. */
 export const FEATURES = [
   'Login e Sessão',
@@ -12,6 +14,8 @@ export const FEATURES = [
   'Disciplinas Realizadas',
   'Pesquisa de Disciplinas',
   'Informações de uma disciplina específica',
+  // os avisos só existem no Android
+  ...(Platform.OS === 'android' ? ['Notificações'] : []),
   'Sobre',
 ];
 

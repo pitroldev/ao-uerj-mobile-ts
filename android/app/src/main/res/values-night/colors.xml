@@ -3,4 +3,6 @@
 <resources>
   <!-- O `ink` de src/themes/dark.ts. O azul (primary, splash) é o mesmo nos dois temas. -->
   <color name="text_primary">#E6EDF6</color>
+  <!-- O `accent` de src/themes/dark.ts, legível na gaveta de avisos escura. -->
+  <color name="notification_accent">#6DAEF0</color>
 </resources>

@@ -7,6 +7,7 @@ import { useRemoteStatus } from './DeliveryProvider';
 
 /** Telas do menu que o aviso remoto pode desativar (`disabledFeatures`). */
 const ROUTE_FEATURES: Readonly<Record<string, FeatureId>> = {
+  Notificações: 'notifications',
   'Meu Progresso': 'progress',
   'Emissão de Documentos': 'documents',
   'Gerador de Grade': 'schedule-generator',
@@ -20,6 +21,12 @@ const ROUTE_FEATURES: Readonly<Record<string, FeatureId>> = {
 
 export const UNAVAILABLE_TEXT =
   'Desativamos esta tela por um tempo enquanto corrigimos um problema. Tente de novo mais tarde.';
+
+/** Recursos que param mais que a tela: o texto diz o que deixou de funcionar. */
+export const UNAVAILABLE_TEXTS: Readonly<Partial<Record<FeatureId, string>>> = {
+  notifications:
+    'Pausamos os avisos por um tempo enquanto corrigimos um problema: os lembretes de aula e as verificações no Aluno Online voltam sozinhos depois.',
+};
 
 /** Rotas desativadas agora (o menu as marca como indisponíveis). */
 export function useDisabledRoutes(): ReadonlySet<string> {
@@ -46,7 +53,7 @@ export function FeatureGate({
       <EmptyState
         icon="block"
         title="Indisponível no momento"
-        text={UNAVAILABLE_TEXT}
+        text={UNAVAILABLE_TEXTS[ROUTE_FEATURES[routeName]] ?? UNAVAILABLE_TEXT}
       />
     </ScreenPanel>
   );

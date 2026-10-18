@@ -1,0 +1,32 @@
+# Abre Notificações pelo menu e confere as opções, sem ligar nenhum aviso:
+# ligar um aviso pede a permissão do Android, que o smoke não responde.
+appId: com.aouerjmobile
+name: Notificações da conta autenticada
+tags:
+  - notificacoes
+---
+- runFlow: subflows/iniciar-sessao-autenticada.yaml
+- runFlow: subflows/abrir-menu.yaml
+# o item fica logo acima de Sobre, o último: dentro da tela, mas sob o rodapé
+# do menu até a lista rolar
+- scrollUntilVisible:
+    element: Sobre
+    direction: DOWN
+- runFlow:
+    when:
+      notVisible: Notificações, indisponível
+    commands:
+      - tapOn: Notificações
+      - extendedWaitUntil:
+          visible: Lembrete antes da aula.*
+          timeout: 30000
+      - assertVisible: Aluno Online
+      - scrollUntilVisible:
+          element: Documentos perto de vencer.*
+          direction: DOWN
+      - assertVisible: Notas novas.*
+- runFlow:
+    when:
+      visible: Notificações, indisponível
+    commands:
+      - tapOn: Fechar menu

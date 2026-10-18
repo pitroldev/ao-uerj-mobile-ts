@@ -2,6 +2,14 @@ import type { IconName } from '@components/ui';
 
 export const APP_INFO = [
   {
+    title: 'Notificações',
+    icon: 'notifications',
+    isNew: true,
+    needsNotifications: true,
+    description:
+      'Lembrete antes de cada aula e avisos de nota nova, RID, resultado da inscrição e documento perto de vencer.',
+  },
+  {
     title: 'Gerador de Grade',
     icon: 'edit_calendar',
     description:
@@ -24,5 +32,7 @@ export const APP_INFO = [
   /** Ícone da linha (padrão "star"). */
   icon?: IconName;
   isNew?: boolean;
+  /** Só onde o aparelho tem os avisos (Android). */
+  needsNotifications?: boolean;
   description: string;
 }[];

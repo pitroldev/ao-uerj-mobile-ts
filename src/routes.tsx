@@ -5,7 +5,10 @@ import {
   type DrawerContentComponentProps,
 } from '@react-navigation/drawer';
 import { useTheme } from 'styled-components/native';
-import { useIdentity } from '@root/app/providers/AppServicesProvider';
+import {
+  useAppServices,
+  useIdentity,
+} from '@root/app/providers/AppServicesProvider';
 
 import { DrawerNavigator } from '@root/components/templates/CustomDrawerNavigator';
 import { FeatureGate } from '@root/modules/delivery/presentation/FeatureGate';
@@ -24,6 +27,7 @@ import { MyProgressPage } from '@root/pages/MyProgress';
 import { LoadingPage } from './pages/Loading';
 import { CampusMapPage } from './pages/CampusMap/CampusMap';
 import { DocumentsPage } from '@root/pages/Documents';
+import { NotificationsPage } from '@root/pages/Notifications';
 
 export type RootDrawerParamList = {
   Login: undefined;
@@ -40,6 +44,7 @@ export type RootDrawerParamList = {
   'Gerador de Grade': undefined;
   'Meu Progresso': undefined;
   'Emissão de Documentos': undefined;
+  Notificações: undefined;
   Sobre: undefined;
 
   Loading: undefined;
@@ -68,6 +73,9 @@ const renderScreenLayout = ({
 export const MainRoutes = () => {
   const theme = useTheme();
   const { account, status } = useIdentity();
+  // os avisos dependem do módulo nativo, que só existe no Android
+  const notificationsSupported =
+    useAppServices().notifications.settings.getSnapshot().supported;
   const showLoading = status === 'restoring';
   const isSignedIn =
     Boolean(account) && (status === 'signedIn' || status === 'refreshing');
@@ -133,6 +141,9 @@ export const MainRoutes = () => {
             name="Pesquisa de Professores"
             component={TeacherSearch}
           /> */}
+          {notificationsSupported ? (
+            <Drawer.Screen name="Notificações" component={NotificationsPage} />
+          ) : null}
           <Drawer.Screen name="Sobre" component={AboutPage} />
         </Drawer.Group>
       )}

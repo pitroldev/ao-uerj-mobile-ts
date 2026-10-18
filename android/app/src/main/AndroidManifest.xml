@@ -2,6 +2,12 @@
   xmlns:tools="http://schemas.android.com/tools">
 
   <uses-permission android:name="android.permission.INTERNET" />
+  <!-- Avisos (lembretes de aula e verificação no portal), pedida ao ligar um aviso. -->
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <!-- Lembrete no minuto certo; sem ela, o Android entrega numa janela de 10 minutos. -->
+  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+  <!-- Refaz os lembretes depois de reiniciar o aparelho. -->
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
   <application
     android:name=".MainApplication"
@@ -45,5 +51,20 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
+    <!-- Lembretes de aula (AlarmManager). Não exportados: só o sistema os chama. -->
+    <receiver
+      android:name=".notifications.ClassReminderReceiver"
+      android:exported="false" />
+    <receiver
+      android:name=".notifications.RescheduleReceiver"
+      android:exported="false">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+        <action android:name="android.intent.action.TIME_SET" />
+        <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+        <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
+      </intent-filter>
+    </receiver>
   </application>
 </manifest>

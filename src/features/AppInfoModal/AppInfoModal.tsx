@@ -4,6 +4,7 @@ import {
   useIdentity,
 } from '@root/app/providers/AppServicesProvider';
 import { version } from '@/package.json';
+import { useNotificationSettings } from '@root/modules/notifications/presentation/useNotificationSettings';
 import {
   BottomSheet,
   Button,
@@ -24,6 +25,11 @@ import { Description } from './AppInfoModal.styles';
 export const AppInfoModal = () => {
   const { preferences } = useAppServices();
   const { account } = useIdentity();
+  // sem os avisos no aparelho (iOS) ou com eles desligados pelo aviso remoto
+  const { supported, remoteDisabled } = useNotificationSettings().snapshot;
+  const items = APP_INFO.filter(
+    info => !info.needsNotifications || (supported && !remoteDisabled),
+  );
   // Conta para a qual a folha foi aberta: trocar de conta já a esconde.
   const [shownFor, setShownFor] = useState<typeof account>(null);
   const visible = account != null && shownFor === account;
@@ -60,7 +66,7 @@ export const AppInfoModal = () => {
         O que o AO UERJ faz além do Aluno Online:
       </Description>
       <List>
-        {APP_INFO.map(info => (
+        {items.map(info => (
           <ListRow
             key={info.title}
             leading={<IconTile icon={info.icon ?? 'star'} />}

@@ -51,6 +51,7 @@ configuração do React Navigation em `src/app/dev/devLinking.ts`.
 | `aouerj-dev://universais`           | Disciplinas Universais                |
 | `aouerj-dev://pesquisa`             | Pesquisa de Disciplinas               |
 | `aouerj-dev://pesquisa/IME02-10892` | Detalhe de uma disciplina             |
+| `aouerj-dev://notificacoes`         | Notificações                          |
 | `aouerj-dev://sobre`                | Sobre                                 |
 
 ```sh

@@ -1,0 +1,135 @@
+import { AppState } from 'react-native';
+import type { QueryClient } from '@tanstack/react-query';
+
+import {
+  createNativeNotifications,
+  createNotificationLaunches,
+  type NotificationLaunches,
+} from '@root/adapters/outbound/native/NativeNotifications';
+import type { AcademicRecordsPort } from '@root/modules/academics/application/ports';
+import { academicKeys } from '@root/modules/academics/presentation/queryKeys';
+import type { RemoteStatus } from '@root/modules/delivery/application/RemoteStatus';
+import { isFeatureDisabled } from '@root/modules/delivery/domain/appStatus';
+import type { DocumentsPort } from '@root/modules/documents/application/ports';
+import type { IdentityController } from '@root/modules/identity/application/IdentityController';
+import type { PreferencesStore } from '@root/modules/identity/application/PreferencesStore';
+import { NotificationSettings } from '@root/modules/notifications/application/NotificationSettings';
+import { PortalCheck } from '@root/modules/notifications/application/PortalCheck';
+import type {
+  AcademicCachePort,
+  ActiveAccount,
+  CachedResource,
+  NotificationDevicePort,
+  RemoteSwitch,
+} from '@root/modules/notifications/application/ports';
+import { reminderText } from '@root/modules/notifications/presentation/reminderText';
+
+type Dependencies = {
+  queryClient: QueryClient;
+  identity: IdentityController;
+  preferences: PreferencesStore;
+  records: AcademicRecordsPort;
+  documents: Pick<DocumentsPort, 'list'>;
+  remoteStatus: Pick<RemoteStatus, 'getSnapshot' | 'subscribe'>;
+  flushCache: () => Promise<void>;
+  /** Conta salva (keychain), lida sem o portal. */
+  savedScope: () => Promise<string | null>;
+  device?: NotificationDevicePort | null;
+  launches?: NotificationLaunches | null;
+};
+
+/**
+ * Avisos: preferências por conta, lembretes de aula e a verificação no
+ * portal. A verificação lê e grava o cache das consultas, o mesmo que as
+ * telas usam: o que o app já mostrou não vira aviso, e o que ela leu aparece
+ * no app sem nova consulta.
+ */
+export function createNotifications({
+  queryClient,
+  identity,
+  preferences,
+  records,
+  documents,
+  remoteStatus,
+  flushCache,
+  savedScope,
+  device = createNativeNotifications(),
+  launches = createNotificationLaunches(),
+}: Dependencies) {
+  const account = (): ActiveAccount | null | undefined => {
+    const snapshot = identity.getSnapshot();
+    if (snapshot.status === 'restoring') return undefined;
+    return snapshot.account
+      ? { scope: snapshot.account.scope, period: snapshot.account.period }
+      : null;
+  };
+  const key = (owner: ActiveAccount, resource: CachedResource) =>
+    academicKeys.resource(owner.scope, owner.period, resource);
+  const cache: AcademicCachePort = {
+    read<T>(owner: ActiveAccount, resource: CachedResource) {
+      const state = queryClient.getQueryState<T>(key(owner, resource));
+      return state?.data === undefined
+        ? null
+        : { data: state.data, updatedAt: state.dataUpdatedAt };
+    },
+    write<T>(owner: ActiveAccount, resource: CachedResource, data: T) {
+      queryClient.setQueryData(key(owner, resource), data);
+    },
+    flush: flushCache,
+  };
+  const remote: RemoteSwitch = {
+    disabled: () =>
+      isFeatureDisabled(remoteStatus.getSnapshot().status, 'notifications'),
+    subscribe: remoteStatus.subscribe,
+  };
+  const settings = new NotificationSettings({
+    device,
+    store: preferences,
+    account,
+    subscribeAccount: identity.subscribe,
+    remote,
+    schedule: owner => cache.read(owner, 'schedule'),
+    reminderText,
+  });
+  const portalCheck = device
+    ? new PortalCheck({
+        records,
+        documents,
+        cache,
+        device,
+        store: preferences,
+        account,
+        savedScope,
+        remote,
+        now: () => Date.now(),
+        onRecorded: (scope, state) => settings.checkRecorded(scope, state),
+      })
+    : null;
+
+  if (device) {
+    // A grade salva mudou (tela, cache restaurado ou verificação): os
+    // lembretes acompanham.
+    queryClient.getQueryCache().subscribe(event => {
+      const owner = account();
+      const [root, scope, period, resource] = event.query.queryKey;
+      if (
+        !owner ||
+        root !== 'academics' ||
+        scope !== owner.scope ||
+        period !== owner.period ||
+        resource !== 'schedule'
+      )
+        return;
+      const loaded =
+        (event.type === 'updated' && event.action.type === 'success') ||
+        (event.type === 'added' && event.query.state.data !== undefined);
+      if (loaded) void settings.scheduleChanged();
+    });
+    // a permissão e os alarmes exatos podem mudar nas configurações do sistema
+    AppState.addEventListener('change', state => {
+      if (state === 'active') void settings.refreshDevice();
+    });
+  }
+  settings.start();
+  return { settings, portalCheck, launches };
+}

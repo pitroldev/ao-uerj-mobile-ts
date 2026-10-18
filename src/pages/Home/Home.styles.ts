@@ -7,4 +7,6 @@ export const styles = StyleSheet.create({
   notice: { marginBottom: layout.gutter },
   /** ".errbox": 24 abaixo da saudação. */
   errorCard: { marginTop: spacing.xxl },
+  /** Convite de lembretes: logo abaixo da próxima aula. */
+  prompt: { marginTop: spacing.md },
 });

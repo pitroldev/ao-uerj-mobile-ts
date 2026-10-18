@@ -1,5 +1,6 @@
 package com.aouerjmobile
 
+import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
@@ -9,6 +10,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultReactActivityDelegate
+import com.aouerjmobile.notifications.AppNotifier
 import com.facebook.react.views.view.isEdgeToEdgeFeatureFlagOn
 import com.zoontek.rnbootsplash.RNBootSplash
 
@@ -30,10 +32,24 @@ class MainActivity : ReactActivity() {
    * See https://github.com/software-mansion/react-native-screens#android
    */
   override fun onCreate(savedInstanceState: Bundle?) {
+    // A recreated activity, or one reopened from Recents, gets the intent that first opened the
+    // task: the notification it may carry was already handled.
+    val fromHistory = (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0
+    if (savedInstanceState != null || fromHistory) intent.removeExtra(AppNotifier.EXTRA_TARGET)
     // Before super.onCreate: switches BootTheme (manifest) to AppTheme and keeps the native
     // splash until JS calls BootSplash.hide() (NavigationContainer onReady in App.tsx).
     RNBootSplash.init(this, R.style.BootTheme)
     super.onCreate(null)
+  }
+
+  /**
+   * Keeps the intent that brought the task back as the activity's intent. A tapped notification
+   * arrives here when the task exists, often before React Native is running (the activity is
+   * recreated with the task's first intent), and AppNotificationsModule reads it from getIntent().
+   */
+  override fun onNewIntent(intent: Intent) {
+    this.intent = intent
+    super.onNewIntent(intent)
   }
 
   /**

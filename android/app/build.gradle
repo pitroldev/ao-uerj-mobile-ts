@@ -217,6 +217,8 @@ dependencies {
     implementation("com.facebook.react:react-android")
     // Play In-App Updates for the local InAppUpdates module (src/specs/NativeInAppUpdates.ts).
     implementation("com.google.android.play:app-update:2.1.0")
+    // Periodic portal check of the local AppNotifications module (src/specs/NativeAppNotifications.ts).
+    implementation("androidx.work:work-runtime:2.12.0")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

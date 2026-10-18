@@ -7,7 +7,8 @@ import type { RootDrawerParamList } from '@root/routes';
  * Deep links de DEBUG (scheme registrado só em android/app/src/debug).
  *
  *   aouerj-dev://inicio | progresso | gerador | mural | realizadas |
- *                curriculo | universais | pesquisa[/<código>] | documentos | sobre
+ *                curriculo | universais | pesquisa[/<código>] | documentos |
+ *                notificacoes | sobre
  */
 export const DEV_LINK_PREFIX = 'aouerj-dev://';
 
@@ -22,6 +23,7 @@ const DEV_ROUTE_PATHS = {
   'Disciplinas do Currículo': 'curriculo',
   'Disciplinas Universais': 'universais',
   'Pesquisa de Disciplinas': 'pesquisa/:subjectId?',
+  Notificações: 'notificacoes',
   Sobre: 'sobre',
   Login: 'login',
 } as const;

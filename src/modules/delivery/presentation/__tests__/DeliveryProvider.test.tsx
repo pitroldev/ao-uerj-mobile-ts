@@ -28,7 +28,11 @@ import {
   usePositiveMoment,
   type Delivery,
 } from '../DeliveryProvider';
-import { FeatureGate, UNAVAILABLE_TEXT } from '../FeatureGate';
+import {
+  FeatureGate,
+  UNAVAILABLE_TEXT,
+  UNAVAILABLE_TEXTS,
+} from '../FeatureGate';
 import { RemoteNotices } from '../RemoteNotices';
 
 jest.mock('react-native-safe-area-context', () => ({
@@ -386,6 +390,22 @@ describe('disabled features', () => {
     expect(screen.getByText(UNAVAILABLE_TEXT)).toBeOnTheScreen();
     expect(screen.queryByText('Conversas')).not.toBeOnTheScreen();
     expect(screen.getByText('Progresso')).toBeOnTheScreen();
+  });
+
+  it('says the reminders and checks stopped when the notifications are off', async () => {
+    const { delivery } = createDelivery({
+      saved: doc({ disabledFeatures: ['notifications'] }),
+    });
+    await mount(
+      delivery,
+      <FeatureGate routeName="Notificações">
+        <Text>Avisos</Text>
+      </FeatureGate>,
+    );
+    expect(
+      await screen.findByText(UNAVAILABLE_TEXTS.notifications!),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText('Avisos')).not.toBeOnTheScreen();
   });
 
   it('shows every screen without the provider', async () => {

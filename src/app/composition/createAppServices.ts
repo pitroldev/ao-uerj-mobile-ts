@@ -28,8 +28,20 @@ import {
   reportPortalLayoutChanges,
   reportQueryError,
 } from '../observability';
+import {
+  CHECK_STATE_KEY,
+  PREFERENCES_KEY,
+} from '@root/modules/notifications/application/NotificationSettings';
 import { initializeIdentity } from './initializeIdentity';
 import { createDelivery } from './createDelivery';
+import { createNotifications } from './createNotifications';
+
+/** Preferências da conta que o logout apaga junto com o cache. */
+const ACCOUNT_PREFERENCES = [
+  'elective-credits',
+  PREFERENCES_KEY,
+  CHECK_STATE_KEY,
+] as const;
 
 function createScope() {
   return `account-${Date.now().toString(36)}-${Math.random()
@@ -41,8 +53,14 @@ export function createAppServices() {
   const queryClient = createQueryClient(reportQueryError);
   const credentials = createCredentialStore();
   const preferences = createPreferencesStore(AsyncStorage);
-  const cache = createQueryAccountCache(queryClient, AsyncStorage, scope =>
-    preferences.remove(scope, 'elective-credits'),
+  const cache = createQueryAccountCache(
+    queryClient,
+    AsyncStorage,
+    async scope => {
+      await Promise.all(
+        ACCOUNT_PREFERENCES.map(key => preferences.remove(scope, key)),
+      );
+    },
   );
   const portal = reportPortalLayoutChanges(
     createAlunoOnlineAdapter({
@@ -62,6 +80,21 @@ export function createAppServices() {
   });
   const currentAccount = () => identity.getSnapshot().account;
   let startup: Promise<string | null> | null = null;
+  const delivery = createDelivery({
+    appVersion: version,
+    preferences,
+    identity,
+  });
+  const notifications = createNotifications({
+    queryClient,
+    identity,
+    preferences,
+    records: portal.records,
+    documents: portal.documents,
+    remoteStatus: delivery.status,
+    flushCache: cache.flush,
+    savedScope: async () => (await credentials.read())?.account.scope ?? null,
+  });
   return {
     campusMap: new CampusMap(bundledCampusMap),
     queryClient,
@@ -83,7 +116,8 @@ export function createAppServices() {
     scheduleSharing: new NativeScheduleSharing(),
     documents: portal.documents,
     documentSharing: new NativeDocumentSharing(),
-    delivery: createDelivery({ appVersion: version, preferences, identity }),
+    delivery,
+    notifications,
     // App-wide: the theme survives logout.
     appearance: new ThemePreferences({
       store: createAppKeyValueStore(preferences),

@@ -18,18 +18,18 @@ import {
 import { registerNavigationContainer } from '@services/rootNavigation';
 import { resetSplash } from '@root/app/splash';
 import { ErrorBoundary } from '@components/ErrorBoundary';
-import { createAppServices } from './app/composition/createAppServices';
+import { appServices as services } from './app/appServices';
 import { AppServicesProvider } from './app/providers/AppServicesProvider';
 import { recordScreen } from './app/observability';
 import { loadDevLinking } from './app/dev';
 import { DeliveryProvider } from './modules/delivery/presentation/DeliveryProvider';
+import { NotificationLaunchHandler } from './modules/notifications/presentation/NotificationLaunchHandler';
 import { useActiveTheme } from './modules/appearance/presentation/useActiveTheme';
 import { navigationTheme } from './modules/appearance/presentation/navigationTheme';
 import { MainRoutes, type RootDrawerParamList } from './routes';
 import { Header } from '@components/templates/Header/Header';
 import { SnackbarHost } from '@components/ui/Snackbar';
 
-const services = createAppServices();
 const devLinking = loadDevLinking();
 
 enableScreens(true);
@@ -95,6 +95,7 @@ export const App = () => {
                     ready={isReady}
                   >
                     <MainRoutes />
+                    <NotificationLaunchHandler ready={isReady} />
                   </DeliveryProvider>
                 </NavigationContainer>
                 <SnackbarHost />

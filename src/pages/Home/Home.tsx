@@ -10,6 +10,7 @@ import {
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
 import { useOnlineStatus } from '@root/modules/academics/presentation/useOnlineStatus';
 import { RemoteNotices } from '@root/modules/delivery/presentation/RemoteNotices';
+import { ReminderPrompt } from '@root/modules/notifications/presentation/ReminderPrompt';
 import type { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
 
 import { ScreenPanel } from '@templates/ScreenPanel';
@@ -238,11 +239,14 @@ export const HomePage = () => {
           <EmptyState icon="event_upcoming" text={NOT_STARTED_TEXT} />
         ) : null}
         {isScheduleAvailable ? (
-          <NextClassCard
-            data={currentSchedule}
-            now={now}
-            onPress={openClasses}
-          />
+          <>
+            <NextClassCard
+              data={currentSchedule}
+              now={now}
+              onPress={openClasses}
+            />
+            <ReminderPrompt style={styles.prompt} />
+          </>
         ) : null}
         {isClassGradesAvailable ? (
           <GradeBoard data={classGrades} period={period} />

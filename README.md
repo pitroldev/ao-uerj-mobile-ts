@@ -73,8 +73,10 @@ src/modules/community/           mensagens e consulta de professores
 src/modules/support/             relatórios estruturados e sanitização
 src/modules/appearance/          tema do app (Sistema, Claro ou Escuro)
 src/modules/delivery/            aviso remoto, atualização pela loja e pedido de avaliação
+src/modules/notifications/       lembretes de aula e avisos do portal (nota, RID, documento)
+src/app/background/              tarefa sem tela da verificação de avisos (WorkManager)
 src/adapters/outbound/           AO, APIs privadas, aviso remoto, armazenamento e recursos nativos
-src/specs/                       specs do codegen para TurboModules locais (In-App Updates)
+src/specs/                       specs do codegen para TurboModules locais (In-App Updates, avisos)
 src/pages/ e src/features/       telas e componentes de apresentação
 src/shared/                      erros compartilhados
 ```
@@ -94,9 +96,20 @@ O gerador exige uma ação explícita para enviar a solicitação. Seus detalhes
 - A migração do antigo Redux persistido transfere credenciais para armazenamento seguro e remove a cópia em texto simples. Se a transferência falhar, um novo login pode ser necessário.
 - Relatórios de suporte enviam diagnóstico estruturado e descrição sanitizada. Não coletam HTML bruto, senha, cookies ou tokens do portal. Com o Sentry ativo, o diagnóstico leva também o id do evento de feedback correspondente.
 - Mensagens enviam nome do autor, turma, disciplina, período escolhido e texto. O gerador envia dados necessários ao cálculo. Este repositório cliente não comprova políticas de retenção dos servidores.
-- O aviso remoto (ver [Aviso remoto](#aviso-remoto)) está sempre ligado. Na abertura e ao voltar ao primeiro plano, no máximo a cada 15 minutos e inclusive antes do login, o app baixa `config/app-status.json` deste repositório em `raw.githubusercontent.com`. A requisição não leva dados do aluno, mas o GitHub (Microsoft, nos EUA) vê o IP do aparelho, o horário e o User-Agent. Os links “Saiba mais” dos avisos só abrem hosts permitidos.
+- O aviso remoto (ver [Aviso remoto](#aviso-remoto)) está sempre ligado. Na abertura, ao voltar ao primeiro plano e antes de cada verificação de avisos em segundo plano, no máximo a cada 15 minutos e inclusive antes do login, o app baixa `config/app-status.json` deste repositório em `raw.githubusercontent.com`. A requisição não leva dados do aluno, mas o GitHub (Microsoft, nos EUA) vê o IP do aparelho, o horário e o User-Agent. Os links “Saiba mais” dos avisos só abrem hosts permitidos.
 - Atualização e avaliação usam as APIs da própria loja (In-App Updates e In-App Review da Play), que passam pelo app da loja no aparelho; o app não envia dados próprios nesses fluxos.
 - Tema, última cópia do aviso remoto, avisos dispensados, data do último pedido de atualização e o histórico de uso que decide o pedido de avaliação ficam no AsyncStorage. Valem para o app inteiro e não são apagados no logout.
+- Avisos (ver [Notificações](#notificações)) são opt-in e montados no aparelho; nada passa por servidores próprios. As escolhas e o estado da última verificação ficam no AsyncStorage por conta, e os lembretes de aula (disciplina, horário e sala) nas SharedPreferences do Android. O logout apaga tudo isso e cancela lembretes e verificações.
+
+### Notificações
+
+A tela **Notificações** (só no Android) liga cada aviso separadamente; o Início convida uma vez a ligar o lembrete de aula.
+
+- **Lembrete antes da aula:** 10, 15 ou 30 minutos antes, a partir da grade salva, sem consultar o portal. O `AlarmManager` repete cada aula toda semana e refaz os alarmes depois de reiniciar o aparelho, atualizar o app ou mudar o relógio. Sem “Alarmes e lembretes” liberado (Android 12+), o sistema entrega numa janela de até 10 minutos antes do horário e pode atrasar com o celular parado (Doze); um lembrete que chegaria depois do início da aula é descartado, e um já mostrado não se repete. Os lembretes param 21 dias depois da última leitura da grade e não conhecem feriados. Sem a grade salva (o cache em disco dura 7 dias), os lembretes já agendados continuam até essa validade.
+- **Avisos do Aluno Online:** nota nova ou alterada, posição ou situação nova no RID provisório, resultado da inscrição (aceitas e não aceitas, com o motivo) e documento emitido a 3 dias de vencer. O WorkManager roda a cada 4 horas, com rede e bateria não baixa, a verificação em JS sem tela (`src/app/background`). Antes de entrar no portal, ela decide com a conta salva no aparelho e com o aviso remoto: das 22h às 7h, na pausa, sem permissão ou com os avisos desligados, não há login. Quando roda, usa uma autenticação e só as páginas dos avisos ligados (documentos e grade no máximo uma vez por dia), e para se a sessão cair de novo depois de um novo login. Depois de um bloqueio ou limite de consultas do portal, pausa por 12 horas. Com o app na tela, não roda.
+- A verificação compara com o cache que o app mostra e grava nele a leitura nova: a primeira leitura vira referência, sem aviso, e o que o aluno já viu no app não volta como aviso.
+- O texto da nota só leva o valor se o aluno pedir. Na tela de bloqueio que oculta conteúdo sensível, os avisos mostram uma versão genérica. O logout e a troca de conta tiram da barra os avisos já mostrados.
+- Para desligar tudo sem nova versão, inclua `notifications` em `disabledFeatures` do aviso remoto: a tela fica indisponível, os lembretes são cancelados e a verificação para. A verificação em segundo plano também busca o aviso remoto antes de consultar o portal.
 
 Quando o AO não informa o semestre, a interface usa “Período atual”. O período do mural é um filtro selecionado pelo usuário; não é uma confirmação do calendário acadêmico oficial.
 
@@ -141,7 +154,7 @@ Pendências do responsável antes de preencher o DSN:
 O `config/app-status.json` da `main` chega a todos os apps instalados em até 15 minutos, sem release nem revisão da Play. O formato está em `config/app-status.schema.json` e a validação no app em `src/modules/delivery/domain/appStatus.ts`. Um documento inválido é ignorado, e o app segue com a última cópia válida.
 
 - **Avisos:** `notices` aceita até 10 avisos no topo do Início, cada um com `id`, `level` (`info`, `warning` ou `critical`), `title` e `message`. Opcionais: `url` do “Saiba mais”, `until` (data em que o aviso some) e `platforms`. O aluno pode dispensar cada aviso; para mostrá-lo de novo, troque o `id`.
-- **Telas desativadas:** `disabledFeatures` marca telas do menu como indisponíveis (`progress`, `schedule-generator`, `message-board`, `subjects-taken`, `curriculum-subjects`, `universal-subjects`, `subject-search` e `teacher-search`).
+- **Telas desativadas:** `disabledFeatures` marca telas do menu como indisponíveis (`notifications`, `progress`, `schedule-generator`, `message-board`, `subjects-taken`, `curriculum-subjects`, `universal-subjects`, `subject-search`, `teacher-search` e `documents`). `notifications` também cancela os lembretes de aula e para a verificação no portal.
 - **Versão mínima:** abaixo de `minSupportedVersion`, o app fica na tela de bloqueio com “Atualizar”, mesmo sem rede, porque a cópia fica salva. Só suba o valor para uma versão que já esteja em produção na Play com rollout de 100%; antes disso, parte dos usuários fica bloqueada sem ter o que instalar.
 - **Endereço fixo:** o URL está embutido em todo binário publicado (`src/adapters/outbound/delivery/remoteAppStatus.ts`). Não renomeie, transfira nem apague a conta `pitroldev` ou este repositório enquanto houver versões com esse endereço em uso.
 - **Pendência do responsável:** a busca já está ativa, sem depender do DSN do Sentry. Incluir o GitHub na política de privacidade e na formalização da transferência internacional da LGPD.

@@ -162,3 +162,15 @@ export interface UniversalSubject {
 }
 
 export type PartialRidResult = { subjects: PartialRID[]; updatedAt: string };
+
+/** Uma disciplina em "RID: Resultado da Inscrição". */
+export type EnrollmentResultEntry = {
+  id: string;
+  name: string;
+  classNumber: string;
+  accepted: boolean;
+  /** Motivo de uma inscrição não aceita ("Falta Requisito (CO/PRE)"). */
+  reason: string;
+};
+
+export type EnrollmentResult = { subjects: EnrollmentResultEntry[] };

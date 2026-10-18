@@ -1,6 +1,6 @@
 # Sugestões de funcionalidades
 
-Proposta de produto para o AO UERJ · 17/10/2026 · Status: análise e priorização, sem implementação.
+Proposta de produto para o AO UERJ · 17/10/2026 · Status: análise e priorização. Depois desta análise, as Notificações (item 6) entraram na versão 2.3.0; os demais itens seguem sem implementação.
 
 ## Conclusão
 
@@ -77,7 +77,7 @@ O Início já mostra o RID Provisório. Completar o ciclo com três consultas:
 - **RID: Resultado da Inscrição:** inscrição aceita ou não aceita por falta de requisito (CO/PRE), com link para a disciplina.
 - **SAID: Consultar Recibos:** alterações e cancelamentos registrados.
 
-O dicionário do menu já traduz "RID: Resultado da Inscrição" para `RidInscricao` em [parseReqIds.ts](../src/adapters/outbound/aluno-online/parsers/parseReqIds.ts), mas nenhuma operação usa essa chave. Os parsers seguem o padrão do RID Provisório, com fixtures sintéticas e estados vazios reconhecidos.
+O dicionário do menu já traduz "RID: Resultado da Inscrição" para `RidInscricao` em [parseReqIds.ts](../src/adapters/outbound/aluno-online/parsers/parseReqIds.ts), e, desde a 2.3.0, o aviso de resultado da inscrição lê essa página ([EnrollmentResult.ts](../src/adapters/outbound/aluno-online/parsers/EnrollmentResult.ts)); falta mostrar o resultado numa tela. Os parsers seguem o padrão do RID Provisório, com fixtures sintéticas e estados vazios reconhecidos.
 
 Janela: antes da inscrição de novembro. Esforço: M.
 

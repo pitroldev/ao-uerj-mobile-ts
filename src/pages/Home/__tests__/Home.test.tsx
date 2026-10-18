@@ -89,7 +89,15 @@ const mockServices = {
     read: () => Promise.resolve('0.0.0'),
     write: () => Promise.resolve(),
   },
+  // sem suporte a avisos: o convite de lembretes tem teste próprio
+  notifications: {
+    settings: {
+      subscribe: () => () => undefined,
+      getSnapshot: () => mockNotifications,
+    },
+  },
 };
+const mockNotifications = { supported: false };
 jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useIdentity: () => mockIdentity,
   useAppServices: () => mockServices,
@@ -521,4 +529,18 @@ it('presents what is new in a sheet once per version', async () => {
   expect(
     screen.getByText('O que o AO UERJ faz além do Aluno Online:'),
   ).toBeOnTheScreen();
+  // sem avisos no aparelho (iOS), a novidade da versão não aparece
+  expect(screen.queryByText('Notificações')).toBeNull();
+});
+
+it('lists the notifications as new where the device has them', async () => {
+  mockNotifications.supported = true;
+  try {
+    await renderHome();
+    expect(
+      await screen.findByLabelText(/^Notificações, novo\. Lembrete antes/),
+    ).toBeOnTheScreen();
+  } finally {
+    mockNotifications.supported = false;
+  }
 });

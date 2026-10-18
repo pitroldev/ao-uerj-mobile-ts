@@ -39,8 +39,12 @@ export type AppStatus = {
   disabledFeatures: string[];
 };
 
-/** Recursos que o aviso remoto pode desligar (um por tela do menu). */
+/**
+ * Recursos que o aviso remoto pode desligar (um por tela do menu).
+ * `notifications` também cancela os lembretes e para a verificação no portal.
+ */
 export type FeatureId =
+  | 'notifications'
   | 'documents'
   | 'progress'
   | 'schedule-generator'

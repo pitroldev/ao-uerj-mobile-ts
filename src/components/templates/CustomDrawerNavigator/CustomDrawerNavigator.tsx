@@ -70,7 +70,13 @@ const NAV: NavGroup[] = [
       ['Pesquisa de Professores', 'person_search'],
     ],
   },
-  { label: null, items: [['Sobre', 'info']] },
+  {
+    label: null,
+    items: [
+      ['Notificações', 'notifications'],
+      ['Sobre', 'info'],
+    ],
+  },
 ];
 
 const HIDDEN_ROUTES = ['Login', 'Loading', 'Informações da Disciplina'];

@@ -11,9 +11,13 @@ import { renderWithProviders } from '@root/test-utils/render';
 import { MainRoutes, type RootDrawerParamList } from '../routes';
 
 let mockIdentity: IdentityState;
+let mockNotifications = { supported: true };
 
 jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useIdentity: () => mockIdentity,
+  useAppServices: () => ({
+    notifications: { settings: { getSnapshot: () => mockNotifications } },
+  }),
 }));
 jest.mock('@root/app/splash', () => ({ hideSplash: jest.fn() }));
 jest.mock('@root/components/templates/CustomDrawerNavigator', () => ({
@@ -88,6 +92,9 @@ jest.mock('@root/pages/SubjectDetails', () => ({
   SubjectDetailPage: MockPage,
 }));
 jest.mock('@root/pages/About', () => ({ AboutPage: MockPage }));
+jest.mock('@root/pages/Notifications', () => ({
+  NotificationsPage: MockPage,
+}));
 jest.mock('@root/pages/Loading', () => ({ LoadingPage: MockPage }));
 jest.mock('@root/pages/CampusMap/CampusMap', () => ({
   CampusMapPage: MockPage,
@@ -109,8 +116,9 @@ const signedIn: IdentityState = {
   error: null,
 };
 
-async function setup(identity = signedOut) {
+async function setup(identity = signedOut, notifications = true) {
   mockIdentity = identity;
+  mockNotifications = { supported: notifications };
   const navigation = createNavigationContainerRef<RootDrawerParamList>();
   const unhandled = jest.fn();
   const tree = () => (
@@ -130,6 +138,19 @@ async function setup(identity = signedOut) {
 }
 
 describe('MainRoutes authorization', () => {
+  it('offers Notificações to the signed-in account where the device supports it', async () => {
+    const { navigation, changeIdentity } = await setup(signedIn);
+    await act(() => navigation.navigate('Notificações'));
+    expect(screen.getByText('Tela: Notificações')).toBeOnTheScreen();
+    await changeIdentity(signedOut);
+    expect(navigation.getRootState()?.routeNames).not.toContain('Notificações');
+  });
+
+  it('leaves Notificações out without the native module (iOS)', async () => {
+    const { navigation } = await setup(signedIn, false);
+    expect(navigation.getRootState()?.routeNames).not.toContain('Notificações');
+  });
+
   it('exposes documents only to the signed-in account and drops it on sign out', async () => {
     const { navigation, changeIdentity, unhandled } = await setup(signedIn);
     await act(() => navigation.navigate('Emissão de Documentos'));

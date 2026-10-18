@@ -33,7 +33,16 @@ jest.mock('@root/adapters/outbound/native/NativeDocumentSharing', () => ({
 jest.mock('@root/adapters/outbound/native/NativeAppearance', () => ({
   nativeAppearance: { apply: jest.fn() },
 }));
-jest.mock('../createDelivery', () => ({ createDelivery: jest.fn() }));
+jest.mock('../createDelivery', () => ({
+  createDelivery: jest.fn(() => ({ status: {} })),
+}));
+jest.mock('../createNotifications', () => ({
+  createNotifications: jest.fn(() => ({
+    settings: {},
+    portalCheck: null,
+    launches: null,
+  })),
+}));
 jest.mock('../../observability', () => ({
   reportPortalLayoutChanges: (ports: unknown) => ports,
   errorMonitor: {},
@@ -59,6 +68,7 @@ function setup() {
       getCurriculum: jest.fn(),
       getSchedule: jest.fn(),
       getPartialRid: jest.fn(),
+      getEnrollmentResult: jest.fn(),
       getSubjectDetails: jest.fn(),
       getUniversalSubjects: jest.fn(),
     },

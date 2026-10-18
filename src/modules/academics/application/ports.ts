@@ -2,6 +2,7 @@ import type {
   AttendedClassesSchedule,
   ClassGrade,
   CurriculumSubject,
+  EnrollmentResult,
   PartialRidResult,
   SubjectInfo,
   SubjectsTaken,
@@ -18,6 +19,10 @@ export interface AcademicRecordsPort {
     options?: AcademicRequestOptions,
   ): Promise<AttendedClassesSchedule[]>;
   getPartialRid(options?: AcademicRequestOptions): Promise<PartialRidResult>;
+  /** Resultado final da inscrição (aceitas e não aceitas, com o motivo). */
+  getEnrollmentResult(
+    options?: AcademicRequestOptions,
+  ): Promise<EnrollmentResult>;
   getSubjectDetails(
     subjectId: string,
     options?: AcademicRequestOptions,

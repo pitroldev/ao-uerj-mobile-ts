@@ -32,6 +32,7 @@ export type PortalOperation =
   | 'curriculum'
   | 'schedule'
   | 'partialRid'
+  | 'enrollmentResult'
   | 'subjectDetails'
   | 'universalSubjects'
   | 'documents';

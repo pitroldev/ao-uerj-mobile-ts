@@ -1,3 +1,4 @@
+import { AppState } from 'react-native';
 import { createAppKeyValueStore } from '@root/adapters/outbound/delivery/appStore';
 import { createRemoteAppStatusSource } from '@root/adapters/outbound/delivery/remoteAppStatus';
 import { createNativeAppUpdates } from '@root/adapters/outbound/native/NativeAppUpdates';
@@ -27,9 +28,17 @@ export function createDelivery({
   const store = createAppKeyValueStore(preferences);
   const now = () => Date.now();
   const review = new ReviewPrompter({ review: nativeReviewPrompt, store, now });
-  identity.subscribe(() => {
-    if (identity.getSnapshot().status === 'signedIn') void review.noteSession();
-  });
+  // Uma sessão é o aluno com o app na frente e a conta carregada. A
+  // verificação de avisos em segundo plano também restaura a conta e não conta.
+  const noteSession = () => {
+    if (
+      identity.getSnapshot().status === 'signedIn' &&
+      AppState.currentState === 'active'
+    )
+      void review.noteSession();
+  };
+  identity.subscribe(noteSession);
+  AppState.addEventListener('change', noteSession);
   return {
     appVersion,
     status: new RemoteStatus({

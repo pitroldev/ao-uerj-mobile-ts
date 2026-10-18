@@ -55,6 +55,10 @@ export function reportPortalLayoutChanges<T extends PortalPorts>(
     getCurriculum: watch('curriculum', source.getCurriculum.bind(source)),
     getSchedule: watch('schedule', source.getSchedule.bind(source)),
     getPartialRid: watch('partial-rid', source.getPartialRid.bind(source)),
+    getEnrollmentResult: watch(
+      'enrollment-result',
+      source.getEnrollmentResult.bind(source),
+    ),
     getSubjectDetails: watch(
       'subject-details',
       source.getSubjectDetails.bind(source),

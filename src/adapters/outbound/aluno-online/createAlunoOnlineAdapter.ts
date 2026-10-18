@@ -39,6 +39,7 @@ import { parseSubjectsTaken } from './parsers/SubjectsTaken';
 import { parseCurriculumSubjects } from './parsers/CurriculumSubjects';
 import { parseAttendedClassesSchedule } from './parsers/AttendedClassesSchedule';
 import { parsePartialRID } from './parsers/PartialRID';
+import { parseEnrollmentResult } from './parsers/EnrollmentResult';
 import { parseSubjectInfo } from './parsers/SubjectInfo';
 import { parseUniversalSubjects } from './parsers/UniversalSubjects';
 import {
@@ -69,6 +70,7 @@ const operationKeys: Record<PortalOperation, string[]> = {
   curriculum: ['DisciplinasCursar'],
   schedule: ['Disciplinas em Curso', 'DisciplinasCurso'],
   partialRid: ['RidParcial'],
+  enrollmentResult: ['RidInscricao'],
   subjectDetails: ['DadosDisciplina'],
   universalSubjects: ['UniversaisCursar'],
   documents: ['Emissão de Documentos'],
@@ -412,6 +414,8 @@ export function createAlunoOnlineAdapter({
     getSchedule: options =>
       read('schedule', parseAttendedClassesSchedule, options),
     getPartialRid: options => read('partialRid', parsePartialRID, options),
+    getEnrollmentResult: options =>
+      read('enrollmentResult', parseEnrollmentResult, options),
     getSubjectDetails: (subjectId, options) =>
       read('subjectDetails', parseSubjectInfo, options, { subjectId }),
     getUniversalSubjects: options =>
