@@ -2,6 +2,7 @@ import React from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import styled, { useTheme } from 'styled-components/native';
 
+import { formatGrade } from '@utils/formatGrade';
 import { numberToColor } from '@utils/numberToColor';
 import { Icon, type IconName } from '../Icon';
 import { Text } from '../Text';
@@ -16,13 +17,24 @@ export type StatusLabelProps = {
   icon?: IconName;
   /** Texto secundário com o ponto colorido (legendas). */
   muted?: boolean;
+  /**
+   * Linhas do rótulo antes de cortar. Padrão 1; com mais, o ponto fica na
+   * altura da primeira linha (rótulos longos em colunas estreitas).
+   */
+  lines?: number;
   style?: StyleProp<ViewStyle>;
 };
 
-const Inline = styled.View`
+const Inline = styled.View<{ $wrap: boolean }>`
   flex-direction: row;
-  align-items: center;
+  align-items: ${({ $wrap }) => ($wrap ? 'flex-start' : 'center')};
   gap: 6px;
+`;
+
+/** Centraliza o marcador na primeira linha do `caption` (16 de altura). */
+const FirstLine = styled.View`
+  height: 16px;
+  justify-content: center;
 `;
 
 const Dot = styled.View<{ $color: string; $size: number }>`
@@ -36,6 +48,10 @@ const StatusIcon = styled.View`
   margin: 0px -2px;
 `;
 
+const Label = styled(Text)<{ $wrap: boolean }>`
+  ${({ $wrap }) => ($wrap ? 'flex-shrink: 1;' : '')}
+`;
+
 /**
  * Status com ponto + rótulo (".st"): "● Bom na P1", "● Tarde". Nunca só cor:
  * o rótulo sempre acompanha o ponto.
@@ -45,27 +61,31 @@ export function StatusLabel({
   label,
   icon,
   muted = false,
+  lines = 1,
   style,
 }: StatusLabelProps) {
   const theme = useTheme();
   const ink = toneColors(theme, tone).ink;
+  const marker = icon ? (
+    <StatusIcon>
+      <Icon name={icon} size={theme.sizes.icon.xs} color={ink} />
+    </StatusIcon>
+  ) : (
+    <Dot $color={ink} $size={7} />
+  );
+  const wrap = lines > 1;
   return (
-    <Inline style={style}>
-      {icon ? (
-        <StatusIcon>
-          <Icon name={icon} size={theme.sizes.icon.xs} color={ink} />
-        </StatusIcon>
-      ) : (
-        <Dot $color={ink} $size={7} />
-      )}
-      <Text
+    <Inline $wrap={wrap} style={style}>
+      {wrap ? <FirstLine>{marker}</FirstLine> : marker}
+      <Label
+        $wrap={wrap}
         variant="caption"
         weight={muted ? 'regular' : 'medium'}
         color={muted ? theme.colors.inkMuted : ink}
-        numberOfLines={1}
+        numberOfLines={lines}
       >
         {label}
-      </Text>
+      </Label>
     </Inline>
   );
 }
@@ -122,10 +142,7 @@ export function Tag({
 
 /* ----------------------------------------------------------------- GradeCell */
 
-/** "8,5" (uma casa, vírgula). */
-export function formatGrade(value: number, decimals = 1): string {
-  return value.toFixed(decimals).replace('.', ',');
-}
+export { formatGrade };
 
 export type GradeCellProps = {
   /** Nota de 0 a 10; `null`/`undefined` mostra "–". */
@@ -134,13 +151,22 @@ export type GradeCellProps = {
   tone?: 'good' | 'warn' | 'bad' | 'neutral';
   /** `lg` para destaque (48×32, 15px). */
   size?: 'md' | 'lg';
-  decimals?: number;
+  /**
+   * Nota que ainda falta, no lugar onde vai entrar (a PF necessária): sem
+   * fundo, com borda tracejada no tom.
+   */
+  target?: boolean;
   /** Rótulo acessível. Padrão "Nota 8,5, Bom" ou "sem nota". */
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
 };
 
-const GradeBox = styled.View<{ $w: number; $h: number; $bg: string }>`
+const GradeBox = styled.View<{
+  $w: number;
+  $h: number;
+  $bg: string;
+  $dash: string | null;
+}>`
   min-width: ${({ $w }) => $w}px;
   height: ${({ $h }) => $h}px;
   padding: 0px 6px;
@@ -149,6 +175,10 @@ const GradeBox = styled.View<{ $w: number; $h: number; $bg: string }>`
   border-radius: ${({ theme }) => theme.radii.sm}px;
   border-top-right-radius: 0px;
   background-color: ${({ $bg }) => $bg};
+  ${({ $dash }) =>
+    $dash
+      ? `border-width: 1.5px; border-style: dashed; border-color: ${$dash};`
+      : ''}
 `;
 
 /**
@@ -160,7 +190,7 @@ export function GradeCell({
   value,
   tone,
   size = 'md',
-  decimals = 1,
+  target = false,
   accessibilityLabel,
   style,
 }: GradeCellProps) {
@@ -170,18 +200,23 @@ export function GradeCell({
   const empty = value == null || Number.isNaN(value);
   const health = empty ? null : (tone ?? healthTone(numberToColor(value, 10)));
   const t = health ? toneColors(theme, health) : null;
-  const text = empty ? '–' : formatGrade(value, decimals);
+  const text = empty ? '–' : formatGrade(value);
+  const dashed = target && t !== null;
+  let label = 'sem nota';
+  if (health) {
+    label = dashed
+      ? `Nota necessária ${text}`
+      : `Nota ${text}, ${HEALTH_LABEL[health]}`;
+  }
   return (
     <GradeBox
       $w={box.width}
       $h={box.height}
-      $bg={t ? t.bg : 'transparent'}
+      $bg={t && !dashed ? t.bg : 'transparent'}
+      $dash={dashed ? t.ink : null}
       style={style}
       accessible
-      accessibilityLabel={
-        accessibilityLabel ??
-        (health ? `Nota ${text}, ${HEALTH_LABEL[health]}` : 'sem nota')
-      }
+      accessibilityLabel={accessibilityLabel ?? label}
     >
       <Text
         variant={size === 'lg' ? 'body' : 'callout'}

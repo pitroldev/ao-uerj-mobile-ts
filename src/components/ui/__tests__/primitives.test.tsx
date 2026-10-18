@@ -276,6 +276,19 @@ it('labels grade cells by health so status is never color only', async () => {
   expect(screen.getByLabelText('sem nota')).toBeOnTheScreen();
 });
 
+it('draws the grade still needed as a dashed cell, in both themes', async () => {
+  for (const theme of ['light', 'dark'] as const) {
+    const { unmount } = await renderWithProviders(
+      <GradeCell value={4.2} tone="warn" target />,
+      { theme },
+    );
+    const cell = screen.getByLabelText('Nota necessária 4,2');
+    expect(cell).toHaveStyle({ borderStyle: 'dashed', borderWidth: 1.5 });
+    expect(within(cell).getByText('4,2')).toBeOnTheScreen();
+    await unmount();
+  }
+});
+
 it('drops the divider of the last row only', async () => {
   // o fio é decorativo (fora da acessibilidade)
   const divider = (row: string) =>

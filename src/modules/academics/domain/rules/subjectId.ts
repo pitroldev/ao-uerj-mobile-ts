@@ -8,3 +8,15 @@ export function normalizeSubjectId(input: string | number): string {
   }
   return String(Number(match[1]));
 }
+
+/**
+ * Mesma identidade de `normalizeSubjectId` para cruzar notas, grade, histórico
+ * e faltas, sem erro: o que não for um código do AO volta como texto.
+ */
+export function subjectKey(input: string | number): string {
+  try {
+    return normalizeSubjectId(input);
+  } catch {
+    return String(input).trim();
+  }
+}

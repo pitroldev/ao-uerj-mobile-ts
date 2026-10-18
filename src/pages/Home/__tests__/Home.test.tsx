@@ -24,6 +24,7 @@ type QueryOverrides = Partial<{
   isLoading: boolean;
   isFetching: boolean;
   isPaused: boolean;
+  isSuccess: boolean;
   refetch: jest.Mock;
 }>;
 
@@ -36,6 +37,8 @@ const makeQuery = <T,>(
   isLoading: false,
   isPaused: false,
   isFetching: false,
+  // como no TanStack: sucesso só com dado e sem erro
+  isSuccess: data !== undefined && !overrides.error,
   dataUpdatedAt: data === undefined ? 0 : 1700000000000,
   refetch: jest.fn(() => Promise.resolve()),
   ...overrides,
@@ -111,6 +114,29 @@ jest.mock('@react-navigation/native', () => ({
 }));
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+// faltas marcadas no aparelho e a carga horária do histórico
+let mockAbsenceKeys = new Set<string>();
+const mockMark = jest.fn(async () => true);
+jest.mock('@root/modules/attendance/presentation/useAttendance', () => ({
+  useAttendance: () => ({
+    absences: [],
+    keys: mockAbsenceKeys,
+    mark: mockMark,
+  }),
+}));
+const mockLoads = new Map([
+  ['10892', { credits: 4, workload: 60 }],
+  ['10933', { credits: 4, workload: 60 }],
+]);
+jest.mock('@root/modules/academics/presentation/useSubjectLoads', () => ({
+  useSubjectLoads: () => ({
+    loads: mockLoads,
+    history: { data: [], isLoading: false, error: null, refetch: jest.fn() },
+    loading: false,
+    failed: false,
+    retry: jest.fn(),
+  }),
 }));
 
 const LOC_B = 'Pav. João Lyra Filho · 6º andar · Sala 6019 B';
@@ -237,6 +263,7 @@ const NOT_STARTED = 'Parece que o período não se iniciou ainda.';
 beforeEach(() => {
   mockOnline = true;
   mockRouteParams = undefined;
+  mockAbsenceKeys = new Set();
   mockSchedule = makeQuery(schedule);
   mockGrades = makeQuery(grades);
   mockRid = makeQuery<PartialRidResult>({ subjects: [], updatedAt: '' });
@@ -265,10 +292,11 @@ it('greets the student and answers the next class first', async () => {
 it('lists the grades with health spelled out, never by color alone', async () => {
   await renderHome();
   const rows = screen.getAllByLabelText(/: P1 /);
+  // só com a P1, o rótulo diz quanto a P2 precisa ser para dispensar a PF
   const labels = [
-    'Sistemas Distribuídos: P1 8,5, P2 sem nota, PF sem nota, Média sem nota. Bom na P1',
-    'Compiladores: P1 6,0, P2 sem nota, PF sem nota, Média sem nota. Atenção na P1',
-    'Ética e Computação: P1 sem nota, P2 sem nota, PF sem nota, Média 9,0. Bom na média',
+    'Sistemas Distribuídos: P1 8,5, P2 sem nota, PF sem nota, Média sem nota. 5,5 na P2 dispensa a PF',
+    'Compiladores: P1 6,0, P2 sem nota, PF sem nota, Média sem nota. 8,0 na P2 dispensa a PF',
+    'Ética e Computação: P1 sem nota, P2 sem nota, PF sem nota, Média 9,0. Média final 9,0',
   ];
   expect(rows).toHaveLength(labels.length);
   rows.forEach((row, i) => expect(row).toHaveAccessibleName(labels[i]));
@@ -339,6 +367,103 @@ it('opens the classes sheet focused on the tapped class and navigates from it', 
   expect(mockNavigate).toHaveBeenCalledWith('Pesquisa de Disciplinas', {
     subjectId: 'IME04-10933',
     sourceRoute: 'Início',
+  });
+});
+
+describe('controle de faltas', () => {
+  // segunda, 12/10: Sistemas Distribuídos, 14:20–16:00 (T3–T4), já terminou
+  const MONDAY = 'Segunda, 12 de outubro';
+  const pastClass = () =>
+    screen.getByRole('button', {
+      name: /^Sistemas Distribuídos, 14:20 às 16:00, T3–T4/,
+    });
+
+  it('marks an absence from a finished class on the agenda', async () => {
+    const user = userEvent.setup();
+    await renderHome();
+    await user.press(screen.getByRole('tab', { name: MONDAY }));
+    expect(within(pastClass()).getByText('Encerrada')).toBeOnTheScreen();
+    await user.press(pastClass());
+    const open = sheet('Sistemas Distribuídos');
+    expect(open).toBeOnTheScreen();
+    // a folha de faltas, não a de disciplinas em curso
+    expect(sheet('Disciplinas em Curso')).toBeNull();
+    expect(
+      within(open!).getByRole('header', { name: 'Você foi a esta aula?' }),
+    ).toBeOnTheScreen();
+    expect(
+      within(open!).getByText(
+        'Segunda, 12 de outubro · 14:20–16:00 · 2 tempos',
+      ),
+    ).toBeOnTheScreen();
+    expect(within(open!).getByText('0 de 15 tempos')).toBeOnTheScreen();
+    await user.press(within(open!).getByRole('tab', { name: 'Faltei' }));
+    expect(mockMark).toHaveBeenCalledWith(
+      {
+        subjectId: '10892',
+        date: '2026-10-12',
+        start: 860,
+        end: 960,
+        slots: 2,
+      },
+      true,
+    );
+  });
+
+  it('labels the absence on the agenda', async () => {
+    mockAbsenceKeys = new Set(['10892@2026-10-12@860']);
+    const user = userEvent.setup();
+    await renderHome();
+    await user.press(screen.getByRole('tab', { name: MONDAY }));
+    expect(pastClass()).toHaveAccessibleName(
+      'Sistemas Distribuídos, 14:20 às 16:00, T3–T4, Sala 6019 B, falta marcada',
+    );
+    expect(within(pastClass()).getByText('Falta')).toBeOnTheScreen();
+  });
+
+  it('keeps upcoming classes on the classes sheet', async () => {
+    const user = userEvent.setup();
+    await renderHome();
+    await user.press(
+      screen.getByRole('tab', { name: 'Quinta, 15 de outubro' }),
+    );
+    await user.press(
+      screen.getByRole('button', {
+        name: 'Compiladores, 8:50 às 10:30, M3–M4, Sala 6113 D, Manhã',
+      }),
+    );
+    expect(sheet('Disciplinas em Curso')).toBeOnTheScreen();
+  });
+
+  it('opens the absences of a subject from the classes sheet', async () => {
+    const user = userEvent.setup();
+    await renderHome();
+    await user.press(
+      screen.getByRole('button', {
+        name: 'Otimização Combinatória, 12:20 às 14:10, T1–T2, Sala 6019 B, Tarde',
+      }),
+    );
+    const classes = sheet('Disciplinas em Curso')!;
+    expect(
+      within(classes).getAllByText('Nenhuma falta marcada').length,
+    ).toBeGreaterThan(0);
+    await user.press(
+      within(classes).getByRole('button', {
+        name: 'Marcar faltas em Otimização Combinatória',
+      }),
+    );
+    await waitFor(() => expect(sheet('Disciplinas em Curso')).toBeNull());
+    const open = sheet('Otimização Combinatória')!;
+    expect(
+      within(open).getByRole('header', { name: 'Aulas recentes' }),
+    ).toBeOnTheScreen();
+    // a de hoje (12:20) ainda não terminou; a de quinta, 8/10, sim
+    expect(
+      within(open).getByRole('checkbox', { name: /Quinta, 8 de outubro/ }),
+    ).toBeOnTheScreen();
+    expect(
+      within(open).queryByText(/Terça, 13 de outubro/),
+    ).not.toBeOnTheScreen();
   });
 });
 
@@ -536,6 +661,14 @@ it('presents what is new in a sheet once per version', async () => {
   ).toBeOnTheScreen();
   // sem avisos no aparelho (iOS), a novidade da versão não aparece
   expect(screen.queryByText('Notificações')).toBeNull();
+  expect(
+    screen.getByLabelText(/^Quanto preciso na PF, novo\. No quadro de notas/),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText(/^Controle de faltas, novo\. Marque as faltas/),
+  ).toBeOnTheScreen();
+  // widget e atalhos só existem no Android (o Jest roda como iOS)
+  expect(screen.queryByText('Widget e atalhos')).toBeNull();
 });
 
 it('lists the notifications as new where the device has them', async () => {
@@ -569,4 +702,16 @@ it('stays at the top and says why when the period has no grades for the shortcut
   expect(screen.queryByTestId('home-grades')).toBeNull();
   expect(info).toHaveBeenCalledWith('Sem notas no período', expect.any(String));
   expect(mockSetParams).toHaveBeenCalledWith({ focus: undefined });
+});
+
+it('keeps the grades shortcut waiting when the grades failed to load', async () => {
+  const info = jest.spyOn(snackbar, 'info').mockImplementation(() => undefined);
+  mockRouteParams = { focus: 'grades' };
+  mockGrades = makeQuery<ClassGrade[]>(undefined, {
+    error: new Error('offline'),
+  });
+  await renderHome();
+  // "Sem notas no período" seria falso: o pedido espera as notas chegarem
+  expect(info).not.toHaveBeenCalled();
+  expect(mockSetParams).not.toHaveBeenCalled();
 });

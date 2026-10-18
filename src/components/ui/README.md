@@ -360,9 +360,9 @@ Fora do `Text` (por exemplo num `TextInput`) use `typeStyle(theme, 'body')`.
 
 ### Status
 
-- **`StatusLabel`**: `tone` (`good|warn|bad|neutral|info|accent|morning|afternoon|night`), `label`, `icon` (no lugar do ponto: "check" em "Encerrada", "star" em "Preferencial"), `muted` (legenda). É o "● Bom na P1".
+- **`StatusLabel`**: `tone` (`good|warn|bad|neutral|info|accent|morning|afternoon|night`), `label`, `icon` (no lugar do ponto: "check" em "Encerrada", "star" em "Preferencial"), `muted` (legenda), `lines` (padrão 1; com mais, o rótulo quebra e o ponto fica na primeira linha, como em "Precisa de 5,0 na P1 para ter PF" sob o nome da disciplina, no quadro de notas). É o "● Bom na P1".
 - **`Tag`**: `label`, `tone` (`neutral` padrão), `icon`, `dot`. "Hoje" (`accent`), "Sem meta", "Trava de 140 créditos" (`warn` + `lock`).
-- **`GradeCell`**: `value` (0–10 ou nulo → "–"), `tone` (padrão: saúde ≥7/≥5/abaixo), `size` (`md`/`lg`), `decimals`. Rótulo acessível "Nota 8,5, Bom". `formatGrade(8.5)` → "8,5".
+- **`GradeCell`**: `value` (0–10 ou nulo → "–"), `tone` (padrão: saúde ≥7/≥5/abaixo), `size` (`md`/`lg`), `target` (a nota que ainda falta, como a PF necessária: sem fundo e com borda tracejada no tom; rótulo "Nota necessária 4,2"). Rótulo acessível "Nota 8,5, Bom". `formatGrade` mostra uma casa e a segunda só quando existe, cortando em vez de arredondar: 8.5 → "8,5", 7.75 → "7,75", 4.999 → "4,99" (nada abaixo de 5 vira "5,0").
 - **`ProgressBar`**: `value` 0–1, `tone` (`accent|good|warn|bad`), `thin` (4dp, dentro das células de vagas), `accessibilityLabel` obrigatório.
 
 ### Avisos e estados

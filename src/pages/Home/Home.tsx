@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { parseName } from '@services/parser';
 import { useIdentity } from '@root/app/providers/AppServicesProvider';
@@ -12,7 +12,12 @@ import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
 import { useOnlineStatus } from '@root/modules/academics/presentation/useOnlineStatus';
 import { RemoteNotices } from '@root/modules/delivery/presentation/RemoteNotices';
 import { ReminderPrompt } from '@root/modules/notifications/presentation/ReminderPrompt';
-import type { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
+import { toIsoDate } from '@root/modules/attendance/domain/attendance';
+import { useAttendance } from '@root/modules/attendance/presentation/useAttendance';
+import type {
+  AttendedClassesSchedule,
+  AttendedSubjectInfo,
+} from '@root/modules/academics/domain/models';
 
 import { ScreenPanel } from '@templates/ScreenPanel';
 import { BlockedState, EmptyState, ErrorState, Notice } from '@components/ui';
@@ -23,6 +28,7 @@ import { GradeBoard } from '@features/ClassGrades/GradeBoard';
 import { NextClassCard } from '@features/AttendedClassesSchedule/NextClassCard';
 import { ClassScheduleBoard } from '@features/AttendedClassesSchedule/ClassScheduleBoard';
 import { AttendedClassesBoard } from '@features/AttendedClassesSchedule/AttendedClassesBoard';
+import { AttendanceSheet } from '@features/AttendedClassesSchedule/AttendanceSheet';
 import { dateLabel } from '@features/AttendedClassesSchedule/scheduleFormat';
 import { useNow } from '@features/AttendedClassesSchedule/useNow';
 
@@ -40,6 +46,13 @@ type ErrorControl = {
 
 type ClassesSheet = { visible: boolean; focusId: string | null };
 
+type AttendanceState = {
+  visible: boolean;
+  subject: AttendedSubjectInfo | null;
+  /** Aula tocada na agenda, com a pergunta "Você foi a esta aula?". */
+  focus: { date: string; start: number } | null;
+};
+
 const NOT_STARTED_TEXT = 'Parece que o período não se iniciou ainda.';
 
 export const HomePage = () => {
@@ -47,8 +60,17 @@ export const HomePage = () => {
     visible: false,
     focusId: null,
   });
+  const [attendance, setAttendance] = useState<AttendanceState>({
+    visible: false,
+    subject: null,
+    focus: null,
+  });
+  // "Faltas" em Disciplinas em Curso: a folha das faltas só abre depois que
+  // a outra termina de descer (no iOS, um modal não abre enquanto outro sai)
+  const pendingAttendance = useRef<AttendedSubjectInfo | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const now = useNow();
+  const { keys: absenceKeys } = useAttendance();
 
   const { account } = useIdentity();
   const online = useOnlineStatus();
@@ -83,7 +105,8 @@ export const HomePage = () => {
   );
   const { scrollRef, onGradesLayout } = useGradesFocus({
     available: isClassGradesAvailable,
-    settled: !loadingGrades,
+    // sem rede ou com erro, "Sem notas no período" seria mentira: espera
+    settled: gradesQuery.isSuccess,
   });
   const firstName = parseName(account?.name ?? '', true).split(' ')[0] ?? '';
   const period =
@@ -164,10 +187,32 @@ export const HomePage = () => {
   };
 
   const openClasses = useCallback((item?: AttendedClassesSchedule) => {
+    pendingAttendance.current = null;
     setClassesSheet({ visible: true, focusId: item?.class?.id ?? null });
   }, []);
   const closeClasses = useCallback(() => {
     setClassesSheet(sheet => ({ ...sheet, visible: false }));
+  }, []);
+  const openEndedClass = useCallback(
+    (item: AttendedClassesSchedule, date: Date) => {
+      setAttendance({
+        visible: true,
+        subject: item.class,
+        focus: { date: toIsoDate(date), start: item.start_time_in_minutes },
+      });
+    },
+    [],
+  );
+  const queueAttendance = useCallback((subject: AttendedSubjectInfo) => {
+    pendingAttendance.current = subject;
+  }, []);
+  const classesClosed = useCallback(() => {
+    const subject = pendingAttendance.current;
+    pendingAttendance.current = null;
+    if (subject) setAttendance({ visible: true, subject, focus: null });
+  }, []);
+  const closeAttendance = useCallback(() => {
+    setAttendance(sheet => ({ ...sheet, visible: false }));
   }, []);
 
   const greeting = <HomeGreeting firstName={firstName} date={dateLabel(now)} />;
@@ -267,6 +312,8 @@ export const HomePage = () => {
           data={currentSchedule}
           now={now}
           onSubjectPress={openClasses}
+          absences={absenceKeys}
+          onEndedClassPress={openEndedClass}
         />
         {!isScheduleAvailable && isPartialRidAvailable ? (
           <RIDBoard data={partialRID} />
@@ -276,7 +323,17 @@ export const HomePage = () => {
         visible={classesSheet.visible}
         focusId={classesSheet.focusId}
         onClose={closeClasses}
+        onClosed={classesClosed}
         data={currentSchedule}
+        onAttendancePress={queueAttendance}
+      />
+      <AttendanceSheet
+        visible={attendance.visible}
+        onClose={closeAttendance}
+        subject={attendance.subject}
+        data={currentSchedule}
+        focus={attendance.focus}
+        now={now}
       />
     </>
   );

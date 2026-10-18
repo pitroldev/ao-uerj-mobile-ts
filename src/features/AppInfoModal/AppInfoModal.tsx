@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import {
   useAppServices,
   useIdentity,
@@ -15,7 +16,7 @@ import {
   snackbar,
 } from '@components/ui';
 
-import { APP_INFO } from './info';
+import { APP_INFO, APP_INFO_VERSION_KEY } from './info';
 import { Description } from './AppInfoModal.styles';
 
 /**
@@ -28,7 +29,9 @@ export const AppInfoModal = () => {
   // sem os avisos no aparelho (iOS) ou com eles desligados pelo aviso remoto
   const { supported, remoteDisabled } = useNotificationSettings().snapshot;
   const items = APP_INFO.filter(
-    info => !info.needsNotifications || (supported && !remoteDisabled),
+    info =>
+      (!info.needsNotifications || (supported && !remoteDisabled)) &&
+      (!info.androidOnly || Platform.OS === 'android'),
   );
   // Conta para a qual a folha foi aberta: trocar de conta já a esconde.
   const [shownFor, setShownFor] = useState<typeof account>(null);
@@ -37,7 +40,7 @@ export const AppInfoModal = () => {
     let active = true;
     if (account)
       void preferences
-        .read<string>(account.scope, 'app-info-version')
+        .read<string>(account.scope, APP_INFO_VERSION_KEY)
         .then(seenVersion => {
           if (active) setShownFor(seenVersion !== version ? account : null);
         })
@@ -50,7 +53,7 @@ export const AppInfoModal = () => {
     setShownFor(null);
     if (account)
       void preferences
-        .write(account.scope, 'app-info-version', version)
+        .write(account.scope, APP_INFO_VERSION_KEY, version)
         .catch(() =>
           snackbar.error('Não foi possível salvar esta preferência.'),
         );

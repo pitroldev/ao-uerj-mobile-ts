@@ -42,6 +42,19 @@ export function createPreferencesStore(
         storage.setItem(storageKey, JSON.stringify(value)),
       );
     },
+    async update<T>(
+      scope: string,
+      key: string,
+      change: (current: T | null) => T,
+    ): Promise<T> {
+      const storageKey = name(scope, key);
+      return enqueue(storageKey, async () => {
+        const value = await storage.getItem(storageKey);
+        const next = change(value === null ? null : (JSON.parse(value) as T));
+        await storage.setItem(storageKey, JSON.stringify(next));
+        return next;
+      });
+    },
     async remove(scope: string, key: string) {
       const storageKey = name(scope, key);
       // Logout's removal follows any write already in flight for this account.

@@ -72,6 +72,14 @@ it('skips canceled classes and wraps to the next class day', () => {
   });
 });
 
+it('ignores a class whose time the portal did not give, like the widget', () => {
+  // quarta à noite: a linha "??" (−1) de quinta não pode vir antes das 12:20
+  const unknown = item('LAB', 4, '??', ['??', -1], ['??', -1]);
+  const next = findNextClass([...schedule, unknown], at(20, 0, 14));
+  expect(next?.item.subject_id).toBe('OTIM');
+  expect(findNextClass([unknown], at(20, 0, 14))).toBeNull();
+});
+
 it('finds the same weekday next week when it is the only class day', () => {
   const only = [item('OTIM', 2, 'T1', ['12:20', 740], ['14:10', 850])];
   expect(findNextClass(only, at(15, 0))).toMatchObject({

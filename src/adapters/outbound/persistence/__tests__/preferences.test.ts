@@ -49,3 +49,33 @@ it('does not block account B or cleanup after a rejected write for account A', a
   await preferences.remove('account-a', 'credits');
   expect(await preferences.read('account-b', 'credits')).toBe(12);
 });
+
+it('updates in one turn, so the logout removal cannot slip between the read and the write', async () => {
+  const records = new Map<string, string>();
+  const tick = () => new Promise<void>(resolve => setTimeout(resolve, 1));
+  const preferences = createPreferencesStore({
+    getItem: async key => {
+      await tick();
+      return records.get(key) ?? null;
+    },
+    setItem: async (key, value) => {
+      await tick();
+      records.set(key, value);
+    },
+    removeItem: async key => {
+      records.delete(key);
+    },
+  });
+  await preferences.write('account-a', 'attendance', 1);
+  const updating = preferences.update<number>(
+    'account-a',
+    'attendance',
+    current => (current ?? 0) + 1,
+  );
+  // o logout entra na fila depois da leitura já ter começado
+  await Promise.resolve();
+  const logout = preferences.remove('account-a', 'attendance');
+  await expect(updating).resolves.toBe(2);
+  await logout;
+  expect(records.size).toBe(0);
+});

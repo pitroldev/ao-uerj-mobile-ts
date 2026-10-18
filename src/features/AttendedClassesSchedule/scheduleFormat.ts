@@ -124,6 +124,22 @@ export function isCanceled(item: AttendedClassesSchedule): boolean {
   return item.class?.status === 'CANCELED';
 }
 
+/**
+ * Aula com horário conhecido. O portal pode trazer um tempo fora da tabela
+ * ("??"), que vira −1; a próxima aula, o widget e as faltas o ignoram.
+ */
+export function hasClassTime(item: AttendedClassesSchedule): boolean {
+  const start = item.start_time_in_minutes;
+  const end = item.end_time_in_minutes;
+  return (
+    Number.isFinite(start) &&
+    Number.isFinite(end) &&
+    start >= 0 &&
+    end > start &&
+    end <= 24 * 60
+  );
+}
+
 /** "Ter e Qui", "Seg, Qua e Sex". */
 function joinPt(parts: string[]): string {
   if (parts.length < 2) return parts.join('');
@@ -207,7 +223,9 @@ export function findNextClass(
   schedule: AttendedClassesSchedule[],
   now: Date,
 ): NextClass | null {
-  const active = schedule.filter(item => !isCanceled(item));
+  const active = schedule.filter(
+    item => !isCanceled(item) && hasClassTime(item),
+  );
   if (!active.length) return null;
   const today = now.getDay();
   const nowMin = minutesOfDay(now);

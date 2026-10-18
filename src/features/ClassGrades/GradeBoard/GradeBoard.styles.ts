@@ -14,6 +14,28 @@ export const Legend = styled.View`
   margin-top: 10px;
 `;
 
+/** Item da legenda com marcador próprio, no alinhamento do `StatusLabel`. */
+export const LegendItem = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+`;
+
+/** Amostra da nota necessária: a célula tracejada, em miniatura. */
+export const TargetSwatch = styled.View`
+  width: 14px;
+  height: 10px;
+  border-width: 1.5px;
+  border-style: dashed;
+  border-color: ${({ theme }) => theme.colors.inkMuted};
+  border-radius: 3px;
+  border-top-right-radius: 0px;
+`;
+
+export const SimulateButton = styled.View`
+  margin-top: ${({ theme }) => theme.spacing.lg}px;
+`;
+
 /**
  * Notas embaixo do nome, quando a fonte do sistema não deixa as quatro
  * colunas caberem ao lado dele.

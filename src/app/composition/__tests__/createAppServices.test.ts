@@ -158,3 +158,25 @@ describe('real adapter composition', () => {
     });
   });
 });
+
+it('forgets the absences marked on the device at logout', async () => {
+  const { services } = setup();
+  await services.identity.signIn({
+    matricula: '202300000001',
+    password: 'synthetic-password',
+  });
+  const scope = services.identity.getSnapshot().account!.scope;
+  const meeting = {
+    subjectId: '778',
+    date: '2026-10-15',
+    start: 860,
+    end: 960,
+    slots: 2,
+  };
+  await services.attendance.mark(scope, '2026.1', meeting, true);
+  expect(await services.attendance.read(scope, '2026.1')).toHaveLength(1);
+
+  await services.identity.signOut();
+
+  expect(await services.attendance.read(scope, '2026.1')).toEqual([]);
+});

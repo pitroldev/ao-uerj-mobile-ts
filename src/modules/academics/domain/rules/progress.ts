@@ -45,6 +45,20 @@ export function sortAcademicPeriods(periods: readonly string[]): string[] {
   });
 }
 
+/** An attempt that counts for the CR: finished, graded and worth credits. */
+export function isGradedAttempt(
+  subject: SubjectsTaken,
+): subject is SubjectsTaken & { grade: number; credits: number } {
+  return (
+    subject.status !== 'IN_PROGRESS' &&
+    subject.grade !== null &&
+    Number.isFinite(subject.grade) &&
+    subject.credits !== null &&
+    Number.isFinite(subject.credits) &&
+    subject.credits > 0
+  );
+}
+
 /** Preserves the existing approximate CR policy: every finite graded attempt is weighted. */
 export function calculateCumulativeAverage(
   subjects: readonly SubjectsTaken[],
@@ -52,15 +66,7 @@ export function calculateCumulativeAverage(
   let weightedGrades = 0;
   let credits = 0;
   for (const subject of subjects) {
-    if (
-      subject.status === 'IN_PROGRESS' ||
-      subject.grade === null ||
-      !Number.isFinite(subject.grade) ||
-      subject.credits === null ||
-      !Number.isFinite(subject.credits) ||
-      subject.credits <= 0
-    )
-      continue;
+    if (!isGradedAttempt(subject)) continue;
     weightedGrades += subject.grade * subject.credits;
     credits += subject.credits;
   }

@@ -33,6 +33,11 @@ import {
   CHECK_STATE_KEY,
   PREFERENCES_KEY,
 } from '@root/modules/notifications/application/NotificationSettings';
+import {
+  ATTENDANCE_KEY,
+  AttendanceRecords,
+} from '@root/modules/attendance/application/AttendanceRecords';
+import { APP_INFO_VERSION_KEY } from '@features/AppInfoModal/info';
 import { initializeIdentity } from './initializeIdentity';
 import { createDelivery } from './createDelivery';
 import { createNotifications } from './createNotifications';
@@ -43,6 +48,8 @@ const ACCOUNT_PREFERENCES = [
   'elective-credits',
   PREFERENCES_KEY,
   CHECK_STATE_KEY,
+  ATTENDANCE_KEY,
+  APP_INFO_VERSION_KEY,
 ] as const;
 
 function createScope() {
@@ -120,6 +127,8 @@ export function createAppServices() {
     documentSharing: new NativeDocumentSharing(),
     delivery,
     notifications,
+    // faltas marcadas pelo aluno, só no aparelho (o logout apaga)
+    attendance: new AttendanceRecords(preferences),
     // aviso tocado, atalho do ícone ou widget: a tela que o app abre
     launches: createLaunches(),
     widget: createWidget({ queryClient, identity }),

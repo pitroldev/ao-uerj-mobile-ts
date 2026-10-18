@@ -98,6 +98,7 @@ it('keeps app-wide values in their own preferences scope', async () => {
   const preferences = {
     read: jest.fn(async (): Promise<any> => 'valor'),
     write: jest.fn(async () => undefined),
+    update: jest.fn(async (): Promise<any> => undefined),
     remove: jest.fn(async () => undefined),
   };
   const store = createAppKeyValueStore(preferences);

@@ -22,7 +22,12 @@ import {
   type WeekDayItem,
 } from '@components/ui';
 import { nextWeekdayIndex } from '@root/modules/academics/domain/rules/schedule';
+import { subjectKey } from '@root/modules/academics/domain/rules/subjectId';
 import { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
+import {
+  absenceKey,
+  toIsoDate,
+} from '@root/modules/attendance/domain/attendance';
 import { useScheduleSharing } from '@root/modules/academics/presentation/useScheduleSharing';
 import {
   buildWeekSvg,
@@ -53,7 +58,16 @@ type Props = {
   now: Date;
   /** Toque numa aula: abre "Disciplinas em Curso". */
   onSubjectPress: (item: AttendedClassesSchedule) => void;
+  /** Aulas com falta marcada (`absenceKey`): o rótulo vira "Falta". */
+  absences?: ReadonlySet<string>;
+  /**
+   * Toque numa aula que já terminou (de hoje ou de um dia anterior da semana
+   * mostrada): abre as faltas da disciplina naquela aula.
+   */
+  onEndedClassPress?: (item: AttendedClassesSchedule, date: Date) => void;
 };
+
+const NO_ABSENCES: ReadonlySet<string> = new Set();
 
 /** Escala padrão da régua: 48dp por hora. */
 const BASE_PX_PER_MINUTE = 0.8;
@@ -61,12 +75,16 @@ const BASE_PX_PER_MINUTE = 0.8;
 /**
  * Semana: seletor de dias (Seg–Sáb, hoje em acento, ponto nos dias com aula)
  * e o dia escolhido como régua de horas, com intervalos livres, linha de
- * agora e aulas encerradas. "Compartilhar grade" gera a imagem da semana.
+ * agora e aulas encerradas (as de hoje que já acabaram e as dos dias
+ * anteriores da semana), com "Falta" onde o aluno marcou. "Compartilhar
+ * grade" gera a imagem da semana.
  */
 export const ClassScheduleBoard = React.memo(function ClassScheduleBoard({
   data,
   now,
   onSubjectPress,
+  absences = NO_ABSENCES,
+  onEndedClassPress,
 }: Props) {
   const theme = useTheme();
   const reduced = useReducedMotion();
@@ -148,6 +166,9 @@ export const ClassScheduleBoard = React.memo(function ClassScheduleBoard({
   const selectedDate = dates.get(selected) ?? now;
   const selectedIsToday = isClassDay && selected === today;
   const nowMinutes = minutesOfDay(now);
+  const selectedDay = toIsoDate(selectedDate);
+  // a semana mostrada é a atual (no domingo, a seguinte): dia anterior a hoje
+  const selectedIsPast = selectedDay < toIsoDate(now);
   const dayItems = safeData
     .filter(item => weekdayOf(item) === selected)
     .sort((a, b) => a.start_time_in_minutes - b.start_time_in_minutes);
@@ -167,9 +188,19 @@ export const ClassScheduleBoard = React.memo(function ClassScheduleBoard({
     const start = item.start_time_in_minutes;
     const end = item.end_time_in_minutes;
     const canceled = isCanceled(item);
-    const past = !canceled && selectedIsToday && end <= nowMinutes;
+    const past =
+      !canceled && (selectedIsPast || (selectedIsToday && end <= nowMinutes));
     const live =
       !canceled && selectedIsToday && start <= nowMinutes && end > nowMinutes;
+    const absent =
+      past &&
+      absences.has(
+        absenceKey({
+          subjectId: subjectKey(item.class?.id ?? item.subject_id),
+          date: selectedDay,
+          start,
+        }),
+      );
     const shift = shiftOf(start);
     const { room } = splitLocation(item.class?.uerjLocation);
     const slots = slotRange(item);
@@ -179,6 +210,9 @@ export const ClassScheduleBoard = React.memo(function ClassScheduleBoard({
     if (canceled) {
       status = <StatusLabel tone="neutral" icon="block" label="Cancelada" />;
       statusText = 'cancelada';
+    } else if (absent) {
+      status = <StatusLabel tone="bad" icon="event_busy" label="Falta" />;
+      statusText = 'falta marcada';
     } else if (past) {
       status = <StatusLabel tone="neutral" icon="check" label="Encerrada" />;
       statusText = 'encerrada';
@@ -200,7 +234,10 @@ export const ClassScheduleBoard = React.memo(function ClassScheduleBoard({
         : `${timeRange(item)} · ${slots} · ${room}`,
       status,
       state: canceled || past ? 'past' : live ? 'live' : 'upcoming',
-      onPress: () => onSubjectPress(item),
+      onPress:
+        past && onEndedClassPress
+          ? () => onEndedClassPress(item, selectedDate)
+          : () => onSubjectPress(item),
       accessibilityLabel: [
         item.class?.name ?? item.subject_id,
         `${item.startTimeAlias} às ${item.endTimeAlias}`,
