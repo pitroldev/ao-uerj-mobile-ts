@@ -28,6 +28,7 @@ export class RemoteStatus {
     dismissed: new Set(),
   };
   private listeners = new Set<() => void>();
+  private loading: Promise<void> | null = null;
   private starting: Promise<void> | null = null;
   private fetching: Promise<void> | null = null;
   private lastAttemptAt = -Infinity;
@@ -48,9 +49,18 @@ export class RemoteStatus {
     this.listeners.forEach(listener => listener());
   }
 
+  /**
+   * Só a cópia salva, sem rede: a verificação de avisos em segundo plano
+   * decide com ela antes de buscar a nova. Idempotente.
+   */
+  load(): Promise<void> {
+    this.loading ??= this.restore();
+    return this.loading;
+  }
+
   /** Na abertura: cópia salva primeiro, depois a rede. Idempotente. */
   start(): Promise<void> {
-    this.starting ??= this.restore().then(() => this.refresh());
+    this.starting ??= this.load().then(() => this.refresh());
     return this.starting;
   }
 

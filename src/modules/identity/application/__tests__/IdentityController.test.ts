@@ -169,6 +169,8 @@ it.each<ErrorCode>([
       status: 'signedIn',
       account: saved.account,
       error: errorMessage(new AppError(code)),
+      // the background check records the outcome from the code
+      errorCode: code,
     });
     expect(stored()).toEqual(saved);
     expect(auth.signOut).not.toHaveBeenCalled();
@@ -242,6 +244,7 @@ it.each<ErrorCode>([
       status: 'signedIn',
       account: saved.account,
       error: errorMessage(new AppError(code)),
+      errorCode: code,
     });
     expect(stored()).toEqual(saved);
     expect(auth.signOut).not.toHaveBeenCalled();
@@ -250,6 +253,7 @@ it.each<ErrorCode>([
     // A later retry is allowed to repair the protocol without explicit sign-in.
     await identity.refresh();
     expect(identity.getSnapshot().error).toBeNull();
+    expect(identity.getSnapshot().errorCode).toBeUndefined();
   },
 );
 

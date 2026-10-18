@@ -8,6 +8,9 @@ import {
   documentNoticeKey,
   expiringDocuments,
   gradeChanges,
+  knowGrades,
+  knowRid,
+  normalizeKnownReadings,
   ridChanges,
 } from '../changes';
 
@@ -33,7 +36,7 @@ describe('gradeChanges', () => {
       grade('IME02-00001', { p1: 7.5, p2: 9, pf: null, result: 8.3 }),
       grade('IME02-00002', { p1: 6.5, p2: 8, pf: null, result: 7 }),
     ];
-    expect(gradeChanges(previous, current)).toEqual([
+    expect(gradeChanges(knowGrades({}, previous), current)).toEqual([
       {
         subjectId: 'IME02-00001',
         subjectName: 'Disciplina IME02-00001',
@@ -53,17 +56,39 @@ describe('gradeChanges', () => {
   });
 
   it('ignores unchanged and cleared grades', () => {
-    const previous = [grade('IME02-00001', { p1: 5, p2: 6 })];
+    const known = knowGrades({}, [grade('IME02-00001', { p1: 5, p2: 6 })]);
     expect(
-      gradeChanges(previous, [grade('IME02-00001', { p1: 5, p2: null })]),
+      gradeChanges(known, [grade('IME02-00001', { p1: 5, p2: null })]),
     ).toEqual([]);
-    expect(gradeChanges(previous, previous)).toEqual([]);
+    expect(
+      gradeChanges(known, [grade('IME02-00001', { p1: 5, p2: 6 })]),
+    ).toEqual([]);
+  });
+
+  it('keeps a known grade through a blank reading', () => {
+    const known = knowGrades({}, [grade('IME02-00001', { p1: 5, p2: 6 })]);
+    // o portal devolveu a tabela em branco numa rodada, ou sem a disciplina
+    const blank = knowGrades(
+      knowGrades(known, [grade('IME02-00001', { p1: null, p2: null })]),
+      [],
+    );
+    expect(blank).toEqual(known);
+    expect(
+      gradeChanges(blank, [grade('IME02-00001', { p1: 5, p2: 6 })]),
+    ).toEqual([]);
+    expect(
+      gradeChanges(blank, [grade('IME02-00001', { p1: 5, p2: 7 })]),
+    ).toEqual([
+      expect.objectContaining({
+        grades: [{ key: 'p2', value: 7, previous: 6 }],
+      }),
+    ]);
   });
 
   it('treats another class of the same subject as a different entry', () => {
     const previous = [grade('IME02-00001', { p1: 5 }, { class: '1' })];
     const current = [grade('IME02-00001', { p1: 5 }, { class: '2' })];
-    expect(gradeChanges(previous, current)).toEqual([
+    expect(gradeChanges(knowGrades({}, previous), current)).toEqual([
       expect.objectContaining({
         classNumber: '2',
         grades: [{ key: 'p1', value: 5, previous: null }],
@@ -91,7 +116,7 @@ describe('ridChanges', () => {
       rid({ id: 'IME02-00002', position: 3, status: 'Atendido' }),
       rid({ id: 'IME02-00003', position: 0, status: 'Choque de horário' }),
     ];
-    expect(ridChanges(previous, current)).toEqual([
+    expect(ridChanges(knowRid({}, previous), current)).toEqual([
       expect.objectContaining({
         subjectId: 'IME02-00001',
         previousPosition: 12,
@@ -116,11 +141,49 @@ describe('ridChanges', () => {
 
   it('ignores spacing and case in the status', () => {
     expect(
-      ridChanges(
-        [rid({ status: 'Em  análise' })],
-        [rid({ status: 'em análise' })],
-      ),
+      ridChanges(knowRid({}, [rid({ status: 'Em  análise' })]), [
+        rid({ status: 'em análise' }),
+      ]),
     ).toEqual([]);
+  });
+
+  it('keeps the known requests through an empty reading', () => {
+    const current = [rid(), rid({ id: 'IME02-00002', position: 3 })];
+    const known = knowRid({}, current);
+    // "Não há resultado provisório" numa rodada não apaga a referência
+    const empty = knowRid(known, []);
+    expect(empty).toEqual(known);
+    expect(ridChanges(empty, current)).toEqual([]);
+  });
+});
+
+describe('normalizeKnownReadings', () => {
+  it('reads a saved reference defensively', () => {
+    expect(normalizeKnownReadings(null)).toBeNull();
+    expect(normalizeKnownReadings({ grades: {} })).toBeNull();
+    expect(
+      normalizeKnownReadings({
+        period: '2026.2',
+        grades: {
+          'IME02-00001#1': { p1: 7, p2: 'oito', pf: null },
+          'IME02-00002#1': { p1: null },
+          'IME02-00003#1': 'x',
+        },
+        rid: {
+          'IME02-00001#3': { position: 5, status: 'Em análise' },
+          'IME02-00002#3': { position: '5', status: 'Em análise' },
+        },
+        enrollment: {
+          'IME02-00001#3': { accepted: true, reason: '' },
+          'IME02-00002#3': { accepted: 'sim', reason: '' },
+        },
+      }),
+    ).toEqual({
+      period: '2026.2',
+      grades: { 'IME02-00001#1': { p1: 7 } },
+      rid: { 'IME02-00001#3': { position: 5, status: 'Em análise' } },
+      enrollment: { 'IME02-00001#3': { accepted: true, reason: '' } },
+    });
   });
 });
 

@@ -68,6 +68,16 @@ it('turns the class reminder on and offers the lead time', async () => {
   expect(device!.requestPermission).not.toHaveBeenCalled();
 });
 
+it('describes the RID and the document notices as the app and the check do', async () => {
+  await mount();
+  expect(
+    screen.getByText('Posição no RID Parcial e resultado da inscrição.'),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText('Até 3 dias antes do vencimento de um documento emitido.'),
+  ).toBeOnTheScreen();
+});
+
 it('shows the grade value switch only with grade notifications on', async () => {
   await mount({ saved: { grades: true } });
   expect(row('Notas novas')).toBeChecked();
@@ -136,6 +146,7 @@ it('shows the result of the last portal check', async () => {
     pausedUntil: null,
     documentsCheckedAt: null,
     notifiedDocuments: [],
+    known: null,
   };
   await act(() => mockSettings.checkRecorded(ACCOUNT.scope, check));
   expect(screen.getByText(/sem conexão\.$/)).toBeOnTheScreen();

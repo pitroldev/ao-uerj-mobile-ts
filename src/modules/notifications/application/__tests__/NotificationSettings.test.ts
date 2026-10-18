@@ -327,3 +327,45 @@ it('takes the notifications already shown off the shade on sign out or account s
   await settle();
   expect(device!.clearPosted).toHaveBeenCalledTimes(2);
 });
+
+it('clears the device when the restore ends without the account', async () => {
+  // runtime novo e senha recusada: não há conta anterior conhecida
+  const { device, account } = setup();
+  account.set(null);
+  await settle();
+  expect(device!.clearPosted).toHaveBeenCalledTimes(1);
+  expect(device!.state).toMatchObject({ plan: null, portal: false });
+});
+
+it('sends the reminders of the next account again after clearing the device', async () => {
+  const { device, account, store } = setup({ saved: { classReminders: true } });
+  store.data.set('account-2/notifications', { classReminders: true });
+  account.set(ACCOUNT);
+  await settle();
+  expect(device!.state.plan?.reminders).toHaveLength(1);
+
+  // a conta nova tem o mesmo plano, mas limpar a barra cancelou o anterior
+  account.set({ scope: 'account-2', period: '2026.2' });
+  await settle();
+  expect(device!.clearPosted).toHaveBeenCalledTimes(1);
+  expect(device!.setClassReminders).toHaveBeenCalledTimes(2);
+  expect(device!.state.plan?.reminders).toHaveLength(1);
+});
+
+it.each([
+  ['turns notifications off', false],
+  ['already had notifications off', true],
+])(
+  'cancels everything while the account is restored when the remote switch %s',
+  async (_case, disabledAtStart) => {
+    // a tarefa sem tela termina sem restaurar a conta
+    const remote = createRemote(disabledAtStart);
+    const { device } = setup({ remote, saved: { classReminders: true } });
+    await settle();
+    remote.set(true);
+    await settle();
+    expect(device!.setClassReminders).toHaveBeenCalledWith(null);
+    expect(device!.setPortalCheck).toHaveBeenCalledWith(false, 4);
+    expect(device!.clearPosted).not.toHaveBeenCalled();
+  },
+);

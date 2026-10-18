@@ -51,7 +51,7 @@ internal object AppNotifier {
           Channel(
               CHANNEL_ENROLLMENT,
               "Inscrição (RID)",
-              "Posição no RID provisório e resultado da inscrição.",
+              "Posição no RID Parcial e resultado da inscrição.",
               NotificationManager.IMPORTANCE_DEFAULT,
           ),
           Channel(

@@ -1,6 +1,12 @@
 import type { EnrollmentResultEntry } from '@root/modules/academics/domain/models';
-import { enrollmentChanges } from '../changes';
+import { enrollmentChanges, knowEnrollment } from '../changes';
 import { enrollmentMessage } from '../messages';
+
+/** Mudanças em relação a um resultado anterior lido inteiro. */
+const changesFrom = (
+  previous: EnrollmentResultEntry[],
+  current: EnrollmentResultEntry[],
+) => enrollmentChanges(knowEnrollment({}, previous), current);
 
 const entry = (
   overrides: Partial<EnrollmentResultEntry> = {},
@@ -31,12 +37,24 @@ describe('enrollmentChanges', () => {
       entry({ id: 'IME02-00004', name: 'Química', classNumber: '1' }),
     ];
     expect(
-      enrollmentChanges(previous, current).map(change => change.subjectId),
-    ).toEqual(['IME02-00002', 'IME02-00003', 'IME02-00004']);
+      changesFrom(previous, current).map(change => [
+        change.subjectId,
+        change.previous,
+      ]),
+    ).toEqual([
+      ['IME02-00002', { accepted: false, reason: 'Sem vaga' }],
+      ['IME02-00003', { accepted: false, reason: 'Sem vaga' }],
+      ['IME02-00004', null],
+    ]);
   });
 
   it('ignores the same result read again', () => {
-    expect(enrollmentChanges([entry()], [entry()])).toEqual([]);
+    expect(changesFrom([entry()], [entry()])).toEqual([]);
+  });
+
+  it('keeps the known result through an empty reading', () => {
+    const known = knowEnrollment(knowEnrollment({}, [entry()]), []);
+    expect(enrollmentChanges(known, [entry()])).toEqual([]);
   });
 });
 
@@ -75,7 +93,7 @@ describe('enrollmentMessage', () => {
       'Não aceitas: Cálculo II e Física I.',
     ],
   ])('sums up the first result %j', (result, body) => {
-    expect(enrollmentMessage(result, enrollmentChanges([], result))).toEqual({
+    expect(enrollmentMessage(result, changesFrom([], result))).toEqual({
       id: 'enrollment:result',
       channel: 'enrollment',
       title: 'Resultado da inscrição',
@@ -93,10 +111,26 @@ describe('enrollmentMessage', () => {
     ];
     const current = [entry(), entry({ id: 'IME02-00002', name: 'Física I' })];
     expect(
-      enrollmentMessage(current, enrollmentChanges(previous, current)),
+      enrollmentMessage(current, changesFrom(previous, current)),
     ).toMatchObject({
       title: 'Resultado da inscrição atualizado',
       body: 'Aceitas: Cálculo II e Física I.',
     });
+  });
+
+  it('says the result changed even when every subject changed', () => {
+    const current = [
+      entry({ accepted: false, reason: 'Falta Requisito (CO/PRE)' }),
+    ];
+    expect(
+      enrollmentMessage(current, changesFrom([entry()], current)).title,
+    ).toBe('Resultado da inscrição atualizado');
+  });
+
+  it('presents the result of another enrollment as a new result', () => {
+    const current = [entry({ id: 'IME02-00009', name: 'Química' })];
+    expect(
+      enrollmentMessage(current, changesFrom([entry()], current)).title,
+    ).toBe('Resultado da inscrição');
   });
 });

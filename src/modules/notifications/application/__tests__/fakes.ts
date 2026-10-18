@@ -57,7 +57,10 @@ export function createDevice({
       state.portal = enabled;
     }),
     notify: jest.fn(async (_content: NotificationContent) => undefined),
-    clearPosted: jest.fn(async () => undefined),
+    // como o módulo nativo: limpar a barra também cancela os lembretes
+    clearPosted: jest.fn(async () => {
+      state.plan = null;
+    }),
   };
   return device as typeof device & NotificationDevicePort;
 }

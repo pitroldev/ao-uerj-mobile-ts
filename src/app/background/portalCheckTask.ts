@@ -8,10 +8,11 @@ const DEADLINE = 3 * 60 * 1000;
 
 /**
  * Verificação de avisos chamada pelo WorkManager com o app fora da tela.
- * Antes de qualquer acesso ao portal, decide com o que está no aparelho
- * (horário, pausa, avisos ligados da conta salva) e com o aviso remoto, que
- * pode desligar os avisos; só então restaura a conta (uma autenticação) e
- * consulta as páginas dos avisos ligados.
+ * Antes de qualquer acesso à rede, decide com o que está no aparelho
+ * (horário, pausa, avisos ligados da conta salva, cópia salva do aviso
+ * remoto); só então busca o aviso remoto, que pode desligar os avisos,
+ * restaura a conta (o login da rodada) e consulta as páginas dos avisos
+ * ligados.
  */
 export function createPortalCheckTask(services: () => AppServices) {
   const verify = async () => {
@@ -21,12 +22,22 @@ export function createPortalCheckTask(services: () => AppServices) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), DEADLINE);
     try {
-      await current.delivery.status.start();
-      // à noite ou na pausa, nem o aviso remoto é buscado
+      // à noite, na pausa ou com os avisos desligados, nem o aviso remoto é
+      // buscado: vale a cópia salva
+      await current.delivery.status.load();
       if (!(await check.canRun())) return;
       await current.delivery.status.refresh();
       if (!(await check.canRun())) return;
+      // num runtime novo, a restauração da conta é o login da rodada
+      const restoring = current.identity.getSnapshot().status === 'restoring';
       await current.initialize();
+      const { error, errorCode } = current.identity.getSnapshot();
+      if (restoring && error) {
+        // a restauração não entrou no portal: as páginas entrariam de novo,
+        // então fica só o resultado
+        await check.signInFailed(errorCode ?? null);
+        return;
+      }
       await check.run({ signal: controller.signal });
     } catch {
       // o próximo ciclo tenta de novo; nada a mostrar sem tela

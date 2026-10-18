@@ -1,8 +1,14 @@
+import { normalizeKnownReadings, type KnownReadings } from './changes';
+
 const HOUR = 60 * 60 * 1000;
 
 /** Intervalo da verificação periódica no Aluno Online (o Android pode atrasar). */
 export const CHECK_INTERVAL_HOURS = 4;
-/** Depois de bloqueio ou limite de consultas, o portal fica em paz por um tempo. */
+/**
+ * Depois de uma recusa (bloqueio, limite de consultas, login que não abre ou
+ * senha recusada), o portal fica em paz por um tempo: repetir logo daria a
+ * mesma resposta.
+ */
 export const PAUSE_AFTER_REFUSAL = 12 * HOUR;
 /** Documentos e grade mudam pouco: no máximo uma consulta por dia. */
 export const DAILY_INTERVAL = 20 * HOUR;
@@ -17,6 +23,9 @@ const QUIET_END_HOUR = 7;
 export type CheckOutcome =
   'ok' | 'blocked' | 'unavailable' | 'offline' | 'failed' | 'signed-out';
 
+/** Resultados que pausam a verificação (`PAUSE_AFTER_REFUSAL`). */
+const PAUSING: readonly CheckOutcome[] = ['blocked', 'signed-out'];
+
 /** Estado da verificação em segundo plano, por conta. */
 export type CheckState = {
   /** Última verificação que chegou ao portal (ms). */
@@ -27,6 +36,8 @@ export type CheckState = {
   documentsCheckedAt: number | null;
   /** Vias já avisadas (`documentNoticeKey`). */
   notifiedDocuments: string[];
+  /** Referência dos avisos de nota, RID e inscrição (`null`: nenhuma ainda). */
+  known: KnownReadings | null;
 };
 
 export const EMPTY_CHECK_STATE: CheckState = {
@@ -35,6 +46,7 @@ export const EMPTY_CHECK_STATE: CheckState = {
   pausedUntil: null,
   documentsCheckedAt: null,
   notifiedDocuments: [],
+  known: null,
 };
 
 const OUTCOMES: readonly CheckOutcome[] = [
@@ -66,6 +78,7 @@ export function normalizeCheckState(raw: unknown): CheckState {
           .filter((key): key is string => typeof key === 'string')
           .slice(-MAX_NOTIFIED_DOCUMENTS)
       : [],
+    known: normalizeKnownReadings(value.known),
   };
 }
 
@@ -74,6 +87,11 @@ export function rememberDocuments(
   keys: readonly string[],
 ): string[] {
   return [...new Set([...notified, ...keys])].slice(-MAX_NOTIFIED_DOCUMENTS);
+}
+
+/** Fim da pausa depois de um resultado; `null` quando ele não pausa. */
+export function pauseAfter(outcome: CheckOutcome, at: number): number | null {
+  return PAUSING.includes(outcome) ? at + PAUSE_AFTER_REFUSAL : null;
 }
 
 /** Das 22h às 7h (hora do aparelho) o app não consulta o portal. */

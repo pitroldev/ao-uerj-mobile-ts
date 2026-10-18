@@ -7,9 +7,12 @@ import type {
 import type { StudentDocument } from '@root/modules/documents/domain/models';
 
 /**
- * O que mudou entre duas leituras do portal. A leitura anterior é a mesma que
- * o app mostra (o cache das consultas), então uma nota vista no app não volta
- * como aviso. Sem leitura anterior não há mudança: a primeira vira referência.
+ * O que mudou numa leitura do portal em relação à referência: o último valor
+ * conhecido de cada nota, de cada pedido no RID e de cada disciplina no
+ * resultado da inscrição. A referência soma o que o app mostrou (o cache das
+ * consultas, então uma nota vista no app não volta como aviso) e o que a
+ * verificação leu; uma leitura vazia ou em branco não apaga nada dela. Sem
+ * leitura anterior não há mudança: a primeira vira referência.
  */
 
 export type GradeKey = keyof Grade;
@@ -28,16 +31,125 @@ const isGrade = (value: unknown): value is number =>
 const classKey = (id: string, classNumber: number | string) =>
   `${id}#${String(classNumber).trim()}`;
 
+/** Último valor de cada nota, por disciplina e turma (`id#turma`). */
+type KnownGrades = Record<string, Partial<Record<GradeKey, number>>>;
+/** Última posição e situação de cada pedido no RID Parcial. */
+type KnownRid = Record<string, Pick<PartialRID, 'position' | 'status'>>;
+/** Último aceite e motivo de cada disciplina no resultado da inscrição. */
+type KnownEnrollment = Record<
+  string,
+  Pick<EnrollmentResultEntry, 'accepted' | 'reason'>
+>;
+
+/** Referência dos avisos do portal num período (a de outro período não vale). */
+export type KnownReadings = {
+  period: string;
+  grades: KnownGrades;
+  rid: KnownRid;
+  enrollment: KnownEnrollment;
+};
+
+/** Soma uma leitura de notas à referência: nota em branco não apaga a conhecida. */
+export function knowGrades(
+  known: KnownGrades,
+  reading: readonly ClassGrade[],
+): KnownGrades {
+  const next = { ...known };
+  reading.forEach(item => {
+    const key = classKey(item.id, item.class);
+    const values = { ...next[key] };
+    GRADE_KEYS.forEach(grade => {
+      const value = item.grades[grade];
+      if (isGrade(value)) values[grade] = value;
+    });
+    if (Object.keys(values).length) next[key] = values;
+  });
+  return next;
+}
+
+/** Soma uma leitura do RID à referência: o pedido que some continua conhecido. */
+export function knowRid(
+  known: KnownRid,
+  reading: readonly PartialRID[],
+): KnownRid {
+  const next = { ...known };
+  reading.forEach(item => {
+    next[classKey(item.id, item.classNumber)] = {
+      position: item.position,
+      status: item.status,
+    };
+  });
+  return next;
+}
+
+/** Soma uma leitura do resultado da inscrição à referência. */
+export function knowEnrollment(
+  known: KnownEnrollment,
+  reading: readonly EnrollmentResultEntry[],
+): KnownEnrollment {
+  const next = { ...known };
+  reading.forEach(item => {
+    next[classKey(item.id, item.classNumber)] = {
+      accepted: item.accepted,
+      reason: item.reason,
+    };
+  });
+  return next;
+}
+
+const record = (raw: unknown): Record<string, unknown> =>
+  raw && typeof raw === 'object' && !Array.isArray(raw)
+    ? (raw as Record<string, unknown>)
+    : {};
+
+/** As entradas salvas que `read` aceita; as outras ficam de fora. */
+function entries<T>(
+  raw: unknown,
+  read: (value: Record<string, unknown>) => T | null,
+): Record<string, T> {
+  return Object.fromEntries(
+    Object.entries(record(raw)).flatMap(([key, value]) => {
+      const entry = read(record(value));
+      return entry === null ? [] : [[key, entry] as const];
+    }),
+  );
+}
+
+/** Lê a referência salva sem confiar no formato; sem período, não há. */
+export function normalizeKnownReadings(raw: unknown): KnownReadings | null {
+  const value = record(raw);
+  if (typeof value.period !== 'string') return null;
+  return {
+    period: value.period,
+    grades: entries(value.grades, grades => {
+      const kept = GRADE_KEYS.flatMap(key => {
+        const grade = grades[key];
+        return isGrade(grade) ? [[key, grade] as const] : [];
+      });
+      return kept.length ? Object.fromEntries(kept) : null;
+    }),
+    rid: entries(value.rid, ({ position, status }) =>
+      typeof position === 'number' &&
+      Number.isFinite(position) &&
+      typeof status === 'string'
+        ? { position, status }
+        : null,
+    ),
+    enrollment: entries(value.enrollment, ({ accepted, reason }) =>
+      typeof accepted === 'boolean' && typeof reason === 'string'
+        ? { accepted, reason }
+        : null,
+    ),
+  };
+}
+
 /** Notas que apareceram ou mudaram de valor (uma nota apagada não avisa). */
 export function gradeChanges(
-  previous: readonly ClassGrade[],
+  known: KnownGrades,
   current: readonly ClassGrade[],
 ): GradeChange[] {
-  const before = new Map(
-    previous.map(item => [classKey(item.id, item.class), item.grades]),
-  );
   return current.flatMap(item => {
-    const old = before.get(classKey(item.id, item.class));
+    const old = known[classKey(item.id, item.class)];
     const grades = GRADE_KEYS.flatMap(key => {
       const value = item.grades[key];
       const previousValue = old?.[key];
@@ -70,7 +182,7 @@ export type RidChange = {
   classNumber: string;
   available: number;
   position: number;
-  /** `null` quando a disciplina não estava na leitura anterior. */
+  /** `null` quando o pedido não estava na referência. */
   previousPosition: number | null;
   status: string;
   statusChanged: boolean;
@@ -80,16 +192,13 @@ const sameText = (left: string, right: string) =>
   left.replace(/\s+/g, ' ').trim().toLowerCase() ===
   right.replace(/\s+/g, ' ').trim().toLowerCase();
 
-/** Posição ou situação nova no RID provisório, por disciplina e turma. */
+/** Posição ou situação nova no RID Parcial, por disciplina e turma. */
 export function ridChanges(
-  previous: readonly PartialRID[],
+  known: KnownRid,
   current: readonly PartialRID[],
 ): RidChange[] {
-  const before = new Map(
-    previous.map(item => [classKey(item.id, item.classNumber), item]),
-  );
   return current.flatMap(item => {
-    const old = before.get(classKey(item.id, item.classNumber));
+    const old = known[classKey(item.id, item.classNumber)];
     const statusChanged = Boolean(old && !sameText(old.status, item.status));
     if (old && old.position === item.position && !statusChanged) return [];
     return [
@@ -110,18 +219,20 @@ export function ridChanges(
 export type EnrollmentChange = Pick<
   EnrollmentResultEntry,
   'accepted' | 'reason' | 'classNumber'
-> & { subjectId: string; subjectName: string };
+> & {
+  subjectId: string;
+  subjectName: string;
+  /** `null` quando a disciplina não estava na referência. */
+  previous: Pick<EnrollmentResultEntry, 'accepted' | 'reason'> | null;
+};
 
 /** Disciplina nova no resultado da inscrição, ou com aceite ou motivo novo. */
 export function enrollmentChanges(
-  previous: readonly EnrollmentResultEntry[],
+  known: KnownEnrollment,
   current: readonly EnrollmentResultEntry[],
 ): EnrollmentChange[] {
-  const before = new Map(
-    previous.map(item => [classKey(item.id, item.classNumber), item]),
-  );
   return current.flatMap(item => {
-    const old = before.get(classKey(item.id, item.classNumber));
+    const old = known[classKey(item.id, item.classNumber)];
     if (
       old &&
       old.accepted === item.accepted &&
@@ -135,6 +246,7 @@ export function enrollmentChanges(
         classNumber: item.classNumber,
         accepted: item.accepted,
         reason: item.reason,
+        previous: old ? { accepted: old.accepted, reason: old.reason } : null,
       },
     ];
   });

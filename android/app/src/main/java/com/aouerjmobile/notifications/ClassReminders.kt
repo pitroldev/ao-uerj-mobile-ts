@@ -14,7 +14,9 @@ import org.json.JSONObject
  * Weekly class reminders on AlarmManager. JS sends the plan (texts, weekday and minute of each
  * reminder, the lead time, expiry) and this object keeps it in SharedPreferences, so reboots and
  * clock changes reschedule without JS. Each alarm, when it fires, posts its reminder and schedules
- * the same class for next week until the plan expires.
+ * the same class for next week until the plan expires. While there are reminders to show,
+ * [ClassReminderWorker] reschedules them every few hours too: revoking "Alarms & reminders" cancels
+ * the exact alarms with no broadcast.
  *
  * The entry points are synchronized: JS replaces the plan on the TurboModule thread while alarms
  * fire on the main thread.
@@ -24,15 +26,19 @@ internal object ClassReminders {
   private const val EXTRA_INDEX = "index"
   private const val EXTRA_ID = "id"
   private const val EXTRA_AT = "at"
+  private const val EXTRA_START = "start"
 
   private const val PREFS = "ao_notifications"
   private const val KEY_PLAN = "class_reminders"
   private const val KEY_COUNT = "class_reminders_count"
   /**
-   * Planned time of the last reminder shown for each class. Without exact alarms a reminder can
-   * fire up to 10 minutes early; a plan sent again before the planned time must not repeat it.
+   * Start of the class of the last reminder shown, per class. A plan sent again before the class
+   * must not repeat it: without exact alarms a reminder can fire up to 10 minutes early, and a
+   * shorter lead moves the reminder after the one already shown.
    */
-  private const val KEY_SHOWN = "class_reminders_shown"
+  private const val KEY_SHOWN = "class_reminders_shown_start"
+  /** Up to 2.4.0: planned time of the last reminder shown, one lead before the class. */
+  private const val KEY_SHOWN_LEGACY = "class_reminders_shown"
 
   /** More than a full week of classes; extra entries are ignored. */
   private const val MAX_REMINDERS = 100
@@ -125,16 +131,22 @@ internal object ClassReminders {
         .putString(KEY_PLAN, if (plan == null) null else json)
         .putInt(KEY_COUNT, plan?.reminders?.size ?: 0)
         .putString(KEY_SHOWN, JSONObject(shown(context).filterKeys { it in ids }).toString())
+        .remove(KEY_SHOWN_LEGACY)
         .commit()
     val count = plan?.reminders?.size ?: 0
     for (index in count until previousCount) cancel(context, index)
     schedule(context, plan)
+    keepRescheduling(context, plan)
   }
 
-  /** Boot, clock or exact-alarm permission change, periodic check: same plan, new alarms. */
+  /**
+   * Boot, clock or exact-alarm permission change, periodic work or check: same plan, new alarms.
+   */
   @Synchronized
   fun reschedule(context: Context) {
-    schedule(context, load(context))
+    val plan = load(context)
+    schedule(context, plan)
+    keepRescheduling(context, plan)
   }
 
   private fun schedule(context: Context, plan: Plan?) {
@@ -142,8 +154,24 @@ internal object ClassReminders {
     val now = System.currentTimeMillis()
     val shown = shown(context)
     plan.reminders.forEachIndexed { index, reminder ->
-      scheduleNext(context, plan, index, reminder, maxOf(now, shown[reminder.id] ?: 0L))
+      scheduleNext(context, plan, index, reminder, lowerBound(plan, now, shown[reminder.id]))
     }
+  }
+
+  /**
+   * Lower bound for the next reminder of a class: [from], and never again the class of the last
+   * reminder shown (it started at [shownStart]), even with a lead shorter than before.
+   */
+  private fun lowerBound(plan: Plan, from: Long, shownStart: Long?): Long =
+      if (shownStart == null) from else maxOf(from, shownStart - plan.leadMinutes * MINUTE)
+
+  /** While there are reminders to show, the periodic work keeps rescheduling them. */
+  private fun keepRescheduling(context: Context, plan: Plan?) {
+    val active =
+        plan != null &&
+            plan.reminders.isNotEmpty() &&
+            System.currentTimeMillis() <= plan.expiresAt
+    ClassReminderWorker.schedule(context, active)
   }
 
   private fun scheduleNext(
@@ -159,12 +187,17 @@ internal object ClassReminders {
       return
     }
     val alarms = context.getSystemService(AlarmManager::class.java) ?: return
-    val intent = alarmIntent(context, index, reminder.id, at)
+    val intent = alarmIntent(context, index, reminder.id, at, at + plan.leadMinutes * MINUTE)
+    val now = System.currentTimeMillis()
     if (canScheduleExact(context)) {
       alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent)
-    } else {
+    } else if (at - WINDOW > now) {
       // the window ends at the planned time: early rather than late
       alarms.setWindow(AlarmManager.RTC_WAKEUP, at - WINDOW, WINDOW, intent)
+    } else {
+      // The window has begun: AlarmManager would open it now and close it 10 minutes later, past
+      // the planned time. Fire now instead (allowed in Doze, no exact-alarm permission needed).
+      alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, now, intent)
     }
   }
 
@@ -177,12 +210,15 @@ internal object ClassReminders {
     val now = System.currentTimeMillis()
     if (reminder.id != intent.getStringExtra(EXTRA_ID)) {
       // alarm of a previous plan: the slot now belongs to another class
-      scheduleNext(context, plan, index, reminder, maxOf(now, shown(context)[reminder.id] ?: 0L))
+      val shownStart = shown(context)[reminder.id]
+      scheduleNext(context, plan, index, reminder, lowerBound(plan, now, shownStart))
       return
     }
     val at = intent.getLongExtra(EXTRA_AT, now)
+    // set with the lead of its own plan, which may have changed since (alarms up to 2.4.0: none)
+    val start = intent.getLongExtra(EXTRA_START, at + plan.leadMinutes * MINUTE)
     // Doze can deliver an inexact alarm late: after the class has started it is pointless
-    if (now <= plan.expiresAt && now < at + plan.leadMinutes * MINUTE) {
+    if (now <= plan.expiresAt && now < start) {
       AppNotifier.post(
           context,
           AppNotification(
@@ -197,8 +233,8 @@ internal object ClassReminders {
           ),
       )
     }
-    markShown(context, reminder.id, at)
-    scheduleNext(context, plan, index, reminder, maxOf(now, at) + MINUTE)
+    markShown(context, reminder.id, start)
+    scheduleNext(context, plan, index, reminder, lowerBound(plan, maxOf(now, at) + MINUTE, start))
   }
 
   fun canScheduleExact(context: Context): Boolean {
@@ -207,19 +243,32 @@ internal object ClassReminders {
     return alarms.canScheduleExactAlarms()
   }
 
+  /** Class start of the last reminder shown, per class id. */
   private fun shown(context: Context): Map<String, Long> {
-    val json = prefs(context).getString(KEY_SHOWN, null) ?: return emptyMap()
-    return try {
-      val root = JSONObject(json)
-      root.keys().asSequence().associateWith { root.getLong(it) }
-    } catch (_: JSONException) {
-      emptyMap()
-    }
+    val prefs = prefs(context)
+    val json = prefs.getString(KEY_SHOWN, null)
+    if (json != null) return parseTimes(json)
+    // up to 2.4.0 the reminder's planned time was kept: the class starts one lead later
+    val legacy = prefs.getString(KEY_SHOWN_LEGACY, null) ?: return emptyMap()
+    val lead = (load(context)?.leadMinutes ?: DEFAULT_LEAD_MINUTES) * MINUTE
+    return parseTimes(legacy).mapValues { it.value + lead }
   }
 
-  private fun markShown(context: Context, id: String, at: Long) {
-    val shown = shown(context) + (id to at)
-    prefs(context).edit().putString(KEY_SHOWN, JSONObject(shown).toString()).commit()
+  private fun parseTimes(json: String): Map<String, Long> =
+      try {
+        val root = JSONObject(json)
+        root.keys().asSequence().associateWith { root.getLong(it) }
+      } catch (_: JSONException) {
+        emptyMap()
+      }
+
+  private fun markShown(context: Context, id: String, start: Long) {
+    val shown = shown(context) + (id to start)
+    prefs(context)
+        .edit()
+        .putString(KEY_SHOWN, JSONObject(shown).toString())
+        .remove(KEY_SHOWN_LEGACY)
+        .commit()
   }
 
   /** Next weekday/minute strictly after [after], in the device's time zone. */
@@ -240,11 +289,21 @@ internal object ClassReminders {
     return calendar.timeInMillis
   }
 
-  private fun alarmIntent(context: Context, index: Int, id: String, at: Long): PendingIntent =
+  private fun alarmIntent(
+      context: Context,
+      index: Int,
+      id: String,
+      at: Long,
+      start: Long,
+  ): PendingIntent =
       PendingIntent.getBroadcast(
           context,
           index,
-          baseIntent(context, index).putExtra(EXTRA_INDEX, index).putExtra(EXTRA_ID, id).putExtra(EXTRA_AT, at),
+          baseIntent(context, index)
+              .putExtra(EXTRA_INDEX, index)
+              .putExtra(EXTRA_ID, id)
+              .putExtra(EXTRA_AT, at)
+              .putExtra(EXTRA_START, start),
           PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
       )
 

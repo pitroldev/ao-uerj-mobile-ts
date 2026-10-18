@@ -4,6 +4,7 @@ import type {
   PortalResponse,
   PortalTransport,
 } from '../contracts';
+import { SignInError } from '@root/modules/identity/application/ports';
 import { AppError } from '@root/shared/errors/AppError';
 import {
   studentHeader,
@@ -244,33 +245,94 @@ it('does not treat short valid responses as an expired session', async () => {
   expect(app.loginCount()).toBe(1);
 });
 
-it('recovers a missing history request ID from the refreshed menu', async () => {
-  const app = setup();
-  await app.authentication.signIn(credentials);
-  // The saved session has no history operation. A fresh portal menu supplies it.
-  app.setLoginResult(`${studentHeader}<div id="menu_linha_item">
-    <a onclick="go('${key('history', 2)}')">Requisitos realizados</a>
-  </div>`);
-  app.handle(async () => response(shortPage));
+describe('a page missing from the menu', () => {
+  const MENU_AGE = 5 * 60 * 1000;
+  let clock: jest.SpiedFunction<typeof Date.now>;
+  beforeEach(() => {
+    clock = jest.spyOn(Date, 'now').mockReturnValue(1_000_000);
+  });
+  afterEach(() => {
+    clock.mockRestore();
+  });
 
-  await expect(app.diagnostics.fetch('history')).resolves.toBe(shortPage);
-  expect(app.loginCount()).toBe(2);
-  expect(app.operations).toHaveLength(1);
-  expect(app.operations[0].params).toMatchObject({
-    requisicao: key('history', 2),
-    _token: 'token-2',
+  it('recovers a missing history request ID from the refreshed menu', async () => {
+    const app = setup();
+    await app.authentication.signIn(credentials);
+    // The saved session is old and has no history operation. A fresh portal
+    // menu supplies it.
+    clock.mockReturnValue(1_000_000 + MENU_AGE);
+    app.setLoginResult(`${studentHeader}<div id="menu_linha_item">
+      <a onclick="go('${key('history', 2)}')">Requisitos realizados</a>
+    </div>`);
+    app.handle(async () => response(shortPage));
+
+    await expect(app.diagnostics.fetch('history')).resolves.toBe(shortPage);
+    expect(app.loginCount()).toBe(2);
+    expect(app.operations).toHaveLength(1);
+    expect(app.operations[0].params).toMatchObject({
+      requisicao: key('history', 2),
+      _token: 'token-2',
+    });
+  });
+
+  it('does not fabricate an empty history when its request ID remains unavailable', async () => {
+    const app = setup();
+    await app.authentication.signIn(credentials);
+    clock.mockReturnValue(1_000_000 + MENU_AGE);
+
+    await expect(app.records.getHistory()).rejects.toMatchObject({
+      code: 'PAGE_UNAVAILABLE',
+    });
+    expect(app.loginCount()).toBe(2);
+    expect(app.operations).toHaveLength(0);
+  });
+
+  it('trusts a menu read moments ago without signing in again', async () => {
+    const app = setup();
+    await app.authentication.signIn(credentials);
+    clock.mockReturnValue(1_000_000 + MENU_AGE - 1);
+
+    const missing = await app.records.getPartialRid().catch(error => error);
+    expect(missing).toMatchObject({ code: 'PAGE_UNAVAILABLE' });
+    expect(missing).not.toBeInstanceOf(SignInError);
+    expect(app.loginCount()).toBe(1);
+    // the other pages of the same session still work
+    await expect(app.records.getGrades()).resolves.toEqual([]);
+    expect(app.loginCount()).toBe(1);
   });
 });
 
-it('does not fabricate an empty history when its request ID remains unavailable', async () => {
-  const app = setup();
-  await app.authentication.signIn(credentials);
+describe('a failed login', () => {
+  it.each(['signIn', 'refresh'] as const)(
+    'leaves %s as a SignInError with the original code',
+    async mode => {
+      const app = setup();
+      if (mode === 'refresh') await app.authentication.signIn(credentials);
+      app.setLoginResult(rejectedLoginPage);
+      const error = await (
+        mode === 'signIn'
+          ? app.authentication.signIn(credentials)
+          : app.authentication.refresh()
+      ).catch(failure => failure);
+      expect(error).toBeInstanceOf(SignInError);
+      expect(error).toMatchObject({ code: 'LOGIN_FAILED' });
+    },
+  );
 
-  await expect(app.records.getHistory()).rejects.toMatchObject({
-    code: 'SESSION_EXPIRED',
+  it('marks the login a read starts by itself, but not the read', async () => {
+    const app = setup();
+    // no session yet: the read signs in, and the login page is unknown
+    app.setLoginResult(studentHeader);
+    const login = await app.records.getGrades().catch(error => error);
+    expect(login).toBeInstanceOf(SignInError);
+    expect(login).toMatchObject({ code: 'PORTAL_LAYOUT_CHANGED' });
+
+    app.setLoginResult(undefined);
+    app.handle(async () => response('<table class="reportTable"></table>'));
+    const read = await app.records.getGrades().catch(error => error);
+    expect(read).toMatchObject({ code: 'PORTAL_LAYOUT_CHANGED' });
+    expect(read).not.toBeInstanceOf(SignInError);
   });
-  expect(app.loginCount()).toBe(2);
-  expect(app.operations).toHaveLength(0);
 });
 
 it('rejects a second expiry without entering a login loop', async () => {

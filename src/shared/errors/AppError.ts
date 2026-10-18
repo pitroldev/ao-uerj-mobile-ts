@@ -14,6 +14,7 @@ export type ErrorCode =
   | 'DOCUMENT_UNAVAILABLE'
   | 'DOCUMENT_CHANGED'
   | 'DOCUMENT_NOT_REMOVED'
+  | 'PAGE_UNAVAILABLE'
   | 'INVALID_INPUT';
 
 export class AppError extends Error {
@@ -59,6 +60,8 @@ export function errorMessage(error: unknown): string {
       'O documento mudou no Aluno Online. Atualize a lista e tente novamente.',
     DOCUMENT_NOT_REMOVED:
       'O Aluno Online não confirmou a exclusão. Atualize a lista antes de tentar novamente.',
+    PAGE_UNAVAILABLE:
+      'Esta página não está disponível para sua conta no Aluno Online agora.',
     INVALID_INPUT: 'Confira os dados informados.',
   };
   return messages[error.code];

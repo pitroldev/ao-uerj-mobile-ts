@@ -33,7 +33,10 @@ export interface Spec extends TurboModule {
   /** Liga (a cada `intervalHours`) ou desliga a verificação no portal. */
   setPortalCheck(enabled: boolean, intervalHours: number): Promise<void>;
   notify(notification: NativeNotification): Promise<void>;
-  /** Tira da barra todos os avisos do app (logout ou troca de conta). */
+  /**
+   * Cancela os lembretes de aula e tira da barra todos os avisos do app
+   * (logout ou troca de conta).
+   */
   clearNotifications(): Promise<void>;
   /** Destino do último aviso tocado (que abriu ou trouxe o app de volta); lido uma vez. */
   consumeLaunchTarget(): Promise<string | null>;

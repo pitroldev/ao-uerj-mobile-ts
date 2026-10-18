@@ -28,6 +28,15 @@ function isAccessRejected(error: unknown): boolean {
   );
 }
 
+// The message for the screens and, for an AppError, the code: the background
+// check records what stopped a restore without signing in a second time.
+function failure(error: unknown): Pick<IdentityState, 'error' | 'errorCode'> {
+  return {
+    error: errorMessage(error),
+    errorCode: error instanceof AppError ? error.code : undefined,
+  };
+}
+
 /** Public identity has no cookie, portal request ID or password. */
 export class IdentityController {
   private state: IdentityState = {
@@ -120,7 +129,7 @@ export class IdentityController {
             this.publish({
               status: 'signedOut',
               account: null,
-              error: errorMessage(error),
+              ...failure(error),
             });
         }
         throw error;
@@ -160,7 +169,7 @@ export class IdentityController {
             this.publish({
               status: 'signedIn',
               account: saved.account,
-              error: errorMessage(error),
+              ...failure(error),
             });
             return;
           }
@@ -174,7 +183,7 @@ export class IdentityController {
           this.publish({
             status: 'signedOut',
             account: null,
-            error: errorMessage(error),
+            ...failure(error),
           });
         }
       }
@@ -201,7 +210,7 @@ export class IdentityController {
         this.publish({
           status: 'signedOut',
           account: null,
-          error: errorMessage(new AppError('STORAGE_FAILED')),
+          ...failure(new AppError('STORAGE_FAILED')),
         });
         throw new AppError('STORAGE_FAILED');
       }
@@ -237,7 +246,7 @@ export class IdentityController {
           this.publish({
             status: 'signedIn',
             account,
-            error: errorMessage(error),
+            ...failure(error),
           });
         } else {
           const nextEpoch = this.epoch + 1;
@@ -246,7 +255,7 @@ export class IdentityController {
             this.publish({
               status: 'signedOut',
               account: null,
-              error: errorMessage(error),
+              ...failure(error),
             });
         }
       } finally {

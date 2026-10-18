@@ -1,4 +1,9 @@
-import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
+import {
+  focusManager,
+  MutationCache,
+  QueryCache,
+  QueryClient,
+} from '@tanstack/react-query';
 import { MAX_CACHE_AGE } from '@root/adapters/outbound/persistence/query-account-cache';
 import { isTransientError } from '@root/shared/errors/AppError';
 
@@ -23,6 +28,11 @@ export function createQueryClient(onError?: QueryErrorListener) {
         // query (restored, or fetched by planning) must live as long as the
         // cache, not TanStack's 5-minute default.
         gcTime: MAX_CACHE_AGE,
+        // With the screen in the background (focus follows AppState), the
+        // network coming back does not refetch: the notification check
+        // compares with what the student saw, and an unseen read would use
+        // up the change. Returning to the app refetches what went stale.
+        refetchOnReconnect: () => focusManager.isFocused(),
         retry: (failures, error) => failures < 1 && isTransientError(error),
         retryDelay: 1000,
       },

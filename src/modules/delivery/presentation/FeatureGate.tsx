@@ -25,7 +25,7 @@ export const UNAVAILABLE_TEXT =
 /** Recursos que param mais que a tela: o texto diz o que deixou de funcionar. */
 export const UNAVAILABLE_TEXTS: Readonly<Partial<Record<FeatureId, string>>> = {
   notifications:
-    'Pausamos os avisos por um tempo enquanto corrigimos um problema: os lembretes de aula e as verificações no Aluno Online voltam sozinhos depois.',
+    'Pausamos os avisos por um tempo enquanto corrigimos um problema. Os lembretes de aula e as verificações no Aluno Online voltam quando você abrir o app depois da correção.',
 };
 
 /** Rotas desativadas agora (o menu as marca como indisponíveis). */

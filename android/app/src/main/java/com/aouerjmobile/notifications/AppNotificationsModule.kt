@@ -105,8 +105,17 @@ class AppNotificationsModule(reactContext: ReactApplicationContext) :
     promise.resolve(null)
   }
 
-  /** Sign out or account switch: the previous account's notifications leave the shade. */
+  /**
+   * Sign out or account switch: the previous account's class reminders are cancelled, then its
+   * notifications leave the shade. In this order no reminder firing in between stays in the shade;
+   * JS sends the next account's plan afterwards.
+   */
   override fun clearNotifications(promise: Promise) {
+    try {
+      ClassReminders.replace(reactApplicationContext, "")
+    } catch (_: RuntimeException) {
+      // the shade is cleared anyway, and JS cancels the plan again right after
+    }
     NotificationManagerCompat.from(reactApplicationContext).cancelAll()
     promise.resolve(null)
   }

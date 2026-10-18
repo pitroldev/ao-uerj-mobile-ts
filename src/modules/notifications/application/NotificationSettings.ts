@@ -130,6 +130,7 @@ export class NotificationSettings {
       this.publish({ remoteDisabled });
       void this.apply();
     });
+    if (this.snapshot.remoteDisabled) void this.apply();
     void this.accountChanged();
   }
 
@@ -140,12 +141,14 @@ export class NotificationSettings {
     const scope = account?.scope ?? null;
     if (scope === this.scope && (scope !== null || this.settled)) return;
     const previous = this.scope;
+    const first = !this.settled;
     this.settled = true;
     this.scope = scope;
     const generation = ++this.generation;
-    // logout ou troca de conta: os avisos da conta anterior saem da barra
-    if (previous !== null)
-      void this.dependencies.device?.clearPosted().catch(() => undefined);
+    // logout, troca de conta ou conta recusada na restauração (num runtime
+    // novo não há conta anterior): os avisos e os lembretes saem do aparelho,
+    // antes do plano da conta nova
+    if (previous !== null || (first && scope === null)) this.clearDevice();
     this.publish({
       ready: false,
       preferences: DEFAULT_NOTIFICATION_PREFERENCES,
@@ -156,6 +159,17 @@ export class NotificationSettings {
       return;
     }
     await this.load(scope, generation);
+  }
+
+  /**
+   * Tira os avisos da barra; o aparelho também cancela os lembretes, então o
+   * plano da próxima conta vai de novo mesmo que seja igual ao anterior.
+   */
+  private clearDevice() {
+    const { device } = this.dependencies;
+    if (!device) return;
+    this.appliedPlan = null;
+    void device.clearPosted().catch(() => undefined);
   }
 
   /**
@@ -310,22 +324,26 @@ export class NotificationSettings {
   /**
    * Leva o estado desejado ao aparelho, em fila e só quando muda. Enquanto a
    * conta, as preferências ou a permissão não são conhecidas, mantém o que já
-   * estava agendado (a abertura do app não reinicia nada).
+   * estava agendado (a abertura do app não reinicia nada). O desligamento
+   * remoto não espera: cancelar não depende da conta, e a tarefa sem tela
+   * termina sem restaurá-la.
    */
   private apply(): Promise<void> {
     const { device } = this.dependencies;
     if (!device) return Promise.resolve();
     const task = this.applying.then(async () => {
       const account = this.dependencies.account();
-      if (account === undefined || !this.settled) return;
-      if (
-        account &&
-        (account.scope !== this.scope ||
-          !this.snapshot.ready ||
-          this.snapshot.permission === null)
-      )
-        return;
-      const desired = this.desired(account);
+      if (!this.snapshot.remoteDisabled) {
+        if (account === undefined || !this.settled) return;
+        if (
+          account &&
+          (account.scope !== this.scope ||
+            !this.snapshot.ready ||
+            this.snapshot.permission === null)
+        )
+          return;
+      }
+      const desired = this.desired(account ?? null);
       // cada parte só vai ao aparelho quando muda; uma falha tenta de novo
       // na próxima mudança
       if (desired.plan !== undefined) {

@@ -73,6 +73,14 @@ it.each([
     }),
     'Última tentativa ontem às 9:00: o Aluno Online limitou as consultas.',
   ],
+  [
+    state({
+      lastRunAt: at(17, 11),
+      lastOutcome: 'signed-out',
+      pausedUntil: at(17, 23),
+    }),
+    'Verificação pausada até hoje às 23:00: não foi possível entrar na sua conta.',
+  ],
 ])('describes %j', (check, text) => {
   expect(checkStatusText(check, NOW)).toBe(text);
 });

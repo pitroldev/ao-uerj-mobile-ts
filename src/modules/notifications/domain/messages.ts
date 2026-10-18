@@ -1,5 +1,6 @@
 import type { EnrollmentResultEntry } from '@root/modules/academics/domain/models';
 import type { LaunchTarget } from '@root/modules/launch/domain/launchTarget';
+import { formatGrade } from '@utils/formatGrade';
 import type {
   EnrollmentChange,
   ExpiringDocument,
@@ -35,12 +36,6 @@ const GRADE_NAMES: Record<GradeKey, string> = {
 };
 
 const PUBLIC_BODY = 'Toque para ver no AO UERJ.';
-
-/** "8,5" como no app; a segunda casa só quando existe ("7,75" não vira "7,8"). */
-function formatGrade(value: number): string {
-  const digits = Math.round(value * 100) % 10 === 0 ? 1 : 2;
-  return value.toFixed(digits).replace('.', ',');
-}
 
 /** "a P2", "a P2 e a média", "a P1, a P2 e a média". */
 function joinPt(items: string[]): string {
@@ -200,8 +195,11 @@ export function enrollmentMessage(
       .filter(Boolean)
       .join(' ');
   }
-  // parte do resultado já era conhecida: o aviso diz que ele mudou
-  const updated = changes.length < result.length;
+  // o resultado anterior já trazia alguma destas disciplinas: o aviso diz que
+  // ele mudou (um resultado de outra inscrição não é atualização)
+  const updated =
+    changes.length < result.length ||
+    changes.some(change => change.previous !== null);
   return {
     id: 'enrollment:result',
     channel: 'enrollment',

@@ -14,7 +14,7 @@ export type NotificationPreferences = {
   grades: boolean;
   /** Mostrar o valor da nota no aviso (desligado: só disciplina e prova). */
   gradeValues: boolean;
-  /** Posição nova no RID provisório e resultado da inscrição. */
+  /** Posição nova no RID Parcial e resultado da inscrição. */
   rid: boolean;
   /** Documento emitido perto de vencer. */
   documents: boolean;

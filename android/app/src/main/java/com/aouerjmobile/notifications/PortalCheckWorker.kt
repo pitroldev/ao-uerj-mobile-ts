@@ -17,6 +17,7 @@ import com.facebook.react.common.LifecycleState
 import com.facebook.react.jstasks.HeadlessJsTaskConfig
 import com.facebook.react.jstasks.HeadlessJsTaskContext
 import com.facebook.react.jstasks.HeadlessJsTaskEventListener
+import java.util.Calendar
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +29,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  * Periodic check of the Aluno Online for new grades, RID changes and expiring documents. The work
  * itself is JS (portal adapter and parsers), run as a headless task in the app's React instance
  * (started here when the app is not running). Skipped while the app is on screen: it refreshes the
- * same data itself.
+ * same data itself. At night or with notifications off it stops before starting React Native.
  */
 class PortalCheckWorker(context: Context, params: WorkerParameters) :
     CoroutineWorker(context, params) {
@@ -37,12 +38,21 @@ class PortalCheckWorker(context: Context, params: WorkerParameters) :
     // Revoking "Alarms & reminders" cancels the exact alarms with no broadcast: re-arm them here
     // (inexact if needed), without waiting for the app to open.
     ClassReminders.reschedule(applicationContext)
+    // JS keeps the rules (quiet hours, pause, permission, remote switch): this only spares starting
+    // React Native when the check would stop right away.
+    if (isQuietTime() || !AppNotifier.areEnabled(applicationContext)) return Result.success()
     val host = (applicationContext as? ReactApplication)?.reactHost ?: return Result.success()
     // A failed check waits for the next period; retrying sooner would add load to the portal.
     withTimeoutOrNull(TASK_TIMEOUT + START_TIMEOUT) {
       withContext(Dispatchers.Main) { runTask(host) }
     }
     return Result.success()
+  }
+
+  /** Same rule as isQuietTime in src/modules/notifications/domain/checkState.ts (device time). */
+  private fun isQuietTime(): Boolean {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    return hour >= QUIET_START_HOUR || hour < QUIET_END_HOUR
   }
 
   private suspend fun runTask(host: ReactHost) {
@@ -99,6 +109,9 @@ class PortalCheckWorker(context: Context, params: WorkerParameters) :
     private const val TASK_TIMEOUT = 4 * 60 * 1000L
     private const val START_TIMEOUT = 60 * 1000L
     private const val WORK_NAME = "ao-portal-check"
+    /** No portal check from 22h to 7h. */
+    private const val QUIET_START_HOUR = 22
+    private const val QUIET_END_HOUR = 7
 
     /**
      * Enables (every [intervalHours], on a network, battery not low) or cancels the check. The

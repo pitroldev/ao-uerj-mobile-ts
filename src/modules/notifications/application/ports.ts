@@ -20,7 +20,10 @@ export interface NotificationDevicePort {
   /** Liga ou desliga a verificação periódica no portal (WorkManager). */
   setPortalCheck(enabled: boolean, intervalHours: number): Promise<void>;
   notify(content: NotificationContent): Promise<void>;
-  /** Tira da barra os avisos já mostrados (logout ou troca de conta). */
+  /**
+   * Tira da barra os avisos já mostrados e cancela os lembretes de aula
+   * (logout, troca de conta ou conta recusada na restauração).
+   */
   clearPosted(): Promise<void>;
 }
 

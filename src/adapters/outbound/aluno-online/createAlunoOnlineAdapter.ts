@@ -2,7 +2,10 @@ import type {
   AcademicRecordsPort,
   AcademicRequestOptions,
 } from '@root/modules/academics/application/ports';
-import type { AuthenticationPort } from '@root/modules/identity/application/ports';
+import {
+  SignInError,
+  type AuthenticationPort,
+} from '@root/modules/identity/application/ports';
 import type {
   DocumentsPort,
   DocumentRequestOptions,
@@ -62,7 +65,16 @@ type Session = {
   token: string;
   dictionary: Record<string, string>;
   profile: StudentProfile;
+  /** When the login read the menu that filled `dictionary`. */
+  readAt: number;
 };
+
+/**
+ * A menu younger than this is the portal's current answer: a page missing from
+ * it is not offered to the account now. An older menu may be outdated (the RID
+ * pages come and go with enrollment) and earns one new login.
+ */
+const FRESH_MENU = 5 * 60 * 1000;
 
 const operationKeys: Record<PortalOperation, string[]> = {
   grades: ['notas'],
@@ -88,6 +100,21 @@ function parse<T>(parser: ($: CheerioAPI) => T, $: CheerioAPI): T {
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new AppError('PORTAL_LAYOUT_CHANGED');
+  }
+}
+
+/**
+ * A failed login (explicit, refresh or the one a read starts by itself) leaves
+ * as SignInError with the same code: a caller reading several pages stops
+ * instead of signing in again for the next one.
+ */
+async function signingIn<T>(attempt: () => Promise<T>): Promise<T> {
+  try {
+    return await attempt();
+  } catch (error) {
+    if (error instanceof AppError && !(error instanceof SignInError))
+      throw new SignInError(error.code, error.message);
+    throw error;
   }
 }
 
@@ -214,6 +241,7 @@ export function createAlunoOnlineAdapter({
       token: login._token,
       dictionary,
       profile,
+      readAt: Date.now(),
     };
     return profile;
   }
@@ -243,7 +271,7 @@ export function createAlunoOnlineAdapter({
   function refresh(): Promise<StudentProfile> {
     if (inFlightRefresh) return inFlightRefresh;
     const identity = identityGeneration;
-    const task = (async () => {
+    const task = signingIn(async () => {
       await cleanup;
       guard(identity);
       const credentials = await readCredentials();
@@ -265,7 +293,7 @@ export function createAlunoOnlineAdapter({
         if (identity === identityGeneration) session = null;
         throw error;
       }
-    })();
+    });
     inFlightRefresh = task;
     // Do not let a late refresh erase the next identity's in-flight promise.
     void task
@@ -292,10 +320,16 @@ export function createAlunoOnlineAdapter({
     const requisition = operationKeys[operation]
       .map(key => snapshot.dictionary[key])
       .find(Boolean);
-    if (!requisition)
+    if (!requisition) {
+      if (operation === 'documents') throw new AppError('DOCUMENT_UNAVAILABLE');
+      // An outdated menu goes through one new login (SESSION_EXPIRED); a fresh
+      // menu without the page means the account cannot open it now.
       throw new AppError(
-        operation === 'documents' ? 'DOCUMENT_UNAVAILABLE' : 'SESSION_EXPIRED',
+        Date.now() - snapshot.readAt < FRESH_MENU
+          ? 'PAGE_UNAVAILABLE'
+          : 'SESSION_EXPIRED',
       );
+    }
     const response = await request(
       identity,
       '/requisicaoaluno/',
@@ -395,13 +429,14 @@ export function createAlunoOnlineAdapter({
   }
 
   const authentication: AuthenticationPort = {
-    async signIn(credentials) {
-      const barrier = invalidateIdentity();
-      const identity = identityGeneration;
-      await barrier;
-      guard(identity);
-      return authenticateWithRecovery(credentials, identity);
-    },
+    signIn: credentials =>
+      signingIn(async () => {
+        const barrier = invalidateIdentity();
+        const identity = identityGeneration;
+        await barrier;
+        guard(identity);
+        return authenticateWithRecovery(credentials, identity);
+      }),
     refresh,
     signOut: invalidateIdentity,
   };

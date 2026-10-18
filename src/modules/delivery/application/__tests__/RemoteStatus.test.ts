@@ -47,6 +47,23 @@ it('shows the saved copy first and replaces it with the fetched one, saving it',
   expect(store.data.get(APP_STATUS_KEY)).toEqual(doc('1.2.0'));
 });
 
+it('loads only the saved copy, without the network, until asked to fetch', async () => {
+  const store = createMemoryStore({ [APP_STATUS_KEY]: doc('1.0.0') });
+  const source = createSource(doc('1.2.0'));
+  const remote = new RemoteStatus({ source, store, now: clock });
+  await remote.load();
+  await remote.load();
+  expect(remote.getSnapshot().status?.minSupportedVersion).toBe('1.0.0');
+  expect(source.fetch).not.toHaveBeenCalled();
+  expect(store.read).toHaveBeenCalledTimes(2);
+
+  // a abertura depois disso reaproveita a cópia e só busca a nova
+  await remote.start();
+  expect(source.fetch).toHaveBeenCalledTimes(1);
+  expect(store.read).toHaveBeenCalledTimes(2);
+  expect(remote.getSnapshot().status?.minSupportedVersion).toBe('1.2.0');
+});
+
 it.each([
   ['a network failure', new AppError('NETWORK')],
   ['a response that is not an object', 'texto'],

@@ -4,8 +4,9 @@ import type {
   PartialRidResult,
 } from '@root/modules/academics/domain/models';
 import type { StudentDocument } from '@root/modules/documents/domain/models';
+import { SignInError } from '@root/modules/identity/application/ports';
 import { AppError } from '@root/shared/errors/AppError';
-import { PAUSE_AFTER_REFUSAL } from '../../domain/checkState';
+import { PAUSE_AFTER_REFUSAL, type CheckState } from '../../domain/checkState';
 import { CHECK_STATE_KEY, PREFERENCES_KEY } from '../NotificationSettings';
 import { PortalCheck } from '../PortalCheck';
 import type { AcademicCachePort, CachedResource } from '../ports';
@@ -151,6 +152,14 @@ it('takes the first reading as the reference, without notifying', async () => {
   expect(cache.data.get('partial-rid')?.data).toEqual(rid(5));
   expect(cache.flush).toHaveBeenCalled();
   expect(saved()).toMatchObject({ lastRunAt: AFTERNOON, lastOutcome: 'ok' });
+  expect((saved() as CheckState).known).toEqual({
+    period: ACCOUNT.period,
+    grades: { 'IME02-00001#3': { p1: 7, p2: 8.5 } },
+    rid: { 'IME02-00001#3': { position: 5, status: 'Em análise' } },
+    enrollment: {
+      'IME02-00001#3': { accepted: true, reason: '' },
+    },
+  });
 });
 
 it('notifies new grades, RID changes and expiring documents once', async () => {
@@ -188,7 +197,8 @@ it('sums up a new enrollment result in one notification', async () => {
     preferences: { rid: true },
     cache: createCache({
       'partial-rid': rid(5),
-      'enrollment-result': result(false),
+      // antes, "não há resultado"
+      'enrollment-result': { subjects: [] },
     }),
   });
   await check.run();
@@ -201,6 +211,23 @@ it('sums up a new enrollment result in one notification', async () => {
     }),
   );
   expect(cache.data.get('enrollment-result')?.data).toEqual(result(true));
+});
+
+it('says the enrollment result changed when a known subject changes', async () => {
+  const { check, device } = setup({
+    preferences: { rid: true },
+    cache: createCache({
+      'partial-rid': rid(5),
+      'enrollment-result': result(false),
+    }),
+  });
+  await check.run();
+  expect(device.notify).toHaveBeenCalledWith(
+    expect.objectContaining({
+      title: 'Resultado da inscrição atualizado',
+      body: 'Cálculo II (turma 3): inscrição aceita.',
+    }),
+  );
 });
 
 it('repeats the whole enrollment result when part of it changes', async () => {
@@ -335,13 +362,150 @@ it('pauses after the portal blocks or limits requests, and stops reading', async
 it.each([
   ['SERVICE_UNAVAILABLE', 'unavailable'],
   ['NETWORK', 'offline'],
-  ['LOGIN_FAILED', 'signed-out'],
 ] as const)('stops on %s without pausing', async (code, outcome) => {
   const { check, records, saved } = setup();
   records.getGrades.mockRejectedValue(new AppError(code));
   await expect(check.run()).resolves.toBe(outcome);
   expect(records.getPartialRid).not.toHaveBeenCalled();
   expect(saved()).toMatchObject({ lastOutcome: outcome, pausedUntil: null });
+});
+
+it('pauses after the portal refuses the saved password', async () => {
+  // com o processo vivo, a senha trocada na web: tentar de novo a cada
+  // rodada só repetiria a recusa
+  const { check, records, saved } = setup();
+  records.getGrades.mockRejectedValue(new AppError('LOGIN_FAILED'));
+  await expect(check.run()).resolves.toBe('signed-out');
+  expect(records.getPartialRid).not.toHaveBeenCalled();
+  expect(saved()).toMatchObject({
+    lastOutcome: 'signed-out',
+    pausedUntil: AFTERNOON + PAUSE_AFTER_REFUSAL,
+  });
+});
+
+it.each([
+  ['PORTAL_LAYOUT_CHANGED', 'blocked', true],
+  ['RATE_LIMITED', 'blocked', true],
+  ['LOGIN_FAILED', 'signed-out', true],
+  ['NETWORK', 'offline', false],
+  ['SERVICE_UNAVAILABLE', 'unavailable', false],
+  ['STORAGE_FAILED', 'failed', false],
+] as const)(
+  'stops at the first failed login (%s) instead of signing in for each page',
+  async (code, outcome, pauses) => {
+    const { check, records, documents, saved } = setup();
+    // o novo login que a página fez sozinha falhou (HTTP 4xx ou página de
+    // login desconhecida chegam como PORTAL_LAYOUT_CHANGED)
+    records.getGrades.mockRejectedValue(new SignInError(code));
+    await expect(check.run()).resolves.toBe(outcome);
+    expect(records.getPartialRid).not.toHaveBeenCalled();
+    expect(records.getEnrollmentResult).not.toHaveBeenCalled();
+    expect(documents.list).not.toHaveBeenCalled();
+    expect(saved()).toMatchObject({
+      lastOutcome: outcome,
+      pausedUntil: pauses ? AFTERNOON + PAUSE_AFTER_REFUSAL : null,
+    });
+  },
+);
+
+it('records a failed restore without reading the portal', async () => {
+  const { check, records, documents, saved, onRecorded } = setup();
+  await expect(check.signInFailed('POSSIBLY_BLOCKED')).resolves.toBe('blocked');
+  expect(records.getGrades).not.toHaveBeenCalled();
+  expect(documents.list).not.toHaveBeenCalled();
+  expect(saved()).toMatchObject({
+    lastRunAt: AFTERNOON,
+    lastOutcome: 'blocked',
+    pausedUntil: AFTERNOON + PAUSE_AFTER_REFUSAL,
+  });
+  expect(onRecorded).toHaveBeenCalled();
+  await expect(check.signInFailed(null)).resolves.toBe('skipped');
+});
+
+it('records the failed restore of a code that does not pause', async () => {
+  const { check, saved } = setup();
+  await expect(check.signInFailed('NETWORK')).resolves.toBe('offline');
+  expect(saved()).toMatchObject({ lastOutcome: 'offline', pausedUntil: null });
+});
+
+it('keeps checking the other pages when one is not in the menu', async () => {
+  const { check, records, documents, device } = setup({
+    cache: createCache({ grades: grades(null) }),
+  });
+  records.getPartialRid.mockRejectedValue(new AppError('PAGE_UNAVAILABLE'));
+  await expect(check.run()).resolves.toBe('failed');
+  expect(records.getEnrollmentResult).toHaveBeenCalled();
+  expect(documents.list).toHaveBeenCalled();
+  expect(device.notify).toHaveBeenCalledWith(
+    expect.objectContaining({ id: 'grades:IME02-00001:3' }),
+  );
+});
+
+it('does not notify again what comes back after an empty or blank reading', async () => {
+  const { check, records, device } = setup({
+    preferences: { grades: true, rid: true },
+    cache: createCache({
+      grades: grades(8.5),
+      'partial-rid': rid(5),
+      'enrollment-result': result(true),
+    }),
+  });
+  // numa rodada o portal devolve tudo em branco ou sem resultado
+  records.getGrades.mockResolvedValueOnce([
+    {
+      id: 'IME02-00001',
+      name: 'Cálculo II',
+      class: '3',
+      grades: { p1: null, p2: null, pf: null, result: null },
+    },
+  ]);
+  records.getPartialRid.mockResolvedValueOnce({ subjects: [], updatedAt: '' });
+  records.getEnrollmentResult.mockResolvedValueOnce({ subjects: [] });
+  await check.run();
+  // na seguinte, os mesmos valores de antes voltam
+  await check.run();
+  expect(device.notify).not.toHaveBeenCalled();
+});
+
+it('starts the reference again in a new period', async () => {
+  const { check, device } = setup({
+    preferences: { grades: true },
+    state: {
+      known: {
+        period: '2026.1',
+        grades: { 'IME02-00001#3': { p1: 7, p2: 8.5 } },
+        rid: {},
+        enrollment: {},
+      },
+    },
+    cache: createCache({ grades: grades(null) }),
+  });
+  await check.run();
+  // a P2 de outro período não conta como já vista
+  expect(device.notify).toHaveBeenCalledWith(
+    expect.objectContaining({ body: 'Saiu a nota da P2.' }),
+  );
+});
+
+it('drops the reference of a notification that was turned off', async () => {
+  const { check, saved } = setup({
+    preferences: { grades: true },
+    state: {
+      known: {
+        period: ACCOUNT.period,
+        grades: {},
+        rid: { 'IME02-00001#3': { position: 12, status: 'Em análise' } },
+        enrollment: {},
+      },
+    },
+  });
+  await check.run();
+  expect((saved() as CheckState).known).toEqual({
+    period: ACCOUNT.period,
+    grades: { 'IME02-00001#3': { p1: 7, p2: 8.5 } },
+    rid: {},
+    enrollment: {},
+  });
 });
 
 it('keeps checking other pages when one page has an unexpected layout', async () => {

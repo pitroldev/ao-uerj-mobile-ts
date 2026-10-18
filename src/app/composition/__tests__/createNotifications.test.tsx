@@ -94,10 +94,19 @@ function setup(preferences: Record<string, unknown>, disabled: string[] = []) {
     getUniversalSubjects: jest.fn(),
   };
   const flushCache = jest.fn(async () => undefined);
+  const update = async <T,>(
+    scope: string,
+    name: string,
+    change: (current: T | null) => T,
+  ) => {
+    const next = change(await store.read<T>(scope, name));
+    await store.write(scope, name, next);
+    return next;
+  };
   const notifications = createNotifications({
     queryClient,
     identity,
-    preferences: { ...store, remove: jest.fn() },
+    preferences: { ...store, update, remove: jest.fn() },
     records,
     documents: { list: jest.fn(async () => []) },
     remoteStatus,
@@ -168,6 +177,18 @@ it('compares the portal check with what the app showed and saves the new reading
     expect.objectContaining({ grades: expect.objectContaining({ p2: 8.5 }) }),
   ]);
   expect(flushCache).toHaveBeenCalled();
+});
+
+it('cancels with the remote switch before the account is restored', async () => {
+  // tarefa sem tela: o aviso remoto desliga os avisos e ela termina sem
+  // restaurar a conta
+  const { notifications, device } = setup(
+    { grades: true, classReminders: true },
+    ['notifications'],
+  );
+  await act(settle);
+  expect(notifications.settings.getSnapshot().ready).toBe(false);
+  expect(device.state).toMatchObject({ plan: null, portal: false });
 });
 
 it('honors the remote switch', async () => {

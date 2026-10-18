@@ -1,8 +1,10 @@
 import {
   EMPTY_CHECK_STATE,
+  PAUSE_AFTER_REFUSAL,
   isDue,
   isQuietTime,
   normalizeCheckState,
+  pauseAfter,
   rememberDocuments,
 } from '../checkState';
 import {
@@ -94,6 +96,29 @@ describe('check state', () => {
     [0, true],
   ])('at %p:00 quiet is %p', (hour, quiet) => {
     expect(isQuietTime(new Date(2026, 9, 17, hour, 30).getTime())).toBe(quiet);
+  });
+
+  it('keeps the saved reference of the notifications', () => {
+    const known = {
+      period: '2026.2',
+      grades: { 'IME02-00001#1': { p1: 7 } },
+      rid: {},
+      enrollment: {},
+    };
+    expect(normalizeCheckState({ known }).known).toEqual(known);
+    expect(normalizeCheckState({ known: 'x' }).known).toBeNull();
+  });
+
+  it.each([
+    ['blocked', PAUSE_AFTER_REFUSAL],
+    ['signed-out', PAUSE_AFTER_REFUSAL],
+    ['offline', null],
+    ['failed', null],
+    ['ok', null],
+  ] as const)('pauses after %s', (outcome, pause) => {
+    expect(pauseAfter(outcome, 1000)).toBe(
+      pause === null ? null : 1000 + pause,
+    );
   });
 
   it('is due without a previous run, after the interval or after a clock change', () => {

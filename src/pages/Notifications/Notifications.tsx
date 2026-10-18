@@ -219,12 +219,12 @@ export function NotificationsPage() {
           {row(
             'rid',
             'RID',
-            'Posição no RID provisório e resultado da inscrição.',
+            'Posição no RID Parcial e resultado da inscrição.',
           )}
           {row(
             'documents',
             'Documentos perto de vencer',
-            'Três dias antes do fim da validade de um documento emitido.',
+            'Até 3 dias antes do vencimento de um documento emitido.',
           )}
         </List>
         {usesPortalChecks(preferences) ? (

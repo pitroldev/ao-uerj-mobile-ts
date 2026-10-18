@@ -32,10 +32,11 @@ function untilLabel(at: number, now: number): string {
 /** Linha de estado da verificação no portal, na tela de Notificações. */
 export function checkStatusText(check: CheckState, now: number): string {
   if (check.pausedUntil !== null && now < check.pausedUntil)
-    return `Verificação pausada até ${untilLabel(
-      check.pausedUntil,
-      now,
-    )}: o Aluno Online limitou as consultas.`;
+    return `Verificação pausada até ${untilLabel(check.pausedUntil, now)}: ${
+      check.lastOutcome === 'signed-out'
+        ? 'não foi possível entrar na sua conta.'
+        : 'o Aluno Online limitou as consultas.'
+    }`;
   if (check.lastRunAt === null)
     return 'A primeira verificação acontece nas próximas horas.';
   const when = momentLabel(check.lastRunAt, now);
