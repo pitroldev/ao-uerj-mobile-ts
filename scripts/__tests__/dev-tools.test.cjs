@@ -44,6 +44,7 @@ test('screenshot routes cover every drawer screen', () => {
     'universais',
     'pesquisa',
     'pesquisa/IME02-10892',
+    'notificacoes',
     'sobre',
   ]);
   assert.deepEqual(resolveShots(['sobre', 'sd=aouerj-dev://pesquisa/10892']), [
