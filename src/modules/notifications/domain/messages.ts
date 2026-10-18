@@ -1,4 +1,5 @@
 import type { EnrollmentResultEntry } from '@root/modules/academics/domain/models';
+import type { LaunchTarget } from '@root/modules/launch/domain/launchTarget';
 import type {
   EnrollmentChange,
   ExpiringDocument,
@@ -12,7 +13,7 @@ type NotificationChannel =
   'class-reminders' | 'grades' | 'enrollment' | 'documents';
 
 /** Tela aberta ao tocar no aviso. */
-export type NotificationTarget = 'home' | 'documents';
+type NotificationTarget = Extract<LaunchTarget, 'home' | 'documents'>;
 
 export type NotificationContent = {
   /** Um aviso com o mesmo id substitui o anterior (por disciplina, por via). */

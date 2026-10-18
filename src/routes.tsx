@@ -32,7 +32,8 @@ import { NotificationsPage } from '@root/pages/Notifications';
 export type RootDrawerParamList = {
   Login: undefined;
 
-  Início: undefined;
+  /** `focus`: o atalho "Notas" abre o Início no quadro de notas. */
+  Início: { focus?: 'grades' } | undefined;
   Mapa: { location?: string } | undefined;
   'Mural de Mensagens': undefined;
   'Disciplinas Realizadas': undefined;

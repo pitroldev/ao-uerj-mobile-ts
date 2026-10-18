@@ -50,6 +50,10 @@
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
+      <!-- Atalhos do ícone: Próxima aula, Notas, Mapa e Documentos. -->
+      <meta-data
+        android:name="android.app.shortcuts"
+        android:resource="@xml/shortcuts" />
     </activity>
     <!-- Lembretes de aula (AlarmManager). Não exportados: só o sistema os chama. -->
     <receiver
@@ -65,6 +69,26 @@
         <action android:name="android.intent.action.TIMEZONE_CHANGED" />
         <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
       </intent-filter>
+    </receiver>
+    <!-- Widget "Próxima aula". As ações de relógio, boot e atualização refazem o desenho e o
+         alarme da próxima virada de aula. -->
+    <receiver
+      android:name=".widget.NextClassWidget"
+      android:exported="false"
+      android:label="@string/widget_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+        <action android:name="android.intent.action.TIME_SET" />
+        <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+        <action android:name="android.intent.action.DATE_CHANGED" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/widget_next_class_info" />
     </receiver>
   </application>
 </manifest>

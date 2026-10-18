@@ -7,7 +7,6 @@ import type {
   NotificationDevicePort,
   PermissionState,
 } from '@root/modules/notifications/application/ports';
-import type { NotificationTarget } from '@root/modules/notifications/domain/messages';
 
 type Permissions = Pick<
   typeof PermissionsAndroid,
@@ -19,14 +18,6 @@ type Options = {
   /** Nível da API do Android (o pedido de permissão existe a partir do 33). */
   apiLevel?: number;
 };
-
-const TARGETS: readonly NotificationTarget[] = ['home', 'documents'];
-
-function toTarget(value: string | null | undefined): NotificationTarget | null {
-  return TARGETS.includes(value as NotificationTarget)
-    ? (value as NotificationTarget)
-    : null;
-}
 
 /**
  * Avisos pelo módulo nativo local (canais, lembretes com AlarmManager e a
@@ -68,34 +59,5 @@ export function createNativeNotifications(
       module.setPortalCheck(on, intervalHours),
     notify: content => module.notify(content),
     clearPosted: () => module.clearNotifications(),
-  };
-}
-
-export type NotificationLaunches = {
-  /** Aviso tocado que abriu o app (uma vez). */
-  consume(): Promise<NotificationTarget | null>;
-  /** Avisos tocados com o app aberto. */
-  subscribe(listener: (target: NotificationTarget) => void): () => void;
-};
-
-/** Toques nos avisos, para abrir a tela certa. `null` no iOS. */
-export function createNotificationLaunches(
-  module: Spec | null | undefined = NativeAppNotifications,
-): NotificationLaunches | null {
-  if (!module) return null;
-  const consume = async () =>
-    toTarget(await module.consumeLaunchTarget().catch(() => null));
-  return {
-    consume,
-    subscribe(listener) {
-      // o evento só avisa do toque: o destino sai do intent na primeira
-      // leitura, e o mesmo toque não abre a tela duas vezes
-      const subscription = module.onOpenTarget(() => {
-        void consume().then(target => {
-          if (target) listener(target);
-        });
-      });
-      return () => subscription.remove();
-    },
   };
 }

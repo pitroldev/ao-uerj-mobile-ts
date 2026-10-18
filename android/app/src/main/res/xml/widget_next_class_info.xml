@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget "Próxima aula" (NextClassWidget.kt). Atualiza nas viradas de aula e à meia-noite por
+     alarme próprio; a atualização periódica do sistema, a cada 3 horas, só garante que ele não
+     envelheça se um alarme se perder. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_description"
+    android:initialLayout="@layout/widget_next_class"
+    android:minWidth="250dp"
+    android:minHeight="40dp"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="40dp"
+    android:previewLayout="@layout/widget_next_class_preview"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="4"
+    android:targetCellHeight="1"
+    android:updatePeriodMillis="10800000"
+    android:widgetCategory="home_screen" />

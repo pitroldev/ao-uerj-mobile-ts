@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Atalho "Notas" do ícone do app: glifo "school" do Material Symbols Outlined (peso 300,
+     Apache 2.0), o mesmo de src/components/ui/Icon/glyphs.ts, sobre o azul do app. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+  <path
+      android:fillColor="@color/primary"
+      android:pathData="M480,0A480,480 0,1 1,480 960A480,480 0,1 1,480 0Z" />
+  <group
+      android:pivotX="480"
+      android:pivotY="480"
+      android:scaleX="0.55"
+      android:scaleY="0.55">
+    <group android:translateY="960">
+      <path
+          android:fillColor="#FFFFFFFF"
+          android:pathData="M480-166.16 220-307.39v-216.92L81.54-600 480-816.92 878.46-600v287.69h-60v-254.46L740-524.31v216.92L480-166.16ZM480-452l273.62-148L480-748 206.38-600 480-452Zm0 217.54 200-108v-149.85L480-383.15 280-492.31v149.85l200 108ZM480-452Zm0 72.31Zm0 0Z" />
+    </group>
+  </group>
+</vector>

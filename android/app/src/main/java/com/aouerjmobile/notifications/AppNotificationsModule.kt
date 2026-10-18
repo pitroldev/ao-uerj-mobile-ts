@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
+import com.aouerjmobile.AppLaunch
 import com.aouerjmobile.specs.NativeAppNotificationsSpec
 import com.facebook.react.bridge.ActivityEventListener
 import com.facebook.react.bridge.Promise
@@ -117,8 +118,8 @@ class AppNotificationsModule(reactContext: ReactApplicationContext) :
   override fun consumeLaunchTarget(promise: Promise) {
     val intent = reactApplicationContext.currentActivity?.intent
     val target =
-        intent?.takeIf { it.action == AppNotifier.ACTION_OPEN }?.getStringExtra(AppNotifier.EXTRA_TARGET)
-    intent?.removeExtra(AppNotifier.EXTRA_TARGET)
+        intent?.takeIf { it.action == AppLaunch.ACTION_OPEN }?.getStringExtra(AppLaunch.EXTRA_TARGET)
+    intent?.removeExtra(AppLaunch.EXTRA_TARGET)
     promise.resolve(target)
   }
 
@@ -128,8 +129,8 @@ class AppNotificationsModule(reactContext: ReactApplicationContext) :
    * then the screen reads the target when it mounts.
    */
   override fun onNewIntent(intent: Intent) {
-    if (intent.action != AppNotifier.ACTION_OPEN) return
-    val target = intent.getStringExtra(AppNotifier.EXTRA_TARGET) ?: return
+    if (intent.action != AppLaunch.ACTION_OPEN) return
+    val target = intent.getStringExtra(AppLaunch.EXTRA_TARGET) ?: return
     // set by the TurboModule infra once JS holds the module
     if (mEventEmitterCallback != null) emitOnOpenTarget(target)
   }

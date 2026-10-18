@@ -12,6 +12,7 @@ import { createQueryAccountCache } from '@root/adapters/outbound/persistence/que
 import { migrateLegacyStorage } from '@root/adapters/outbound/persistence/migrate-legacy';
 import { NativeScheduleSharing } from '@root/adapters/outbound/native/NativeScheduleSharing';
 import { NativeDocumentSharing } from '@root/adapters/outbound/native/NativeDocumentSharing';
+import { createLaunches } from '@root/adapters/outbound/native/NativeLaunches';
 import { nativeAppearance } from '@root/adapters/outbound/native/NativeAppearance';
 import { createAppKeyValueStore } from '@root/adapters/outbound/delivery/appStore';
 import { createPrivateApiAdapters } from '@root/adapters/outbound/private-api';
@@ -35,6 +36,7 @@ import {
 import { initializeIdentity } from './initializeIdentity';
 import { createDelivery } from './createDelivery';
 import { createNotifications } from './createNotifications';
+import { createWidget } from './createWidget';
 
 /** Preferências da conta que o logout apaga junto com o cache. */
 const ACCOUNT_PREFERENCES = [
@@ -118,6 +120,9 @@ export function createAppServices() {
     documentSharing: new NativeDocumentSharing(),
     delivery,
     notifications,
+    // aviso tocado, atalho do ícone ou widget: a tela que o app abre
+    launches: createLaunches(),
+    widget: createWidget({ queryClient, identity }),
     // App-wide: the theme survives logout.
     appearance: new ThemePreferences({
       store: createAppKeyValueStore(preferences),

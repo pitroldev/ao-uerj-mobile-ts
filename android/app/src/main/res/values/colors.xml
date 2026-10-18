@@ -8,4 +8,16 @@
   <color name="bootsplash_background">#003468</color>
   <!-- Ícone e nome do app nos avisos: o `accent` de src/themes/light.ts. -->
   <color name="notification_accent">#004891</color>
+  <!-- Widget "Próxima aula": surface, ink, inkMuted, rule e accent de src/themes/light.ts. -->
+  <color name="widget_surface">#FFFFFF</color>
+  <color name="widget_ink">#101828</color>
+  <color name="widget_muted">#5D6679</color>
+  <color name="widget_rule">#E4E7EC</color>
+  <color name="widget_accent">#004891</color>
+  <!-- Bloco do dia e do horário: fill e onFill (aula de hoje, com o dia em onBrandMuted) e
+       accentSoft (outros dias e avisos) de src/themes/light.ts. -->
+  <color name="widget_tile_strong">#004891</color>
+  <color name="widget_on_tile_strong">#FFFFFF</color>
+  <color name="widget_on_tile_strong_muted">#CFDDEE</color>
+  <color name="widget_tile_soft">#E8F0FA</color>
 </resources>

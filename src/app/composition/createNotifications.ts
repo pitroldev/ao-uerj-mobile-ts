@@ -1,11 +1,7 @@
 import { AppState } from 'react-native';
 import type { QueryClient } from '@tanstack/react-query';
 
-import {
-  createNativeNotifications,
-  createNotificationLaunches,
-  type NotificationLaunches,
-} from '@root/adapters/outbound/native/NativeNotifications';
+import { createNativeNotifications } from '@root/adapters/outbound/native/NativeNotifications';
 import type { AcademicRecordsPort } from '@root/modules/academics/application/ports';
 import { academicKeys } from '@root/modules/academics/presentation/queryKeys';
 import type { RemoteStatus } from '@root/modules/delivery/application/RemoteStatus';
@@ -23,6 +19,7 @@ import type {
   RemoteSwitch,
 } from '@root/modules/notifications/application/ports';
 import { reminderText } from '@root/modules/notifications/presentation/reminderText';
+import { activeAccount, onSavedScheduleChange } from './savedSchedule';
 
 type Dependencies = {
   queryClient: QueryClient;
@@ -35,7 +32,6 @@ type Dependencies = {
   /** Conta salva (keychain), lida sem o portal. */
   savedScope: () => Promise<string | null>;
   device?: NotificationDevicePort | null;
-  launches?: NotificationLaunches | null;
 };
 
 /**
@@ -54,15 +50,8 @@ export function createNotifications({
   flushCache,
   savedScope,
   device = createNativeNotifications(),
-  launches = createNotificationLaunches(),
 }: Dependencies) {
-  const account = (): ActiveAccount | null | undefined => {
-    const snapshot = identity.getSnapshot();
-    if (snapshot.status === 'restoring') return undefined;
-    return snapshot.account
-      ? { scope: snapshot.account.scope, period: snapshot.account.period }
-      : null;
-  };
+  const account = activeAccount(identity);
   const key = (owner: ActiveAccount, resource: CachedResource) =>
     academicKeys.resource(owner.scope, owner.period, resource);
   const cache: AcademicCachePort = {
@@ -109,21 +98,8 @@ export function createNotifications({
   if (device) {
     // A grade salva mudou (tela, cache restaurado ou verificação): os
     // lembretes acompanham.
-    queryClient.getQueryCache().subscribe(event => {
-      const owner = account();
-      const [root, scope, period, resource] = event.query.queryKey;
-      if (
-        !owner ||
-        root !== 'academics' ||
-        scope !== owner.scope ||
-        period !== owner.period ||
-        resource !== 'schedule'
-      )
-        return;
-      const loaded =
-        (event.type === 'updated' && event.action.type === 'success') ||
-        (event.type === 'added' && event.query.state.data !== undefined);
-      if (loaded) void settings.scheduleChanged();
+    onSavedScheduleChange(queryClient, account, () => {
+      void settings.scheduleChanged();
     });
     // a permissão e os alarmes exatos podem mudar nas configurações do sistema
     AppState.addEventListener('change', state => {
@@ -131,5 +107,5 @@ export function createNotifications({
     });
   }
   settings.start();
-  return { settings, portalCheck, launches };
+  return { settings, portalCheck };
 }

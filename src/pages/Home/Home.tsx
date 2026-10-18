@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { View } from 'react-native';
 import { parseName } from '@services/parser';
 import { useIdentity } from '@root/app/providers/AppServicesProvider';
 import {
@@ -29,6 +30,7 @@ import { HomeGreeting } from './components/HomeGreeting';
 import { HomeHelp } from './components/HomeHelp';
 import { HomeSkeleton } from './components/HomeSkeleton';
 import { styles } from './Home.styles';
+import { useGradesFocus } from './useGradesFocus';
 
 type ErrorControl = {
   key: string;
@@ -79,6 +81,10 @@ export const HomePage = () => {
   const isBlocked = [scheduleError, gradesError, ridError].some(
     isPortalBlocked,
   );
+  const { scrollRef, onGradesLayout } = useGradesFocus({
+    available: isClassGradesAvailable,
+    settled: !loadingGrades,
+  });
   const firstName = parseName(account?.name ?? '', true).split(' ')[0] ?? '';
   const period =
     account?.period && account.period !== 'current'
@@ -219,7 +225,11 @@ export const HomePage = () => {
   return (
     <>
       <AppInfoModal />
-      <ScreenPanel refreshing={refreshing && !isPaused} onRefresh={onRefresh}>
+      <ScreenPanel
+        refreshing={refreshing && !isPaused}
+        onRefresh={onRefresh}
+        scrollRef={scrollRef}
+      >
         <RemoteNotices style={styles.notice} />
         {notice}
         {greeting}
@@ -249,7 +259,9 @@ export const HomePage = () => {
           </>
         ) : null}
         {isClassGradesAvailable ? (
-          <GradeBoard data={classGrades} period={period} />
+          <View onLayout={onGradesLayout} testID="home-grades">
+            <GradeBoard data={classGrades} period={period} />
+          </View>
         ) : null}
         <ClassScheduleBoard
           data={currentSchedule}

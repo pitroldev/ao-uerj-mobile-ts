@@ -31,6 +31,7 @@ Não é o app da UERJ; é o app que os alunos gostariam que a UERJ tivesse feito
 - React Native 0.87 (nova arquitetura, React Compiler) com styled-components; Android publicado na Google Play, build iOS existe mas é secundário.
 - Rotas atuais: Início, Meu Progresso, Emissão de Documentos, Gerador de Grade, Mural de Mensagens, Disciplinas Realizadas, Disciplinas do Currículo, Disciplinas Universais, Pesquisa de Disciplinas, Mapa, Notificações (Android), Sobre, além de Login e Carregamento.
 - Notificações são opt-in por tipo: lembrete antes da aula (grade salva, sem portal) e avisos do Aluno Online (nota, RID e documento perto de vencer), com verificação a cada 4 horas fora do horário noturno.
+- No Android, o widget "Próxima aula" mostra a próxima aula da grade salva na tela inicial, e o ícone do app tem atalhos para Próxima aula, Notas, Mapa e Documentos. Nenhum dos dois acessa o portal.
 - Navegação por menu lateral (drawer), como hoje; todas as rotas continuam acessíveis por ele.
 - O app precisa oferecer tema claro e escuro.
 - Estados obrigatórios em cada tela de dados: carregando, vazio, erro com nova tentativa, portal bloqueado, sem conexão com dados salvos e atualizando.

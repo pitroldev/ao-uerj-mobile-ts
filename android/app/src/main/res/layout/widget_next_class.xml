@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget "Próxima aula" (NextClassWidget.kt), compacto, de uma linha. À esquerda, o bloco com o
+     dia e o horário de início: cheio para a aula de hoje, suave para os outros dias, com o ícone de
+     agenda nos avisos. À direita, a disciplina, o fim da aula com os tempos e a sala, e o local.
+     Só views aceitas por RemoteViews. Até o primeiro desenho (widget recém-posto, boot), só o ícone
+     e o título aparecem: um aviso fixo aqui diria "entre" a quem já entrou. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="10dp"
+    android:paddingTop="10dp"
+    android:paddingEnd="14dp"
+    android:paddingBottom="10dp">
+
+  <FrameLayout
+      android:layout_width="52dp"
+      android:layout_height="52dp">
+
+    <LinearLayout
+        android:id="@+id/widget_tile_today"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_tile_strong"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+      <TextView
+          android:id="@+id/widget_day_today"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:fontFamily="sans-serif-medium"
+          android:letterSpacing="0.06"
+          android:textAllCaps="true"
+          android:textColor="@color/widget_on_tile_strong_muted"
+          android:textSize="10sp" />
+
+      <TextView
+          android:id="@+id/widget_start_today"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:fontFamily="sans-serif-medium"
+          android:textColor="@color/widget_on_tile_strong"
+          android:textSize="16sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/widget_tile_later"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_tile_soft"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+      <TextView
+          android:id="@+id/widget_day_later"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:fontFamily="sans-serif-medium"
+          android:letterSpacing="0.06"
+          android:textAllCaps="true"
+          android:textColor="@color/widget_accent"
+          android:textSize="10sp" />
+
+      <TextView
+          android:id="@+id/widget_start_later"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:fontFamily="sans-serif-medium"
+          android:textColor="@color/widget_accent"
+          android:textSize="16sp" />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/widget_tile_icon"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_tile_soft"
+        android:importantForAccessibility="no"
+        android:scaleType="center"
+        android:src="@drawable/widget_glyph" />
+  </FrameLayout>
+
+  <LinearLayout
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_marginStart="12dp"
+      android:layout_weight="1"
+      android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:fontFamily="sans-serif-medium"
+        android:maxLines="1"
+        android:text="@string/widget_heading"
+        android:textColor="@color/widget_ink"
+        android:textSize="15sp" />
+
+    <TextView
+        android:id="@+id/widget_detail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="1dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/widget_muted"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/widget_place"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/widget_muted"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/widget_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="1dp"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:textColor="@color/widget_muted"
+        android:textSize="13sp"
+        android:visibility="gone" />
+  </LinearLayout>
+</LinearLayout>

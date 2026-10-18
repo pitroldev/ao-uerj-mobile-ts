@@ -23,7 +23,7 @@ import { AppServicesProvider } from './app/providers/AppServicesProvider';
 import { recordScreen } from './app/observability';
 import { loadDevLinking } from './app/dev';
 import { DeliveryProvider } from './modules/delivery/presentation/DeliveryProvider';
-import { NotificationLaunchHandler } from './modules/notifications/presentation/NotificationLaunchHandler';
+import { LaunchHandler } from './modules/launch/presentation/LaunchHandler';
 import { useActiveTheme } from './modules/appearance/presentation/useActiveTheme';
 import { navigationTheme } from './modules/appearance/presentation/navigationTheme';
 import { MainRoutes, type RootDrawerParamList } from './routes';
@@ -95,7 +95,7 @@ export const App = () => {
                     ready={isReady}
                   >
                     <MainRoutes />
-                    <NotificationLaunchHandler ready={isReady} />
+                    <LaunchHandler ready={isReady} />
                   </DeliveryProvider>
                 </NavigationContainer>
                 <SnackbarHost />

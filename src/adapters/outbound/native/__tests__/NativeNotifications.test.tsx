@@ -1,8 +1,5 @@
 import type { Spec } from '@root/specs/NativeAppNotifications';
-import {
-  createNativeNotifications,
-  createNotificationLaunches,
-} from '../NativeNotifications';
+import { createNativeNotifications } from '../NativeNotifications';
 
 // fora do Android o TurboModuleRegistry não encontra o módulo
 jest.mock('@root/specs/NativeAppNotifications', () => ({
@@ -60,7 +57,6 @@ function permissions(result: string, grant?: () => void) {
 
 it('is absent where the native module does not exist (iOS)', () => {
   expect(createNativeNotifications()).toBeNull();
-  expect(createNotificationLaunches()).toBeNull();
 });
 
 it('reports the system state and asks on Android 13+', async () => {
@@ -119,27 +115,4 @@ it('hands the reminder plan to the native side as JSON, or cancels it', async ()
   expect(module.setPortalCheck).toHaveBeenCalledWith(true, 4);
   await device.clearPosted();
   expect(module.clearNotifications).toHaveBeenCalledTimes(1);
-});
-
-it('opens the screen of a tapped notification and ignores unknown targets', async () => {
-  const { module, emit, remove } = nativeModule();
-  const launches = createNotificationLaunches(module)!;
-  await expect(launches.consume()).resolves.toBe('documents');
-  module.consumeLaunchTarget.mockResolvedValueOnce('qualquer');
-  await expect(launches.consume()).resolves.toBeNull();
-
-  // o evento manda ler o destino, que sai do intent na primeira leitura
-  const listener = jest.fn();
-  const unsubscribe = launches.subscribe(listener);
-  module.consumeLaunchTarget
-    .mockResolvedValueOnce('home')
-    .mockResolvedValueOnce(null)
-    .mockResolvedValueOnce('outra');
-  emit('home');
-  emit('home');
-  emit('outra');
-  await new Promise<void>(resolve => setTimeout(() => resolve(), 0));
-  expect(listener.mock.calls).toEqual([['home']]);
-  unsubscribe();
-  expect(remove).toHaveBeenCalled();
 });

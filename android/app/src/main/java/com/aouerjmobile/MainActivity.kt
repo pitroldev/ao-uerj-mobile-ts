@@ -10,7 +10,6 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultReactActivityDelegate
-import com.aouerjmobile.notifications.AppNotifier
 import com.facebook.react.views.view.isEdgeToEdgeFeatureFlagOn
 import com.zoontek.rnbootsplash.RNBootSplash
 
@@ -35,7 +34,7 @@ class MainActivity : ReactActivity() {
     // A recreated activity, or one reopened from Recents, gets the intent that first opened the
     // task: the notification it may carry was already handled.
     val fromHistory = (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0
-    if (savedInstanceState != null || fromHistory) intent.removeExtra(AppNotifier.EXTRA_TARGET)
+    if (savedInstanceState != null || fromHistory) intent.removeExtra(AppLaunch.EXTRA_TARGET)
     // Before super.onCreate: switches BootTheme (manifest) to AppTheme and keeps the native
     // splash until JS calls BootSplash.hide() (NavigationContainer onReady in App.tsx).
     RNBootSplash.init(this, R.style.BootTheme)

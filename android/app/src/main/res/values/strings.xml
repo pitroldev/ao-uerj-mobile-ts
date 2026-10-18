@@ -1,3 +1,53 @@
 <resources>
     <string name="app_name">AO UERJ</string>
+
+    <!-- Atalhos do ícone (res/xml/shortcuts.xml). -->
+    <string name="shortcut_next_class_short">Próxima aula</string>
+    <string name="shortcut_next_class_long">Ver a próxima aula</string>
+    <string name="shortcut_grades_short">Notas</string>
+    <string name="shortcut_grades_long">Notas do período</string>
+    <string name="shortcut_map_short">Mapa</string>
+    <string name="shortcut_map_long">Mapa da UERJ</string>
+    <string name="shortcut_documents_short">Documentos</string>
+    <string name="shortcut_documents_long">Emissão de documentos</string>
+
+    <!-- Widget "Próxima aula" (NextClassWidget.kt). -->
+    <string name="widget_label">Próxima aula</string>
+    <string name="widget_description">Sua próxima aula, com o horário e a sala, a partir da grade salva no app.</string>
+    <string name="widget_heading">Próxima aula</string>
+    <string name="widget_now">Agora</string>
+    <string name="widget_today">Hoje</string>
+    <string name="widget_until">até %1$s</string>
+    <!-- "até 18:50 · T6–N1 · Sala 6019 B": o fim da aula, os tempos e a sala. -->
+    <string name="widget_detail">até %1$s · %2$s</string>
+    <string name="widget_signed_out">Entre no AO UERJ para ver suas aulas.</string>
+    <string name="widget_outdated">Abra o AO UERJ para atualizar a grade.</string>
+    <string name="widget_no_classes_title">Sem aulas na grade</string>
+    <string name="widget_no_classes">Nenhuma disciplina em curso com horário.</string>
+    <!-- Leitor de tela: "Próxima aula, Hoje: Cálculo II, das 14:20 às 16:00, T3–T4 · Sala 6019 B." -->
+    <string name="widget_class_description">Próxima aula, %1$s: %2$s, das %3$s às %4$s, %5$s.</string>
+    <string-array name="widget_weekdays">
+        <item>Segunda</item>
+        <item>Terça</item>
+        <item>Quarta</item>
+        <item>Quinta</item>
+        <item>Sexta</item>
+        <item>Sábado</item>
+        <item>Domingo</item>
+    </string-array>
+    <!-- No bloco do dia, em maiúsculas ("SEG"). -->
+    <string-array name="widget_weekdays_short">
+        <item>Seg</item>
+        <item>Ter</item>
+        <item>Qua</item>
+        <item>Qui</item>
+        <item>Sex</item>
+        <item>Sáb</item>
+        <item>Dom</item>
+    </string-array>
+    <!-- Prévia na lista de widgets (aula de exemplo). -->
+    <string name="widget_preview_start">14:20</string>
+    <string name="widget_preview_title">Cálculo II</string>
+    <string name="widget_preview_detail">até 16:00 · T3–T4 · Sala 6019 B</string>
+    <string name="widget_preview_place">Pav. João Lyra Filho · 6º andar</string>
 </resources>

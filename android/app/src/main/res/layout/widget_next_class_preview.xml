@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Prévia na lista de widgets (Android 12+): o desenho de widget_next_class.xml com uma aula de
+     exemplo de hoje. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="10dp"
+    android:paddingTop="10dp"
+    android:paddingEnd="14dp"
+    android:paddingBottom="10dp">
+
+  <LinearLayout
+      android:layout_width="52dp"
+      android:layout_height="52dp"
+      android:background="@drawable/widget_tile_strong"
+      android:gravity="center"
+      android:orientation="vertical">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-medium"
+        android:letterSpacing="0.06"
+        android:text="@string/widget_today"
+        android:textAllCaps="true"
+        android:textColor="@color/widget_on_tile_strong_muted"
+        android:textSize="10sp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-medium"
+        android:text="@string/widget_preview_start"
+        android:textColor="@color/widget_on_tile_strong"
+        android:textSize="16sp" />
+  </LinearLayout>
+
+  <LinearLayout
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_marginStart="12dp"
+      android:layout_weight="1"
+      android:orientation="vertical">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:fontFamily="sans-serif-medium"
+        android:maxLines="1"
+        android:text="@string/widget_preview_title"
+        android:textColor="@color/widget_ink"
+        android:textSize="15sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="1dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="@string/widget_preview_detail"
+        android:textColor="@color/widget_muted"
+        android:textSize="13sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="@string/widget_preview_place"
+        android:textColor="@color/widget_muted"
+        android:textSize="12sp" />
+  </LinearLayout>
+</LinearLayout>

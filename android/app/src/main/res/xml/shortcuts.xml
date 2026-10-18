@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Atalhos do ícone do app (tocar e segurar). O destino vai no intent, como nos avisos
+     (AppLaunch.kt): a MainActivity abre o app e o JS leva à tela. Sem esquema de deep link
+     público: só o app abre estes intents explícitos. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+  <shortcut
+      android:enabled="true"
+      android:icon="@drawable/ic_shortcut_next_class"
+      android:shortcutId="next-class"
+      android:shortcutLongLabel="@string/shortcut_next_class_long"
+      android:shortcutShortLabel="@string/shortcut_next_class_short">
+    <intent
+        android:action="com.aouerjmobile.notifications.OPEN"
+        android:targetClass="com.aouerjmobile.MainActivity"
+        android:targetPackage="com.aouerjmobile">
+      <extra
+          android:name="com.aouerjmobile.notifications.TARGET"
+          android:value="home" />
+    </intent>
+  </shortcut>
+  <shortcut
+      android:enabled="true"
+      android:icon="@drawable/ic_shortcut_grades"
+      android:shortcutId="grades"
+      android:shortcutLongLabel="@string/shortcut_grades_long"
+      android:shortcutShortLabel="@string/shortcut_grades_short">
+    <intent
+        android:action="com.aouerjmobile.notifications.OPEN"
+        android:targetClass="com.aouerjmobile.MainActivity"
+        android:targetPackage="com.aouerjmobile">
+      <extra
+          android:name="com.aouerjmobile.notifications.TARGET"
+          android:value="grades" />
+    </intent>
+  </shortcut>
+  <shortcut
+      android:enabled="true"
+      android:icon="@drawable/ic_shortcut_map"
+      android:shortcutId="map"
+      android:shortcutLongLabel="@string/shortcut_map_long"
+      android:shortcutShortLabel="@string/shortcut_map_short">
+    <intent
+        android:action="com.aouerjmobile.notifications.OPEN"
+        android:targetClass="com.aouerjmobile.MainActivity"
+        android:targetPackage="com.aouerjmobile">
+      <extra
+          android:name="com.aouerjmobile.notifications.TARGET"
+          android:value="map" />
+    </intent>
+  </shortcut>
+  <shortcut
+      android:enabled="true"
+      android:icon="@drawable/ic_shortcut_documents"
+      android:shortcutId="documents"
+      android:shortcutLongLabel="@string/shortcut_documents_long"
+      android:shortcutShortLabel="@string/shortcut_documents_short">
+    <intent
+        android:action="com.aouerjmobile.notifications.OPEN"
+        android:targetClass="com.aouerjmobile.MainActivity"
+        android:targetPackage="com.aouerjmobile">
+      <extra
+          android:name="com.aouerjmobile.notifications.TARGET"
+          android:value="documents" />
+    </intent>
+  </shortcut>
+</shortcuts>

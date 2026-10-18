@@ -40,8 +40,13 @@ jest.mock('../createNotifications', () => ({
   createNotifications: jest.fn(() => ({
     settings: {},
     portalCheck: null,
-    launches: null,
   })),
+}));
+jest.mock('../createWidget', () => ({
+  createWidget: jest.fn(() => ({ sync: {} })),
+}));
+jest.mock('@root/adapters/outbound/native/NativeLaunches', () => ({
+  createLaunches: jest.fn(() => null),
 }));
 jest.mock('../../observability', () => ({
   reportPortalLayoutChanges: (ports: unknown) => ports,

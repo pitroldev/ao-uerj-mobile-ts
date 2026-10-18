@@ -104,7 +104,6 @@ function setup(preferences: Record<string, unknown>, disabled: string[] = []) {
     flushCache,
     savedScope: async () => identity.getSnapshot().account?.scope ?? null,
     device,
-    launches: null,
   });
   const key = (resource: string) =>
     academicKeys.resource(ACCOUNT.scope, ACCOUNT.period, resource);

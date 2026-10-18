@@ -5,4 +5,16 @@
   <color name="text_primary">#E6EDF6</color>
   <!-- O `accent` de src/themes/dark.ts, legível na gaveta de avisos escura. -->
   <color name="notification_accent">#6DAEF0</color>
+  <!-- Widget "Próxima aula": surface, ink, inkMuted, rule e accent de src/themes/dark.ts. -->
+  <color name="widget_surface">#111F33</color>
+  <color name="widget_ink">#E6EDF6</color>
+  <color name="widget_muted">#A7B4C6</color>
+  <color name="widget_rule">#304259</color>
+  <color name="widget_accent">#6DAEF0</color>
+  <!-- Bloco do dia e do horário: fill, onFill e accentSoft de src/themes/dark.ts; o dia, quase
+       branco, mantém 4,5:1 sobre o fill. -->
+  <color name="widget_tile_strong">#2A6BC0</color>
+  <color name="widget_on_tile_strong">#FFFFFF</color>
+  <color name="widget_on_tile_strong_muted">#E3ECF8</color>
+  <color name="widget_tile_soft">#123458</color>
 </resources>

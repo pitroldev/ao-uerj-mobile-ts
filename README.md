@@ -74,9 +74,11 @@ src/modules/support/             relatórios estruturados e sanitização
 src/modules/appearance/          tema do app (Sistema, Claro ou Escuro)
 src/modules/delivery/            aviso remoto, atualização pela loja e pedido de avaliação
 src/modules/notifications/       lembretes de aula e avisos do portal (nota, RID, documento)
+src/modules/widget/              widget "Próxima aula" da tela inicial
+src/modules/launch/              aberturas de fora do app (aviso, atalho do ícone, widget)
 src/app/background/              tarefa sem tela da verificação de avisos (WorkManager)
 src/adapters/outbound/           AO, APIs privadas, aviso remoto, armazenamento e recursos nativos
-src/specs/                       specs do codegen para TurboModules locais (In-App Updates, avisos)
+src/specs/                       specs do codegen para TurboModules locais (In-App Updates, avisos, widget)
 src/pages/ e src/features/       telas e componentes de apresentação
 src/shared/                      erros compartilhados
 ```
@@ -100,6 +102,7 @@ O gerador exige uma ação explícita para enviar a solicitação. Seus detalhes
 - Atualização e avaliação usam as APIs da própria loja (In-App Updates e In-App Review da Play), que passam pelo app da loja no aparelho; o app não envia dados próprios nesses fluxos.
 - Tema, última cópia do aviso remoto, avisos dispensados, data do último pedido de atualização e o histórico de uso que decide o pedido de avaliação ficam no AsyncStorage. Valem para o app inteiro e não são apagados no logout.
 - Avisos (ver [Notificações](#notificações)) são opt-in e montados no aparelho; nada passa por servidores próprios. As escolhas e o estado da última verificação ficam no AsyncStorage por conta, e os lembretes de aula (disciplina, horário e sala) nas SharedPreferences do Android. O logout apaga tudo isso e cancela lembretes e verificações.
+- O widget "Próxima aula" (ver [Widget e atalhos](#widget-e-atalhos)) guarda a grade salva (disciplina, horário e sala) nas SharedPreferences do Android para desenhar com o app fechado. O logout a apaga, e o widget passa a pedir o login.
 
 ### Notificações
 
@@ -110,6 +113,13 @@ A tela **Notificações** (só no Android) liga cada aviso separadamente; o Iní
 - A verificação compara com o cache que o app mostra e grava nele a leitura nova: a primeira leitura vira referência, sem aviso, e o que o aluno já viu no app não volta como aviso.
 - O texto da nota só leva o valor se o aluno pedir. Na tela de bloqueio que oculta conteúdo sensível, os avisos mostram uma versão genérica. O logout e a troca de conta tiram da barra os avisos já mostrados.
 - Para desligar tudo sem nova versão, inclua `notifications` em `disabledFeatures` do aviso remoto: a tela fica indisponível, os lembretes são cancelados e a verificação para. A verificação em segundo plano também busca o aviso remoto antes de consultar o portal.
+
+### Widget e atalhos
+
+Só no Android, sem acesso ao portal.
+
+- **Widget "Próxima aula"** (4×1, redimensionável): a próxima aula da grade salva, pela mesma regra do card do Início. Um bloco à esquerda traz o dia ("Agora", "Hoje" ou o dia da semana) e o horário de início, em azul cheio quando a aula é hoje; ao lado vêm a disciplina, o fim da aula com os tempos e a sala, e o local. O app envia a grade ao widget sempre que ela muda, inclusive na verificação em segundo plano. O widget se redesenha quando a aula mostrada começa ou termina, à meia-noite e depois de mudar o relógio, reiniciar ou atualizar o app, com alarme que não acorda o aparelho. Sem conta, pede o login; com a grade parada há mais de 21 dias, pede para abrir o app; sem nenhuma disciplina em curso com horário, mostra "Sem aulas na grade". O toque abre o Início.
+- **Atalhos do ícone** (tocar e segurar): Próxima aula, Notas, Mapa e Documentos. São intents explícitos para a `MainActivity` ([shortcuts.xml](android/app/src/main/res/xml/shortcuts.xml)), sem esquema de deep link público. O destino segue o mesmo caminho do toque nos avisos: o Mapa abre mesmo sem login; as outras telas esperam a conta. "Notas" abre o Início no quadro de notas ou avisa que o período ainda não tem notas.
 
 Quando o AO não informa o semestre, a interface usa “Período atual”. O período do mural é um filtro selecionado pelo usuário; não é uma confirmação do calendário acadêmico oficial.
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  fireEvent,
   screen,
   userEvent,
   waitFor,
@@ -45,6 +46,8 @@ let mockGrades: ReturnType<typeof makeQuery<ClassGrade[]>>;
 let mockRid: ReturnType<typeof makeQuery<PartialRidResult>>;
 let mockOnline = true;
 const mockNavigate = jest.fn();
+const mockSetParams = jest.fn();
+let mockRouteParams: { focus?: 'grades' } | undefined;
 const mockShare = jest.fn();
 /** Terça, 13/10/2026, 11:58 (o "agora" do protótipo). */
 const mockNow = new Date(2026, 9, 13, 11, 58);
@@ -103,7 +106,8 @@ jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useAppServices: () => mockServices,
 }));
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: mockNavigate }),
+  useNavigation: () => ({ navigate: mockNavigate, setParams: mockSetParams }),
+  useRoute: () => ({ params: mockRouteParams }),
 }));
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -232,6 +236,7 @@ const NOT_STARTED = 'Parece que o período não se iniciou ainda.';
 
 beforeEach(() => {
   mockOnline = true;
+  mockRouteParams = undefined;
   mockSchedule = makeQuery(schedule);
   mockGrades = makeQuery(grades);
   mockRid = makeQuery<PartialRidResult>({ subjects: [], updatedAt: '' });
@@ -543,4 +548,25 @@ it('lists the notifications as new where the device has them', async () => {
   } finally {
     mockNotifications.supported = false;
   }
+});
+
+it('opens on the grades when the app shortcut asks for them', async () => {
+  mockRouteParams = { focus: 'grades' };
+  await renderHome();
+  expect(mockSetParams).not.toHaveBeenCalled();
+  // a rolagem espera o quadro de notas ter posição na tela
+  await fireEvent(screen.getByTestId('home-grades'), 'layout', {
+    nativeEvent: { layout: { x: 0, y: 420, width: 320, height: 200 } },
+  });
+  expect(mockSetParams).toHaveBeenCalledWith({ focus: undefined });
+});
+
+it('stays at the top and says why when the period has no grades for the shortcut', async () => {
+  const info = jest.spyOn(snackbar, 'info').mockImplementation(() => undefined);
+  mockRouteParams = { focus: 'grades' };
+  mockGrades = makeQuery<ClassGrade[]>([]);
+  await renderHome();
+  expect(screen.queryByTestId('home-grades')).toBeNull();
+  expect(info).toHaveBeenCalledWith('Sem notas no período', expect.any(String));
+  expect(mockSetParams).toHaveBeenCalledWith({ focus: undefined });
 });

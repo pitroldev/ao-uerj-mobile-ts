@@ -3,14 +3,12 @@ package com.aouerjmobile.notifications
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import com.aouerjmobile.MainActivity
+import com.aouerjmobile.AppLaunch
 import com.aouerjmobile.R
 
 /** A notification ready to post; the texts come from JS (or from a saved class reminder). */
@@ -35,9 +33,6 @@ internal object AppNotifier {
   private const val CHANNEL_GRADES = "grades"
   private const val CHANNEL_ENROLLMENT = "enrollment"
   private const val CHANNEL_DOCUMENTS = "documents"
-
-  const val ACTION_OPEN = "com.aouerjmobile.notifications.OPEN"
-  const val EXTRA_TARGET = "com.aouerjmobile.notifications.TARGET"
 
   private val CHANNELS =
       listOf(
@@ -103,7 +98,7 @@ internal object AppNotifier {
     val category =
         if (channel.id == CHANNEL_CLASS_REMINDERS) NotificationCompat.CATEGORY_REMINDER
         else NotificationCompat.CATEGORY_STATUS
-    val open = openApp(context, notification.target)
+    val open = AppLaunch.pendingIntent(context, notification.target)
     val publicVersion =
         NotificationCompat.Builder(context, channel.id)
             .setSmallIcon(R.drawable.ic_notification)
@@ -131,22 +126,6 @@ internal object AppNotifier {
     } catch (_: SecurityException) {
       // permission revoked between the check and the post
     }
-  }
-
-  /** Opens MainActivity (singleTask) with the target; one PendingIntent per target. */
-  private fun openApp(context: Context, target: String): PendingIntent {
-    val intent =
-        Intent(context, MainActivity::class.java).apply {
-          action = ACTION_OPEN
-          putExtra(EXTRA_TARGET, target)
-          addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        }
-    return PendingIntent.getActivity(
-        context,
-        target.hashCode(),
-        intent,
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-    )
   }
 
   /** Notifications are told apart by their tag (the string id). */
