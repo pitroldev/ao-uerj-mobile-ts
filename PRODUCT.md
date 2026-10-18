@@ -12,11 +12,11 @@ Estudantes de graduação da UERJ que já usam o Aluno Online (AO), o portal aca
 
 ## Product Purpose
 
-Aplicativo não oficial e de código aberto (GPLv3) que traduz o Aluno Online em uma interface móvel legível. Consulta notas do período, grade semanal de horários, RID parcial, histórico, currículo, disciplinas universais e detalhes de disciplinas e turmas. Acrescenta o que o portal não tem: progresso no currículo e evolução do CR, gerador de grades de horário e mural de mensagens por turma. O sucesso é o aluno nunca precisar abrir o portal no navegador do celular.
+Aplicativo não oficial e de código aberto (GPLv3) que traduz o Aluno Online em uma interface móvel legível. Consulta notas do período, grade semanal de horários, RID parcial, histórico, currículo, disciplinas universais e detalhes de disciplinas e turmas. Acrescenta o que o portal não tem: progresso no currículo e evolução do CR, quanto falta na PF com simulação do CR, controle de faltas, gerador de grades de horário, mural de mensagens por turma e mapa offline do campus; no Android, notificações, widget e atalhos. O sucesso é o aluno nunca precisar abrir o portal no navegador do celular.
 
 ## Positioning
 
-Não é o app da UERJ; é o app que os alunos gostariam que a UERJ tivesse feito. Lê o portal real com a conta do próprio aluno, guarda os últimos dados para uso offline e cria ferramentas próprias (gerador de grade, progresso, mural) em cima dele.
+Não é o app da UERJ; é o app que os alunos gostariam que a UERJ tivesse feito. Lê o portal real com a conta do próprio aluno, guarda os últimos dados para uso offline e cria ferramentas próprias (gerador de grade, progresso, PF e faltas, mural) em cima dele.
 
 ## Operating Context
 
@@ -30,8 +30,9 @@ Não é o app da UERJ; é o app que os alunos gostariam que a UERJ tivesse feito
 
 - React Native 0.87 (nova arquitetura, React Compiler) com styled-components; Android publicado na Google Play, build iOS existe mas é secundário.
 - Rotas atuais: Início, Meu Progresso, Emissão de Documentos, Gerador de Grade, Mural de Mensagens, Disciplinas Realizadas, Disciplinas do Currículo, Disciplinas Universais, Pesquisa de Disciplinas, Mapa, Notificações (Android), Sobre, além de Login e Carregamento.
-- Notificações são opt-in por tipo: lembrete antes da aula (grade salva, sem portal) e avisos do Aluno Online (nota, RID e documento perto de vencer), com verificação a cada 4 horas fora do horário noturno.
+- Notificações são opt-in por tipo: lembrete antes da aula (grade salva, sem portal) e avisos do Aluno Online (nota, RID parcial, resultado da inscrição e documento perto de vencer), com verificação a cada 4 horas fora do horário noturno.
 - No Android, o widget "Próxima aula" mostra a próxima aula da grade salva na tela inicial, e o ícone do app tem atalhos para Próxima aula, Notas, Mapa e Documentos. Nenhum dos dois acessa o portal.
+- O quadro de notas diz quanto falta na PF pela regra do regime de créditos (Deliberação nº 33/1995, art. 95) e simula a média final e o CR aproximado. O aluno marca as próprias faltas na agenda e vê quanto ainda pode faltar; elas ficam só no aparelho, porque o portal não mostra a frequência do período em curso.
 - Navegação por menu lateral (drawer), como hoje; todas as rotas continuam acessíveis por ele.
 - O app precisa oferecer tema claro e escuro.
 - Estados obrigatórios em cada tela de dados: carregando, vazio, erro com nova tentativa, portal bloqueado, sem conexão com dados salvos e atualizando.

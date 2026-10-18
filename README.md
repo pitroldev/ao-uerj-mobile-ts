@@ -1,6 +1,6 @@
 # AO UERJ
 
-Aplicativo não oficial do Aluno Online da UERJ, em React Native 0.87.1, React 19.2 e TypeScript. Consulta notas, histórico, currículo, disciplinas, RID e horários, além de oferecer progresso acadêmico, geração de grades e mural de mensagens.
+Aplicativo não oficial do Aluno Online da UERJ, em React Native 0.87.1, React 19.2 e TypeScript. Consulta notas, histórico, currículo, disciplinas, RID e horários e emite documentos. Também oferece progresso acadêmico, quanto falta na PF com simulação do CR, controle de faltas, geração de grades, mural de mensagens e mapa offline do campus. No Android, tem ainda notificações, widget e atalhos.
 
 [Google Play](https://play.google.com/store/apps/details?id=com.aouerjmobile) · [Licença GPLv3](LICENSE)
 
@@ -75,6 +75,7 @@ src/modules/appearance/          tema do app (Sistema, Claro ou Escuro)
 src/modules/delivery/            aviso remoto, atualização pela loja e pedido de avaliação
 src/modules/notifications/       lembretes de aula e avisos do portal (nota, RID, documento)
 src/modules/widget/              widget "Próxima aula" da tela inicial
+src/modules/attendance/          faltas marcadas pelo aluno, só no aparelho
 src/modules/launch/              aberturas de fora do app (aviso, atalho do ícone, widget)
 src/app/background/              tarefa sem tela da verificação de avisos (WorkManager)
 src/adapters/outbound/           AO, APIs privadas, aviso remoto, armazenamento e recursos nativos
@@ -98,30 +99,81 @@ O gerador exige uma ação explícita para enviar a solicitação. Seus detalhes
 - A migração do antigo Redux persistido transfere credenciais para armazenamento seguro e remove a cópia em texto simples. Se a transferência falhar, um novo login pode ser necessário.
 - Relatórios de suporte enviam diagnóstico estruturado e descrição sanitizada. Não coletam HTML bruto, senha, cookies ou tokens do portal. Com o Sentry ativo, o diagnóstico leva também o id do evento de feedback correspondente.
 - Mensagens enviam nome do autor, turma, disciplina, período escolhido e texto. O gerador envia dados necessários ao cálculo. Este repositório cliente não comprova políticas de retenção dos servidores.
-- O aviso remoto (ver [Aviso remoto](#aviso-remoto)) está sempre ligado. Na abertura, ao voltar ao primeiro plano e antes de cada verificação de avisos em segundo plano, no máximo a cada 15 minutos e inclusive antes do login, o app baixa `config/app-status.json` deste repositório em `raw.githubusercontent.com`. A requisição não leva dados do aluno, mas o GitHub (Microsoft, nos EUA) vê o IP do aparelho, o horário e o User-Agent. Os links “Saiba mais” dos avisos só abrem hosts permitidos.
+- O aviso remoto (ver [Aviso remoto](#aviso-remoto)) está sempre ligado. O app baixa `config/app-status.json` deste repositório em `raw.githubusercontent.com` na abertura, ao voltar ao primeiro plano e, em segundo plano, quando a verificação de avisos vai de fato consultar o portal (antes disso, vale a cópia salva). Faz isso no máximo a cada 15 minutos, inclusive antes do login. A requisição não leva dados do aluno, mas o GitHub (Microsoft, nos EUA) vê o IP do aparelho, o horário e o User-Agent. Os links "Saiba mais" dos avisos só abrem hosts permitidos.
 - Atualização e avaliação usam as APIs da própria loja (In-App Updates e In-App Review da Play), que passam pelo app da loja no aparelho; o app não envia dados próprios nesses fluxos.
 - Tema, última cópia do aviso remoto, avisos dispensados, data do último pedido de atualização e o histórico de uso que decide o pedido de avaliação ficam no AsyncStorage. Valem para o app inteiro e não são apagados no logout.
-- Avisos (ver [Notificações](#notificações)) são opt-in e montados no aparelho; nada passa por servidores próprios. As escolhas e o estado da última verificação ficam no AsyncStorage por conta, e os lembretes de aula (disciplina, horário e sala) nas SharedPreferences do Android. O logout apaga tudo isso e cancela lembretes e verificações.
+- Avisos (ver [Notificações](#notificações)) são opt-in e montados no aparelho; nada passa por servidores próprios. As escolhas, o estado da última verificação e a referência dos avisos (as últimas notas, posições no RID Parcial e resultados da inscrição lidos no período) ficam no AsyncStorage por conta. Os lembretes de aula (disciplina, horário e sala) ficam nas SharedPreferences do Android. O logout apaga tudo isso e cancela lembretes e verificações.
 - O widget "Próxima aula" (ver [Widget e atalhos](#widget-e-atalhos)) guarda a grade salva (disciplina, horário e sala) nas SharedPreferences do Android para desenhar com o app fechado. O logout a apaga, e o widget passa a pedir o login.
+- As faltas que o aluno marca (ver [Notas, PF e faltas](#notas-pf-e-faltas)) ficam só no aparelho, no AsyncStorage por conta e por período, e o logout as apaga, inclusive o automático, quando o portal recusa a senha salva. A simulação de PF e CR não grava nada.
+
+Quando o AO não informa o semestre, a interface usa "Período atual". O período do mural é um filtro selecionado pelo usuário; não é uma confirmação do calendário acadêmico oficial.
+
+### Notas, PF e faltas
+
+As contas seguem o art. 95 da Deliberação nº 33/CSEPE/1995, que o Aluno Online publica em "Critérios de Avaliação (Crédito)". O regime seriado (Deliberação nº 44/1979) tem outra conta e não é coberto.
+
+- **Quanto preciso na PF:** no quadro de notas do Início, cada disciplina diz o que falta para passar por nota.
+  - A média semestral é a média de P1 e P2. A partir de 7,0, o rótulo é "Dispensado da PF".
+  - Abaixo de 4,0, é "Sem direito à PF": a disciplina reprova mesmo que uma PF apareça lançada.
+  - Entre 4,0 e 7,0, é "Precisa de X na PF", com X = 10 − média, arredondado para cima na primeira casa. Essa nota aparece tracejada na coluna da PF.
+  - Só com uma das provas, o rótulo diz quanto a outra precisa para dispensar a PF ("6,5 na P2 dispensa a PF"). Quando nem 10 dispensa, diz quanto ela precisa para dar direito à PF ("Precisa de 5,0 na P1 para ter PF").
+  - Com a PF lançada ou a média publicada, mostra a média final, (média + PF) ÷ 2, que aprova com 5,0.
+  - As notas aparecem com uma casa, e a segunda só quando existe. Elas são cortadas em vez de arredondadas, e assim nada abaixo de 5 aparece como "5,0".
+- **Simular PF e CR:** a folha começa cada PF na nota mínima, de novo a cada abertura, e muda a nota de 0,5 em 0,5. Mostra a média final de cada disciplina e o CR aproximado de agora e com as notas do período.
+  - Os créditos vêm do histórico, do currículo ou das disciplinas universais. A folha os lê ao abrir, do cache (que vale 24 horas) ou do portal.
+  - O histórico só lista as disciplinas do período depois que ele termina; a partir daí, o período não conta duas vezes.
+  - O CR segue a mesma regra aproximada do Meu Progresso. Atividades sem crédito ficam de fora, e sem nenhuma nota no histórico não há CR atual.
+  - Também ficam de fora as disciplinas sem as duas provas e sem média lançada.
+- **Controle de faltas:** o aluno marca "Faltei" de dois jeitos: tocando numa aula já terminada da agenda da semana, ou em "Faltas", em Disciplinas em Curso, que lista as aulas das últimas 4 semanas e as faltas mais antigas.
+  - O limite é de 25% da carga horária (a frequência mínima é de 75% das horas-aula), contado em tempos de aula de 50 minutos.
+  - A carga horária vem das mesmas fontes dos créditos. Sem ela, não há limite nem barra.
+  - Disciplinas em Curso mostra a barra de cada disciplina: verde abaixo da metade do limite, amarela da metade até o limite e vermelha além dele.
+  - A lista sai da grade e não conhece feriados nem o começo das aulas; nesses dias, basta não marcar.
+  - O portal não mostra a frequência do período em curso, só a do histórico.
 
 ### Notificações
 
 A tela **Notificações** (só no Android) liga cada aviso separadamente; o Início convida uma vez a ligar o lembrete de aula.
 
-- **Lembrete antes da aula:** 10, 15 ou 30 minutos antes, a partir da grade salva, sem consultar o portal. O `AlarmManager` repete cada aula toda semana e refaz os alarmes depois de reiniciar o aparelho, atualizar o app ou mudar o relógio. Sem “Alarmes e lembretes” liberado (Android 12+), o sistema entrega numa janela de até 10 minutos antes do horário e pode atrasar com o celular parado (Doze); um lembrete que chegaria depois do início da aula é descartado, e um já mostrado não se repete. Os lembretes param 21 dias depois da última leitura da grade e não conhecem feriados. Sem a grade salva (o cache em disco dura 7 dias), os lembretes já agendados continuam até essa validade.
-- **Avisos do Aluno Online:** nota nova ou alterada, posição ou situação nova no RID provisório, resultado da inscrição (aceitas e não aceitas, com o motivo) e documento emitido a 3 dias de vencer. O WorkManager roda a cada 4 horas, com rede e bateria não baixa, a verificação em JS sem tela (`src/app/background`). Antes de entrar no portal, ela decide com a conta salva no aparelho e com o aviso remoto: das 22h às 7h, na pausa, sem permissão ou com os avisos desligados, não há login. Quando roda, usa uma autenticação e só as páginas dos avisos ligados (documentos e grade no máximo uma vez por dia), e para se a sessão cair de novo depois de um novo login. Depois de um bloqueio ou limite de consultas do portal, pausa por 12 horas. Com o app na tela, não roda.
-- A verificação compara com o cache que o app mostra e grava nele a leitura nova: a primeira leitura vira referência, sem aviso, e o que o aluno já viu no app não volta como aviso.
-- O texto da nota só leva o valor se o aluno pedir. Na tela de bloqueio que oculta conteúdo sensível, os avisos mostram uma versão genérica. O logout e a troca de conta tiram da barra os avisos já mostrados.
-- Para desligar tudo sem nova versão, inclua `notifications` em `disabledFeatures` do aviso remoto: a tela fica indisponível, os lembretes são cancelados e a verificação para. A verificação em segundo plano também busca o aviso remoto antes de consultar o portal.
+- **Lembrete antes da aula:** 10, 15 ou 30 minutos antes, a partir da grade salva, sem consultar o portal.
+  - O `AlarmManager` repete cada aula toda semana e refaz os alarmes depois de reiniciar o aparelho, atualizar o app ou mudar o relógio.
+  - Enquanto houver lembretes, o WorkManager também os refaz a cada 6 horas, sem rede e sem abrir o app. Assim, retirar "Alarmes e lembretes" pausa os lembretes por no máximo esse tempo.
+  - Sem "Alarmes e lembretes" liberado (Android 12+), o sistema entrega o lembrete numa janela de até 10 minutos antes do horário. Se o app reagenda dentro dessa janela, o lembrete sai na hora. Com o celular parado (Doze), pode atrasar.
+  - Um lembrete que chegaria depois do início da aula é descartado. Uma aula já avisada não é avisada de novo, nem ao mudar a antecedência.
+  - Os lembretes param 21 dias depois da última leitura da grade e não conhecem feriados. Sem a grade salva (o cache em disco dura 7 dias), os lembretes já agendados continuam até essa validade.
+- **Avisos do Aluno Online:** nota nova ou alterada, posição ou situação nova no RID Parcial, resultado da inscrição (aceitas e não aceitas, com o motivo) e documento emitido a até 3 dias de vencer.
+  - O WorkManager roda a verificação em JS sem tela (`src/app/background`) a cada 4 horas, com rede e bateria não baixa. Das 22h às 7h, ou com as notificações desligadas no sistema, nem inicia o app.
+  - Antes de qualquer acesso à rede, a verificação decide com o que está no aparelho: horário, pausa, avisos ligados da conta salva e a cópia salva do aviso remoto. Só então busca o aviso remoto e entra no portal.
+  - Cada rodada faz uma autenticação e consulta só as páginas dos avisos ligados. Os documentos e a grade são consultados no máximo uma vez a cada 20 horas; a grade, só com o lembrete de aula ligado.
+  - Se o login falha, a rodada para. Uma página fora do menu da conta, como o RID fora da época de inscrição, não interrompe as outras.
+  - Pausa por 12 horas depois de um bloqueio ou limite de consultas do portal, de um login que o portal não abre (HTTP 4xx ou página desconhecida) ou de senha recusada. Com o app na tela, não roda.
+- A verificação compara cada aviso com uma referência: o que o app mostrou (o cache) mais o que a própria verificação já leu no período.
+  - A primeira leitura vira referência, sem aviso, e o que o aluno já viu no app não volta como aviso.
+  - Uma leitura vazia ou em branco não apaga a referência: um dado que some e volta igual não avisa de novo.
+  - Os documentos são a exceção: avisam pelo prazo já na primeira verificação, uma vez por via.
+- Com o app em segundo plano, a volta da rede não recarrega os dados. Eles atualizam quando o app volta à tela, e a verificação não perde a mudança.
+- O texto da nota só leva o valor se o aluno pedir. Na tela de bloqueio que oculta conteúdo sensível, os avisos mostram uma versão genérica.
+- O logout, a troca de conta e o logout automático por senha recusada tiram da barra os avisos já mostrados e cancelam os lembretes.
+- Para desligar tudo sem nova versão, inclua `notifications` em `disabledFeatures` do aviso remoto. A tela fica indisponível, e os lembretes e a verificação são cancelados na abertura do app ou na próxima verificação em segundo plano.
+  - Só com o lembrete de aula ligado não há verificação em segundo plano, e o cancelamento espera a abertura do app.
+  - Eles voltam quando o aluno abre o app depois da correção.
 
 ### Widget e atalhos
 
 Só no Android, sem acesso ao portal.
 
-- **Widget "Próxima aula"** (4×1, redimensionável): a próxima aula da grade salva, pela mesma regra do card do Início. Um bloco à esquerda traz o dia ("Agora", "Hoje" ou o dia da semana) e o horário de início, em azul cheio quando a aula é hoje; ao lado vêm a disciplina, o fim da aula com os tempos e a sala, e o local. O app envia a grade ao widget sempre que ela muda, inclusive na verificação em segundo plano. O widget se redesenha quando a aula mostrada começa ou termina, à meia-noite e depois de mudar o relógio, reiniciar ou atualizar o app, com alarme que não acorda o aparelho. Sem conta, pede o login; com a grade parada há mais de 21 dias, pede para abrir o app; sem nenhuma disciplina em curso com horário, mostra "Sem aulas na grade". O toque abre o Início.
-- **Atalhos do ícone** (tocar e segurar): Próxima aula, Notas, Mapa e Documentos. São intents explícitos para a `MainActivity` ([shortcuts.xml](android/app/src/main/res/xml/shortcuts.xml)), sem esquema de deep link público. O destino segue o mesmo caminho do toque nos avisos: o Mapa abre mesmo sem login; as outras telas esperam a conta. "Notas" abre o Início no quadro de notas ou avisa que o período ainda não tem notas.
-
-Quando o AO não informa o semestre, a interface usa “Período atual”. O período do mural é um filtro selecionado pelo usuário; não é uma confirmação do calendário acadêmico oficial.
+- **Widget "Próxima aula"** (4×1, redimensionável): a próxima aula da grade salva, pela mesma regra do card do Início.
+  - Um bloco à esquerda traz o dia ("Agora", "Hoje" ou o dia da semana) e o horário de início, em azul cheio quando a aula é hoje. Ao lado vêm a disciplina, o fim da aula com os tempos e a sala, e o local.
+  - O texto do bloco tem tamanho fixo e não cresce com a fonte do sistema. O leitor de tela lê o dia e o horário pela descrição do widget.
+  - O app envia a grade ao widget sempre que ela muda, com o app aberto. Em segundo plano, isso só acontece quando a verificação de avisos relê a grade; ver [Notificações](#notificações). Sem avisos ligados, o widget se atualiza ao abrir o app.
+  - O widget se redesenha quando a aula mostrada começa ou termina, à meia-noite e depois de mudar o relógio, reiniciar ou atualizar o app. O alarme nunca acorda o aparelho. Com "Alarmes e lembretes" liberado (a permissão dos lembretes), chega no minuto certo; sem ela, pode atrasar até 10 minutos.
+  - Depois do logout, pede o login. Pede para abrir o app em dois casos: antes de receber a primeira grade (widget posto antes de abrir o app) ou com a conta sem grade lida, e com a grade parada há mais de 21 dias.
+  - Sem nenhuma disciplina em curso com horário, mostra "Sem aulas na grade". O toque abre o Início.
+- **Atalhos do ícone** (tocar e segurar): Próxima aula, Notas, Mapa e Documentos ([shortcuts.xml](android/app/src/main/res/xml/shortcuts.xml)).
+  - O Android abre atalhos limpando a tarefa. Por isso eles passam pela `ShortcutActivity`, sem tela, que repassa o destino à `MainActivity` pelo mesmo caminho do toque nos avisos e no widget. Com o app aberto, a tela atual fica.
+  - Não há esquema de deep link público, mas a `MainActivity` é exportada: outro app pode abri-la com a mesma ação. O JS só aceita os quatro destinos.
+  - O Mapa abre mesmo sem login; as outras telas esperam a conta.
+  - "Notas" abre o Início no quadro de notas. Quando as notas carregam e o período não tem nenhuma, avisa que ainda não há notas.
 
 ### Registro de falhas (Sentry)
 

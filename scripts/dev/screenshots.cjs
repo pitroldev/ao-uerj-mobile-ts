@@ -31,6 +31,7 @@ const ROUTES = {
   universais: 'universais',
   pesquisa: 'pesquisa',
   disciplina: 'pesquisa/IME02-10892',
+  notificacoes: 'notificacoes',
   sobre: 'sobre',
 };
 

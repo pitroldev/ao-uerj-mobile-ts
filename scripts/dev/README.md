@@ -100,13 +100,23 @@ node scripts/dev/screenshots.cjs --out "$TEMP/aouerj-shots" sd=pesquisa/IME02-10
 ```
 
 Rotas: `inicio`, `mapa`, `progresso`, `documentos`, `gerador`, `mural`, `realizadas`,
-`curriculo`, `universais`, `pesquisa`, `disciplina` e `sobre`. Sem rotas explícitas,
+`curriculo`, `universais`, `pesquisa`, `disciplina`, `notificacoes` (Android) e `sobre`. Sem rotas explícitas,
 o script captura todas as rotas listadas. Funcionalidades desativadas continuam
 sujeitas à configuração efetiva do app.
 
 Opções: `--serial`, `--wait <ms>` (padrão 2500), `--login-timeout <ms>`,
 `--no-login`, `--no-reverse`, `--adb` e `--help`. `--no-login` usa a sessão já
 aberta e não lê as credenciais.
+
+Os atalhos do ícone e o toque nos avisos e no widget abrem o app pela ação
+`com.aouerjmobile.notifications.OPEN` (ver `AppLaunch.kt`), e não pelo deep link
+de desenvolvimento. Para testar um destino com o app aberto ou fechado:
+
+```sh
+adb shell am start -n com.aouerjmobile/.MainActivity \n  -a com.aouerjmobile.notifications.OPEN \n  --es com.aouerjmobile.notifications.TARGET grades
+```
+
+Os destinos são `home`, `grades`, `map` e `documents`.
 
 ## Testes E2E (Maestro)
 
