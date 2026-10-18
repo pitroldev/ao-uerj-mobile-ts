@@ -11,6 +11,7 @@ import android.view.View
 import android.widget.RemoteViews
 import com.aouerjmobile.AppLaunch
 import com.aouerjmobile.R
+import com.aouerjmobile.notifications.ClassReminders
 import java.util.Calendar
 
 /**
@@ -18,8 +19,9 @@ import java.util.Calendar
  * the time and the room, like the Home's card. Tapping opens the app on Início.
  *
  * Redrawn when JS sends a new schedule, when the class shown starts or ends, at midnight (the day
- * label changes) and after a clock change, a reboot or an app update. The refresh alarm does not
- * wake the device: a widget nobody is looking at can wait for the screen to turn on.
+ * label changes) and after a clock change, a reboot or an app update. The refresh alarm never wakes
+ * the device (a widget nobody is looking at can wait for the screen to turn on), and there is no
+ * periodic update from the system (updatePeriodMillis 0), which would wake it.
  */
 class NextClassWidget : AppWidgetProvider() {
 
@@ -40,7 +42,10 @@ class NextClassWidget : AppWidgetProvider() {
   companion object {
     private const val ACTION_REFRESH = "com.aouerjmobile.widget.REFRESH"
     private const val MINUTE = 60_000L
-    /** The refresh may come a little late (10 minutes is the shortest window Android allows). */
+    /**
+     * Without the exact alarm permission (the class reminders'), the refresh may come a little
+     * late: 10 minutes is the shortest window Android allows.
+     */
     private const val REFRESH_WINDOW = 10 * MINUTE
 
     private val REFRESH_ACTIONS =
@@ -68,8 +73,16 @@ class NextClassWidget : AppWidgetProvider() {
       val views = RemoteViews(context.packageName, R.layout.widget_next_class)
       views.setOnClickPendingIntent(R.id.widget_root, AppLaunch.pendingIntent(context, "home"))
       when {
+        // signed out (logout), or nothing received yet: a new widget before the app ran, or an
+        // account whose schedule was not read
         schedule == null ->
-            message(context, views, R.string.widget_heading, R.string.widget_signed_out)
+            message(
+                context,
+                views,
+                R.string.widget_heading,
+                if (NextClassStore.signedOut(context)) R.string.widget_signed_out
+                else R.string.widget_not_loaded,
+            )
         current == null ->
             message(context, views, R.string.widget_heading, R.string.widget_outdated)
         next == null ->
@@ -154,7 +167,9 @@ class NextClassWidget : AppWidgetProvider() {
 
     /**
      * Next moment the widget changes: the class shown starts ("Agora") or ends, midnight (the day
-     * label) or the schedule expires. Signed out, nothing changes until JS sends a schedule.
+     * label) or the schedule expires. Signed out, nothing changes until JS sends a schedule. The
+     * class breaks at UERJ last 10 minutes, so the alarm is exact when the app may set exact
+     * alarms (asked for the class reminders); RTC either way, which waits for the screen.
      */
     private fun scheduleRefresh(
         context: Context,
@@ -172,7 +187,8 @@ class NextClassWidget : AppWidgetProvider() {
       if (next != null && next.dayOffset == 0)
           moments += todayAt(now, if (next.ongoing) next.item.end else next.item.start)
       val at = moments.filter { it > now }.minOrNull() ?: return
-      alarms.setWindow(AlarmManager.RTC, at, REFRESH_WINDOW, intent)
+      if (ClassReminders.canScheduleExact(context)) alarms.setExact(AlarmManager.RTC, at, intent)
+      else alarms.setWindow(AlarmManager.RTC, at, REFRESH_WINDOW, intent)
     }
 
     private fun todayAt(now: Long, minutes: Int): Long =

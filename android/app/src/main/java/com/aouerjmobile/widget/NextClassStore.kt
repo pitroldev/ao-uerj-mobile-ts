@@ -43,6 +43,12 @@ internal data class NextClass(
 internal object NextClassStore {
   private const val PREFS = "ao_widget"
   private const val KEY_SCHEDULE = "schedule"
+  /**
+   * Written by the logout (the empty schedule): the widget asks to sign in. Without it and without
+   * a schedule, JS has sent nothing yet (widget placed before the app ran after an install or an
+   * update) or the account's schedule was not read yet, and the widget asks to open the app.
+   */
+  private const val KEY_SIGNED_OUT = "signed_out"
   private const val MAX_CLASSES = 100
 
   private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -78,8 +84,8 @@ internal object NextClassStore {
   }
 
   /**
-   * Replaces the schedule; an empty text clears it (signed out). A malformed schedule throws
-   * [IllegalArgumentException] and the current one stays.
+   * Replaces the schedule; an empty text clears it and marks the widget signed out. A malformed
+   * schedule throws [IllegalArgumentException] and the current one stays.
    */
   @Synchronized
   fun replace(context: Context, json: String) {
@@ -89,8 +95,22 @@ internal object NextClassStore {
         } catch (error: JSONException) {
           throw IllegalArgumentException("Malformed widget schedule", error)
         }
-    prefs(context).edit().putString(KEY_SCHEDULE, json.ifEmpty { null }).commit()
+    prefs(context)
+        .edit()
+        .putString(KEY_SCHEDULE, json.ifEmpty { null })
+        .putBoolean(KEY_SIGNED_OUT, json.isEmpty())
+        .commit()
   }
+
+  /** Signed in, schedule not read yet: no longer signed out; a saved schedule stays. */
+  @Synchronized
+  fun signIn(context: Context) {
+    prefs(context).edit().remove(KEY_SIGNED_OUT).commit()
+  }
+
+  /** Signed out by the logout, as opposed to no schedule sent yet. */
+  @Synchronized
+  fun signedOut(context: Context): Boolean = prefs(context).getBoolean(KEY_SIGNED_OUT, false)
 
   @Synchronized
   fun load(context: Context): WidgetSchedule? {

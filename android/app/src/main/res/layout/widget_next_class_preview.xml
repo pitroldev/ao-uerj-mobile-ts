@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Prévia na lista de widgets (Android 12+): o desenho de widget_next_class.xml com uma aula de
-     exemplo de hoje. -->
+     exemplo de hoje, com os textos do bloco em dp como lá. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_background"
@@ -17,7 +18,8 @@
       android:layout_height="52dp"
       android:background="@drawable/widget_tile_strong"
       android:gravity="center"
-      android:orientation="vertical">
+      android:orientation="vertical"
+      tools:ignore="SpUsage">
 
     <TextView
         android:layout_width="wrap_content"
@@ -27,7 +29,7 @@
         android:text="@string/widget_today"
         android:textAllCaps="true"
         android:textColor="@color/widget_on_tile_strong_muted"
-        android:textSize="10sp" />
+        android:textSize="10dp" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -35,7 +37,7 @@
         android:fontFamily="sans-serif-medium"
         android:text="@string/widget_preview_start"
         android:textColor="@color/widget_on_tile_strong"
-        android:textSize="16sp" />
+        android:textSize="16dp" />
   </LinearLayout>
 
   <LinearLayout

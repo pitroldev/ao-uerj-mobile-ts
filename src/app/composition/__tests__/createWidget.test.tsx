@@ -55,10 +55,13 @@ function setup() {
     listeners.forEach(listener => listener());
   };
   const queryClient = createTestQueryClient();
-  const sent: (WidgetSchedule | null)[] = [];
+  const sent: (WidgetSchedule | 'signed-in' | null)[] = [];
   const device = {
     setSchedule: jest.fn(async (schedule: WidgetSchedule | null) => {
       sent.push(schedule);
+    }),
+    setSignedIn: jest.fn(async () => {
+      sent.push('signed-in');
     }),
   };
   createWidget({ queryClient, identity, device });
@@ -69,8 +72,9 @@ it('sends the schedule the app loads to the widget, and clears it on sign out', 
   const { queryClient, device, sent, publish } = setup();
   publish({ status: 'signedIn', account: ACCOUNT, error: null });
   await settle();
-  // sem grade salva ainda: o widget fica como estava
+  // sem grade salva ainda: o widget mantém a que tiver e não pede o login
   expect(device.setSchedule).not.toHaveBeenCalled();
+  expect(sent).toEqual(['signed-in']);
 
   queryClient.setQueryData(
     academicKeys.resource(ACCOUNT.scope, ACCOUNT.period, 'schedule'),
@@ -78,6 +82,7 @@ it('sends the schedule the app loads to the widget, and clears it on sign out', 
   );
   await settle();
   expect(sent).toEqual([
+    'signed-in',
     expect.objectContaining({
       classes: [
         expect.objectContaining({

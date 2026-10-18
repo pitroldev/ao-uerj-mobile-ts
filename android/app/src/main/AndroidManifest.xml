@@ -50,11 +50,24 @@
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
-      <!-- Atalhos do ícone: Próxima aula, Notas, Mapa e Documentos. -->
+      <!-- Atalhos do ícone: Próxima aula, Notas, Mapa e Documentos (abrem pela ShortcutActivity). -->
       <meta-data
         android:name="android.app.shortcuts"
         android:resource="@xml/shortcuts" />
     </activity>
+    <!-- Trampolim dos atalhos do ícone, sem tela. O Android abre atalhos estáticos limpando a
+         tarefa (FLAG_ACTIVITY_CLEAR_TASK): numa tarefa própria (taskAffinity vazio), só ela é
+         limpa, e a MainActivity recebe o destino como no toque do aviso e do widget, sem recriar o
+         app aberto. Não exportada: a launcher abre o atalho em nome do app
+         (LauncherApps.startShortcut). Sem screenOrientation: activity translúcida não pode fixar
+         a orientação no Android 8.0. -->
+    <activity
+      android:name=".ShortcutActivity"
+      android:excludeFromRecents="true"
+      android:exported="false"
+      android:noHistory="true"
+      android:taskAffinity=""
+      android:theme="@android:style/Theme.Translucent.NoTitleBar" />
     <!-- Lembretes de aula (AlarmManager). Não exportados: só o sistema os chama. -->
     <receiver
       android:name=".notifications.ClassReminderReceiver"

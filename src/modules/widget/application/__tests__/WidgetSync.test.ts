@@ -36,10 +36,13 @@ function setup({ withDevice = true } = {}) {
   const current: { schedule: Saved } = {
     schedule: { data: [meeting], updatedAt: 5000 },
   };
-  const sent: (WidgetSchedule | null)[] = [];
+  const sent: (WidgetSchedule | 'signed-in' | null)[] = [];
   const device = {
     setSchedule: jest.fn(async (schedule: WidgetSchedule | null) => {
       sent.push(schedule);
+    }),
+    setSignedIn: jest.fn(async () => {
+      sent.push('signed-in');
     }),
   };
   const sync = new WidgetSync({
@@ -66,6 +69,7 @@ it('leaves the widget alone while the account is being restored', async () => {
   const { device } = setup();
   await settle();
   expect(device.setSchedule).not.toHaveBeenCalled();
+  expect(device.setSignedIn).not.toHaveBeenCalled();
 });
 
 it('sends the saved schedule of the account, and only when it changes', async () => {
@@ -87,21 +91,36 @@ it('sends the saved schedule of the account, and only when it changes', async ()
     updatedAt: 9000,
   };
   await sync.scheduleChanged();
-  expect(sent[1]?.classes).toHaveLength(2);
+  expect(device.setSchedule.mock.calls[1]?.[0]?.classes).toHaveLength(2);
 });
 
-it('waits for the schedule to be read, and clears the widget on sign out', async () => {
+it('says there is an account until the schedule is read, and clears the widget on sign out', async () => {
   const { sync, device, sent, current, setAccount } = setup();
   current.schedule = null;
   setAccount(ACCOUNT);
   await settle();
+  // sem grade lida: o widget mantém a que tiver e para de pedir o login
   expect(device.setSchedule).not.toHaveBeenCalled();
+  expect(sent).toEqual(['signed-in']);
+  await sync.scheduleChanged();
+  expect(device.setSignedIn).toHaveBeenCalledTimes(1);
 
   current.schedule = { data: [meeting], updatedAt: 1 };
   await sync.scheduleChanged();
   setAccount(null);
   await settle();
-  expect(sent).toEqual([expect.any(Object), null]);
+  expect(sent).toEqual(['signed-in', expect.any(Object), null]);
+});
+
+it('stops asking to sign in after a login whose schedule is not read yet', async () => {
+  const { sent, current, setAccount } = setup();
+  setAccount(null);
+  await settle();
+  // o login publica "sem conta" antes de entrar, e o portal pode falhar depois
+  current.schedule = null;
+  setAccount(ACCOUNT);
+  await settle();
+  expect(sent).toEqual([null, 'signed-in']);
 });
 
 it('tries again on the next change when the device fails', async () => {

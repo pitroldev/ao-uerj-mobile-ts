@@ -11,10 +11,11 @@
   <color name="widget_muted">#A7B4C6</color>
   <color name="widget_rule">#304259</color>
   <color name="widget_accent">#6DAEF0</color>
-  <!-- Bloco do dia e do horário: fill, onFill e accentSoft de src/themes/dark.ts; o dia, quase
-       branco, mantém 4,5:1 sobre o fill. -->
+  <!-- Bloco do dia e do horário: fill, onFill e accentSoft de src/themes/dark.ts. O dia (10dp)
+       fica branco como o horário: sobre o fill, o branco dá 5,3:1, e um quase branco (#E3ECF8)
+       ficava em 4,45:1, abaixo dos 4,5:1 de texto pequeno. -->
   <color name="widget_tile_strong">#2A6BC0</color>
   <color name="widget_on_tile_strong">#FFFFFF</color>
-  <color name="widget_on_tile_strong_muted">#E3ECF8</color>
+  <color name="widget_on_tile_strong_muted">#FFFFFF</color>
   <color name="widget_tile_soft">#123458</color>
 </resources>

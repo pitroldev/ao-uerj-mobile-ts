@@ -19,6 +19,16 @@ class HomeWidgetModule(reactContext: ReactApplicationContext) :
     }
   }
 
+  /**
+   * Signed in, schedule not read yet (e.g. the portal failed right after the login): the widget
+   * stops asking to sign in and keeps the schedule it has.
+   */
+  override fun setSignedIn(promise: Promise) {
+    NextClassStore.signIn(reactApplicationContext)
+    NextClassWidget.updateAll(reactApplicationContext)
+    promise.resolve(null)
+  }
+
   companion object {
     const val NAME = NativeHomeWidgetSpec.NAME
     private const val E_SCHEDULE = "E_WIDGET_SCHEDULE"

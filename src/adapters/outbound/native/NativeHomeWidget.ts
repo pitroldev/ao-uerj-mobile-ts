@@ -9,5 +9,6 @@ export function createNativeHomeWidget(
   return {
     setSchedule: schedule =>
       module.setSchedule(schedule ? JSON.stringify(schedule) : ''),
+    setSignedIn: () => module.setSignedIn(),
   };
 }

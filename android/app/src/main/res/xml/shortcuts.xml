@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Atalhos do ícone do app (tocar e segurar). O destino vai no intent, como nos avisos
-     (AppLaunch.kt): a MainActivity abre o app e o JS leva à tela. Sem esquema de deep link
-     público: só o app abre estes intents explícitos. -->
+     (AppLaunch.kt), e o JS leva à tela. O Android abre atalhos estáticos limpando a tarefa
+     (FLAG_ACTIVITY_CLEAR_TASK): por isso eles abrem a ShortcutActivity, que tem tarefa própria e
+     repassa o destino à MainActivity sem recriar o app aberto.
+     Sem esquema de deep link, mas não é um caminho fechado: a MainActivity, a do ícone, é
+     exportada, e qualquer app pode abri-la com a ação e o extra abaixo. O JS só aceita os destinos
+     conhecidos (toLaunchTarget), e as telas que pedem conta esperam o login. -->
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
   <shortcut
       android:enabled="true"
@@ -11,7 +15,7 @@
       android:shortcutShortLabel="@string/shortcut_next_class_short">
     <intent
         android:action="com.aouerjmobile.notifications.OPEN"
-        android:targetClass="com.aouerjmobile.MainActivity"
+        android:targetClass="com.aouerjmobile.ShortcutActivity"
         android:targetPackage="com.aouerjmobile">
       <extra
           android:name="com.aouerjmobile.notifications.TARGET"
@@ -26,7 +30,7 @@
       android:shortcutShortLabel="@string/shortcut_grades_short">
     <intent
         android:action="com.aouerjmobile.notifications.OPEN"
-        android:targetClass="com.aouerjmobile.MainActivity"
+        android:targetClass="com.aouerjmobile.ShortcutActivity"
         android:targetPackage="com.aouerjmobile">
       <extra
           android:name="com.aouerjmobile.notifications.TARGET"
@@ -41,7 +45,7 @@
       android:shortcutShortLabel="@string/shortcut_map_short">
     <intent
         android:action="com.aouerjmobile.notifications.OPEN"
-        android:targetClass="com.aouerjmobile.MainActivity"
+        android:targetClass="com.aouerjmobile.ShortcutActivity"
         android:targetPackage="com.aouerjmobile">
       <extra
           android:name="com.aouerjmobile.notifications.TARGET"
@@ -56,7 +60,7 @@
       android:shortcutShortLabel="@string/shortcut_documents_short">
     <intent
         android:action="com.aouerjmobile.notifications.OPEN"
-        android:targetClass="com.aouerjmobile.MainActivity"
+        android:targetClass="com.aouerjmobile.ShortcutActivity"
         android:targetPackage="com.aouerjmobile">
       <extra
           android:name="com.aouerjmobile.notifications.TARGET"

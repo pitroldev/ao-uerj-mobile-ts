@@ -3,8 +3,12 @@
      dia e o horário de início: cheio para a aula de hoje, suave para os outros dias, com o ícone de
      agenda nos avisos. À direita, a disciplina, o fim da aula com os tempos e a sala, e o local.
      Só views aceitas por RemoteViews. Até o primeiro desenho (widget recém-posto, boot), só o ícone
-     e o título aparecem: um aviso fixo aqui diria "entre" a quem já entrou. -->
+     e o título aparecem: um aviso fixo aqui diria "entre" a quem já entrou.
+     Os textos do bloco usam dp: em 52dp fixos, "18:50" em sp passava da largura com a fonte do
+     sistema a partir de 1,3x, e "AGORA" quebrava em 1,5x. Os textos ao lado seguem a fonte do
+     sistema, e o leitor de tela lê o dia e o horário na descrição do widget. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -18,7 +22,8 @@
 
   <FrameLayout
       android:layout_width="52dp"
-      android:layout_height="52dp">
+      android:layout_height="52dp"
+      tools:ignore="SpUsage">
 
     <LinearLayout
         android:id="@+id/widget_tile_today"
@@ -37,7 +42,7 @@
           android:letterSpacing="0.06"
           android:textAllCaps="true"
           android:textColor="@color/widget_on_tile_strong_muted"
-          android:textSize="10sp" />
+          android:textSize="10dp" />
 
       <TextView
           android:id="@+id/widget_start_today"
@@ -45,7 +50,7 @@
           android:layout_height="wrap_content"
           android:fontFamily="sans-serif-medium"
           android:textColor="@color/widget_on_tile_strong"
-          android:textSize="16sp" />
+          android:textSize="16dp" />
     </LinearLayout>
 
     <LinearLayout
@@ -65,7 +70,7 @@
           android:letterSpacing="0.06"
           android:textAllCaps="true"
           android:textColor="@color/widget_accent"
-          android:textSize="10sp" />
+          android:textSize="10dp" />
 
       <TextView
           android:id="@+id/widget_start_later"
@@ -73,7 +78,7 @@
           android:layout_height="wrap_content"
           android:fontFamily="sans-serif-medium"
           android:textColor="@color/widget_accent"
-          android:textSize="16sp" />
+          android:textSize="16dp" />
     </LinearLayout>
 
     <ImageView

@@ -9,7 +9,7 @@
     <string name="shortcut_map_short">Mapa</string>
     <string name="shortcut_map_long">Mapa da UERJ</string>
     <string name="shortcut_documents_short">Documentos</string>
-    <string name="shortcut_documents_long">Emissão de documentos</string>
+    <string name="shortcut_documents_long">Emissão de Documentos</string>
 
     <!-- Widget "Próxima aula" (NextClassWidget.kt). -->
     <string name="widget_label">Próxima aula</string>
@@ -20,7 +20,10 @@
     <string name="widget_until">até %1$s</string>
     <!-- "até 18:50 · T6–N1 · Sala 6019 B": o fim da aula, os tempos e a sala. -->
     <string name="widget_detail">até %1$s · %2$s</string>
+    <!-- Sem conta (o logout grava isso). -->
     <string name="widget_signed_out">Entre no AO UERJ para ver suas aulas.</string>
+    <!-- Grade ainda não recebida: widget posto antes de o app abrir, ou conta sem grade lida. -->
+    <string name="widget_not_loaded">Abra o AO UERJ para carregar a grade.</string>
     <string name="widget_outdated">Abra o AO UERJ para atualizar a grade.</string>
     <string name="widget_no_classes_title">Sem aulas na grade</string>
     <string name="widget_no_classes">Nenhuma disciplina em curso com horário.</string>

@@ -11,7 +11,10 @@ it('is absent where the native module does not exist (iOS)', () => {
 });
 
 it('hands the schedule to the native side as JSON, or clears it', async () => {
-  const module = { setSchedule: jest.fn(async (_json: string) => undefined) };
+  const module = {
+    setSchedule: jest.fn(async (_json: string) => undefined),
+    setSignedIn: jest.fn(async () => undefined),
+  };
   const widget = createNativeHomeWidget(module)!;
   const schedule = { updatedAt: 1, expiresAt: 2, classes: [] };
   await widget.setSchedule(schedule);
@@ -20,4 +23,15 @@ it('hands the schedule to the native side as JSON, or clears it', async () => {
     [JSON.stringify(schedule)],
     [''],
   ]);
+  expect(module.setSignedIn).not.toHaveBeenCalled();
+});
+
+it('tells the native side there is an account without a schedule read', async () => {
+  const module = {
+    setSchedule: jest.fn(async (_json: string) => undefined),
+    setSignedIn: jest.fn(async () => undefined),
+  };
+  await createNativeHomeWidget(module)!.setSignedIn();
+  expect(module.setSignedIn).toHaveBeenCalledTimes(1);
+  expect(module.setSchedule).not.toHaveBeenCalled();
 });

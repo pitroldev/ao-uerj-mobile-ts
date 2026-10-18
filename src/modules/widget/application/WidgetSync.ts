@@ -19,11 +19,15 @@ type Dependencies = {
   text: (item: AttendedClassesSchedule) => WidgetClassText;
 };
 
+/** Conta sem grade lida (`WidgetDevicePort.setSignedIn`). */
+const SIGNED_IN = 'signed-in';
+
 /**
  * Leva ao widget "Próxima aula" a grade salva da conta ativa sempre que ela
- * muda. Sem conta (logout), o widget é limpo e passa a pedir o login;
- * enquanto a conta é restaurada ou a grade ainda não foi lida, fica como
- * estava.
+ * muda. Sem conta (logout), o widget é limpo e passa a pedir o login. Com
+ * conta e a grade ainda não lida (o login limpa o widget, e o portal pode
+ * falhar logo depois), ele deixa de pedir o login e mantém a grade que
+ * tiver. Enquanto a conta é restaurada, fica como estava.
  */
 export class WidgetSync {
   /** O que já está no aparelho neste runtime (`null`: ainda não enviado). */
@@ -54,20 +58,23 @@ export class WidgetSync {
     const task = this.syncing.then(async () => {
       const account = this.dependencies.account();
       if (account === undefined) return;
-      let next: WidgetSchedule | null = null;
+      let next: WidgetSchedule | typeof SIGNED_IN | null = null;
       if (account) {
         const saved = this.dependencies.schedule(account);
-        if (!saved) return;
-        next = buildWidgetSchedule(saved.data, {
-          fetchedAt: saved.updatedAt,
-          text: this.dependencies.text,
-        });
+        next = saved
+          ? buildWidgetSchedule(saved.data, {
+              fetchedAt: saved.updatedAt,
+              text: this.dependencies.text,
+            })
+          : SIGNED_IN;
       }
       const json = JSON.stringify(next);
       if (json === this.applied) return;
       this.applied = json;
+      const sent =
+        next === SIGNED_IN ? device.setSignedIn() : device.setSchedule(next);
       // uma falha tenta de novo na próxima mudança
-      await device.setSchedule(next).catch(() => {
+      await sent.catch(() => {
         this.applied = null;
       });
     });
