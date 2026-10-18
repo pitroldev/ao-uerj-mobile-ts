@@ -14,7 +14,9 @@ allowBuilds:
   lefthook: true
   unrs-resolver: true
 
-# 1.22.7 fixes a crash with Reanimated 4.7 and was published less than a day
-# before it was added. Remove once it is older than minimumReleaseAge.
-minimumReleaseAgeExclude:
-  - react-native-keyboard-controller@1.22.7
+# uuid < 11.1.1 (GHSA-w5hq-g745-h8pq: missing buffer bounds check in v3/v5/v6) comes
+# through xcode, in the Expo config plugin of react-native-bootsplash (asset
+# generation only, not bundled). 11.x keeps the CommonJS entry xcode requires;
+# 12+ is ESM-only.
+overrides:
+  uuid@<11.1.1: ^11.1.1

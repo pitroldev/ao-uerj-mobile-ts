@@ -15,6 +15,7 @@
 
 - Notas com duas casas aparecem como o portal lança ("4,95"), sem arredondar para cima.
 - O card "Próxima aula" ignora aulas sem horário informado pelo portal.
+- Bibliotecas do app atualizadas (navegação, gestos, telas, SVG, Sentry e styled-components), com correções de segurança nas dependências de build.
 - O atalho "Notas" só diz que o período não tem notas depois que elas carregam.
 - Uma página que o Aluno Online não oferece à conta no momento mostra que ela não está disponível, em vez de "Sua sessão expirou".
 - Notificações no Android:
