@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.3.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.1.1...v2.3.0) (2026-10-18)
+
+### Novidades
+
+- Notificações no Android, ligadas uma a uma na nova tela Notificações, no menu:
+  - lembrete 10, 15 ou 30 minutos antes de cada aula, com o horário e a sala, a partir da grade salva no aparelho;
+  - avisos do Aluno Online, verificados a cada 4 horas entre 7h e 22h: nota nova, posição no RID, resultado da inscrição e documento perto de vencer.
+- O valor da nota só aparece no aviso se você quiser. Quando o Android oculta conteúdo sensível na tela de bloqueio, os avisos mostram só um resumo.
+- Convite no Início para ligar os lembretes de aula.
+
 ## 2.2.0 (2026-10-16)
 
 ### Novidades
@@ -15,6 +25,14 @@
 - Gerador de Grade respeita horários indisponíveis e opções de conflito, inclusive quando encontra poucas combinações.
 - Melhorias na recuperação da sessão e na estabilidade da conexão com o portal.
 - Remoção do modo demo e dos dados simulados de execução do app.
+
+## [2.1.1](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.1.0...v2.1.1) (2026-10-15)
+
+### Novidades
+
+- Melhorias nos gestos e na renderização do mapa.
+- Tema escuro em marinho profundo, incluindo o menu e as bordas do app.
+- Página Sobre revisada, com link para pitrol.dev e ícones oficiais em SVG.
 
 ## [2.1.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.0.0...v2.1.0) (2026-10-14)
 
