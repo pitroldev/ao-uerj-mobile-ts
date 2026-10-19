@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.8.0 (2026-10-19)
+
+### Novidades
+
+- Nova imagem do "Compartilhar grade": um pôster com a semana em grade horária, de segunda a sexta (e sábado, se houver aula), com uma cor por disciplina e nome, horário e sala em cada aula.
+  - O título traz o período e quantas disciplinas e tempos há na semana. Intervalos longos sem aula em nenhum dia são encurtados.
+  - A legenda lista cada disciplina com o nome inteiro, a turma, os professores, a sala e o código.
+  - Os professores vêm da Pesquisa de Disciplinas, na turma do aluno. Se o portal não responder em até 10 segundos, a imagem sai sem eles.
+  - A imagem sai com 1080 px de largura em qualquer tela, sempre no tema claro.
+
 ## 2.7.0 (2026-10-19)
 
 ### Novidades
