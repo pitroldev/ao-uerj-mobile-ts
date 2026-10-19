@@ -190,6 +190,23 @@ describe('BottomSheet', () => {
     await waitFor(() => expect(title()).not.toBeOnTheScreen());
   });
 
+  it('takes the touch inside the scrolling body, never around it', async () => {
+    await renderWithProviders(<Harness open />);
+    const body = screen.getByText('Corpo da folha');
+    // no Android, a view que tem o toque intercepta os filhos: um ancestral da
+    // rolagem com o toque faria o corpo só rolar começando num botão
+    const claimers: { insideScroll: boolean }[] = [];
+    let insideScroll = true;
+    for (let node = body.parent; node; node = node.parent) {
+      if (node.type === 'RCTScrollView') insideScroll = false;
+      if (node.props.onStartShouldSetResponder) claimers.push({ insideScroll });
+    }
+    expect(claimers).toEqual([{ insideScroll: true }]);
+    expect(
+      await fireEvent(body, 'startShouldSetResponder', touch(400, 0)),
+    ).toBe(true);
+  });
+
   it('does not take the drag when swipe to close is off', async () => {
     await renderWithProviders(<Harness open swipeToClose={false} />);
     expect(await drag(400, 600, 300)).toBe(false);

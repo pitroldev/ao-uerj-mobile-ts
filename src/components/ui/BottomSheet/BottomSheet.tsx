@@ -97,14 +97,19 @@ const Sheet = styled(Animated.View)<{ $maxHeight: number }>`
   border-top-right-radius: ${({ theme }) => theme.radii.sheet}px;
 `;
 
-/**
- * Conteúdo da folha. Fica com o toque que nenhum filho quis (alça, título,
- * fundo do corpo e do rodapé): sem isso ele vai para o `Modal`, que segura os
- * toques soltos, e o arrasto nunca chega à folha.
- */
+/** Conteúdo da folha: alça e título, corpo e rodapé. */
 const Grip = styled.View`
   flex-shrink: 1;
 `;
+
+/**
+ * Alça e título. Eles, o corpo e o rodapé ficam com o toque que nenhum filho
+ * quis: sem isso ele vai para o `Modal`, que segura os toques soltos, e o
+ * arrasto nunca chega à folha. Nenhum ancestral do corpo rolável pode ficar
+ * com o toque: no Android, a view que tem o toque intercepta os filhos, e a
+ * rolagem só andaria começando num botão.
+ */
+const Top = styled.View``;
 
 const Handle = styled.View`
   width: 32px;
@@ -287,8 +292,13 @@ export function BottomSheet({
   if (!mounted) return null;
 
   const bottomPad = Math.max(footer ? 28 : 20, insets.bottom + 12);
+  const claim = () => visible && swipeToClose;
   const body = (
-    <Body $bottom={footer ? 20 : bottomPad} style={bodyStyle}>
+    <Body
+      $bottom={footer ? 20 : bottomPad}
+      style={bodyStyle}
+      onStartShouldSetResponder={claim}
+    >
       {children}
     </Body>
   );
@@ -338,31 +348,33 @@ export function BottomSheet({
               ]}
               {...gesture}
             >
-              <Grip onStartShouldSetResponder={() => visible && swipeToClose}>
-                <Handle
-                  accessibilityElementsHidden
-                  importantForAccessibility="no-hide-descendants"
-                />
-                <Head>
-                  <Title
-                    ref={titleRef}
-                    variant="titleS"
-                    accessibilityRole="header"
-                  >
-                    {title}
-                  </Title>
-                  {meta ? (
-                    <Text variant="meta" tone="muted" numberOfLines={1}>
-                      {meta}
-                    </Text>
-                  ) : null}
-                  <IconButton
-                    icon="close"
-                    color={theme.colors.ink}
-                    accessibilityLabel={closeLabel}
-                    onPress={onClose}
+              <Grip>
+                <Top onStartShouldSetResponder={claim}>
+                  <Handle
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
                   />
-                </Head>
+                  <Head>
+                    <Title
+                      ref={titleRef}
+                      variant="titleS"
+                      accessibilityRole="header"
+                    >
+                      {title}
+                    </Title>
+                    {meta ? (
+                      <Text variant="meta" tone="muted" numberOfLines={1}>
+                        {meta}
+                      </Text>
+                    ) : null}
+                    <IconButton
+                      icon="close"
+                      color={theme.colors.ink}
+                      accessibilityLabel={closeLabel}
+                      onPress={onClose}
+                    />
+                  </Head>
+                </Top>
                 {scrollable ? (
                   <Scroll bounces={false} keyboardShouldPersistTaps="handled">
                     {body}
@@ -371,7 +383,7 @@ export function BottomSheet({
                   <Static>{body}</Static>
                 )}
                 {footer ? (
-                  <Foot $bottom={bottomPad}>
+                  <Foot $bottom={bottomPad} onStartShouldSetResponder={claim}>
                     {React.Children.toArray(footer).map((child, i) => (
                       <FootItem key={i}>{child}</FootItem>
                     ))}
