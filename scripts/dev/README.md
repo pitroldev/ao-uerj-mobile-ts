@@ -43,6 +43,7 @@ configuração do React Navigation em `src/app/dev/devLinking.ts`.
 | `aouerj-dev://inicio`               | Início                                |
 | `aouerj-dev://mapa`                 | Mapa do campus                        |
 | `aouerj-dev://progresso`            | Meu Progresso                         |
+| `aouerj-dev://plano`                | Plano até a formatura                 |
 | `aouerj-dev://documentos`           | Emissão de Documentos                 |
 | `aouerj-dev://gerador`              | Gerador de Grade, quando habilitado   |
 | `aouerj-dev://mural`                | Mural de Mensagens, quando habilitado |
@@ -99,7 +100,7 @@ node scripts/dev/screenshots.cjs --no-login --out "$TEMP/aouerj-shots" inicio pr
 node scripts/dev/screenshots.cjs --out "$TEMP/aouerj-shots" sd=pesquisa/IME02-10892
 ```
 
-Rotas: `inicio`, `mapa`, `progresso`, `documentos`, `gerador`, `mural`, `realizadas`,
+Rotas: `inicio`, `mapa`, `progresso`, `plano`, `documentos`, `gerador`, `mural`, `realizadas`,
 `curriculo`, `universais`, `pesquisa`, `disciplina`, `notificacoes` (Android) e `sobre`. Sem rotas explícitas,
 o script captura todas as rotas listadas. Funcionalidades desativadas continuam
 sujeitas à configuração efetiva do app.

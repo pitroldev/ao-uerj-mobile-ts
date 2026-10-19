@@ -1,6 +1,6 @@
 # AO UERJ
 
-Aplicativo não oficial do Aluno Online da UERJ, em React Native 0.87.1, React 19.2 e TypeScript. Consulta notas, histórico, currículo, disciplinas, RID e horários e emite documentos. Também oferece progresso acadêmico, quanto falta na PF com simulação do CR, controle de faltas, geração de grades, mural de mensagens e mapa offline do campus. No Android, tem ainda notificações, widget e atalhos.
+Aplicativo não oficial do Aluno Online da UERJ, em React Native 0.87.1, React 19.2 e TypeScript. Consulta notas, histórico, currículo, disciplinas, RID e horários e emite documentos. Também oferece progresso acadêmico, plano até a formatura, quanto falta na PF com simulação do CR, controle de faltas, geração de grades, mural de mensagens e mapa offline do campus. No Android, tem ainda notificações, widget e atalhos.
 
 [Google Play](https://play.google.com/store/apps/details?id=com.aouerjmobile) · [Licença GPLv3](LICENSE)
 
@@ -76,6 +76,7 @@ src/modules/delivery/            aviso remoto, atualização pela loja e pedido 
 src/modules/notifications/       lembretes de aula e avisos do portal (nota, RID, documento)
 src/modules/widget/              widget "Próxima aula" da tela inicial
 src/modules/attendance/          faltas marcadas pelo aluno, só no aparelho
+src/modules/graduation/          plano até a formatura (pré-requisitos, ritmo e prazo)
 src/modules/launch/              aberturas de fora do app (aviso, atalho do ícone, widget)
 src/app/background/              tarefa sem tela da verificação de avisos (WorkManager)
 src/adapters/outbound/           AO, APIs privadas, aviso remoto, armazenamento e recursos nativos
@@ -105,6 +106,7 @@ O gerador exige uma ação explícita para enviar a solicitação. Seus detalhes
 - Avisos (ver [Notificações](#notificações)) são opt-in e montados no aparelho; nada passa por servidores próprios. As escolhas, o estado da última verificação e a referência dos avisos (as últimas notas, posições no RID Parcial e resultados da inscrição lidos no período) ficam no AsyncStorage por conta. Os lembretes de aula (disciplina, horário e sala) ficam nas SharedPreferences do Android. O logout apaga tudo isso e cancela lembretes e verificações.
 - O widget "Próxima aula" (ver [Widget e atalhos](#widget-e-atalhos)) guarda a grade salva (disciplina, horário e sala) nas SharedPreferences do Android para desenhar com o app fechado. O logout a apaga, e o widget passa a pedir o login.
 - As faltas que o aluno marca (ver [Notas, PF e faltas](#notas-pf-e-faltas)) ficam só no aparelho, no AsyncStorage por conta e por período, e o logout as apaga, inclusive o automático, quando o portal recusa a senha salva. A simulação de PF e CR não grava nada.
+- O Plano até a formatura (ver [Plano até a formatura](#plano-até-a-formatura)) é calculado no aparelho. Os pré-requisitos lidos na Pesquisa de Disciplinas, o ritmo e os adiamentos ficam no AsyncStorage por conta, e o logout os apaga.
 
 Quando o AO não informa o semestre, a interface usa "Período atual". O período do mural é um filtro selecionado pelo usuário; não é uma confirmação do calendário acadêmico oficial.
 
@@ -130,6 +132,28 @@ As contas seguem o art. 95 da Deliberação nº 33/CSEPE/1995, que o Aluno Onlin
   - Disciplinas em Curso mostra a barra de cada disciplina: verde abaixo da metade do limite, amarela da metade até o limite e vermelha além dele.
   - A lista sai da grade e não conhece feriados nem o começo das aulas; nesses dias, basta não marcar.
   - O portal não mostra a frequência do período em curso, só a do histórico.
+
+### Plano até a formatura
+
+Em Meu Progresso, o cartão "Plano até a formatura" abre a tela do plano: as obrigatórias que faltam distribuídas pelos próximos períodos, com os pré-requisitos, os gargalos e o prazo máximo do curso.
+
+- **Fontes:**
+  - O currículo e o histórico dizem o que falta. As disciplinas da grade do período contam como aprovadas.
+  - A Síntese da Formação dá a versão curricular, os créditos que faltam em cada grupo e o prazo. Os períodos restantes são o máximo, mais os extras, menos os utilizados (os cursados e o inscrito).
+  - Os pré-requisitos vêm da Pesquisa de Disciplinas, uma página por disciplina que falta, duas por vez. Na primeira abertura, a tela mostra o progresso da leitura. As leituras ficam guardadas por versão curricular, e as aberturas seguintes não consultam o portal. Uma leitura interrompida continua de onde parou.
+  - A leitura para em bloqueio, limite de acessos, portal fora do ar, falta de rede ou sessão perdida. O plano usa o que já foi lido e oferece "Tentar novamente". "Ler os pré-requisitos de novo" esquece as leituras e consulta tudo outra vez, sem o cache das páginas.
+- **Regras:**
+  - Cada grupo de pré-requisitos é um "ou", e todos os grupos valem. Um grupo com uma só alternativa entre as que faltam vira dependência.
+  - Gargalo é a disciplina que trava, direta ou indiretamente, ao menos 3 outras. A cadeia mais longa de dependências é o mínimo de períodos possível.
+  - A trava de créditos ("60 Créditos Obrigatórios") conta os créditos obrigatórios aprovados, com os do período em curso.
+  - O ritmo limita os créditos por período: Leve (20), Normal (26) ou Intenso (32). Primeiro entram as disciplinas que travam outras; depois, as que mais aproveitam os créditos que sobram. Uma disciplina maior que o ritmo entra sozinha.
+  - As eletivas entram como vagas "a escolher", no tamanho mais comum das disciplinas do grupo.
+  - "Adiar um período", na folha da disciplina, guarda o período a partir do qual ela pode entrar. Antes, a folha mostra o efeito na formatura. "Restaurar o plano" desfaz todos os adiamentos.
+- **Limites:**
+  - O plano não conhece vagas, horários, a oferta de cada período nem correquisitos. A inscrição de verdade pode mudar.
+  - Sem a Síntese, não há prazo, e os créditos exigidos das eletivas são os configurados em Meu Progresso.
+  - Uma disciplina sem os pré-requisitos lidos entra como livre, com aviso. Uma que depende de disciplina fora das que faltam fica fora do plano, também com aviso.
+- Para desligar a tela sem nova versão, inclua `graduation-plan` em `disabledFeatures` do aviso remoto.
 
 ### Notificações
 
@@ -216,7 +240,7 @@ Pendências do responsável antes de preencher o DSN:
 O `config/app-status.json` da `main` chega a todos os apps instalados em até 15 minutos, sem release nem revisão da Play. O formato está em `config/app-status.schema.json` e a validação no app em `src/modules/delivery/domain/appStatus.ts`. Um documento inválido é ignorado, e o app segue com a última cópia válida.
 
 - **Avisos:** `notices` aceita até 10 avisos no topo do Início, cada um com `id`, `level` (`info`, `warning` ou `critical`), `title` e `message`. Opcionais: `url` do “Saiba mais”, `until` (data em que o aviso some) e `platforms`. O aluno pode dispensar cada aviso; para mostrá-lo de novo, troque o `id`.
-- **Telas desativadas:** `disabledFeatures` marca telas do menu como indisponíveis (`notifications`, `progress`, `schedule-generator`, `message-board`, `subjects-taken`, `curriculum-subjects`, `universal-subjects`, `subject-search`, `teacher-search` e `documents`). `notifications` também cancela os lembretes de aula e para a verificação no portal.
+- **Telas desativadas:** `disabledFeatures` marca telas do menu como indisponíveis (`notifications`, `progress`, `graduation-plan`, `schedule-generator`, `message-board`, `subjects-taken`, `curriculum-subjects`, `universal-subjects`, `subject-search`, `teacher-search` e `documents`). `notifications` também cancela os lembretes de aula e para a verificação no portal.
 - **Versão mínima:** abaixo de `minSupportedVersion`, o app fica na tela de bloqueio com “Atualizar”, mesmo sem rede, porque a cópia fica salva. Só suba o valor para uma versão que já esteja em produção na Play com rollout de 100%; antes disso, parte dos usuários fica bloqueada sem ter o que instalar.
 - **Endereço fixo:** o URL está embutido em todo binário publicado (`src/adapters/outbound/delivery/remoteAppStatus.ts`). Não renomeie, transfira nem apague a conta `pitroldev` ou este repositório enquanto houver versões com esse endereço em uso.
 - **Pendência do responsável:** a busca já está ativa, sem depender do DSN do Sentry. Incluir o GitHub na política de privacidade e na formalização da transferência internacional da LGPD.
