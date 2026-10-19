@@ -16,7 +16,11 @@ import {
 import { ScreenPanel } from '@templates/ScreenPanel';
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
 import { AppError } from '@root/shared/errors/AppError';
-import { ElectiveCreditsConfig } from '@hooks/useElectiveCreditsConfig';
+import type {
+  ElectiveCreditsConfig,
+  ElectiveType,
+} from '@hooks/useElectiveCreditsConfig';
+import type { SubjectType } from '@root/modules/academics/domain/rules/progress';
 
 import { useMyProgress } from './useMyProgress';
 import { CrChart } from './CrChart';
@@ -25,7 +29,13 @@ import { CurriculumPath, pathGoal } from './CurriculumPath';
 import { CreditsSheet } from './CreditsSheet';
 import { GraduationPlanCard } from './GraduationPlanCard';
 import { ProgressSkeleton } from './ProgressSkeleton';
-import { ChartCard, Legend, LegendItem, NoticeSlot } from './MyProgress.styles';
+import {
+  ChartCard,
+  Legend,
+  LegendItem,
+  NoticeSlot,
+  PathNote,
+} from './MyProgress.styles';
 
 const COPY = {
   error:
@@ -36,6 +46,8 @@ const COPY = {
   curriculumUnavailable:
     'Currículo indisponível. Os totais e o progresso serão exibidos após o carregamento.',
   configureCredits: 'Configure os créditos necessários para ver o progresso.',
+  creditsFromSynthesis:
+    'Os créditos exigidos das eletivas vêm da Síntese da Formação.',
 };
 
 /** Amostras de 16×2 da legenda: linha cheia (CR) e tracejada (média). */
@@ -111,10 +123,22 @@ export function MyProgressPage() {
       </>
     );
   } else {
-    const missingCredits = byType.order.some(
-      type =>
-        type !== 'MANDATORY' &&
-        !pathGoal(type, byType, curriculumAvailable).hasRequired,
+    const { fromSynthesis, synthesisPending } = electiveCreditsHook;
+    const synthesisTypes = byType.order.filter(
+      (type): type is ElectiveType =>
+        type !== 'MANDATORY' && fromSynthesis[type] !== undefined,
+    );
+    // o que a Síntese informa não se configura (e pode chegar logo)
+    const missingCredits =
+      !synthesisPending &&
+      byType.order.some(
+        type =>
+          type !== 'MANDATORY' &&
+          fromSynthesis[type] === undefined &&
+          !pathGoal(type, byType, curriculumAvailable).hasRequired,
+      );
+    const notRequired = new Set<SubjectType>(
+      synthesisTypes.filter(type => fromSynthesis[type] === 0),
     );
     content = (
       <>
@@ -188,7 +212,13 @@ export function MyProgressPage() {
           <CurriculumPath
             data={byType}
             curriculumAvailable={curriculumAvailable}
+            notRequired={notRequired}
           />
+          {curriculumAvailable && synthesisTypes.length ? (
+            <PathNote>
+              <FootNote text={COPY.creditsFromSynthesis} />
+            </PathNote>
+          ) : null}
         </Section>
       </>
     );
@@ -204,6 +234,7 @@ export function MyProgressPage() {
         onClose={() => setSheetVisible(false)}
         onSave={handleConfigSave}
         initialConfig={electiveCreditsHook.config}
+        fromSynthesis={electiveCreditsHook.fromSynthesis}
       />
     </>
   );

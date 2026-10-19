@@ -28,6 +28,10 @@ export const NoticeSlot = styled.View`
   margin-bottom: 20px;
 `;
 
+export const PathNote = styled.View`
+  margin-top: ${({ theme }) => theme.spacing.md}px;
+`;
+
 /* ------------------------------------------------------------- esqueleto */
 
 export const SkeletonStats = styled.View`

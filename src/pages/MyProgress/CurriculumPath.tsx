@@ -65,6 +65,8 @@ type RowProps = {
   type: SubjectType;
   data: PathData;
   curriculumAvailable: boolean;
+  /** A Síntese da Formação diz que o grupo não é exigido. */
+  notRequired?: boolean;
   divider?: boolean;
 };
 
@@ -72,7 +74,13 @@ type RowProps = {
  * Linha de um grupo: nome e percentual, barra e "28 de 36 disciplinas ·
  * faltam 8"; sem meta, a etiqueta "Sem meta" e o que já foi concluído.
  */
-function PathRow({ type, data, curriculumAvailable, divider }: RowProps) {
+function PathRow({
+  type,
+  data,
+  curriculumAvailable,
+  notRequired,
+  divider,
+}: RowProps) {
   const name = TYPE_PLURAL[type];
   const { mandatory, hasRequired, tracked } = pathGoal(
     type,
@@ -132,16 +140,17 @@ function PathRow({ type, data, curriculumAvailable, divider }: RowProps) {
   }
   const meta = parts.join(' · ');
   const noGoal = !mandatory && !hasRequired;
+  const goalLabel = notRequired ? 'Não exigida' : 'Sem meta';
   return (
     <ListRow
       divider={divider}
-      accessibilityLabel={`${name}${noGoal ? ', sem meta' : ''}: ${meta}`}
+      accessibilityLabel={`${name}${noGoal ? `, ${goalLabel.toLowerCase()}` : ''}: ${meta}`}
       title={
         <Top>
           <Name variant="body" weight="semibold">
             {name}
           </Name>
-          {noGoal ? <Tag label="Sem meta" /> : null}
+          {noGoal ? <Tag label={goalLabel} /> : null}
         </Top>
       }
       meta={meta}
@@ -153,9 +162,12 @@ function PathRow({ type, data, curriculumAvailable, divider }: RowProps) {
 export function CurriculumPath({
   data,
   curriculumAvailable,
+  notRequired,
 }: {
   data: PathData;
   curriculumAvailable: boolean;
+  /** Grupos que a Síntese da Formação não exige (0 crédito). */
+  notRequired?: ReadonlySet<SubjectType>;
 }) {
   return (
     <List>
@@ -165,6 +177,7 @@ export function CurriculumPath({
           type={type}
           data={data}
           curriculumAvailable={curriculumAvailable}
+          notRequired={notRequired?.has(type)}
         />
       ))}
     </List>

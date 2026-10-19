@@ -1,4 +1,9 @@
-import { CurriculumSubject, SubjectsTaken } from '../models';
+import type {
+  CurriculumSubject,
+  GraduationSynthesis,
+  SubjectsTaken,
+  SynthesisRequirementKind,
+} from '../models';
 import { completedSubjectIds } from './completion';
 import { normalizeSubjectId } from './subjectId';
 
@@ -31,6 +36,35 @@ export function normalizeElectiveCredits(
     DEFINED: amount('DEFINED'),
     UNIVERSAL: amount('UNIVERSAL'),
   };
+}
+
+const SYNTHESIS_ELECTIVES: Partial<
+  Record<SynthesisRequirementKind, ElectiveType>
+> = {
+  RESTRICTED: 'RESTRICTED',
+  DEFINED: 'DEFINED',
+  UNIVERSAL: 'UNIVERSAL',
+};
+
+/**
+ * Créditos exigidos de cada grupo de eletivas pela Síntese da Formação, só
+ * dos grupos que ela lista (0 vale: o grupo não é exigido). No regime seriado
+ * o portal não conta em créditos, e nada vem daqui.
+ */
+export function synthesisElectiveCredits(
+  synthesis: GraduationSynthesis | null,
+): Partial<ElectiveCreditsConfig> {
+  if (!synthesis || /seriad/i.test(synthesis.regime ?? '')) return {};
+  const credits: Partial<ElectiveCreditsConfig> = {};
+  for (const item of synthesis.requirements) {
+    const type = SYNTHESIS_ELECTIVES[item.kind];
+    if (!type || item.required === null || !Number.isFinite(item.required)) {
+      continue;
+    }
+    credits[type] =
+      (credits[type] ?? 0) + Math.max(0, Math.round(item.required));
+  }
+  return credits;
 }
 
 function isExemptionPeriod(period: string): boolean {

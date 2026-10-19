@@ -30,13 +30,17 @@ const makeQuery = <T,>(data: T | undefined, error: Error | null = null) => ({
 let mockHistory: ReturnType<typeof makeQuery<SubjectsTaken[]>>;
 let mockCurriculum: ReturnType<typeof makeQuery<CurriculumSubject[]>>;
 const mockSetConfig = jest.fn();
+// os grupos que a Síntese da Formação informa (vazio: só a configuração)
+let mockFromSynthesis: Partial<typeof mockDefaultElectiveCredits>;
 jest.mock('@root/modules/academics/presentation/queries', () => ({
   useHistory: () => mockHistory,
   useCurriculum: () => mockCurriculum,
 }));
 jest.mock('@hooks/useElectiveCreditsConfig', () => ({
   useElectiveCreditsConfig: () => ({
-    config: mockDefaultElectiveCredits,
+    config: { ...mockDefaultElectiveCredits, ...mockFromSynthesis },
+    fromSynthesis: mockFromSynthesis,
+    synthesisPending: false,
     setConfig: mockSetConfig,
   }),
 }));
@@ -98,6 +102,7 @@ const creditsSheet = () =>
 beforeEach(() => {
   mockHistory = makeQuery(history);
   mockCurriculum = makeQuery(curriculum);
+  mockFromSynthesis = {};
 });
 
 it('preserves curriculum-confirmed completion when history is unavailable without displaying a fabricated zero CR', async () => {
@@ -270,4 +275,70 @@ it('draws the CR line, the period average and the values once measured', async (
   expect(labels).toEqual(
     expect.arrayContaining(['8,00', '7,00', '7,67', '2024/1', '2025/1']),
   );
+});
+
+it('uses the credits the Síntese requires, with no setup to ask for', async () => {
+  mockFromSynthesis = { RESTRICTED: 8, DEFINED: 0, UNIVERSAL: 4 };
+  mockHistory = makeQuery<SubjectsTaken[]>([
+    ...history,
+    { ...history[0], id: 'IME01-20001', type: 'RESTRICTED', credits: 4 },
+  ]);
+  mockCurriculum = makeQuery<CurriculumSubject[]>([
+    ...curriculum,
+    { ...curriculum[0], id: 'IME01-20001', type: 'RESTRICTED' },
+  ]);
+  await renderPage();
+  expect(
+    queryAnyText('Configure os créditos necessários para ver o progresso.'),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByText('4 de 8 créditos · faltam 4')).toBeOnTheScreen();
+  expect(screen.getByText('Não exigida')).toBeOnTheScreen();
+  expect(
+    screen.getByText(
+      'Os créditos exigidos das eletivas vêm da Síntese da Formação.',
+    ),
+  ).toBeOnTheScreen();
+
+  await userEvent
+    .setup()
+    .press(
+      screen.getByRole('button', { name: 'Configurar créditos exigidos' }),
+    );
+  expect(creditsSheet()).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText(
+      'Créditos exigidos de Eletiva Restrita: 8 créditos, pela Síntese da Formação',
+    ),
+  ).toBeOnTheScreen();
+  // nada a configurar: sem contadores, só "Pronto"
+  expect(
+    screen.queryByLabelText('Créditos exigidos de Eletiva Restrita'),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole('button', { name: 'Salvar' }),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Pronto' })).toBeOnTheScreen();
+});
+
+it('still asks for the groups the Síntese does not list', async () => {
+  mockSetConfig.mockResolvedValue(true);
+  mockFromSynthesis = { RESTRICTED: 8 };
+  await renderPage();
+  expect(
+    screen.getByText('Configure os créditos necessários para ver o progresso.'),
+  ).toBeOnTheScreen();
+  const user = userEvent.setup();
+  await user.press(screen.getByRole('button', { name: 'Configurar créditos' }));
+  expect(
+    screen.getByText(/^Os grupos que a Síntese da Formação informa/),
+  ).toBeOnTheScreen();
+  const universal = screen.getByLabelText('Créditos exigidos de Universal');
+  await user.clear(universal);
+  await user.type(universal, '6');
+  await user.press(screen.getByRole('button', { name: 'Salvar' }));
+  expect(mockSetConfig).toHaveBeenCalledWith({
+    RESTRICTED: 8,
+    DEFINED: 0,
+    UNIVERSAL: 6,
+  });
 });

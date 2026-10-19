@@ -140,6 +140,7 @@ Em Meu Progresso, o cartão "Plano até a formatura" abre a tela do plano: as ob
 - **Fontes:**
   - O currículo e o histórico dizem o que falta. As disciplinas da grade do período contam como aprovadas.
   - A Síntese da Formação dá a versão curricular, os créditos que faltam em cada grupo e o prazo. Os períodos restantes são o máximo, mais os extras, menos os utilizados (os cursados e o inscrito).
+  - Em Meu Progresso, os créditos exigidos de cada grupo de eletivas também vêm da Síntese, e esses grupos não se configuram à mão. Os que ela não informa, ou todos quando ela não carrega ou o regime é seriado, usam os créditos configurados. Um grupo com 0 crédito exigido aparece como "Não exigida".
   - Os pré-requisitos vêm da Pesquisa de Disciplinas, uma página por disciplina que falta, duas por vez. Na primeira abertura, a tela mostra o progresso da leitura. As leituras ficam guardadas por versão curricular, e as aberturas seguintes não consultam o portal. Uma leitura interrompida continua de onde parou.
   - A leitura para em bloqueio, limite de acessos, portal fora do ar, falta de rede ou sessão perdida. O plano usa o que já foi lido e oferece "Tentar novamente". "Ler os pré-requisitos de novo" esquece as leituras e consulta tudo outra vez, sem o cache das páginas.
 - **Regras:**

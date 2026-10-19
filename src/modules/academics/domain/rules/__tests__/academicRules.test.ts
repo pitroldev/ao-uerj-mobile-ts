@@ -6,9 +6,15 @@ import {
   getPeriodList,
   normalizeElectiveCredits,
   sortAcademicPeriods,
+  synthesisElectiveCredits,
 } from '../progress';
 import { nextWeekdayIndex, schedulesConflict } from '../schedule';
-import { SubjectsTaken, CurriculumSubject } from '../../models';
+import type {
+  CurriculumSubject,
+  GraduationSynthesis,
+  SubjectsTaken,
+  SynthesisRequirement,
+} from '../../models';
 
 const course = (fields: Partial<SubjectsTaken> = {}): SubjectsTaken => ({
   id: 'IME01-12345',
@@ -166,6 +172,60 @@ describe('curriculum progress', () => {
         UNIVERSAL: 2,
       }).byType.percent.UNIVERSAL,
     ).toBe(100);
+  });
+});
+
+describe('elective credits from the Síntese da Formação', () => {
+  const requirement = (
+    kind: SynthesisRequirement['kind'],
+    required: number | null,
+  ): SynthesisRequirement => ({
+    kind,
+    label: kind,
+    branch: null,
+    done: 0,
+    required,
+  });
+  const synthesis = (
+    requirements: SynthesisRequirement[],
+    regime: string | null = 'Crédito',
+  ): GraduationSynthesis => ({
+    curriculumVersion: '2',
+    regime,
+    cr: null,
+    requirements,
+    periods: {
+      minimum: null,
+      used: null,
+      maximum: null,
+      remaining: null,
+      extra: null,
+    },
+    currentPeriod: null,
+  });
+
+  it('takes the required credits of each elective group it lists', () => {
+    expect(
+      synthesisElectiveCredits(
+        synthesis([
+          requirement('MANDATORY', 180),
+          requirement('RESTRICTED', 8),
+          requirement('RESTRICTED', 4),
+          requirement('DEFINED', 0),
+          requirement('UNIVERSAL', null),
+          requirement('ELECTIVES', 20),
+        ]),
+      ),
+    ).toEqual({ RESTRICTED: 12, DEFINED: 0 });
+  });
+
+  it('gives nothing without the Síntese or in the serial regime', () => {
+    expect(synthesisElectiveCredits(null)).toEqual({});
+    expect(
+      synthesisElectiveCredits(
+        synthesis([requirement('RESTRICTED', 8)], 'Seriado'),
+      ),
+    ).toEqual({});
   });
 });
 

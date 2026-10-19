@@ -19,6 +19,11 @@ jest.mock('@root/app/providers/AppServicesProvider', () => ({
     },
   }),
 }));
+// a Síntese da Formação, quando carregada, informa alguns grupos
+let mockSynthesis: { data?: unknown; isLoading: boolean };
+jest.mock('@root/modules/academics/presentation/queries', () => ({
+  useSynthesis: () => mockSynthesis,
+}));
 let client: QueryClient;
 let hook: RenderHookResult<
   ReturnType<typeof useElectiveCreditsConfig>,
@@ -31,6 +36,7 @@ const settle = () =>
   });
 beforeEach(async () => {
   mockScope = 'account-a';
+  mockSynthesis = { data: undefined, isLoading: false };
   mockPreferences.read
     .mockReset()
     .mockImplementation(async scope =>
@@ -87,4 +93,39 @@ it('reports a failed persistence write instead of pretending the form was saved'
   mockPreferences.write.mockRejectedValue(new Error('disk full'));
   await expect(config().updateCredits('UNIVERSAL', 9)).resolves.toBe(false);
   expect(config().config.UNIVERSAL).toBe(6);
+});
+
+it('takes the groups the Síntese lists and keeps saving only the manual ones', async () => {
+  mockSynthesis = {
+    isLoading: false,
+    data: {
+      regime: 'Crédito',
+      requirements: [
+        { kind: 'RESTRICTED', required: 12 },
+        { kind: 'UNIVERSAL', required: 0 },
+      ],
+    },
+  };
+  await hook.rerender(undefined);
+  expect(config().config).toEqual({
+    RESTRICTED: 12,
+    DEFINED: 8,
+    UNIVERSAL: 0,
+  });
+  expect(config().fromSynthesis).toEqual({ RESTRICTED: 12, UNIVERSAL: 0 });
+  await act(() => config().updateCredits('DEFINED', 10));
+  // o que a Síntese informa não vai para a configuração guardada
+  expect(mockPreferences.write).toHaveBeenCalledWith(
+    'account-a',
+    'elective-credits',
+    { RESTRICTED: 4, DEFINED: 10, UNIVERSAL: 6 },
+  );
+  await waitFor(() => expect(config().config.DEFINED).toBe(10));
+  expect(config().config.RESTRICTED).toBe(12);
+});
+
+it('says when the Síntese is still on its first read', async () => {
+  mockSynthesis = { data: undefined, isLoading: true };
+  await hook.rerender(undefined);
+  expect(config().synthesisPending).toBe(true);
 });

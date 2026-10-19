@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   useAppServices,
@@ -6,9 +7,11 @@ import {
 import {
   defaultElectiveCredits,
   normalizeElectiveCredits,
+  synthesisElectiveCredits,
   ElectiveCreditsConfig,
   ElectiveType,
 } from '@root/modules/academics/domain/rules/progress';
+import { useSynthesis } from '@root/modules/academics/presentation/queries';
 
 export type {
   ElectiveCreditsConfig,
@@ -16,6 +19,11 @@ export type {
 } from '@root/modules/academics/domain/rules/progress';
 const STORAGE_KEY = 'elective-credits';
 
+/**
+ * Créditos exigidos de cada grupo de eletivas. Os que a Síntese da Formação
+ * informa valem sozinhos; os demais são os configurados em Meu Progresso
+ * (também quando a Síntese não carrega).
+ */
 export function useElectiveCreditsConfig() {
   const { preferences, identity } = useAppServices();
   const { account } = useIdentity();
@@ -32,7 +40,16 @@ export function useElectiveCreditsConfig() {
     staleTime: Infinity,
     retry: false,
   });
-  const config = query.data ?? defaultElectiveCredits;
+  const stored = query.data ?? defaultElectiveCredits;
+  const synthesisQuery = useSynthesis();
+  const fromSynthesis = useMemo(
+    () => synthesisElectiveCredits(synthesisQuery.data ?? null),
+    [synthesisQuery.data],
+  );
+  const config = useMemo(
+    () => ({ ...stored, ...fromSynthesis }),
+    [stored, fromSynthesis],
+  );
 
   const setConfig = async (
     value:
@@ -41,7 +58,7 @@ export function useElectiveCreditsConfig() {
   ): Promise<boolean> => {
     if (!scope || identity.getSnapshot().account?.scope !== scope) return false;
     const previous =
-      queryClient.getQueryData<ElectiveCreditsConfig>(queryKey) ?? config;
+      queryClient.getQueryData<ElectiveCreditsConfig>(queryKey) ?? stored;
     const next = normalizeElectiveCredits(
       typeof value === 'function' ? value(previous) : value,
     );
@@ -57,6 +74,11 @@ export function useElectiveCreditsConfig() {
 
   return {
     config,
+    /** Os grupos que vieram da Síntese da Formação (0: não exigido). */
+    fromSynthesis,
+    /** A Síntese ainda está na primeira leitura: o que falta pode chegar. */
+    synthesisPending:
+      synthesisQuery.isLoading && synthesisQuery.data === undefined,
     setConfig,
     updateCredits: (type: ElectiveType, credits: number) =>
       setConfig(previous => ({ ...previous, [type]: credits })),
