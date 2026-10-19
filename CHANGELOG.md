@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.7.0 (2026-10-19)
+
+### Novidades
+
+- Plano até a formatura: "Quando formar" no lugar do ritmo Leve, Normal ou Intenso.
+  - O plano lista as formaturas possíveis, cada uma com a menor carga que chega lá, contada em disciplinas por período e nunca abaixo de 2, o mínimo da inscrição.
+  - O padrão é a formatura mais cedo com a carga mais leve, sem lotar o primeiro período. Uma carga maior que não adianta a data não aparece como opção.
+  - O cartão de cada período avisa quando ele fica abaixo do mínimo da inscrição, o que só acontece sem outra disciplina disponível.
+- Meu Progresso: os créditos exigidos de cada grupo de eletivas vêm da Síntese da Formação, sem precisar configurar. Um grupo que ela não exige aparece como "Não exigida". Sem a Síntese, valem os créditos configurados.
+
 ## 2.6.0 (2026-10-19)
 
 ### Novidades
