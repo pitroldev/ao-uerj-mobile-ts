@@ -16,8 +16,8 @@ import {
   ListRow,
   Notice,
   ProgressBar,
+  Radio,
   Section,
-  SegmentedControl,
   Skeleton,
   StatGroup,
   StatusLabel,
@@ -30,8 +30,7 @@ import { useBackHandler } from '@hooks/useBackHandler';
 import {
   blocksOf,
   isBottleneck,
-  PACE_CREDITS,
-  type Pace,
+  MIN_SUBJECTS_PER_PERIOD,
   type PlannedPeriod,
 } from '@root/modules/graduation/domain/plan';
 import {
@@ -46,7 +45,6 @@ import {
   blocksTone,
   chainText,
   deadlineText,
-  PACE_LABELS,
   plural,
   subjectMeta,
 } from './planText';
@@ -63,10 +61,6 @@ import {
   Status,
 } from './GraduationPlan.styles';
 
-const PACES: { value: Pace; label: string }[] = (
-  Object.keys(PACE_CREDITS) as Pace[]
-).map(value => ({ value, label: PACE_LABELS[value] }));
-
 const COPY = {
   noSynthesis:
     'Sem a Síntese da Formação, o app não sabe o prazo máximo do curso. Os créditos exigidos das eletivas são os que você configurou em Meu Progresso.',
@@ -78,11 +72,12 @@ const COPY = {
     'Calculado no aparelho. Os pré-requisitos vêm da Pesquisa de Disciplinas e ficam guardados por versão curricular.',
   done: 'Nada a planejar: as obrigatórias que faltam estão em curso e os créditos de eletivas estão completos.',
   error: 'Não foi possível carregar o currículo e o histórico.',
+  load: `Cada opção usa a menor carga que chega àquela formatura, com no mínimo ${MIN_SUBJECTS_PER_PERIOD} disciplinas por período.`,
 };
 
 /**
  * Plano até a formatura: as disciplinas que faltam distribuídas pelos
- * próximos períodos, com o prazo da Síntese, o ritmo, os gargalos e cada
+ * próximos períodos, com o prazo da Síntese, quando formar, os gargalos e cada
  * período. Tocar numa disciplina abre o detalhe, com a opção de adiá-la.
  */
 export function GraduationPlanPage() {
@@ -201,7 +196,7 @@ function Plan({
   const chain = chainText(
     length,
     plan.graph.chain.map(key => names.get(key) ?? key),
-    view.pace,
+    view.load,
     view.postponed.size,
   );
   const bottlenecks = view.subjects
@@ -291,18 +286,47 @@ function Plan({
         </Section>
       )}
 
-      <Section
-        title="Ritmo"
-        description="Até 20, 26 ou 32 créditos por período."
-      >
-        <SegmentedControl
-          options={PACES}
-          value={view.pace}
-          onChange={value => {
-            void view.setPace(value);
-          }}
-          accessibilityLabel="Ritmo do plano"
-        />
+      <Section title="Quando formar" description={COPY.load}>
+        {view.loadOptions.length > 1 ? (
+          <List
+            accessibilityRole="radiogroup"
+            accessibilityLabel="Quando formar"
+          >
+            {view.loadOptions.map(option => {
+              const checked = option.load === view.load;
+              return (
+                <ListRow
+                  key={option.load}
+                  title={
+                    option.last
+                      ? `Formar em ${option.last}`
+                      : plural(option.periods, 'período', 'períodos')
+                  }
+                  meta={`Até ${plural(option.load, 'disciplina', 'disciplinas')} por período · ${plural(option.periods, 'período', 'períodos')}`}
+                  facts={
+                    option.slack !== null && option.slack < 0 ? (
+                      <StatusLabel
+                        tone="bad"
+                        icon="warning"
+                        label="Passa do prazo da Síntese"
+                      />
+                    ) : undefined
+                  }
+                  leading={<Radio selected={checked} />}
+                  onPress={() => {
+                    void view.setLoad(option.load);
+                  }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked }}
+                />
+              );
+            })}
+          </List>
+        ) : (
+          <Text variant="meta" tone="muted">
+            {`A formatura fica em ${last} com até ${plural(view.load, 'disciplina', 'disciplinas')} por período: mais carga não adianta a data.`}
+          </Text>
+        )}
         {chain ? (
           <Block>
             <Notice tone="info" icon="lightbulb" text={chain} />
@@ -423,7 +447,6 @@ function PeriodBlock({
   view: GraduationPlanView;
   onSelect: (key: string) => void;
 }) {
-  const cap = PACE_CREDITS[view.pace];
   const title = view.label(period.index);
   return (
     <PeriodCard>
@@ -436,22 +459,27 @@ function PeriodBlock({
             {period.index === 0 ? <Tag tone="info" label="Próximo" /> : null}
           </RowStart>
           <Text variant="meta" tone="muted" tabular>
-            {period.credits} de {cap} créditos
+            {plural(period.credits, 'crédito', 'créditos')}
           </Text>
         </Row>
         {period.subjects.length ? (
           <>
-            <Bar>
-              <ProgressBar
-                thin
-                value={Math.min(1, period.credits / cap)}
-                accessibilityLabel={`${title}: ${period.credits} de ${cap} créditos`}
-              />
-            </Bar>
-            <Text variant="meta" tone="muted" tabular>
-              {plural(period.subjects.length, 'disciplina', 'disciplinas')}
-              {period.workload ? ` · ${period.workload} h` : ''}
-            </Text>
+            <Status>
+              <Text variant="meta" tone="muted" tabular>
+                {plural(period.subjects.length, 'disciplina', 'disciplinas')}
+                {period.workload ? ` · ${period.workload} h` : ''}
+              </Text>
+            </Status>
+            {period.subjects.length < MIN_SUBJECTS_PER_PERIOD ? (
+              <Status>
+                <StatusLabel
+                  tone="warn"
+                  icon="info"
+                  label={`Abaixo do mínimo de ${MIN_SUBJECTS_PER_PERIOD} disciplinas da inscrição`}
+                  lines={2}
+                />
+              </Status>
+            ) : null}
             <PeriodList bleed={false}>
               {period.subjects.map(item => {
                 const blocks = blocksOf(view.plan.graph, item.key);

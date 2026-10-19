@@ -4,7 +4,7 @@ import {
   deadlineSlack,
   electiveSlots,
   isBottleneck,
-  PACE_CREDITS,
+  planScenarios,
   prerequisiteGraph,
   type PlanSubject,
 } from '../plan';
@@ -73,11 +73,11 @@ describe('prerequisite graph', () => {
 });
 
 describe('graduation plan', () => {
-  it('fills each period up to the pace, bottlenecks first', () => {
+  it('fills each period up to the load, bottlenecks first', () => {
     const plan = buildGraduationPlan(SUBJECTS, {
       completed: COMPLETED,
       credits: 110,
-      cap: 12,
+      maxSubjects: 3,
     });
     expect(plan.periods.map(p => p.subjects.map(s => s.key))).toEqual([
       ['1', '7', '8'],
@@ -91,17 +91,17 @@ describe('graduation plan', () => {
     expect(plan.unplanned).toEqual([]);
   });
 
-  it('never goes below the longest chain, whatever the pace', () => {
+  it('never goes below the longest chain, whatever the load', () => {
     const plan = buildGraduationPlan(SUBJECTS, {
       completed: COMPLETED,
       credits: 200,
-      cap: PACE_CREDITS.intense,
+      maxSubjects: SUBJECTS.length,
     });
     expect(plan.periods).toHaveLength(plan.graph.chain.length);
   });
 
   it('shifts what depends on a postponed subject', () => {
-    const base = { completed: COMPLETED, credits: 200, cap: 26 };
+    const base = { completed: COMPLETED, credits: 200, maxSubjects: 4 };
     const plan = buildGraduationPlan(SUBJECTS, base);
     const later = buildGraduationPlan(SUBJECTS, {
       ...base,
@@ -117,20 +117,46 @@ describe('graduation plan', () => {
     expect(free.periods.length).toBe(plan.periods.length);
   });
 
-  it('places a subject larger than the pace alone, and reports what cannot be planned', () => {
+  it('reports what cannot be planned', () => {
     const plan = buildGraduationPlan(
       [subject('1', 30), subject('2', 4, [['404']])],
-      { completed: new Set(), credits: 0, cap: 20 },
+      { completed: new Set(), credits: 0, maxSubjects: 2 },
     );
     expect(plan.periods.map(p => p.subjects.map(s => s.key))).toEqual([['1']]);
     expect(plan.unplanned.map(s => s.key)).toEqual(['2']);
+  });
+
+  it('offers each graduation date with the lightest load that reaches it', () => {
+    const scenarios = planScenarios(SUBJECTS, {
+      completed: COMPLETED,
+      credits: 110,
+    });
+    // com 3 por período, o mínimo (a cadeia de 4); com 2, um período a mais
+    expect(scenarios.map(s => [s.load, s.plan.periods.length])).toEqual([
+      [3, 4],
+      [2, 5],
+    ]);
+    expect(
+      scenarios[1].plan.periods.map(p => p.subjects.map(s => s.key)),
+    ).toEqual([['1', '7'], ['2', '8'], ['3', '5'], ['6', '4'], ['9']]);
+  });
+
+  it('offers a single date when no load changes it', () => {
+    const chain = [subject('1', 4), subject('2', 4, [['1']])];
+    const scenarios = planScenarios(chain, {
+      completed: new Set(),
+      credits: 0,
+    });
+    expect(scenarios.map(s => [s.load, s.plan.periods.length])).toEqual([
+      [2, 2],
+    ]);
   });
 
   it('measures the slack against the deadline from the Síntese', () => {
     const plan = buildGraduationPlan(SUBJECTS, {
       completed: COMPLETED,
       credits: 110,
-      cap: 12,
+      maxSubjects: 3,
     });
     expect(deadlineSlack(plan, 6)).toBe(2);
     expect(deadlineSlack(plan, 3)).toBe(-1);

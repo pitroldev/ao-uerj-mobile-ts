@@ -56,7 +56,7 @@ const mandatory = (
 
 /**
  * Um currículo de mentira: Cálculo I cursada; Cálculo II trava Cálculo III,
- * que trava Cálculo IV e Equações Diferenciais. Plano no ritmo normal:
+ * que trava Cálculo IV e Equações Diferenciais. A cadeia dita o plano:
  * 2026.2 (II), 2027.1 (III) e 2027.2 (IV e Equações).
  */
 export const PLAN_CURRICULUM: CurriculumSubject[] = [

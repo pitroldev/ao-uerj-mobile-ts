@@ -1,7 +1,7 @@
 import type { PreferencesStore } from '@root/modules/identity/application/PreferencesStore';
-import { PACE_CREDITS, type Pace } from '../domain/plan';
+import { MIN_SUBJECTS_PER_PERIOD } from '../domain/plan';
 
-/** Chave do ritmo e dos adiamentos do plano nas preferências da conta. */
+/** Chave da carga e dos adiamentos do plano nas preferências da conta. */
 export const PLAN_PREFERENCES_KEY = 'graduation-plan';
 
 /**
@@ -11,14 +11,21 @@ export const PLAN_PREFERENCES_KEY = 'graduation-plan';
 export type Postponement = { period: string } | { index: number };
 
 export type PlanPreferences = {
-  pace: Pace;
+  /**
+   * Disciplinas por período escolhidas pelo aluno; `null`: a formatura mais
+   * cedo, com a menor carga que chega lá.
+   */
+  load: number | null;
   postponed: Readonly<Record<string, Postponement>>;
 };
 
 export const DEFAULT_PLAN_PREFERENCES: PlanPreferences = {
-  pace: 'normal',
+  load: null,
   postponed: {},
 };
+
+/** Acima disso a escolha não faz sentido (e veio de um dado estragado). */
+const MAX_LOAD = 30;
 
 type Stored = PlanPreferences & { version: 1 };
 
@@ -37,10 +44,14 @@ const isPostponement = (value: unknown): value is Postponement => {
 export function normalizePlanPreferences(raw: unknown): PlanPreferences {
   const stored = raw as Partial<Stored> | null;
   if (!stored || typeof stored !== 'object') return DEFAULT_PLAN_PREFERENCES;
-  const pace =
-    typeof stored.pace === 'string' && stored.pace in PACE_CREDITS
-      ? stored.pace
-      : DEFAULT_PLAN_PREFERENCES.pace;
+  // o ritmo da 2.6.0 ("pace") não tem equivalente: volta ao padrão
+  const load =
+    typeof stored.load === 'number' &&
+    Number.isInteger(stored.load) &&
+    stored.load >= MIN_SUBJECTS_PER_PERIOD &&
+    stored.load <= MAX_LOAD
+      ? stored.load
+      : DEFAULT_PLAN_PREFERENCES.load;
   const postponed =
     stored.postponed && typeof stored.postponed === 'object'
       ? Object.fromEntries(
@@ -49,10 +60,10 @@ export function normalizePlanPreferences(raw: unknown): PlanPreferences {
           ),
         )
       : {};
-  return { pace, postponed };
+  return { load, postponed };
 }
 
-/** Ritmo e adiamentos do plano, por conta (saem com o logout). */
+/** Carga e adiamentos do plano, por conta (saem com o logout). */
 export class PlanPreferencesStore {
   constructor(private readonly store: PreferencesStore) {}
 

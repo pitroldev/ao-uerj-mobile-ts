@@ -163,7 +163,9 @@ describe('plan preferences', () => {
   it('ignores malformed choices', () => {
     expect(
       normalizePlanPreferences({
-        pace: 'fast',
+        // o ritmo da 2.6.0 não tem equivalente
+        pace: 'light',
+        load: 1,
         postponed: {
           '1': { period: '2027.1' },
           '2': { index: 2 },
@@ -172,23 +174,25 @@ describe('plan preferences', () => {
         },
       }),
     ).toEqual({
-      pace: 'normal',
+      load: null,
       postponed: { '1': { period: '2027.1' }, '2': { index: 2 } },
     });
+    expect(normalizePlanPreferences({ load: 3 }).load).toBe(3);
+    expect(normalizePlanPreferences({ load: 2.5 }).load).toBeNull();
   });
 
-  it('changes pace and postponements in one step', async () => {
+  it('changes the load and postponements in one step', async () => {
     const { store } = memoryStore();
     const preferences = new PlanPreferencesStore(store);
     await Promise.all([
-      preferences.change('a', current => ({ ...current, pace: 'light' })),
+      preferences.change('a', current => ({ ...current, load: 2 })),
       preferences.change('a', current => ({
         ...current,
         postponed: { ...current.postponed, '7': { period: '2027.1' } },
       })),
     ]);
     expect(await preferences.read('a')).toEqual({
-      pace: 'light',
+      load: 2,
       postponed: { '7': { period: '2027.1' } },
     });
   });

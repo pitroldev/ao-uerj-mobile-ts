@@ -39,19 +39,19 @@ it('compares the plan with the deadline and the longest chain', () => {
   expect(deadlineText(2)).toBe('Cabe no prazo, com 2 períodos de folga');
   expect(deadlineText(0)).toBe('No limite do prazo: não sobra nenhum período');
   expect(deadlineText(-1)).toBe('Passa do prazo máximo em 1 período');
-  expect(chainText(4, ['A', 'B', 'C', 'D'], 'normal')).toBe(
+  expect(chainText(4, ['A', 'B', 'C', 'D'], 3)).toBe(
     'O plano já está no mínimo possível: 4 períodos, pela cadeia A → B → C → D.',
   );
-  expect(chainText(6, ['A', 'B', 'C', 'D'], 'light')).toBe(
-    'No ritmo Leve são 6 períodos. O mínimo possível é 4, pela cadeia A → B → C → D.',
+  expect(chainText(6, ['A', 'B', 'C', 'D'], 2)).toBe(
+    'Com até 2 disciplinas por período são 6 períodos. O mínimo possível é 4, pela cadeia A → B → C → D.',
   );
-  expect(chainText(5, ['A', 'B', 'C'], 'normal', 1)).toBe(
+  expect(chainText(5, ['A', 'B', 'C'], 3, 1)).toBe(
     'Com o adiamento são 5 períodos. O mínimo possível é 3, pela cadeia A → B → C.',
   );
-  expect(chainText(5, ['A', 'B', 'C'], 'normal', 2)).toMatch(
+  expect(chainText(5, ['A', 'B', 'C'], 3, 2)).toMatch(
     /^Com os adiamentos são 5 períodos/,
   );
-  expect(chainText(2, ['A'], 'normal')).toBeNull();
+  expect(chainText(2, ['A'], 3)).toBeNull();
 });
 
 it('explains why a subject is in its period', () => {

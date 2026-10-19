@@ -76,7 +76,7 @@ src/modules/delivery/            aviso remoto, atualização pela loja e pedido 
 src/modules/notifications/       lembretes de aula e avisos do portal (nota, RID, documento)
 src/modules/widget/              widget "Próxima aula" da tela inicial
 src/modules/attendance/          faltas marcadas pelo aluno, só no aparelho
-src/modules/graduation/          plano até a formatura (pré-requisitos, ritmo e prazo)
+src/modules/graduation/          plano até a formatura (pré-requisitos, carga e prazo)
 src/modules/launch/              aberturas de fora do app (aviso, atalho do ícone, widget)
 src/app/background/              tarefa sem tela da verificação de avisos (WorkManager)
 src/adapters/outbound/           AO, APIs privadas, aviso remoto, armazenamento e recursos nativos
@@ -106,7 +106,7 @@ O gerador exige uma ação explícita para enviar a solicitação. Seus detalhes
 - Avisos (ver [Notificações](#notificações)) são opt-in e montados no aparelho; nada passa por servidores próprios. As escolhas, o estado da última verificação e a referência dos avisos (as últimas notas, posições no RID Parcial e resultados da inscrição lidos no período) ficam no AsyncStorage por conta. Os lembretes de aula (disciplina, horário e sala) ficam nas SharedPreferences do Android. O logout apaga tudo isso e cancela lembretes e verificações.
 - O widget "Próxima aula" (ver [Widget e atalhos](#widget-e-atalhos)) guarda a grade salva (disciplina, horário e sala) nas SharedPreferences do Android para desenhar com o app fechado. O logout a apaga, e o widget passa a pedir o login.
 - As faltas que o aluno marca (ver [Notas, PF e faltas](#notas-pf-e-faltas)) ficam só no aparelho, no AsyncStorage por conta e por período, e o logout as apaga, inclusive o automático, quando o portal recusa a senha salva. A simulação de PF e CR não grava nada.
-- O Plano até a formatura (ver [Plano até a formatura](#plano-até-a-formatura)) é calculado no aparelho. Os pré-requisitos lidos na Pesquisa de Disciplinas, o ritmo e os adiamentos ficam no AsyncStorage por conta, e o logout os apaga.
+- O Plano até a formatura (ver [Plano até a formatura](#plano-até-a-formatura)) é calculado no aparelho. Os pré-requisitos lidos na Pesquisa de Disciplinas, a carga escolhida e os adiamentos ficam no AsyncStorage por conta, e o logout os apaga.
 
 Quando o AO não informa o semestre, a interface usa "Período atual". O período do mural é um filtro selecionado pelo usuário; não é uma confirmação do calendário acadêmico oficial.
 
@@ -147,7 +147,8 @@ Em Meu Progresso, o cartão "Plano até a formatura" abre a tela do plano: as ob
   - Cada grupo de pré-requisitos é um "ou", e todos os grupos valem. Um grupo com uma só alternativa entre as que faltam vira dependência.
   - Gargalo é a disciplina que trava, direta ou indiretamente, ao menos 3 outras. A cadeia mais longa de dependências é o mínimo de períodos possível.
   - A trava de créditos ("60 Créditos Obrigatórios") conta os créditos obrigatórios aprovados, com os do período em curso.
-  - O ritmo limita os créditos por período: Leve (20), Normal (26) ou Intenso (32). Primeiro entram as disciplinas que travam outras; depois, as que mais aproveitam os créditos que sobram. Uma disciplina maior que o ritmo entra sozinha.
+  - A carga é contada em disciplinas por período, com no mínimo 2, o piso da inscrição. "Quando formar" lista as formaturas possíveis, cada uma com a menor carga que chega lá. O padrão é a mais cedo, e uma carga maior que não adianta a data não vira opção.
+  - Cada período recebe, até a carga, primeiro as disciplinas que travam outras; depois, pelo período recomendado no currículo. Um período fica com 1 disciplina só quando não há outra disponível, e o cartão avisa que ele está abaixo do mínimo da inscrição.
   - As eletivas entram como vagas "a escolher", no tamanho mais comum das disciplinas do grupo.
   - "Adiar um período", na folha da disciplina, guarda o período a partir do qual ela pode entrar. Antes, a folha mostra o efeito na formatura. "Restaurar o plano" desfaz todos os adiamentos.
 - **Limites:**

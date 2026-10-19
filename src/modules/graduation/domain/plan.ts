@@ -1,7 +1,7 @@
 /**
  * Plano até a formatura: as disciplinas que faltam distribuídas pelos
- * próximos períodos, respeitando os pré-requisitos, os créditos mínimos e o
- * limite de créditos do ritmo escolhido. Tudo aqui é cálculo puro; os dados
+ * próximos períodos, respeitando os pré-requisitos, os créditos mínimos e a
+ * carga escolhida (disciplinas por período). Tudo aqui é cálculo puro; os dados
  * vêm do currículo, do histórico, da Síntese da Formação e da Pesquisa de
  * Disciplinas (os pré-requisitos).
  */
@@ -35,9 +35,8 @@ export type PlanSubject = {
   placeholder: boolean;
 };
 
-/** Créditos por período de cada ritmo. */
-export const PACE_CREDITS = { light: 20, normal: 26, intense: 32 } as const;
-export type Pace = keyof typeof PACE_CREDITS;
+/** Mínimo de disciplinas por período na inscrição. */
+export const MIN_SUBJECTS_PER_PERIOD = 2;
 
 /** Gargalo: trava, direta ou indiretamente, ao menos esta quantidade. */
 export const BOTTLENECK_MIN_DEPENDENTS = 3;
@@ -176,8 +175,8 @@ export type PlanOptions = {
    * curso: é o que as travas contam.
    */
   credits: number;
-  /** Limite de créditos por período (o ritmo). */
-  cap: number;
+  /** Limite de disciplinas por período (a carga). */
+  maxSubjects: number;
   /** Primeiro período do plano (índice) de cada disciplina adiada. */
   notBefore?: ReadonlyMap<string, number>;
 };
@@ -215,41 +214,13 @@ function priority(graph: PrerequisiteGraph) {
     a.name.localeCompare(b.name, 'pt-BR');
 }
 
-/**
- * O maior total de créditos que cabe em `room`, preferindo as que vêm antes
- * na ordem (soma de subconjuntos, reconstruída do início).
- */
-function fill(candidates: readonly PlanSubject[], room: number): PlanSubject[] {
-  if (room <= 0 || !candidates.length) return [];
-  const row = () => Array.from({ length: room + 1 }, () => false);
-  const reach = [...candidates.map(row), row()];
-  reach[candidates.length][0] = true;
-  for (let i = candidates.length - 1; i >= 0; i -= 1) {
-    const credits = candidates[i].credits;
-    for (let total = 0; total <= room; total += 1) {
-      reach[i][total] =
-        reach[i + 1][total] ||
-        (credits <= total && reach[i + 1][total - credits]);
-    }
-  }
-  let target = room;
-  while (target > 0 && !reach[0][target]) target -= 1;
-  const chosen: PlanSubject[] = [];
-  candidates.forEach((subject, i) => {
-    if (subject.credits <= target && reach[i + 1][target - subject.credits]) {
-      chosen.push(subject);
-      target -= subject.credits;
-    }
-  });
-  return chosen;
-}
-
 /** Distribui as que faltam pelos próximos períodos, a partir do índice 0. */
 export function buildGraduationPlan(
   subjects: readonly PlanSubject[],
   options: PlanOptions,
 ): GraduationPlan {
-  const { completed, cap } = options;
+  const { completed } = options;
+  const load = Math.max(1, Math.floor(options.maxSubjects));
   const notBefore = options.notBefore ?? new Map<string, number>();
   const pending = subjects.filter(subject => !completed.has(subject.key));
   const graph = prerequisiteGraph(pending, completed);
@@ -280,28 +251,9 @@ export function buildGraduationPlan(
     );
     if (!available.length && !waitingLater) break;
 
-    const chosen: PlanSubject[] = [];
-    let used = 0;
-    for (const subject of available.filter(
-      item => blocksOf(graph, item.key) > 0,
-    )) {
-      // uma disciplina maior que o ritmo entra sozinha num período vazio
-      if (used + subject.credits <= cap || !chosen.length) {
-        chosen.push(subject);
-        used += subject.credits;
-      }
-    }
-    for (const subject of fill(
-      available.filter(item => blocksOf(graph, item.key) === 0),
-      cap - used,
-    )) {
-      chosen.push(subject);
-      used += subject.credits;
-    }
-    if (!chosen.length && available.length) {
-      chosen.push(available[0]);
-      used = available[0].credits;
-    }
+    // na ordem de entrada (as que travam outras primeiro), até a carga
+    const chosen = available.slice(0, load);
+    const used = chosen.reduce((sum, item) => sum + item.credits, 0);
 
     periods.push({
       index,
@@ -326,6 +278,46 @@ export function buildGraduationPlan(
     unplanned: pending.filter(subject => !periodOf.has(subject.key)),
     graph,
   };
+}
+
+export type PlanScenario = {
+  /** Disciplinas por período: a menor carga que chega a esta formatura. */
+  load: number;
+  plan: GraduationPlan;
+};
+
+/**
+ * As formaturas possíveis: para cada número de períodos, a menor carga que
+ * chega lá, nunca abaixo do mínimo da inscrição. Da mais cedo para a mais
+ * tarde; com uma só, a carga não muda a data.
+ */
+export function planScenarios(
+  subjects: readonly PlanSubject[],
+  options: Omit<PlanOptions, 'maxSubjects'>,
+): PlanScenario[] {
+  const pending = subjects.filter(
+    subject => !options.completed.has(subject.key),
+  ).length;
+  const most = Math.max(MIN_SUBJECTS_PER_PERIOD, pending);
+  // o que fica de fora mesmo sem limite (pré-requisito impossível, créditos)
+  const left = buildGraduationPlan(subjects, { ...options, maxSubjects: most })
+    .unplanned.length;
+  const scenarios: PlanScenario[] = [];
+  for (let load = MIN_SUBJECTS_PER_PERIOD; load <= most; load += 1) {
+    const plan = buildGraduationPlan(subjects, {
+      ...options,
+      maxSubjects: load,
+    });
+    // carga leve demais para o teto de períodos: o plano ficaria incompleto
+    if (plan.unplanned.length > left) continue;
+    const shortest = scenarios[scenarios.length - 1]?.plan.periods.length;
+    if (shortest === undefined || plan.periods.length < shortest) {
+      scenarios.push({ load, plan });
+    }
+    // a cadeia mais longa é o piso: mais carga não encurta
+    if (plan.periods.length <= plan.graph.chain.length) break;
+  }
+  return scenarios.reverse();
 }
 
 /** Folga em relação ao prazo da Síntese; `null` sem o prazo. */

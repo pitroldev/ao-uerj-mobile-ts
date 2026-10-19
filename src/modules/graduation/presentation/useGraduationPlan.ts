@@ -37,15 +37,14 @@ import {
 import {
   buildGraduationPlan,
   deadlineSlack,
-  PACE_CREDITS,
-  type Pace,
+  planScenarios,
 } from '../domain/plan';
 import { periodAfter } from '../domain/periods';
 
 const DETAILS_STALE = 6 * 60 * 60 * 1000;
 const NO_ENTRIES: PrerequisiteEntries = {};
 
-/** Ritmo e adiamentos da conta, lidos do aparelho (também sem rede). */
+/** Carga e adiamentos da conta, lidos do aparelho (também sem rede). */
 function usePlanPreferences() {
   const { graduation, identity } = useAppServices();
   const { account } = useIdentity();
@@ -250,7 +249,7 @@ type DeadlineLevel = 'good' | 'warn' | 'bad';
 /**
  * O plano até a formatura da conta: as obrigatórias que faltam distribuídas
  * pelos próximos períodos, as vagas de eletiva, o prazo da Síntese e as
- * escolhas do aluno (ritmo e adiamentos). Com `load`, lê os pré-requisitos
+ * escolhas do aluno (carga por período e adiamentos). Com `load`, lê os pré-requisitos
  * que faltam; sem ele (o cartão do Meu Progresso), usa só os guardados.
  */
 export function useGraduationPlan({ load }: { load: boolean }) {
@@ -323,17 +322,29 @@ export function useGraduationPlan({ load }: { load: boolean }) {
     () => postponementIndexes(preferences.postponed, current),
     [current, preferences.postponed],
   );
-  const planFor = useCallback(
-    (extra?: ReadonlyMap<string, number>) =>
-      buildGraduationPlan(subjects, {
-        completed: inputs?.completed ?? new Set(),
-        credits: inputs?.mandatoryCredits ?? 0,
-        cap: PACE_CREDITS[preferences.pace],
-        notBefore: extra ? new Map([...notBefore, ...extra]) : notBefore,
-      }),
-    [inputs, notBefore, preferences.pace, subjects],
+  const planOptions = useMemo(
+    () => ({
+      completed: inputs?.completed ?? new Set<string>(),
+      credits: inputs?.mandatoryCredits ?? 0,
+      notBefore,
+    }),
+    [inputs, notBefore],
   );
-  const plan = useMemo(() => planFor(), [planFor]);
+  // as formaturas possíveis, da mais cedo para a mais tarde
+  const scenarios = useMemo(
+    () => planScenarios(subjects, planOptions),
+    [planOptions, subjects],
+  );
+  // a carga escolhida vale pela formatura a que chega, com a menor carga que
+  // chega lá; sem escolha, a formatura mais cedo
+  const scenario = useMemo(() => {
+    const chosen = preferences.load;
+    const lightest = scenarios[scenarios.length - 1];
+    if (chosen === null) return scenarios[0] ?? lightest;
+    return scenarios.find(item => item.load <= chosen) ?? lightest;
+  }, [preferences.load, scenarios]);
+  // disciplinas por período (o `load` do hook é outra coisa: ler ou não)
+  const { plan, load: perPeriod } = scenario;
   // só os adiamentos de disciplinas que ainda faltam (uma cursada sai daqui)
   const postponed = useMemo(
     () =>
@@ -353,6 +364,15 @@ export function useGraduationPlan({ load }: { load: boolean }) {
   );
   const remaining = synthesis?.periods.remaining ?? null;
   const slack = deadlineSlack(plan, remaining);
+  const loadOptions = scenarios.map(item => {
+    const periods = item.plan.periods.length;
+    return {
+      load: item.load,
+      periods,
+      last: periods ? label(periods - 1) : null,
+      slack: deadlineSlack(item.plan, remaining),
+    };
+  });
   let deadlineLevel: DeadlineLevel | null = null;
   if (slack !== null)
     deadlineLevel = slack > 0 ? 'good' : slack === 0 ? 'warn' : 'bad';
@@ -385,8 +405,10 @@ export function useGraduationPlan({ load }: { load: boolean }) {
     item => !item.placeholder && item.prerequisites === null,
   );
 
-  const setPace = useCallback(
-    (pace: Pace) => change(currentChoices => ({ ...currentChoices, pace })),
+  /** Escolhe a formatura pela carga (disciplinas por período). */
+  const setLoad = useCallback(
+    (value: number) =>
+      change(currentChoices => ({ ...currentChoices, load: value })),
     [change],
   );
   /** Adia uma disciplina para depois do período em que ela está no plano. */
@@ -423,9 +445,13 @@ export function useGraduationPlan({ load }: { load: boolean }) {
     (key: string) => {
       const index = plan.periodOf.get(key);
       if (index === undefined) return null;
-      return planFor(new Map([[key, index + 1]])).periods.length;
+      return buildGraduationPlan(subjects, {
+        ...planOptions,
+        maxSubjects: perPeriod,
+        notBefore: new Map([...notBefore, [key, index + 1]]),
+      }).periods.length;
     },
-    [plan.periodOf, planFor],
+    [notBefore, perPeriod, plan.periodOf, planOptions, subjects],
   );
 
   const loadingSources =
@@ -446,7 +472,9 @@ export function useGraduationPlan({ load }: { load: boolean }) {
     inProgress: inProgressKeys,
     label,
     current,
-    pace: preferences.pace,
+    /** Disciplinas por período do plano mostrado. */
+    load: perPeriod,
+    loadOptions,
     postponed,
     synthesis,
     deadline:
@@ -473,7 +501,7 @@ export function useGraduationPlan({ load }: { load: boolean }) {
       void historyQuery.refetch();
       void synthesisQuery.refetch();
     },
-    setPace,
+    setLoad,
     postpone,
     undo,
     reset,

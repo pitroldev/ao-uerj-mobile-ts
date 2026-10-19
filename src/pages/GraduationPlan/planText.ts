@@ -1,19 +1,12 @@
 import type { UiTone } from '@components/ui/tones';
 import {
   BOTTLENECK_MIN_DEPENDENTS,
-  type Pace,
   type PlanSubject,
 } from '@root/modules/graduation/domain/plan';
 
 export function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
 }
-
-export const PACE_LABELS: Record<Pace, string> = {
-  light: 'Leve',
-  normal: 'Normal',
-  intense: 'Intenso',
-};
 
 /** "Trava 7 disciplinas" (quem depende dela, direta ou indiretamente). */
 export function blocksText(blocks: number): string {
@@ -46,12 +39,12 @@ export function deadlineText(slack: number): string {
 
 /**
  * A cadeia mais longa diante do tamanho do plano. Com adiamentos, o período a
- * mais é deles, não do ritmo.
+ * mais é deles, não da carga.
  */
 export function chainText(
   periods: number,
   chain: readonly string[],
-  pace: Pace,
+  load: number,
   postponed = 0,
 ): string | null {
   if (chain.length < 2) return null;
@@ -61,7 +54,7 @@ export function chainText(
   }
   const cause = postponed
     ? `Com ${postponed === 1 ? 'o adiamento' : 'os adiamentos'}`
-    : `No ritmo ${PACE_LABELS[pace]}`;
+    : `Com até ${plural(load, 'disciplina', 'disciplinas')} por período`;
   return `${cause} são ${plural(periods, 'período', 'períodos')}. O mínimo possível é ${chain.length}, pela cadeia ${names}.`;
 }
 
@@ -90,9 +83,9 @@ export function reasonText({
   }
   if (bottleneck) return 'Vem logo porque trava outras disciplinas.';
   if (subject.placeholder) {
-    return 'Eletiva: completa os créditos exigidos onde sobra espaço no ritmo.';
+    return 'Eletiva: completa os créditos exigidos onde sobra espaço na carga do período.';
   }
-  return 'Encaixada pelo período recomendado no currículo e pelo limite do ritmo.';
+  return 'Encaixada pelo período recomendado no currículo e pela carga escolhida.';
 }
 
 /** O efeito de adiar: o período seguinte e o novo fim do plano. */

@@ -154,12 +154,16 @@ it('reads the prerequisites once and lays out the plan period by period', async 
   expect(
     screen.getByText('Trava 3 disciplinas · no plano em 2026.2'),
   ).toBeOnTheScreen();
-  [
-    '2026.2: 4 de 26 créditos',
-    '2027.1: 4 de 26 créditos',
-    '2027.2: 8 de 26 créditos',
-  ].forEach(period => expect(screen.getByLabelText(period)).toBeOnTheScreen());
+  expect(screen.getAllByText('4 créditos')).toHaveLength(2);
+  expect(screen.getByText('8 créditos')).toBeOnTheScreen();
   expect(screen.getByText('Próximo')).toBeOnTheScreen();
+  // a cadeia já pede 3 períodos: com 2 por período a data é a mesma
+  expect(
+    screen.getByText(
+      'A formatura fica em 2027.2 com até 2 disciplinas por período: mais carga não adianta a data.',
+    ),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole('radio')).not.toBeOnTheScreen();
 
   // de volta à tela, os pré-requisitos guardados bastam
   await act(async () => screen.unmount());
@@ -279,7 +283,7 @@ it('opens a subject, postpones it a period and undoes it', async () => {
   ).toBeOnTheScreen();
   expect(storedChoices()).toEqual({
     version: 1,
-    pace: 'normal',
+    load: null,
     postponed: { '10002': { period: '2027.1' } },
   });
 
@@ -295,7 +299,7 @@ it('opens a subject, postpones it a period and undoes it', async () => {
 it('restores the plan the student postponed', async () => {
   stores.data.set(`s:${PLAN_PREFERENCES_KEY}`, {
     version: 1,
-    pace: 'normal',
+    load: null,
     postponed: { '10002': { period: '2027.1' } },
   });
   await renderPage();
@@ -310,15 +314,38 @@ it('restores the plan the student postponed', async () => {
   expect(screen.queryByText('Você adiou 1 disciplina.')).not.toBeOnTheScreen();
 });
 
-it('changes the pace and keeps it', async () => {
+it('lets the student pick a later graduation with a lighter load', async () => {
+  // três sem pré-requisito a mais: com 3 por período a cadeia dita a data
+  const free = ['Desenho', 'Física I', 'Química'].map((name, i) => ({
+    ...PLAN_CURRICULUM[1],
+    id: `IME01-1000${6 + i}`,
+    name,
+    period: 1,
+  }));
+  mockCurriculum = makeQuery([...PLAN_CURRICULUM, ...free]);
   await renderPage();
   await planReady();
-  await user().press(screen.getByRole('tab', { name: 'Leve' }));
+  expect(screen.getByLabelText('Formatura prevista: 2027.2')).toBeOnTheScreen();
+  expect(screen.getByRole('radio', { name: /Formar em 2027.2/ })).toBeChecked();
   expect(
-    (await screen.findAllByText('4 de 20 créditos')).length,
-  ).toBeGreaterThan(0);
-  expect(screen.getByRole('tab', { name: 'Leve' })).toBeSelected();
-  expect(storedChoices()).toMatchObject({ pace: 'light' });
+    screen.getByText('Até 3 disciplinas por período · 3 períodos'),
+  ).toBeOnTheScreen();
+
+  await user().press(screen.getByText('Formar em 2028.1'));
+  expect(
+    await screen.findByLabelText('Formatura prevista: 2028.1'),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole('radio', { name: /Formar em 2028.1/ })).toBeChecked();
+  expect(
+    screen.getByText(
+      'Com até 2 disciplinas por período são 4 períodos. O mínimo possível é 3, pela cadeia Cálculo II → Cálculo III → Cálculo IV.',
+    ),
+  ).toBeOnTheScreen();
+  // a última fica sozinha: o aviso do mínimo da inscrição
+  expect(
+    screen.getByText('Abaixo do mínimo de 2 disciplinas da inscrição'),
+  ).toBeOnTheScreen();
+  expect(storedChoices()).toMatchObject({ load: 2 });
 });
 
 it('counts the subjects in progress as passed', async () => {
