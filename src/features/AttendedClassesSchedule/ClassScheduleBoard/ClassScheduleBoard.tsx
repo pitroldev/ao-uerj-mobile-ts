@@ -29,11 +29,11 @@ import {
   toIsoDate,
 } from '@root/modules/attendance/domain/attendance';
 import { useScheduleSharing } from '@root/modules/academics/presentation/useScheduleSharing';
+import { toSvgDataUri } from '@root/modules/academics/presentation/scheduleSvg';
 import {
-  buildWeekSvg,
-  SHARE_IMAGE_COLORS,
-  toSvgDataUri,
-} from '@root/modules/academics/presentation/scheduleSvg';
+  useSubjectTeachers,
+  type SubjectTeachers,
+} from '@root/modules/academics/presentation/useSubjectTeachers';
 
 import {
   CLASS_DAYS,
@@ -50,6 +50,7 @@ import {
   weekDates,
   weekdayOf,
 } from '../scheduleFormat';
+import { buildWeekImage } from '../weekImage/weekImage';
 import { DayCount, DayHead, DayView } from './ClassScheduleBoard.styles';
 
 type Props = {
@@ -65,9 +66,18 @@ type Props = {
    * mostrada): abre as faltas da disciplina naquela aula.
    */
   onEndedClassPress?: (item: AttendedClassesSchedule, date: Date) => void;
+  /** Período ("2026.1") no título da imagem compartilhada. */
+  period?: string;
 };
 
 const NO_ABSENCES: ReadonlySet<string> = new Set();
+const NO_TEACHERS: SubjectTeachers = new Map();
+
+/** Dois quadros: o SVG novo já está desenhado quando a captura acontece. */
+const nextPaint = () =>
+  new Promise<void>(resolve =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  );
 
 /** Escala padrão da régua: 48dp por hora. */
 const BASE_PX_PER_MINUTE = 0.8;
@@ -85,20 +95,23 @@ export const ClassScheduleBoard = React.memo(function ClassScheduleBoard({
   onSubjectPress,
   absences = NO_ABSENCES,
   onEndedClassPress,
+  period,
 }: Props) {
   const theme = useTheme();
   const reduced = useReducedMotion();
   const { fontScale } = useWindowDimensions();
   const safeData = useMemo(() => data ?? [], [data]);
   const { share, exporting, SvgRenderer } = useScheduleSharing();
+  const loadTeachers = useSubjectTeachers();
+  const [teachers, setTeachers] = useState<SubjectTeachers>(NO_TEACHERS);
+  const [preparing, setPreparing] = useState(false);
   const [pickedDay, setPickedDay] = useState<number | null>(null);
   const fade = useAnimatedValue(1);
 
   const svgString = useMemo(
-    () => buildWeekSvg(safeData, SHARE_IMAGE_COLORS),
-    [safeData],
+    () => buildWeekImage(safeData, { period, teachers }),
+    [period, safeData, teachers],
   );
-  const svgDataUri = useMemo(() => toSvgDataUri(svgString), [svgString]);
 
   const today = now.getDay();
   const isClassDay = today !== 0;
@@ -250,9 +263,19 @@ export const ClassScheduleBoard = React.memo(function ClassScheduleBoard({
     };
   });
 
+  // os professores vêm da Pesquisa de Disciplinas (do cache, quando já lidos);
+  // a imagem é a mesma que o `SvgRenderer` desenha para a captura
   const handleExport = async () => {
+    if (preparing) return;
+    setPreparing(true);
+    const found = await loadTeachers(safeData).catch(() => NO_TEACHERS);
+    setTeachers(found);
+    await nextPaint();
+    setPreparing(false);
     try {
-      await share(svgDataUri);
+      await share(
+        toSvgDataUri(buildWeekImage(safeData, { period, teachers: found })),
+      );
     } catch {
       snackbar.error(
         'Não foi possível compartilhar a grade.',
@@ -271,7 +294,7 @@ export const ClassScheduleBoard = React.memo(function ClassScheduleBoard({
           icon="share"
           label="Compartilhar grade"
           accessibilityLabel="Compartilhar grade da semana"
-          loading={exporting}
+          loading={exporting || preparing}
           onPress={() => {
             void handleExport();
           }}

@@ -77,6 +77,11 @@ jest.mock('@root/modules/academics/presentation/useScheduleSharing', () => ({
     SvgRenderer: () => null,
   }),
 }));
+// professores da Pesquisa de Disciplinas, por disciplina, na imagem da grade
+const mockLoadTeachers = jest.fn();
+jest.mock('@root/modules/academics/presentation/useSubjectTeachers', () => ({
+  useSubjectTeachers: () => mockLoadTeachers,
+}));
 jest.mock('@features/AttendedClassesSchedule/useNow', () => ({
   useNow: () => mockNow,
 }));
@@ -257,6 +262,9 @@ const panelScroll = () => {
   while (node && node.type !== 'RCTScrollView') node = node.parent;
   return node!;
 };
+declare const TextDecoder: new () => { decode(bytes: Uint8Array): string };
+declare function atob(data: string): string;
+
 const RETRY = { name: 'Tentar novamente' };
 const NOT_STARTED = 'Parece que o período não se iniciou ainda.';
 
@@ -267,6 +275,9 @@ beforeEach(() => {
   mockSchedule = makeQuery(schedule);
   mockGrades = makeQuery(grades);
   mockRid = makeQuery<PartialRidResult>({ subjects: [], updatedAt: '' });
+  mockLoadTeachers
+    .mockReset()
+    .mockResolvedValue(new Map([['10933', ['Ana Souza', 'João Lima']]]));
 });
 
 afterEach(() => {
@@ -467,6 +478,36 @@ describe('controle de faltas', () => {
   });
 });
 
+it('shares the week with the teachers of each subject', async () => {
+  mockShare.mockResolvedValueOnce(undefined);
+  await renderHome();
+  await userEvent
+    .setup()
+    .press(
+      screen.getByRole('button', { name: 'Compartilhar grade da semana' }),
+    );
+  await waitFor(() => expect(mockShare).toHaveBeenCalled());
+  expect(mockLoadTeachers).toHaveBeenCalledWith(schedule);
+  const [uri] = mockShare.mock.calls[0] as [string];
+  const bytes = Uint8Array.from(atob(uri.split(',')[1]), char =>
+    char.charCodeAt(0),
+  );
+  const svg = new TextDecoder().decode(bytes);
+  expect(svg).toContain('Turma 1 · Ana Souza, João Lima');
+});
+
+it('shares the week without teachers when they cannot be read', async () => {
+  mockLoadTeachers.mockRejectedValueOnce(new Error('offline'));
+  mockShare.mockResolvedValueOnce(undefined);
+  await renderHome();
+  await userEvent
+    .setup()
+    .press(
+      screen.getByRole('button', { name: 'Compartilhar grade da semana' }),
+    );
+  await waitFor(() => expect(mockShare).toHaveBeenCalled());
+});
+
 it('reports a failed share with a snackbar', async () => {
   const showError = jest.spyOn(snackbar, 'error');
   mockShare.mockRejectedValueOnce(new Error('boom'));
@@ -476,7 +517,7 @@ it('reports a failed share with a snackbar', async () => {
     .press(
       screen.getByRole('button', { name: 'Compartilhar grade da semana' }),
     );
-  expect(mockShare).toHaveBeenCalled();
+  await waitFor(() => expect(mockShare).toHaveBeenCalled());
   expect(showError).toHaveBeenCalledWith(
     'Não foi possível compartilhar a grade.',
     'Tente novamente.',

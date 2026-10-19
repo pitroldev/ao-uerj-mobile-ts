@@ -1,4 +1,5 @@
 import React from 'react';
+import { PixelRatio } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { useScheduleSharing } from '../useScheduleSharing';
 
@@ -28,6 +29,9 @@ it('keeps the capture view native and opaque and waits for a measured layout', a
   const view = screen.root!;
   expect(view).toHaveProp('collapsable', false);
   expect(view).toBeVisible();
+  // em dp, para a captura sair com os pixels do desenho em qualquer tela
+  expect(view.children[0]).toHaveProp('width', 100 / PixelRatio.get());
+  expect(view.children[0]).toHaveProp('height', 100 / PixelRatio.get());
   await act(() => sharing.share('svg-before-layout'));
   expect(mockCapturePng).not.toHaveBeenCalled();
   expect(mockShare).toHaveBeenCalledWith({

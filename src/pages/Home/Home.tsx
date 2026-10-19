@@ -314,6 +314,7 @@ export const HomePage = () => {
           onSubjectPress={openClasses}
           absences={absenceKeys}
           onEndedClassPress={openEndedClass}
+          period={period}
         />
         {!isScheduleAvailable && isPartialRidAvailable ? (
           <RIDBoard data={partialRID} />
