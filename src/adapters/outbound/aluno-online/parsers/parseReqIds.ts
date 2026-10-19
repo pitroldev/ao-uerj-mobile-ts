@@ -22,6 +22,7 @@ function translate(name: string) {
     'notas do período': 'notas',
     'rid: resultado provisório': 'RidParcial',
     'rid: resultado da inscrição': 'RidInscricao',
+    'síntese da formação': 'SinteseFormacao',
   } as ReqIds['dictionary'];
 
   return dictionary[lowerName] || name;

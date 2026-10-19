@@ -23,6 +23,7 @@ import { CrChart } from './CrChart';
 import { formatCr } from './crChartModel';
 import { CurriculumPath, pathGoal } from './CurriculumPath';
 import { CreditsSheet } from './CreditsSheet';
+import { GraduationPlanCard } from './GraduationPlanCard';
 import { ProgressSkeleton } from './ProgressSkeleton';
 import { ChartCard, Legend, LegendItem, NoticeSlot } from './MyProgress.styles';
 
@@ -164,6 +165,7 @@ export function MyProgressPage() {
             />
           }
         >
+          <GraduationPlanCard />
           {!curriculumAvailable ? (
             // "Tentar novamente" já está no aviso do topo (QueryNotice)
             <NoticeSlot>

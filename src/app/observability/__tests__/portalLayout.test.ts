@@ -26,6 +26,7 @@ function setup() {
     getEnrollmentResult: jest.fn(),
     getSubjectDetails: jest.fn(),
     getUniversalSubjects: jest.fn().mockResolvedValue([]),
+    getSynthesis: jest.fn(),
   } as jest.Mocked<AcademicRecordsPort>;
   const documents: jest.Mocked<DocumentsPort> = {
     list: jest.fn().mockResolvedValue([]),

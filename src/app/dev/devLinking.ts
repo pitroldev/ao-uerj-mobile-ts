@@ -6,7 +6,7 @@ import type { RootDrawerParamList } from '@root/routes';
 /**
  * Deep links de DEBUG (scheme registrado só em android/app/src/debug).
  *
- *   aouerj-dev://inicio | progresso | gerador | mural | realizadas |
+ *   aouerj-dev://inicio | progresso | plano | gerador | mural | realizadas |
  *                curriculo | universais | pesquisa[/<código>] | documentos |
  *                notificacoes | sobre
  */
@@ -16,6 +16,7 @@ const DEV_ROUTE_PATHS = {
   Início: 'inicio',
   Mapa: 'mapa/:location?',
   'Meu Progresso': 'progresso',
+  'Plano até a formatura': 'plano',
   'Emissão de Documentos': 'documentos',
   'Gerador de Grade': 'gerador',
   'Mural de Mensagens': 'mural',

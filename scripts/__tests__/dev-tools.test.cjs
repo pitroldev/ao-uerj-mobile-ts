@@ -36,6 +36,7 @@ test('screenshot routes cover every drawer screen', () => {
     'inicio',
     'mapa',
     'progresso',
+    'plano',
     'documentos',
     'gerador',
     'mural',

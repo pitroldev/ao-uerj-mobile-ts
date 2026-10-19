@@ -9,6 +9,7 @@ import { useRemoteStatus } from './DeliveryProvider';
 const ROUTE_FEATURES: Readonly<Record<string, FeatureId>> = {
   Notificações: 'notifications',
   'Meu Progresso': 'progress',
+  'Plano até a formatura': 'graduation-plan',
   'Emissão de Documentos': 'documents',
   'Gerador de Grade': 'schedule-generator',
   'Mural de Mensagens': 'message-board',

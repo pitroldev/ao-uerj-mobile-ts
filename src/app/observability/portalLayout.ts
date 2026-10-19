@@ -67,6 +67,7 @@ export function reportPortalLayoutChanges<T extends PortalPorts>(
       'universal-subjects',
       source.getUniversalSubjects.bind(source),
     ),
+    getSynthesis: watch('synthesis', source.getSynthesis.bind(source)),
   };
   const documents: DocumentsPort = {
     list: watch('documents-list', ports.documents.list.bind(ports.documents)),

@@ -47,6 +47,7 @@ export type FeatureId =
   | 'notifications'
   | 'documents'
   | 'progress'
+  | 'graduation-plan'
   | 'schedule-generator'
   | 'message-board'
   | 'subjects-taken'

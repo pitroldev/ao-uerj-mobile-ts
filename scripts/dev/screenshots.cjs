@@ -23,6 +23,7 @@ const ROUTES = {
   inicio: 'inicio',
   mapa: 'mapa',
   progresso: 'progresso',
+  plano: 'plano',
   documentos: 'documentos',
   gerador: 'gerador',
   mural: 'mural',

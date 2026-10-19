@@ -76,6 +76,7 @@ function setup() {
       getEnrollmentResult: jest.fn(),
       getSubjectDetails: jest.fn(),
       getUniversalSubjects: jest.fn(),
+      getSynthesis: jest.fn(),
     },
     documents: {
       list: jest.fn(async () => []),

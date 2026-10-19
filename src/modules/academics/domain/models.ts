@@ -174,3 +174,41 @@ export type EnrollmentResultEntry = {
 };
 
 export type EnrollmentResult = { subjects: EnrollmentResultEntry[] };
+
+/** Grupo de um requisito do currículo na Síntese da Formação. */
+export type SynthesisRequirementKind =
+  'MANDATORY' | 'RESTRICTED' | 'DEFINED' | 'UNIVERSAL' | 'ELECTIVES' | 'OTHER';
+
+export type SynthesisRequirement = {
+  kind: SynthesisRequirementKind;
+  /** Texto do portal, sem o marcador ("Grupo de Obrigatórias"). */
+  label: string;
+  /** Ramificação do grupo de obrigatórias, quando o portal a mostra acima dele. */
+  branch: string | null;
+  /** Em créditos, no regime de crédito. */
+  done: number | null;
+  required: number | null;
+};
+
+/** "Síntese da Formação" do Aluno Online: currículo, CR oficial e prazo. */
+export type GraduationSynthesis = {
+  /** "1 - Currículo de Engenharia de 2006 (FEN)". */
+  curriculumVersion: string | null;
+  /** "Crédito" ou "Seriado". */
+  regime: string | null;
+  /** Coeficiente de Rendimento oficial. */
+  cr: number | null;
+  requirements: SynthesisRequirement[];
+  /** Períodos Letivos para a integralização curricular. */
+  periods: {
+    minimum: number | null;
+    /** Cursados e o em curso; trancados e concomitância ficam de fora. */
+    used: number | null;
+    maximum: number | null;
+    /** Já com os extras concedidos: máximo + extras − utilizados. */
+    remaining: number | null;
+    extra: number | null;
+  };
+  /** Período em curso (a linha "Inscrito"), "2026.1"; `null` entre períodos. */
+  currentPeriod: string | null;
+};

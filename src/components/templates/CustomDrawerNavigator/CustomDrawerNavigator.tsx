@@ -54,6 +54,7 @@ const NAV: NavGroup[] = [
     items: [
       ['Início', 'home'],
       ['Meu Progresso', 'monitoring'],
+      ['Plano até a formatura', 'school'],
       ['Emissão de Documentos', 'description'],
       ['Disciplinas Realizadas', 'task_alt'],
       ['Disciplinas do Currículo', 'account_tree'],

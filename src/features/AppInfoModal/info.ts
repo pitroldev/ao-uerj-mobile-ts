@@ -5,6 +5,13 @@ export const APP_INFO_VERSION_KEY = 'app-info-version';
 
 export const APP_INFO = [
   {
+    title: 'Plano até a formatura',
+    icon: 'school',
+    isNew: true,
+    description:
+      'As disciplinas que faltam distribuídas pelos próximos períodos, com os pré-requisitos, os gargalos e o prazo máximo da Síntese da Formação.',
+  },
+  {
     title: 'Quanto preciso na PF',
     icon: 'tune',
     isNew: true,

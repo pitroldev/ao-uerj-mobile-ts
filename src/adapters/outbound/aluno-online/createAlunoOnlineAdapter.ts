@@ -45,6 +45,7 @@ import { parsePartialRID } from './parsers/PartialRID';
 import { parseEnrollmentResult } from './parsers/EnrollmentResult';
 import { parseSubjectInfo } from './parsers/SubjectInfo';
 import { parseUniversalSubjects } from './parsers/UniversalSubjects';
+import { parseGraduationSynthesis } from './parsers/GraduationSynthesis';
 import {
   parseDocumentCatalog,
   documentFormParams,
@@ -85,6 +86,7 @@ const operationKeys: Record<PortalOperation, string[]> = {
   enrollmentResult: ['RidInscricao'],
   subjectDetails: ['DadosDisciplina'],
   universalSubjects: ['UniversaisCursar'],
+  synthesis: ['SinteseFormacao'],
   documents: ['Emissão de Documentos'],
 };
 
@@ -455,6 +457,8 @@ export function createAlunoOnlineAdapter({
       read('subjectDetails', parseSubjectInfo, options, { subjectId }),
     getUniversalSubjects: options =>
       read('universalSubjects', parseUniversalSubjects, options),
+    getSynthesis: options =>
+      read('synthesis', parseGraduationSynthesis, options),
   };
 
   function checkDocumentResponse(response: PortalResponse, snapshot: Session) {

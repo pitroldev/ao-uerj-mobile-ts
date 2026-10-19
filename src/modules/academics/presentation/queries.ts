@@ -73,6 +73,10 @@ export function useUniversalSubjects() {
     24,
   );
 }
+/** Síntese da Formação: muda pouco ao longo do período. */
+export function useSynthesis() {
+  return useAcademicQuery('synthesis', useRecords().synthesis, 24);
+}
 export function useSubjectDetails(subjectId?: string) {
   const records = useRecords();
   let cacheId = subjectId ?? '';

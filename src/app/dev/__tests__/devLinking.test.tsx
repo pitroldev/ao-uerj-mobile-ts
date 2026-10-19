@@ -35,6 +35,7 @@ it('accepts only the debug scheme', () => {
 it.each([
   ['Início', 'inicio'],
   ['Meu Progresso', 'progresso'],
+  ['Plano até a formatura', 'plano'],
   ['Emissão de Documentos', 'documentos'],
   ['Gerador de Grade', 'gerador'],
   ['Mural de Mensagens', 'mural'],

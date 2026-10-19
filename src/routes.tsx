@@ -24,6 +24,7 @@ import { MessageBoard } from '@root/pages/MessageBoard';
 import { AboutPage } from '@root/pages/About';
 import { ScheduleCreationPage } from '@root/pages/ScheduleSimulator';
 import { MyProgressPage } from '@root/pages/MyProgress';
+import { GraduationPlanPage } from '@root/pages/GraduationPlan';
 import { LoadingPage } from './pages/Loading';
 import { CampusMapPage } from './pages/CampusMap/CampusMap';
 import { DocumentsPage } from '@root/pages/Documents';
@@ -44,6 +45,9 @@ export type RootDrawerParamList = {
   'Pesquisa de Professores': undefined;
   'Gerador de Grade': undefined;
   'Meu Progresso': undefined;
+  /** `sourceRoute`: aberto pelo cartão do Meu Progresso, com a seta de voltar. */
+  'Plano até a formatura':
+    { sourceRoute?: keyof RootDrawerParamList } | undefined;
   'Emissão de Documentos': undefined;
   Notificações: undefined;
   Sobre: undefined;
@@ -113,6 +117,10 @@ export const MainRoutes = () => {
             options={{ swipeEnabled: false }}
           />
           <Drawer.Screen name="Meu Progresso" component={MyProgressPage} />
+          <Drawer.Screen
+            name="Plano até a formatura"
+            component={GraduationPlanPage}
+          />
           <Drawer.Screen
             name="Emissão de Documentos"
             component={DocumentsPage}

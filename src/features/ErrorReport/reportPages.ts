@@ -6,6 +6,7 @@ export const FEATURES = [
   'Quadro de Horários',
   'Gerador de Grade',
   'Meu Progresso',
+  'Plano até a formatura',
   'Mural de Mensagens',
   'Quadro de Notas',
   'RID Parcial',

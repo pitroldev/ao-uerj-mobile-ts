@@ -37,6 +37,14 @@ import {
   ATTENDANCE_KEY,
   AttendanceRecords,
 } from '@root/modules/attendance/application/AttendanceRecords';
+import {
+  PREREQUISITES_KEY,
+  PrerequisiteCatalog,
+} from '@root/modules/graduation/application/PrerequisiteCatalog';
+import {
+  PLAN_PREFERENCES_KEY,
+  PlanPreferencesStore,
+} from '@root/modules/graduation/application/PlanPreferencesStore';
 import { APP_INFO_VERSION_KEY } from '@features/AppInfoModal/info';
 import { initializeIdentity } from './initializeIdentity';
 import { createDelivery } from './createDelivery';
@@ -49,6 +57,8 @@ const ACCOUNT_PREFERENCES = [
   PREFERENCES_KEY,
   CHECK_STATE_KEY,
   ATTENDANCE_KEY,
+  PREREQUISITES_KEY,
+  PLAN_PREFERENCES_KEY,
   APP_INFO_VERSION_KEY,
 ] as const;
 
@@ -129,6 +139,11 @@ export function createAppServices() {
     notifications,
     // faltas marcadas pelo aluno, só no aparelho (o logout apaga)
     attendance: new AttendanceRecords(preferences),
+    // plano até a formatura: pré-requisitos lidos e as escolhas do aluno
+    graduation: {
+      prerequisites: new PrerequisiteCatalog(preferences),
+      preferences: new PlanPreferencesStore(preferences),
+    },
     // aviso tocado, atalho do ícone ou widget: a tela que o app abre
     launches: createLaunches(),
     widget: createWidget({ queryClient, identity }),

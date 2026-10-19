@@ -14,6 +14,11 @@ tags:
 - runFlow:
     file: subflows/ir-pelo-menu.yaml
     env:
+      TELA: Plano até a formatura
+      MARCA: Formatura prevista.*|Nada a planejar.*|Não foi possível carregar o currículo e o histórico\.
+- runFlow:
+    file: subflows/ir-pelo-menu.yaml
+    env:
       TELA: Disciplinas Realizadas
       MARCA: Período
 - runFlow:

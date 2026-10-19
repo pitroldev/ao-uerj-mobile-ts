@@ -3,6 +3,7 @@ import type {
   ClassGrade,
   CurriculumSubject,
   EnrollmentResult,
+  GraduationSynthesis,
   PartialRidResult,
   SubjectInfo,
   SubjectsTaken,
@@ -30,4 +31,6 @@ export interface AcademicRecordsPort {
   getUniversalSubjects(
     options?: AcademicRequestOptions,
   ): Promise<UniversalSubject[]>;
+  /** Síntese da Formação: CR oficial, requisitos do currículo e prazo. */
+  getSynthesis(options?: AcademicRequestOptions): Promise<GraduationSynthesis>;
 }

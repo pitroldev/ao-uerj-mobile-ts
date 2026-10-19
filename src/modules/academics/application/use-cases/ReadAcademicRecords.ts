@@ -16,6 +16,8 @@ export class ReadAcademicRecords {
     this.records.getPartialRid(options);
   universalSubjects = (options?: AcademicRequestOptions) =>
     this.records.getUniversalSubjects(options);
+  synthesis = (options?: AcademicRequestOptions) =>
+    this.records.getSynthesis(options);
   subjectDetails = (subjectId: string, options?: AcademicRequestOptions) =>
     this.records.getSubjectDetails(normalizeSubjectId(subjectId), options);
 }

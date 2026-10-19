@@ -35,6 +35,7 @@ export type PortalOperation =
   | 'enrollmentResult'
   | 'subjectDetails'
   | 'universalSubjects'
+  | 'synthesis'
   | 'documents';
 
 export type PortalOperationParams = { subjectId?: string };

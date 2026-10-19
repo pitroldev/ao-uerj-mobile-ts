@@ -92,6 +92,7 @@ function setup(preferences: Record<string, unknown>, disabled: string[] = []) {
     getEnrollmentResult: jest.fn(),
     getSubjectDetails: jest.fn(),
     getUniversalSubjects: jest.fn(),
+    getSynthesis: jest.fn(),
   };
   const flushCache = jest.fn(async () => undefined);
   const update = async <T,>(

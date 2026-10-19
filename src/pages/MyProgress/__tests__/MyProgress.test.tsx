@@ -40,6 +40,10 @@ jest.mock('@hooks/useElectiveCreditsConfig', () => ({
     setConfig: mockSetConfig,
   }),
 }));
+// o cartão do plano até a formatura tem teste próprio
+jest.mock('@root/modules/graduation/presentation/useGraduationPlan', () => ({
+  useGraduationPlan: () => ({ status: 'loading' }),
+}));
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
