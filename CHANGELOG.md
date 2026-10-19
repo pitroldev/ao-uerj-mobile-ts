@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.6.0 (2026-10-19)
+
+### Novidades
+
+- Plano até a formatura, no menu e por um cartão no Meu Progresso: as obrigatórias que faltam distribuídas pelos próximos períodos, respeitando os pré-requisitos.
+  - O prazo máximo vem da Síntese da Formação, que o app passou a ler, e o plano mostra quantos períodos sobram até ele.
+  - Ritmo Leve, Normal ou Intenso (até 20, 26 ou 32 créditos por período), a cadeia de pré-requisitos mais longa e as disciplinas que travam outras.
+  - Cada disciplina abre um detalhe com o motivo de estar naquele período, os pré-requisitos e o que ela libera. Dá para adiá-la um período, vendo antes o efeito na formatura, e restaurar o plano depois.
+  - Na primeira vez, o app lê os pré-requisitos na Pesquisa de Disciplinas. Eles ficam guardados por versão curricular e saem no logout.
+
+### Correções
+
+- As folhas longas rolam a partir de qualquer ponto do conteúdo, e não só começando num botão.
+
 ## 2.5.0 (2026-10-18)
 
 ### Novidades
