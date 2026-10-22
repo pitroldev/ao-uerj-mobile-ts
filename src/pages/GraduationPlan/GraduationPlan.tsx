@@ -38,6 +38,8 @@ import {
   type GraduationPlanView,
 } from '@root/modules/graduation/presentation/useGraduationPlan';
 import type { RootDrawerParamList } from '@root/routes';
+import { useOnlineStatus } from '@root/modules/academics/presentation/useOnlineStatus';
+import { usePortalStatus } from '@root/modules/connectivity/presentation/PortalStatusContext';
 
 import { PlanSubjectSheet } from './PlanSubjectSheet';
 import {
@@ -190,6 +192,10 @@ function Plan({
   onSelect: (key: string) => void;
 }) {
   const { plan, label, deadline, synthesis, catalog } = view;
+  // ler de novo esquece o que foi lido: sem o portal, ficaria sem nada
+  const online = useOnlineStatus();
+  const portal = usePortalStatus();
+  const canReread = online && !portal.down;
   const length = plan.periods.length;
   const last = length ? label(length - 1) : '–';
   const names = new Map(view.subjects.map(item => [item.key, item.name]));
@@ -428,6 +434,12 @@ function Plan({
             size="sm"
             icon="refresh"
             label="Ler os pré-requisitos de novo"
+            accessibilityHint={
+              canReread
+                ? undefined
+                : 'Indisponível sem conexão com o Aluno Online'
+            }
+            disabled={!canReread}
             onPress={() => {
               void catalog.reload();
             }}

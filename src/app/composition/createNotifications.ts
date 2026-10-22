@@ -11,6 +11,7 @@ import type { IdentityController } from '@root/modules/identity/application/Iden
 import type { PreferencesStore } from '@root/modules/identity/application/PreferencesStore';
 import { NotificationSettings } from '@root/modules/notifications/application/NotificationSettings';
 import { PortalCheck } from '@root/modules/notifications/application/PortalCheck';
+import { PortalReturnAlert } from '@root/modules/notifications/application/PortalReturnAlert';
 import type {
   AcademicCachePort,
   ActiveAccount,
@@ -31,6 +32,8 @@ type Dependencies = {
   flushCache: () => Promise<void>;
   /** Conta salva (keychain), lida sem o portal. */
   savedScope: () => Promise<string | null>;
+  /** Requisição leve ao portal, sem login: `true` se ele respondeu. */
+  probePortal: () => Promise<boolean>;
   device?: NotificationDevicePort | null;
 };
 
@@ -49,6 +52,7 @@ export function createNotifications({
   remoteStatus,
   flushCache,
   savedScope,
+  probePortal,
   device = createNativeNotifications(),
 }: Dependencies) {
   const account = activeAccount(identity);
@@ -94,6 +98,17 @@ export function createNotifications({
         onRecorded: (scope, state) => settings.checkRecorded(scope, state),
       })
     : null;
+  const portalReturn = device
+    ? new PortalReturnAlert({
+        device,
+        store: preferences,
+        account,
+        savedScope,
+        remote,
+        probe: probePortal,
+        now: () => Date.now(),
+      })
+    : null;
 
   if (device) {
     // A grade salva mudou (tela, cache restaurado ou verificação): os
@@ -107,5 +122,5 @@ export function createNotifications({
     });
   }
   settings.start();
-  return { settings, portalCheck };
+  return { settings, portalCheck, portalReturn };
 }

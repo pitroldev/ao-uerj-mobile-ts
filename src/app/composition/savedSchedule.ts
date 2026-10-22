@@ -7,13 +7,14 @@ import type { IdentityController } from '@root/modules/identity/application/Iden
 /** Dono do cache das consultas: conta e período. */
 export type CacheOwner = { scope: string; period: string };
 
-/** Conta ativa: `undefined` enquanto a identidade é restaurada, `null` sem conta. */
+/** Conta ativa: `undefined` enquanto a conta salva não foi lida, `null` sem conta. */
 export function activeAccount(
   identity: Pick<IdentityController, 'getSnapshot'>,
 ): () => CacheOwner | null | undefined {
   return () => {
     const snapshot = identity.getSnapshot();
-    if (snapshot.status === 'restoring') return undefined;
+    // a conta salva vale desde a abertura, antes do login no portal
+    if (snapshot.status === 'restoring' && !snapshot.account) return undefined;
     return snapshot.account
       ? { scope: snapshot.account.scope, period: snapshot.account.period }
       : null;

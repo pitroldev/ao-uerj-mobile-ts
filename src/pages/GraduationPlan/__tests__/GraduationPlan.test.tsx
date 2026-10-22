@@ -1,4 +1,5 @@
 import React from 'react';
+import { onlineManager } from '@tanstack/react-query';
 import { act, screen, userEvent, within } from '@testing-library/react-native';
 import type { QueryClient } from '@tanstack/react-query';
 
@@ -416,6 +417,16 @@ it('reads the prerequisites again on request, past the page cache', async () => 
   );
   await planReady();
   expect(mockGetSubjectDetails).toHaveBeenCalledTimes(8);
+});
+
+it('keeps what was read when there is no internet to read again', async () => {
+  await renderPage();
+  await planReady();
+  await act(() => onlineManager.setOnline(false));
+  expect(
+    screen.getByRole('button', { name: 'Ler os pré-requisitos de novo' }),
+  ).toBeDisabled();
+  await act(() => onlineManager.setOnline(true));
 });
 
 it('opens the subject in the Pesquisa de Disciplinas', async () => {

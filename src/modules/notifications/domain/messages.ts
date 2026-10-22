@@ -11,7 +11,7 @@ import type {
 
 /** Canais do Android (o aluno pode ajustar som e importância de cada um). */
 type NotificationChannel =
-  'class-reminders' | 'grades' | 'enrollment' | 'documents';
+  'class-reminders' | 'grades' | 'enrollment' | 'documents' | 'portal-status';
 
 /** Tela aberta ao tocar no aviso. */
 type NotificationTarget = Extract<LaunchTarget, 'home' | 'documents'>;
@@ -232,5 +232,18 @@ export function documentMessage({
     publicTitle: `Documento ${when}`,
     publicBody: PUBLIC_BODY,
     target: 'documents',
+  };
+}
+
+/** O aviso pedido em "Avisar quando voltar". */
+export function portalBackMessage(): NotificationContent {
+  return {
+    id: 'portal:back',
+    channel: 'portal-status',
+    title: 'O Aluno Online voltou',
+    body: 'Toque para atualizar seus dados no AO UERJ.',
+    publicTitle: 'O Aluno Online voltou',
+    publicBody: PUBLIC_BODY,
+    target: 'home',
   };
 }

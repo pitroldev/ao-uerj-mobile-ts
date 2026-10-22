@@ -24,6 +24,7 @@ function nativeModule({ enabled = false } = {}) {
     openExactAlarmSettings: jest.fn(async () => undefined),
     setClassReminders: jest.fn(async (_plan: string) => undefined),
     setPortalCheck: jest.fn(async (_on: boolean, _hours: number) => undefined),
+    setPortalReturnWatch: jest.fn(async (_on: boolean) => undefined),
     notify: jest.fn(async () => undefined),
     clearNotifications: jest.fn(async () => undefined),
     consumeLaunchTarget: jest.fn(

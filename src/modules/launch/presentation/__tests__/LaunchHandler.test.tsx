@@ -7,12 +7,22 @@ import { LaunchHandler } from '../LaunchHandler';
 
 const mockNavigate = jest.fn();
 let mockStatus = 'restoring';
+/** Conta salva já lida (na abertura, antes do login no portal). */
+let mockSavedAccount = false;
 let mockLaunches: LaunchSource | null = null;
 jest.mock('@services/rootNavigation', () => ({
   navigate: (...args: unknown[]) => mockNavigate(...args),
 }));
 jest.mock('@root/app/providers/AppServicesProvider', () => ({
-  useIdentity: () => ({ status: mockStatus }),
+  useIdentity: () => ({
+    status: mockStatus,
+    account:
+      mockStatus === 'signedIn' ||
+      mockStatus === 'refreshing' ||
+      (mockStatus === 'restoring' && mockSavedAccount)
+        ? { scope: 'account-a' }
+        : null,
+  }),
   useAppServices: () => ({ launches: mockLaunches }),
 }));
 
@@ -32,6 +42,7 @@ function launches(initial: LaunchTarget | null) {
 
 beforeEach(() => {
   mockStatus = 'restoring';
+  mockSavedAccount = false;
 });
 
 it('waits for the account and the navigation before opening the screen', async () => {
@@ -48,6 +59,14 @@ it('waits for the account and the navigation before opening the screen', async (
   await view.rerender(<LaunchHandler ready />);
   await act(async () => undefined);
   expect(mockNavigate).toHaveBeenCalledTimes(1);
+  expect(mockNavigate).toHaveBeenCalledWith('Emissão de Documentos');
+});
+
+it('opens the screen with the saved account before the opening sign-in ends', async () => {
+  mockSavedAccount = true;
+  mockLaunches = launches('documents');
+  await render(<LaunchHandler ready />);
+  await act(async () => undefined);
   expect(mockNavigate).toHaveBeenCalledWith('Emissão de Documentos');
 });
 

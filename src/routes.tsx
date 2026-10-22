@@ -29,6 +29,7 @@ import { LoadingPage } from './pages/Loading';
 import { CampusMapPage } from './pages/CampusMap/CampusMap';
 import { DocumentsPage } from '@root/pages/Documents';
 import { NotificationsPage } from '@root/pages/Notifications';
+import { showsAccount } from '@root/modules/identity/domain/identityState';
 
 export type RootDrawerParamList = {
   Login: undefined;
@@ -81,9 +82,9 @@ export const MainRoutes = () => {
   // os avisos dependem do módulo nativo, que só existe no Android
   const notificationsSupported =
     useAppServices().notifications.settings.getSnapshot().supported;
-  const showLoading = status === 'restoring';
-  const isSignedIn =
-    Boolean(account) && (status === 'signedIn' || status === 'refreshing');
+  // a conta salva aparece antes do login da abertura terminar
+  const showLoading = status === 'restoring' && !account;
+  const isSignedIn = showsAccount({ status, account });
 
   return (
     <Drawer.Navigator

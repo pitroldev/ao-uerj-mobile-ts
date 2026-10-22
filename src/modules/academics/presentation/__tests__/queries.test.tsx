@@ -25,7 +25,14 @@ let mockIdentity: IdentityState;
 const mockRecords = { getHistory: jest.fn(), getSubjectDetails: jest.fn() };
 jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useIdentity: () => mockIdentity,
-  useAppServices: () => ({ academicRecords: mockRecords }),
+  useAppServices: () => ({
+    academicRecords: mockRecords,
+    // a leitura espera o login da abertura e confere a conta na hora
+    identity: {
+      settled: () => Promise.resolve(),
+      getSnapshot: () => mockIdentity,
+    },
+  }),
 }));
 
 const account = (scope: string) => ({

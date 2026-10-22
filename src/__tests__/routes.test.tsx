@@ -238,9 +238,9 @@ describe('MainRoutes authorization', () => {
     expect(screen.getByText('Visitas: 0')).toBeOnTheScreen();
   });
 
-  it('exposes only Loading while restoring, even with a saved account', async () => {
+  it('exposes only Loading while the saved account is not read yet', async () => {
     const { navigation, unhandled, changeIdentity } = await setup({
-      ...signedIn,
+      ...signedOut,
       status: 'restoring',
     });
     expect(navigation.getRootState()?.routeNames).toEqual(['Loading']);
@@ -253,6 +253,24 @@ describe('MainRoutes authorization', () => {
     expect(navigation.getRootState()?.routeNames).toEqual(['Login', 'Mapa']);
     expect(navigation.getCurrentRoute()?.name).toBe('Login');
     expect(navigation.canGoBack()).toBe(false);
+  });
+
+  it('opens the saved account right away while the opening sign-in runs', async () => {
+    const { navigation, changeIdentity } = await setup({
+      ...signedIn,
+      status: 'restoring',
+    });
+    expect(navigation.getCurrentRoute()?.name).toBe('Início');
+    await act(() => navigation.navigate('Meu Progresso'));
+    const progressKey = navigation.getCurrentRoute()?.key;
+
+    // o login termina: a mesma navegação segue, sem remontar as telas
+    await changeIdentity(signedIn);
+    expect(navigation.getCurrentRoute()?.key).toBe(progressKey);
+
+    // a senha mudou no portal: volta ao login
+    await changeIdentity(signedOut);
+    expect(navigation.getCurrentRoute()?.name).toBe('Login');
   });
 
   it('keeps private navigation during refresh but requires an account', async () => {

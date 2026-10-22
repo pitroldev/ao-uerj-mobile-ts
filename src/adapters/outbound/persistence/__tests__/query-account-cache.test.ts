@@ -4,7 +4,12 @@ import {
   QueryClient,
 } from '@tanstack/react-query';
 import { createQueryClient } from '@root/app/queryClient';
-import { createQueryAccountCache, MAX_CACHE_AGE } from '../query-account-cache';
+import {
+  createQueryAccountCache,
+  LONG_CACHE_AGE,
+  longLivedCacheAge,
+  MAX_CACHE_AGE,
+} from '../query-account-cache';
 import type { KeyValueStorage } from '../storage';
 
 function setup(
@@ -185,4 +190,71 @@ describe('queries that no screen observes', () => {
     cache.dispose();
     client.clear();
   });
+});
+
+it('keeps what changes little for the period with the encrypted cache', async () => {
+  const MONTH_AGO = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const query = (resource: string) => ({
+    queryKey: ['academics', 'a', '2026.2', resource],
+    queryHash: JSON.stringify(['academics', 'a', '2026.2', resource]),
+    state: {
+      data: [resource],
+      dataUpdatedAt: MONTH_AGO,
+      dataUpdateCount: 1,
+      error: null,
+      errorUpdatedAt: 0,
+      errorUpdateCount: 0,
+      fetchFailureCount: 0,
+      fetchFailureReason: null,
+      fetchMeta: null,
+      isInvalidated: false,
+      status: 'success',
+      fetchStatus: 'idle',
+    },
+  });
+  const saved = JSON.stringify({
+    version: 2,
+    savedAt: MONTH_AGO,
+    state: {
+      mutations: [],
+      queries: [query('schedule'), query('history'), query('partial-rid')],
+    },
+  });
+  const restore = async (
+    options: Parameters<typeof createQueryAccountCache>[3],
+  ) => {
+    const records = new Map([['ao:v2:academic-cache:a', saved]]);
+    const client = new QueryClient();
+    const cache = createQueryAccountCache(
+      client,
+      {
+        getItem: async key => records.get(key) ?? null,
+        setItem: async () => undefined,
+        removeItem: async () => undefined,
+      },
+      undefined,
+      options,
+    );
+    await cache.lifecycle.activate('a');
+    const kept = client
+      .getQueryCache()
+      .getAll()
+      .map(item => item.queryKey[3]);
+    cache.dispose();
+    client.clear();
+    return kept;
+  };
+  // no cofre: a grade e o histórico valem o período; o RID, 7 dias
+  expect(await restore({ maxAge: longLivedCacheAge })).toEqual([
+    'schedule',
+    'history',
+  ]);
+  // sem o cofre (iOS): 7 dias para tudo
+  expect(await restore({})).toEqual([]);
+  expect(longLivedCacheAge(['academics', 'a', '2026.2', 'grades'])).toBe(
+    LONG_CACHE_AGE,
+  );
+  expect(
+    longLivedCacheAge(['academics', 'a', '2026.2', 'subject-details', '1']),
+  ).toBe(MAX_CACHE_AGE);
 });

@@ -10,10 +10,15 @@ import type {
   DocumentPdf,
   StudentDocument,
 } from '@root/modules/documents/domain/models';
+import type { SavedDocumentsPort } from '@root/modules/documents/application/ports';
+import { PortalMonitor } from '@root/modules/connectivity/application/PortalMonitor';
+import { PortalStatusProvider } from '@root/modules/connectivity/presentation/PortalStatusContext';
 import { DocumentsPage } from '../Documents';
 
 const mockDocuments = { list: jest.fn(), issue: jest.fn(), remove: jest.fn() };
 const mockSharing = { share: jest.fn() };
+/** PDFs guardados no aparelho (o cofre do Android); `null` como no iOS. */
+let mockSaved: SavedDocumentsPort | null = null;
 let mockFocused = true;
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
@@ -27,6 +32,7 @@ jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useAppServices: () => ({
     documents: mockDocuments,
     documentSharing: mockSharing,
+    savedDocuments: mockSaved,
   }),
 }));
 jest.mock('react-native-safe-area-context', () => ({
@@ -64,6 +70,7 @@ function mount(theme: 'light' | 'dark' = 'light') {
 }
 beforeEach(() => {
   mockFocused = true;
+  mockSaved = null;
   onlineManager.setOnline(true);
   mockDocuments.list.mockReset().mockResolvedValue([REGULAR, HISTORY]);
   mockDocuments.issue.mockReset().mockResolvedValue(PDF);
@@ -281,3 +288,109 @@ it.each(['pdf', 'deletion'] as const)(
     expect(mockDocuments.remove).not.toHaveBeenCalled();
   },
 );
+
+function memorySaved(): SavedDocumentsPort {
+  let items: Awaited<ReturnType<SavedDocumentsPort['list']>> = [];
+  return {
+    list: async () => items,
+    save: async (_scope, document) => {
+      items = [document, ...items.filter(item => item.id !== document.id)];
+    },
+    remove: async (_scope, id) => {
+      items = items.filter(item => item.id !== id);
+    },
+    clear: async () => {
+      items = [];
+    },
+  };
+}
+
+it('keeps a PDF on the device and shares it without internet', async () => {
+  mockSaved = memorySaved();
+  const user = userEvent.setup();
+  await mount();
+  await user.press(
+    await screen.findByRole('button', { name: `Obter PDF: ${REGULAR.title}` }),
+  );
+  await user.press(
+    await screen.findByRole('button', {
+      name: `Guardar no aparelho para usar sem internet: ${REGULAR.title}`,
+    }),
+  );
+  expect(
+    await screen.findByText(/^Guardado no aparelho: abre mesmo sem internet/),
+  ).toBeOnTheScreen();
+  await user.press(screen.getByRole('button', { name: 'Fechar documento' }));
+  expect(await screen.findByText('Guardados no aparelho')).toBeOnTheScreen();
+  expect(
+    screen.getByText(/^Guardado em .* · válido até 16\/11\/2026$/),
+  ).toBeOnTheScreen();
+
+  await act(() => onlineManager.setOnline(false));
+  await user.press(
+    screen.getByRole('button', {
+      name: `Compartilhar PDF guardado: ${REGULAR.title}`,
+    }),
+  );
+  expect(mockSharing.share).toHaveBeenCalledWith(PDF);
+  await user.press(
+    screen.getByRole('button', {
+      name: `Apagar do aparelho: ${REGULAR.title}`,
+    }),
+  );
+  await waitFor(() =>
+    expect(screen.queryByText('Guardados no aparelho')).not.toBeOnTheScreen(),
+  );
+});
+
+it('offers to keep PDFs only where the device can encrypt them', async () => {
+  const user = userEvent.setup();
+  await mount();
+  await user.press(
+    await screen.findByRole('button', { name: `Obter PDF: ${REGULAR.title}` }),
+  );
+  expect(await screen.findByText('PDF pronto')).toBeOnTheScreen();
+  expect(
+    screen.queryByRole('button', {
+      name: `Guardar no aparelho para usar sem internet: ${REGULAR.title}`,
+    }),
+  ).not.toBeOnTheScreen();
+});
+
+const SIGNED_IN = { status: 'signedIn' as const, account: null, error: null };
+
+it('holds issuing and deleting while the portal is down', async () => {
+  const monitor = new PortalMonitor({
+    now: Date.now,
+    online: () => true,
+    active: () => false,
+    probe: async () => 503,
+    setTimer: () => null,
+    clearTimer: () => undefined,
+  });
+  await renderWithProviders(
+    <PortalStatusProvider
+      monitor={monitor}
+      identity={{
+        subscribe: () => () => undefined,
+        getSnapshot: () => SIGNED_IN,
+      }}
+      alert={null}
+    >
+      <DocumentsPage />
+    </PortalStatusProvider>,
+    { queryClient: createTestQueryClient() },
+  );
+  const issue = await screen.findByRole('button', {
+    name: `Obter PDF: ${REGULAR.title}`,
+  });
+  expect(issue).toBeEnabled();
+  await act(() => monitor.failed('unavailable'));
+  expect(issue).toBeDisabled();
+  expect(
+    screen.getByRole('button', { name: `Excluir documento: ${REGULAR.title}` }),
+  ).toBeDisabled();
+  expect(
+    screen.getByText(/^O Aluno Online não está respondendo/),
+  ).toBeOnTheScreen();
+});

@@ -15,3 +15,16 @@ export type DocumentPdf = {
   filename: string;
   mimeType: 'application/pdf';
 };
+
+/**
+ * PDF que o aluno pediu para guardar no aparelho: abre e compartilha sem
+ * internet e sem o portal (a declaração de matrícula numa queda, por
+ * exemplo). A validade é a que o portal informou na emissão.
+ */
+export type SavedDocument = {
+  id: string;
+  title: string;
+  validUntil: string | null;
+  savedAt: number;
+  pdf: DocumentPdf;
+};

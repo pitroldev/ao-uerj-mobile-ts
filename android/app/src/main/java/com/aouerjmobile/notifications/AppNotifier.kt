@@ -33,6 +33,7 @@ internal object AppNotifier {
   private const val CHANNEL_GRADES = "grades"
   private const val CHANNEL_ENROLLMENT = "enrollment"
   private const val CHANNEL_DOCUMENTS = "documents"
+  private const val CHANNEL_PORTAL_STATUS = "portal-status"
 
   private val CHANNELS =
       listOf(
@@ -58,6 +59,12 @@ internal object AppNotifier {
               CHANNEL_DOCUMENTS,
               "Documentos",
               "Documento emitido perto de vencer.",
+              NotificationManager.IMPORTANCE_DEFAULT,
+          ),
+          Channel(
+              CHANNEL_PORTAL_STATUS,
+              "Aluno Online de volta",
+              "Aviso pedido quando o Aluno Online volta a responder.",
               NotificationManager.IMPORTANCE_DEFAULT,
           ),
       )

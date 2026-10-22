@@ -7,6 +7,8 @@ import type {
   RequestOptions,
 } from '@root/modules/community/application/ports';
 import type { ErrorReporterPort } from '@root/modules/support/application/ports';
+import type { SharedPortalStatusPort } from '@root/modules/connectivity/application/ports';
+import type { SharedPortalStatus } from '@root/modules/connectivity/domain/sharedStatus';
 
 export interface PrivateApiHttpClient {
   get(url: string, options?: RequestOptions): Promise<{ data: unknown }>;
@@ -75,6 +77,23 @@ function teacher(value: unknown): Teacher {
   };
 }
 
+const PORTAL_STATUS_TIMEOUT = 5000;
+
+/** `{ state, since, checkedAt }` do servidor; sem consulta recente, `null`. */
+function sharedPortalStatus(value: unknown): SharedPortalStatus | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const data = value as Record<string, unknown>;
+  const time = (raw: unknown) => {
+    if (typeof raw !== 'string') return null;
+    const parsed = Date.parse(raw);
+    return Number.isNaN(parsed) ? null : parsed;
+  };
+  const checkedAt = time(data.checkedAt);
+  if ((data.state !== 'up' && data.state !== 'down') || checkedAt === null)
+    return null;
+  return { state: data.state, since: time(data.since), checkedAt };
+}
+
 async function request<T>(execute: () => Promise<T>): Promise<T> {
   try {
     return await execute();
@@ -103,11 +122,33 @@ export function createPrivateApiAdapters(
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
   }),
 ): {
+  portalStatus: SharedPortalStatusPort;
   messageBoard: MessageBoardPort;
   teacherDirectory: TeacherDirectoryPort;
   errorReporter: ErrorReporterPort;
 } {
   return {
+    portalStatus: {
+      // Só um aviso a mais durante a queda: qualquer falha, formato
+      // estranho ou servidor sem a rota vira "não sei".
+      async read(options) {
+        const controller = new AbortController();
+        const abort = () => controller.abort();
+        options?.signal?.addEventListener('abort', abort);
+        const timer = setTimeout(abort, PORTAL_STATUS_TIMEOUT);
+        try {
+          const { data } = await client.get('/portal-status', {
+            signal: controller.signal,
+          });
+          return sharedPortalStatus(data);
+        } catch {
+          return null;
+        } finally {
+          clearTimeout(timer);
+          options?.signal?.removeEventListener('abort', abort);
+        }
+      },
+    },
     messageBoard: {
       read: (thread, options) =>
         request(async () => {

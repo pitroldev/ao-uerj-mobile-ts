@@ -18,7 +18,13 @@ import { errorMessage } from '@root/shared/errors/AppError';
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
 import { useOnlineStatus } from '@root/modules/academics/presentation/useOnlineStatus';
 import { useDocuments } from '@root/modules/documents/presentation/useDocuments';
-import type { StudentDocument } from '@root/modules/documents/domain/models';
+import { useSavedDocuments } from '@root/modules/documents/presentation/useSavedDocuments';
+import type {
+  SavedDocument,
+  StudentDocument,
+} from '@root/modules/documents/domain/models';
+import { usePortalStatus } from '@root/modules/connectivity/presentation/PortalStatusContext';
+import { snackbar } from '@components/ui/Snackbar';
 
 const Intro = styled(Text)`
   margin-bottom: ${({ theme }) => theme.spacing.xl}px;
@@ -34,12 +40,77 @@ const SheetBody = styled.View`
 const StateNotice = styled(Notice)`
   margin-bottom: ${({ theme }) => theme.spacing.xl}px;
 `;
+const SavedIntro = styled(Text)`
+  margin-bottom: ${({ theme }) => theme.spacing.sm}px;
+`;
 
 function documentStatus(document: StudentDocument) {
   if (document.validUntil) return `Válido até ${document.validUntil}`;
   return document.hasExistingDocument
     ? 'Documento emitido'
     : 'Ainda não emitido';
+}
+
+function savedStatus(document: SavedDocument) {
+  const savedOn = new Date(document.savedAt).toLocaleDateString('pt-BR');
+  return document.validUntil
+    ? `Guardado em ${savedOn} · válido até ${document.validUntil}`
+    : `Guardado em ${savedOn}`;
+}
+
+/**
+ * PDFs guardados no aparelho: abrem e são compartilhados sem internet e sem
+ * o portal (cifrados; saem no logout).
+ */
+function SavedDocuments({
+  saved,
+}: {
+  saved: ReturnType<typeof useSavedDocuments>;
+}) {
+  if (!saved.documents.length) return null;
+  return (
+    <Section first title="Guardados no aparelho">
+      <SavedIntro variant="meta" tone="muted">
+        Disponíveis mesmo sem internet ou com o Aluno Online fora do ar.
+      </SavedIntro>
+      <List>
+        {saved.documents.map(document => (
+          <ListRow
+            key={document.id}
+            title={document.title}
+            leadingIcon="description"
+            leadingAlign="start"
+            meta={savedStatus(document)}
+          >
+            <Actions>
+              <Button
+                label="Compartilhar PDF"
+                accessibilityLabel={`Compartilhar PDF guardado: ${document.title}`}
+                icon="share"
+                variant="outline"
+                onPress={() => {
+                  void saved.share(document).catch(() => {
+                    snackbar.error('Não foi possível abrir o PDF.');
+                  });
+                }}
+              />
+              <Button
+                label="Apagar do aparelho"
+                accessibilityLabel={`Apagar do aparelho: ${document.title}`}
+                variant="text"
+                onPress={() => {
+                  void saved.remove(document.id).then(
+                    () => snackbar.success('PDF apagado do aparelho.'),
+                    () => snackbar.error('Não foi possível apagar o PDF.'),
+                  );
+                }}
+              />
+            </Actions>
+          </ListRow>
+        ))}
+      </List>
+    </Section>
+  );
 }
 
 export function DocumentsPage() {
@@ -63,6 +134,10 @@ function DocumentsScreen() {
     clearError,
   } = useDocuments();
   const online = useOnlineStatus();
+  const portal = usePortalStatus();
+  const saved = useSavedDocuments();
+  // emitir e excluir dependem do portal: sem internet ou com ele fora, não
+  const reachable = online && !portal.down;
   const [deletion, setDeletion] = useState<{
     owner: string;
     document: StudentDocument;
@@ -101,6 +176,7 @@ function DocumentsScreen() {
         hasData={query.data !== undefined}
         retry={retry}
       />
+      <SavedDocuments saved={saved} />
       {error && !selected && !result ? (
         <StateNotice tone="bad" text={errorMessage(error)} />
       ) : null}
@@ -125,7 +201,10 @@ function DocumentsScreen() {
           text="O Aluno Online não disponibilizou documentos para sua conta."
         />
       ) : query.data ? (
-        <Section first title="Documentos disponíveis">
+        <Section
+          first={saved.documents.length === 0}
+          title="Documentos disponíveis"
+        >
           <List>
             {query.data.map(document => (
               <ListRow
@@ -156,7 +235,7 @@ function DocumentsScreen() {
                         operation.id === document.id
                       }
                       loadingLabel="Preparando PDF…"
-                      disabled={busy || !online}
+                      disabled={busy || !reachable}
                       onPress={() => {
                         void issue(document);
                       }}
@@ -167,7 +246,7 @@ function DocumentsScreen() {
                       label="Excluir documento"
                       accessibilityLabel={`Excluir documento: ${document.title}`}
                       variant="text"
-                      disabled={busy || !online}
+                      disabled={busy || !reachable}
                       onPress={() => {
                         clearError();
                         setDeletion({ owner, document });
@@ -217,6 +296,32 @@ function DocumentsScreen() {
               lista de apps, você pode tentar novamente sem emitir outro
               documento.
             </Text>
+            {saved.supported ? (
+              saved.isSaved(result.document.id) ? (
+                <Text variant="meta" tone="muted">
+                  Guardado no aparelho: abre mesmo sem internet ou com o Aluno
+                  Online fora do ar, até você apagar ou sair da conta.
+                </Text>
+              ) : (
+                <Button
+                  label="Guardar no aparelho"
+                  accessibilityLabel={`Guardar no aparelho para usar sem internet: ${result.document.title}`}
+                  icon="download"
+                  variant="outline"
+                  disabled={busy}
+                  onPress={() => {
+                    void saved.save(result.document, result.pdf).then(
+                      () =>
+                        snackbar.success(
+                          'PDF guardado no aparelho.',
+                          'Disponível mesmo sem internet.',
+                        ),
+                      () => snackbar.error('Não foi possível guardar o PDF.'),
+                    );
+                  }}
+                />
+              )
+            ) : null}
             {error ? <Notice tone="bad" text={errorMessage(error)} /> : null}
           </SheetBody>
         ) : null}
@@ -240,7 +345,7 @@ function DocumentsScreen() {
               accessibilityLabel="Confirmar exclusão do documento"
               loading={operation?.kind === 'remove'}
               loadingLabel="Excluindo…"
-              disabled={busy || !online}
+              disabled={busy || !reachable}
               onPress={confirmDeletion}
             />
           </>

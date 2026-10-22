@@ -54,6 +54,13 @@ export class IdentityController {
 
   getSnapshot = (): IdentityState => this.state;
 
+  /**
+   * Termina com a restauração da abertura: uma leitura pedida com a conta
+   * salva na tela espera o login dela em vez de entrar no portal em paralelo.
+   */
+  settled = (): Promise<void> =>
+    this.restoration?.catch(() => undefined) ?? Promise.resolve();
+
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
     return () => {
@@ -151,6 +158,14 @@ export class IdentityController {
         }
         await accountData.activate(saved.account.scope);
         this.assertCurrent(epoch);
+        // A conta salva aparece na hora, com os dados em cache: o app abre
+        // sem esperar o portal (que pode estar lento ou fora). As consultas
+        // só vão ao portal depois deste login, ainda em `restoring`.
+        this.publish({
+          status: 'restoring',
+          account: saved.account,
+          error: null,
+        });
         let authenticated = false;
         try {
           const profile = await authentication.signIn(saved.credentials);

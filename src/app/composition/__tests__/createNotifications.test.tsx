@@ -113,6 +113,7 @@ function setup(preferences: Record<string, unknown>, disabled: string[] = []) {
     remoteStatus,
     flushCache,
     savedScope: async () => identity.getSnapshot().account?.scope ?? null,
+    probePortal: async () => true,
     device,
   });
   const key = (resource: string) =>

@@ -57,6 +57,7 @@ export function createNativeNotifications(
       module.setClassReminders(plan ? JSON.stringify(plan) : ''),
     setPortalCheck: (on, intervalHours) =>
       module.setPortalCheck(on, intervalHours),
+    setPortalReturnWatch: on => module.setPortalReturnWatch(on),
     notify: content => module.notify(content),
     clearPosted: () => module.clearNotifications(),
   };

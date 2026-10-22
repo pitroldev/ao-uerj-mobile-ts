@@ -18,14 +18,18 @@ export type NoticeTone = 'info' | 'neutral' | 'warn' | 'bad' | 'good';
  * - `refreshFailed`: atenção + "sync_problem"
  * - `blocked`: crítico + "lock" (portal bloqueado); sem `text` nem
  *   `children`, usa o texto padrão `PORTAL_BLOCKED_TEXT`
+ * - `portalDown`: atenção + "cloud_off" (o portal não responde, com a
+ *   internet funcionando)
  */
-export type NoticeKind = 'updating' | 'offline' | 'refreshFailed' | 'blocked';
+export type NoticeKind =
+  'updating' | 'offline' | 'refreshFailed' | 'blocked' | 'portalDown';
 
 const KINDS: Record<NoticeKind, { tone: NoticeTone; icon: IconName }> = {
   updating: { tone: 'info', icon: 'sync' },
   offline: { tone: 'neutral', icon: 'cloud_off' },
   refreshFailed: { tone: 'warn', icon: 'sync_problem' },
   blocked: { tone: 'bad', icon: 'lock' },
+  portalDown: { tone: 'warn', icon: 'cloud_off' },
 };
 
 const DEFAULT_ICON: Record<NoticeTone, IconName> = {
@@ -51,6 +55,12 @@ export type NoticeProps = {
   action?: { label: string; onPress: () => void; accessibilityLabel?: string };
   /** Chamado ao tocar em "Tentar novamente" (atalho para `action`). */
   onRetry?: () => void;
+  /** Segunda ação, ao lado da primeira ("Avisar quando voltar"). */
+  secondaryAction?: {
+    label: string;
+    onPress: () => void;
+    accessibilityLabel?: string;
+  };
   style?: StyleProp<ViewStyle>;
   testID?: string;
 };
@@ -83,6 +93,13 @@ const ACTION_STYLE = {
   marginBottom: -12,
   marginLeft: -8,
 } as const;
+const SECONDARY_STYLE = { ...ACTION_STYLE, marginLeft: 0 } as const;
+
+const ActionRow = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  column-gap: 4px;
+`;
 
 /**
  * Aviso em faixa (".notice"): ícone + texto + ação opcional, fundo pastel do
@@ -99,6 +116,7 @@ export function Notice({
   spin,
   action,
   onRetry,
+  secondaryAction,
   style,
   testID,
 }: NoticeProps) {
@@ -154,16 +172,23 @@ export function Notice({
         ) : null}
         {children}
         {act ? (
-          <Button
-            variant="text"
-            size="xs"
-            label={act.label}
-            accessibilityLabel={act.accessibilityLabel}
-            onPress={act.onPress}
-            color={tinted ? actionColor : undefined}
-            underline={tinted}
-            style={ACTION_STYLE}
-          />
+          <ActionRow>
+            {[act, secondaryAction].map((item, index) =>
+              item ? (
+                <Button
+                  key={item.label}
+                  variant="text"
+                  size="xs"
+                  label={item.label}
+                  accessibilityLabel={item.accessibilityLabel}
+                  onPress={item.onPress}
+                  color={tinted ? actionColor : undefined}
+                  underline={tinted}
+                  style={index === 0 ? ACTION_STYLE : SECONDARY_STYLE}
+                />
+              ) : null,
+            )}
+          </ActionRow>
         ) : null}
       </Body>
     </Box>

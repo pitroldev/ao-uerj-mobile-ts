@@ -287,3 +287,40 @@ it('discards late refresh after logout', async () => {
   expect(identity.getSnapshot().status).toBe('signedOut');
   expect(stored()).toBeNull();
 });
+
+it('shows the saved account with its cache before the opening sign-in ends', async () => {
+  const { identity, auth, data } = create(saved);
+  let finishSignIn!: (value: StudentProfile) => void;
+  auth.signIn.mockImplementationOnce(
+    () =>
+      new Promise<StudentProfile>(resolve => {
+        finishSignIn = resolve;
+      }),
+  );
+  const restoring = identity.restore();
+  let settled = false;
+  void identity.settled().then(() => {
+    settled = true;
+  });
+  await new Promise<void>(resolve => {
+    setImmediate(() => resolve());
+  });
+  // o cache da conta já foi ativado e a conta aparece, ainda restaurando
+  expect(data.activate).toHaveBeenCalledWith('scope-a');
+  expect(identity.getSnapshot()).toEqual({
+    status: 'restoring',
+    account: saved.account,
+    error: null,
+  });
+  expect(settled).toBe(false);
+  finishSignIn(profile);
+  await restoring;
+  await identity.settled();
+  expect(settled).toBe(true);
+  expect(identity.getSnapshot().status).toBe('signedIn');
+});
+
+it('settles at once without a restoration', async () => {
+  const { identity } = create();
+  await expect(identity.settled()).resolves.toBeUndefined();
+});

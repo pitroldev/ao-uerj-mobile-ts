@@ -19,6 +19,8 @@ export interface NotificationDevicePort {
   setClassReminders(plan: ReminderPlan | null): Promise<void>;
   /** Liga ou desliga a verificação periódica no portal (WorkManager). */
   setPortalCheck(enabled: boolean, intervalHours: number): Promise<void>;
+  /** Liga ou desliga o teste do portal a cada 15 min ("Avisar quando voltar"). */
+  setPortalReturnWatch(enabled: boolean): Promise<void>;
   notify(content: NotificationContent): Promise<void>;
   /**
    * Tira da barra os avisos já mostrados e cancela os lembretes de aula

@@ -32,6 +32,11 @@ export interface Spec extends TurboModule {
   setClassReminders(plan: string): Promise<void>;
   /** Liga (a cada `intervalHours`) ou desliga a verificação no portal. */
   setPortalCheck(enabled: boolean, intervalHours: number): Promise<void>;
+  /**
+   * Liga ou desliga o teste do portal a cada 15 min, com rede, para o aviso
+   * "Avisar quando voltar" (a mesma tarefa sem tela, no modo `return`).
+   */
+  setPortalReturnWatch(enabled: boolean): Promise<void>;
   notify(notification: NativeNotification): Promise<void>;
   /**
    * Cancela os lembretes de aula e tira da barra todos os avisos do app

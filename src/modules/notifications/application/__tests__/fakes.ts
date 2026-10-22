@@ -39,6 +39,7 @@ export function createDevice({
     permission: PermissionState;
     plan?: ReminderPlan | null;
     portal?: boolean;
+    returnWatch?: boolean;
   } = { permission };
   const device = {
     state,
@@ -55,6 +56,9 @@ export function createDevice({
     }),
     setPortalCheck: jest.fn(async (enabled: boolean) => {
       state.portal = enabled;
+    }),
+    setPortalReturnWatch: jest.fn(async (enabled: boolean) => {
+      state.returnWatch = enabled;
     }),
     notify: jest.fn(async (_content: NotificationContent) => undefined),
     // como o módulo nativo: limpar a barra também cancela os lembretes

@@ -5,6 +5,7 @@ import {
   useIdentity,
 } from '@root/app/providers/AppServicesProvider';
 import { navigate } from '@services/rootNavigation';
+import { showsAccount } from '@root/modules/identity/domain/identityState';
 import { needsAccount, type LaunchTarget } from '../domain/launchTarget';
 
 function open(target: LaunchTarget) {
@@ -40,9 +41,10 @@ function allowed(access: Access, target: LaunchTarget) {
  */
 export function LaunchHandler({ ready }: { ready: boolean }) {
   const { launches } = useAppServices();
-  const { status } = useIdentity();
-  const known = ready && status !== 'restoring';
-  const signedIn = status === 'signedIn' || status === 'refreshing';
+  const { status, account } = useIdentity();
+  // a conta salva já aparece na abertura: o destino abre com os dados salvos
+  const signedIn = showsAccount({ status, account });
+  const known = ready && (status !== 'restoring' || signedIn);
   const access = useRef<Access>({ known: false, signedIn: false });
   const pending = useRef<LaunchTarget | null>(null);
 

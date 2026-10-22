@@ -95,7 +95,12 @@ O gerador exige uma ação explícita para enviar a solicitação. Seus detalhes
 
 - Credenciais e identificação da conta ficam no Keychain/Keystore por `react-native-keychain`.
 - Cookies, token e IDs de requisição são efêmeros e pertencem ao adaptador AO.
-- O cache acadêmico persistido em AsyncStorage, sem criptografia, tem dono explícito e validade de sete dias por dado. A interface conserva a última resposta em falhas de atualização.
+- O cache acadêmico persistido tem dono explícito, e a interface conserva a última resposta em falhas de atualização.
+  - No Android, ele fica no cofre do app: AES-256-GCM, chave não exportável no Android Keystore, arquivos fora do backup (`noBackupFilesDir`).
+  - Lá, grade, notas, histórico, currículo, Síntese e disciplinas universais valem 180 dias, e o RID e os detalhes de disciplinas valem 7 dias. A cópia antiga, sem cifra, é lida uma vez na atualização e apagada na primeira gravação.
+  - Sem o cofre (iOS), o cache segue no AsyncStorage, sem criptografia, com validade de sete dias para tudo.
+- Os PDFs que o aluno pede para guardar (ver [Sem internet ou com o portal fora do ar](#sem-internet-ou-com-o-portal-fora-do-ar)) ficam no mesmo cofre, no máximo 5 por conta, e o logout os apaga. Só no Android.
+- Durante uma queda do portal, o app consulta `https://pitrol.dev/aouerj/portal-status`, no máximo a cada 2 minutos. A requisição não leva dados do aluno, mas o servidor vê o IP do aparelho e o horário.
 - O logout invalida resultados tardios, aguarda operações nativas, limpa cookies, credenciais e cache da conta.
 - A migração do antigo Redux persistido transfere credenciais para armazenamento seguro e remove a cópia em texto simples. Se a transferência falhar, um novo login pode ser necessário.
 - Relatórios de suporte enviam diagnóstico estruturado e descrição sanitizada. Não coletam HTML bruto, senha, cookies ou tokens do portal. Com o Sentry ativo, o diagnóstico leva também o id do evento de feedback correspondente.
@@ -109,6 +114,23 @@ O gerador exige uma ação explícita para enviar a solicitação. Seus detalhes
 - O Plano até a formatura (ver [Plano até a formatura](#plano-até-a-formatura)) é calculado no aparelho. Os pré-requisitos lidos na Pesquisa de Disciplinas, a carga escolhida e os adiamentos ficam no AsyncStorage por conta, e o logout os apaga.
 
 Quando o AO não informa o semestre, a interface usa "Período atual". O período do mural é um filtro selecionado pelo usuário; não é uma confirmação do calendário acadêmico oficial.
+
+### Sem internet ou com o portal fora do ar
+
+- **Abertura:** com a conta salva, o app abre na hora com os dados salvos e entra no portal por trás ("Entrando no Aluno Online…"). As leituras esperam esse login, sem um segundo login em paralelo. Uma senha recusada nesse login leva ao Login.
+- **Sem internet:** as consultas pausam e voltam com a conexão (como antes).
+- **Portal fora do ar:** com a internet funcionando, uma resposta 502, 503 ou 504, ou duas falhas de rede seguidas, marcam o portal como fora do ar.
+  - Daí em diante, as leituras falham na hora, sem esperar o tempo-limite.
+  - Uma requisição leve à página inicial do portal testa a volta, com espera crescente: 1, 2, 5, 10 e depois 15 minutos. O teste só acontece com o app na tela.
+  - Uma leitura pedida (tela aberta, "Tentar novamente", puxar para atualizar) também dispara o teste, no máximo a cada 30 segundos.
+  - O aviso de cada tela diz desde quando e a próxima tentativa, e oferece "Tentar agora".
+  - Com a situação do nosso servidor (ver acima), o aviso diz se a queda é de todos ou se o problema pode ser a rede do aluno.
+  - Quando o portal volta, o app avisa "O Aluno Online voltou" e atualiza as telas que falharam.
+- **Lentidão:** uma resposta acima de 8 segundos troca a barra de atualização por "O Aluno Online está lento".
+- **Avisar quando voltar** (Android): no aviso da queda, o aluno pede um aviso. Fora do app, uma tarefa do WorkManager testa o portal a cada 15 minutos, com rede e fora das 22h às 7h, avisa uma vez no canal "Aluno Online de volta" e para. O pedido vence em 3 dias e sai no logout.
+- **Busca antecipada:** com a conta logada, internet, o portal no ar e o app na tela, grade, histórico, currículo e Síntese vencidos são renovados, uma página por vez, no máximo a cada 30 minutos por conta. Notas e RID ficam de fora, porque a verificação de avisos compara com o que o aluno já viu.
+- **Ações que dependem do portal:** emitir e excluir documentos e "Ler os pré-requisitos de novo" ficam desativados sem internet ou com o portal fora do ar.
+- **Documentos guardados** (Android): na folha do PDF, "Guardar no aparelho" mantém o documento cifrado no cofre. A seção "Guardados no aparelho" abre e compartilha o PDF sem internet e sem o portal.
 
 ### Notas, PF e faltas
 
@@ -166,7 +188,7 @@ A tela **Notificações** (só no Android) liga cada aviso separadamente; o Iní
   - Enquanto houver lembretes, o WorkManager também os refaz a cada 6 horas, sem rede e sem abrir o app. Assim, retirar "Alarmes e lembretes" pausa os lembretes por no máximo esse tempo.
   - Sem "Alarmes e lembretes" liberado (Android 12+), o sistema entrega o lembrete numa janela de até 10 minutos antes do horário. Se o app reagenda dentro dessa janela, o lembrete sai na hora. Com o celular parado (Doze), pode atrasar.
   - Um lembrete que chegaria depois do início da aula é descartado. Uma aula já avisada não é avisada de novo, nem ao mudar a antecedência.
-  - Os lembretes param 21 dias depois da última leitura da grade e não conhecem feriados. Sem a grade salva (o cache em disco dura 7 dias), os lembretes já agendados continuam até essa validade.
+  - Os lembretes param 21 dias depois da última leitura da grade e não conhecem feriados. Sem a grade salva (o cache em disco perdeu a validade ou foi apagado), os lembretes já agendados continuam até essa validade.
 - **Avisos do Aluno Online:** nota nova ou alterada, posição ou situação nova no RID Parcial, resultado da inscrição (aceitas e não aceitas, com o motivo) e documento emitido a até 3 dias de vencer.
   - O WorkManager roda a verificação em JS sem tela (`src/app/background`) a cada 4 horas, com rede e bateria não baixa. Das 22h às 7h, ou com as notificações desligadas no sistema, nem inicia o app.
   - Antes de qualquer acesso à rede, a verificação decide com o que está no aparelho: horário, pausa, avisos ligados da conta salva e a cópia salva do aviso remoto. Só então busca o aviso remoto e entra no portal.

@@ -8,6 +8,7 @@ import { AppState } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { focusManager, onlineManager } from '@tanstack/react-query';
 import { snackbar } from '@components/ui/Snackbar';
+import { PortalStatusProvider } from '@root/modules/connectivity/presentation/PortalStatusContext';
 import type { AppServices } from '../composition/createAppServices';
 
 const ServicesContext = createContext<AppServices | null>(null);
@@ -29,17 +30,37 @@ export function AppServicesProvider({
       // Focus revalidates stale queries. The AO coordinator renews only when a
       // request proves expiry; resuming must not destroy a healthy session.
       focusManager.setFocused(status === 'active');
-      if (status !== 'active')
-        void services.flushCache().catch(() => undefined);
+      if (status === 'active') services.portalMonitor.resume();
+      else void services.flushCache().catch(() => undefined);
+    });
+    // O portal voltou: as telas que falharam na queda consultam de novo (as
+    // outras seguem o tempo de validade), e o pedido de aviso se cumpre aqui.
+    const recovered = services.portalMonitor.onRecovered(() => {
+      if (!focusManager.isFocused()) return;
+      snackbar.success('O Aluno Online voltou.', 'Atualizando seus dados…');
+      void services.notifications.portalReturn
+        ?.portalBack()
+        .catch(() => undefined);
+      void services.queryClient.refetchQueries({
+        type: 'active',
+        predicate: query => query.state.status === 'error' || query.isStale(),
+      });
     });
     return () => {
       unsubscribe();
       listener.remove();
+      recovered();
     };
   }, [services]);
   return (
     <ServicesContext.Provider value={services}>
-      {children}
+      <PortalStatusProvider
+        monitor={services.portalMonitor}
+        identity={services.identity}
+        alert={services.notifications.portalReturn}
+      >
+        {children}
+      </PortalStatusProvider>
     </ServicesContext.Provider>
   );
 }

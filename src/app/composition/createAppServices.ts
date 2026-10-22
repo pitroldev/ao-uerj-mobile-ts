@@ -1,4 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { observePortalTransport } from '@root/adapters/outbound/aluno-online/observedTransport';
+import { isPortalAnswer } from '@root/modules/connectivity/application/PortalMonitor';
+import { PORTAL_RETURN_KEY } from '@root/modules/notifications/application/PortalReturnAlert';
 import { bundledCampusMap } from '@root/adapters/outbound/campus-map';
 import { CampusMap } from '@root/modules/campus-map/application/CampusMap';
 import { createAlunoOnlineAdapter } from '@root/adapters/outbound/aluno-online';
@@ -8,7 +11,13 @@ import {
 } from '@root/adapters/outbound/aluno-online/nativeTransport';
 import { createCredentialStore } from '@root/adapters/outbound/persistence/credential-store';
 import { createPreferencesStore } from '@root/adapters/outbound/persistence/preferences';
-import { createQueryAccountCache } from '@root/adapters/outbound/persistence/query-account-cache';
+import {
+  createQueryAccountCache,
+  longLivedCacheAge,
+} from '@root/adapters/outbound/persistence/query-account-cache';
+import { createSecureVault } from '@root/adapters/outbound/native/NativeSecureVault';
+import { createVaultStorage } from '@root/adapters/outbound/persistence/vault-storage';
+import { createSavedDocumentsStore } from '@root/adapters/outbound/persistence/saved-documents';
 import { migrateLegacyStorage } from '@root/adapters/outbound/persistence/migrate-legacy';
 import { NativeScheduleSharing } from '@root/adapters/outbound/native/NativeScheduleSharing';
 import { NativeDocumentSharing } from '@root/adapters/outbound/native/NativeDocumentSharing';
@@ -49,6 +58,7 @@ import { APP_INFO_VERSION_KEY } from '@features/AppInfoModal/info';
 import { initializeIdentity } from './initializeIdentity';
 import { createDelivery } from './createDelivery';
 import { createNotifications } from './createNotifications';
+import { createPortalMonitor } from './createPortalMonitor';
 import { createWidget } from './createWidget';
 
 /** Preferências da conta que o logout apaga junto com o cache. */
@@ -60,6 +70,7 @@ const ACCOUNT_PREFERENCES = [
   PREREQUISITES_KEY,
   PLAN_PREFERENCES_KEY,
   APP_INFO_VERSION_KEY,
+  PORTAL_RETURN_KEY,
 ] as const;
 
 function createScope() {
@@ -72,25 +83,39 @@ export function createAppServices() {
   const queryClient = createQueryClient(reportQueryError);
   const credentials = createCredentialStore();
   const preferences = createPreferencesStore(AsyncStorage);
+  // Android: cache cifrado no cofre, com o essencial valendo o período; sem
+  // o cofre (iOS), o cache segue no AsyncStorage por 7 dias
+  const vault = createSecureVault();
+  const savedDocuments = vault ? createSavedDocumentsStore(vault) : null;
   const cache = createQueryAccountCache(
     queryClient,
-    AsyncStorage,
+    vault ? createVaultStorage(vault, AsyncStorage) : AsyncStorage,
     async scope => {
-      await Promise.all(
-        ACCOUNT_PREFERENCES.map(key => preferences.remove(scope, key)),
-      );
+      await Promise.all([
+        ...ACCOUNT_PREFERENCES.map(key => preferences.remove(scope, key)),
+        savedDocuments?.clear(scope),
+      ]);
     },
+    vault ? { maxAge: longLivedCacheAge } : {},
   );
+  const privateApi = createPrivateApiAdapters();
+  const transport = createNativePortalTransport();
+  // a página inicial do portal: leve e o primeiro passo do próprio login
+  const probePortal = async () =>
+    (await transport.request({ path: '/' })).status;
+  const portalMonitor = createPortalMonitor({
+    probe: probePortal,
+    shared: privateApi.portalStatus,
+  });
   const portal = reportPortalLayoutChanges(
     createAlunoOnlineAdapter({
-      transport: createNativePortalTransport(),
+      transport: observePortalTransport(transport, portalMonitor),
       cookies: createNativeCookieJar(),
       readCredentials: async () =>
         (await credentials.read())?.credentials ?? null,
     }),
     reportPortalLayoutChange,
   );
-  const privateApi = createPrivateApiAdapters();
   const identity = new IdentityController({
     credentials,
     authentication: portal.authentication,
@@ -113,11 +138,14 @@ export function createAppServices() {
     remoteStatus: delivery.status,
     flushCache: cache.flush,
     savedScope: async () => (await credentials.read())?.account.scope ?? null,
+    probePortal: async () => isPortalAnswer(await probePortal()),
   });
   return {
     campusMap: new CampusMap(bundledCampusMap),
     queryClient,
     identity,
+    // disponibilidade do Aluno Online: queda, lentidão e nova tentativa
+    portalMonitor,
     preferences,
     community: new Community({
       messageBoard: privateApi.messageBoard,
@@ -135,6 +163,8 @@ export function createAppServices() {
     scheduleSharing: new NativeScheduleSharing(),
     documents: portal.documents,
     documentSharing: new NativeDocumentSharing(),
+    // PDFs que o aluno guardou para usar sem o portal (cofre; só no Android)
+    savedDocuments,
     delivery,
     notifications,
     // faltas marcadas pelo aluno, só no aparelho (o logout apaga)

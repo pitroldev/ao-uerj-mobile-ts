@@ -70,6 +70,12 @@ function setup({
       return 'blocked';
     }),
   };
+  const portalReturn = {
+    checkInBackground: jest.fn(async () => {
+      calls.push('return-check');
+      return 'waiting';
+    }),
+  };
   const current = {
     initialize: jest.fn(async () => {
       calls.push('initialize');
@@ -79,9 +85,18 @@ function setup({
     flushCache: step('flush'),
     identity: { getSnapshot: () => identity },
     delivery: { status },
-    notifications: { portalCheck: supported ? check : null },
+    notifications: {
+      portalCheck: supported ? check : null,
+      portalReturn: supported ? portalReturn : null,
+    },
   } as unknown as AppServices;
-  return { task: createPortalCheckTask(() => current), calls, check, source };
+  return {
+    task: createPortalCheckTask(() => current),
+    calls,
+    check,
+    source,
+    portalReturn,
+  };
 }
 
 it('decides with what is on the device before using the network', async () => {
@@ -170,4 +185,12 @@ it('joins a check already running instead of starting another', async () => {
 
   await task();
   expect(check.run).toHaveBeenCalledTimes(2);
+});
+
+it('only tests the portal in the return mode, without signing in', async () => {
+  const { task, calls, source, portalReturn } = setup();
+  await task({ mode: 'return' });
+  expect(calls).toEqual(['return-check']);
+  expect(portalReturn.checkInBackground).toHaveBeenCalledTimes(1);
+  expect(source.fetch).not.toHaveBeenCalled();
 });

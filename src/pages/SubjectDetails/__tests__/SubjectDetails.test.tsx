@@ -38,13 +38,18 @@ jest.mock('@react-navigation/native', () => {
     useRoute: () => ({ params: mockParams }),
   };
 });
+const mockIdentityState = {
+  status: 'signedIn',
+  account: { scope: 's', name: 'Marina', matricula: '1', period: '2026.2' },
+};
 jest.mock('@root/app/providers/AppServicesProvider', () => ({
-  useIdentity: () => ({
-    status: 'signedIn',
-    account: { scope: 's', name: 'Marina', matricula: '1', period: '2026.2' },
-  }),
+  useIdentity: () => mockIdentityState,
   useAppServices: () => ({
     academicRecords: { getSubjectDetails: mockGetSubjectDetails },
+    identity: {
+      settled: () => Promise.resolve(),
+      getSnapshot: () => mockIdentityState,
+    },
   }),
 }));
 

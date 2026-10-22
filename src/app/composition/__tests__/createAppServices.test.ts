@@ -42,6 +42,17 @@ jest.mock('../createNotifications', () => ({
     portalCheck: null,
   })),
 }));
+jest.mock('../createPortalMonitor', () => ({
+  createPortalMonitor: jest.fn(() => ({
+    guard: jest.fn(),
+    answered: jest.fn(),
+    failed: jest.fn(),
+  })),
+}));
+// sem o cofre (como no iOS): o cache segue no AsyncStorage
+jest.mock('@root/adapters/outbound/native/NativeSecureVault', () => ({
+  createSecureVault: jest.fn(() => null),
+}));
 jest.mock('../createWidget', () => ({
   createWidget: jest.fn(() => ({ sync: {} })),
 }));
@@ -86,6 +97,7 @@ function setup() {
     diagnostics: { fetch: jest.fn(), snapshot: jest.fn() },
   } satisfies ReturnType<typeof createAlunoOnlineAdapter>;
   const privateApi = {
+    portalStatus: { read: jest.fn(async () => null) },
     messageBoard: { read: jest.fn(async () => []), post: jest.fn() },
     teacherDirectory: { list: jest.fn(async () => []), find: jest.fn() },
     errorReporter: { submit: jest.fn(async () => undefined) },

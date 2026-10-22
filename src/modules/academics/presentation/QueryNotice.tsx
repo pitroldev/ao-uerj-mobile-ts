@@ -2,6 +2,8 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Notice } from '@components/ui/Notice';
 import { PORTAL_BLOCKED_TEXT, UpdatingBar } from '@components/ui/Feedback';
+import { PortalDownNotice } from '@root/modules/connectivity/presentation/PortalDownNotice';
+import { usePortalStatus } from '@root/modules/connectivity/presentation/PortalStatusContext';
 import { AppError, errorMessage } from '@root/shared/errors/AppError';
 import { useOnlineStatus } from './useOnlineStatus';
 
@@ -12,14 +14,20 @@ type Props = {
   hasData: boolean;
   retry: () => unknown;
   dataUpdatedAt?: number;
+  /**
+   * Os dados vêm do Aluno Online (padrão): mostra a queda do portal. Falso
+   * para a nossa API (mural), que não depende dele.
+   */
+  portal?: boolean;
 };
 
 /**
  * Background failures must leave the last successful result visible.
  *
- * Aviso padrão das telas de dados: sem conexão (neutro), falha ao atualizar
- * (atenção) ou portal bloqueado (crítico), todos com "Tentar novamente"; e a
- * barra fina enquanto os dados salvos são atualizados.
+ * Aviso padrão das telas de dados: sem conexão (neutro), portal fora do ar
+ * (atenção, com "Tentar agora"), falha ao atualizar (atenção) ou portal
+ * bloqueado (crítico); e a barra fina enquanto a conta entra no portal na
+ * abertura ou os dados salvos são atualizados.
  */
 export function QueryNotice({
   isPaused,
@@ -28,8 +36,10 @@ export function QueryNotice({
   hasData,
   retry,
   dataUpdatedAt,
+  portal = true,
 }: Props) {
   const online = useOnlineStatus();
+  const portalStatus = usePortalStatus();
   const updatedAt = dataUpdatedAt
     ? ` Última atualização: ${new Date(dataUpdatedAt).toLocaleString('pt-BR')}.`
     : '';
@@ -47,6 +57,14 @@ export function QueryNotice({
             ? `Sem conexão. Exibindo os últimos dados salvos.${updatedAt}`
             : 'Sem conexão. A consulta será retomada quando você se conectar.'
         }
+      />
+    );
+  }
+  if (portal && portalStatus.down) {
+    return (
+      <PortalDownNotice
+        style={styles.notice}
+        suffix={hasData ? ` Exibindo os últimos dados salvos.${updatedAt}` : ''}
       />
     );
   }
@@ -68,8 +86,21 @@ export function QueryNotice({
       />
     );
   }
+  // na abertura, a conta salva aparece na hora e entra no portal por trás
+  if (portal && portalStatus.signingIn && hasData) {
+    return <UpdatingBar label="Entrando no Aluno Online…" style={styles.bar} />;
+  }
   if (isFetching && hasData) {
-    return <UpdatingBar label="Atualizando dados…" style={styles.bar} />;
+    return (
+      <UpdatingBar
+        label={
+          portal && portalStatus.slow
+            ? 'O Aluno Online está lento. Atualizando…'
+            : 'Atualizando dados…'
+        }
+        style={styles.bar}
+      />
+    );
   }
   return null;
 }

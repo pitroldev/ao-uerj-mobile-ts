@@ -338,3 +338,51 @@ describe('private API boundary', () => {
     expect(http.post).not.toHaveBeenCalled();
   });
 });
+
+describe('shared portal status', () => {
+  const read = (data: unknown) => {
+    const http: jest.Mocked<PrivateApiHttpClient> = {
+      get: jest.fn(),
+      post: jest.fn(),
+    };
+    http.get.mockResolvedValue({ data });
+    return { http, status: createPrivateApiAdapters(http).portalStatus.read() };
+  };
+
+  it('reads the state, since when and the last check of the server', async () => {
+    const { http, status } = read({
+      state: 'down',
+      since: '2026-10-22T16:50:00.000Z',
+      checkedAt: '2026-10-22T17:05:00.000Z',
+    });
+    await expect(status).resolves.toEqual({
+      state: 'down',
+      since: Date.parse('2026-10-22T16:50:00.000Z'),
+      checkedAt: Date.parse('2026-10-22T17:05:00.000Z'),
+    });
+    expect(http.get).toHaveBeenCalledWith(
+      '/portal-status',
+      expect.objectContaining({ signal: expect.anything() }),
+    );
+  });
+
+  it.each([
+    [{ state: 'unknown', since: null, checkedAt: null }],
+    [{ state: 'up', checkedAt: 'ontem' }],
+    [[]],
+    [null],
+  ])('says nothing about an unknown answer %j', async data => {
+    await expect(read(data).status).resolves.toBeNull();
+  });
+
+  it('says nothing when the server does not answer', async () => {
+    const http: jest.Mocked<PrivateApiHttpClient> = {
+      get: jest.fn(),
+      post: jest.fn(),
+    };
+    http.get.mockRejectedValue(new Error('404'));
+    await expect(
+      createPrivateApiAdapters(http).portalStatus.read(),
+    ).resolves.toBeNull();
+  });
+});

@@ -24,6 +24,7 @@ import { recordScreen } from './app/observability';
 import { loadDevLinking } from './app/dev';
 import { DeliveryProvider } from './modules/delivery/presentation/DeliveryProvider';
 import { LaunchHandler } from './modules/launch/presentation/LaunchHandler';
+import { EssentialsPrefetcher } from './modules/academics/presentation/EssentialsPrefetcher';
 import { useActiveTheme } from './modules/appearance/presentation/useActiveTheme';
 import { navigationTheme } from './modules/appearance/presentation/navigationTheme';
 import { MainRoutes, type RootDrawerParamList } from './routes';
@@ -96,6 +97,7 @@ export const App = () => {
                   >
                     <MainRoutes />
                     <LaunchHandler ready={isReady} />
+                    <EssentialsPrefetcher />
                   </DeliveryProvider>
                 </NavigationContainer>
                 <SnackbarHost />

@@ -3,6 +3,9 @@ import type { AppServices } from '../composition/createAppServices';
 /** Nome da tarefa sem tela (o PortalCheckWorker do Android usa o mesmo). */
 export const PORTAL_CHECK_TASK = 'AoUerjPortalCheck';
 
+/** Dados do PortalCheckWorker: `mode: 'return'` no teste de "Avisar quando voltar". */
+type TaskData = { mode?: string } | null;
+
 /** Prazo da verificação inteira; o Android encerra a tarefa logo depois. */
 const DEADLINE = 3 * 60 * 1000;
 
@@ -15,8 +18,15 @@ const DEADLINE = 3 * 60 * 1000;
  * ligados.
  */
 export function createPortalCheckTask(services: () => AppServices) {
-  const verify = async () => {
+  const verify = async (data?: TaskData) => {
     const current = services();
+    // "Avisar quando voltar": só o teste leve do portal, sem login
+    if (data?.mode === 'return') {
+      await current.notifications.portalReturn
+        ?.checkInBackground()
+        .catch(() => undefined);
+      return;
+    }
     const check = current.notifications.portalCheck;
     if (!check) return;
     const controller = new AbortController();
@@ -50,8 +60,8 @@ export function createPortalCheckTask(services: () => AppServices) {
   // exemplo) com o JS ainda consultando, e uma nova chamada esperaria a
   // anterior em vez de repetir as consultas e os avisos.
   let running: Promise<void> | null = null;
-  return () => {
-    running ??= verify().finally(() => {
+  return (data?: TaskData) => {
+    running ??= verify(data).finally(() => {
       running = null;
     });
     return running;

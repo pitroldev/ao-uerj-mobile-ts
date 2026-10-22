@@ -8,9 +8,67 @@ import { isTransientError, AppError } from '@root/shared/errors/AppError';
 import { AcademicRequestOptions } from '../application/ports';
 import { ReadAcademicRecords } from '../application/use-cases/ReadAcademicRecords';
 import { normalizeSubjectId } from '../domain/rules/subjectId';
+import type { IdentityController } from '@root/modules/identity/application/IdentityController';
+import { showsAccount } from '@root/modules/identity/domain/identityState';
+import type { Account } from '@root/modules/identity/domain/types';
 import { academicKeys } from './queryKeys';
 
 const HOUR = 60 * 60 * 1000;
+
+/** Horas até cada leitura ficar velha e ser refeita ao abrir a tela. */
+const STALE_HOURS = {
+  grades: 6,
+  history: 24,
+  curriculum: 24,
+  schedule: 12,
+  'partial-rid': 1,
+  'universal-subjects': 24,
+  synthesis: 24,
+  'subject-details': 6,
+} as const;
+
+export type AcademicResource = keyof typeof STALE_HOURS;
+
+type Identity = Pick<IdentityController, 'getSnapshot' | 'settled'>;
+const SIGNED_OUT = { scope: 'signed-out', period: '' };
+
+/**
+ * A mesma consulta para a tela e para a busca antecipada: chave da conta e
+ * do período, e a leitura só depois do login da abertura (a conta salva
+ * aparece antes, com o cache).
+ */
+export function academicQueryOptions<T>(
+  identity: Identity,
+  owner: Pick<Account, 'scope' | 'period'>,
+  resource: AcademicResource,
+  read: (options: AcademicRequestOptions) => Promise<T>,
+  extraKey?: string,
+) {
+  const baseKey = academicKeys.resource(owner.scope, owner.period, resource);
+  return {
+    queryKey:
+      extraKey === undefined
+        ? (baseKey as readonly unknown[])
+        : [...baseKey, extraKey],
+    queryFn: async ({ signal }: { signal: AbortSignal }) => {
+      await identity.settled();
+      const { status, account } = identity.getSnapshot();
+      if (
+        !account ||
+        account.scope !== owner.scope ||
+        (status !== 'signedIn' && status !== 'refreshing')
+      )
+        throw new AppError('NOT_LOGGED_IN');
+      return read({ signal });
+    },
+    staleTime: STALE_HOURS[resource] * HOUR,
+    // o cache em disco decide quanto tempo cada leitura vale; na memória,
+    // até o logout
+    gcTime: Infinity,
+    retry: (count: number, error: unknown) =>
+      count < 1 && isTransientError(error),
+  };
+}
 
 function useRecords() {
   const { academicRecords } = useAppServices();
@@ -21,61 +79,46 @@ function useRecords() {
 }
 
 function useAcademicQuery<T>(
-  resource: string,
+  resource: AcademicResource,
   read: (options: AcademicRequestOptions) => Promise<T>,
-  staleHours: number,
   extraKey?: string,
   enabled = true,
 ) {
+  const { identity } = useAppServices();
   const { account, status } = useIdentity();
-  const baseKey = academicKeys.resource(
-    account?.scope ?? 'signed-out',
-    account?.period ?? '',
-    resource,
-  );
   return useQuery({
-    queryKey: extraKey === undefined ? baseKey : [...baseKey, extraKey],
-    queryFn: ({ signal }) => {
-      if (!account || (status !== 'signedIn' && status !== 'refreshing')) {
-        throw new AppError('NOT_LOGGED_IN');
-      }
-      return read({ signal });
-    },
-    enabled:
-      enabled &&
-      Boolean(account) &&
-      (status === 'signedIn' || status === 'refreshing'),
-    staleTime: staleHours * HOUR,
-    gcTime: 7 * 24 * HOUR,
-    retry: (count, error) => count < 1 && isTransientError(error),
+    ...academicQueryOptions(
+      identity,
+      account ?? SIGNED_OUT,
+      resource,
+      read,
+      extraKey,
+    ),
+    enabled: enabled && showsAccount({ status, account }),
   });
 }
 
 export function useGrades() {
-  return useAcademicQuery('grades', useRecords().grades, 6);
+  return useAcademicQuery('grades', useRecords().grades);
 }
 export function useHistory() {
-  return useAcademicQuery('history', useRecords().history, 24);
+  return useAcademicQuery('history', useRecords().history);
 }
 export function useCurriculum() {
-  return useAcademicQuery('curriculum', useRecords().curriculum, 24);
+  return useAcademicQuery('curriculum', useRecords().curriculum);
 }
 export function useSchedule() {
-  return useAcademicQuery('schedule', useRecords().schedule, 12);
+  return useAcademicQuery('schedule', useRecords().schedule);
 }
 export function usePartialRid() {
-  return useAcademicQuery('partial-rid', useRecords().partialRid, 1);
+  return useAcademicQuery('partial-rid', useRecords().partialRid);
 }
 export function useUniversalSubjects() {
-  return useAcademicQuery(
-    'universal-subjects',
-    useRecords().universalSubjects,
-    24,
-  );
+  return useAcademicQuery('universal-subjects', useRecords().universalSubjects);
 }
 /** Síntese da Formação: muda pouco ao longo do período. */
 export function useSynthesis() {
-  return useAcademicQuery('synthesis', useRecords().synthesis, 24);
+  return useAcademicQuery('synthesis', useRecords().synthesis);
 }
 export function useSubjectDetails(subjectId?: string) {
   const records = useRecords();
@@ -88,7 +131,6 @@ export function useSubjectDetails(subjectId?: string) {
   return useAcademicQuery(
     'subject-details',
     options => records.subjectDetails(subjectId ?? '', options),
-    6,
     cacheId,
     Boolean(subjectId),
   );

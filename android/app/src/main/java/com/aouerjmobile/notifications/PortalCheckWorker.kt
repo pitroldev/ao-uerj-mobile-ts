@@ -8,6 +8,7 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
 import com.facebook.react.ReactInstanceEventListener
@@ -76,10 +77,10 @@ class PortalCheckWorker(context: Context, params: WorkerParameters) :
       continuation.invokeOnCancellation { tasks.removeTaskEventListener(listener) }
       try {
         // the JS side ends the task; the timeout ends it if JS never does
+        val data = Arguments.createMap()
+        inputData.getString(KEY_MODE)?.let { data.putString(KEY_MODE, it) }
         listener.taskId =
-            tasks.startTask(
-                HeadlessJsTaskConfig(TASK_NAME, Arguments.createMap(), TASK_TIMEOUT, false)
-            )
+            tasks.startTask(HeadlessJsTaskConfig(TASK_NAME, data, TASK_TIMEOUT, false))
       } catch (_: IllegalStateException) {
         // the app came to the foreground meanwhile
         tasks.removeTaskEventListener(listener)
@@ -109,6 +110,10 @@ class PortalCheckWorker(context: Context, params: WorkerParameters) :
     private const val TASK_TIMEOUT = 4 * 60 * 1000L
     private const val START_TIMEOUT = 60 * 1000L
     private const val WORK_NAME = "ao-portal-check"
+    private const val RETURN_WORK_NAME = "ao-portal-return"
+    /** Same key and value as the task data read in src/app/background/portalCheckTask.ts. */
+    private const val KEY_MODE = "mode"
+    private const val MODE_RETURN = "return"
     /** No portal check from 22h to 7h. */
     private const val QUIET_START_HOUR = 22
     private const val QUIET_END_HOUR = 7
@@ -135,6 +140,27 @@ class PortalCheckWorker(context: Context, params: WorkerParameters) :
               .build()
       // UPDATE keeps the current period: reopening the app does not restart the countdown.
       work.enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
+    }
+
+    /**
+     * "Avisar quando voltar": the same task in `return` mode, every 15 minutes (WorkManager's
+     * minimum) on a network. JS tests the portal, notifies once and cancels this work.
+     */
+    fun scheduleReturnWatch(context: Context, enabled: Boolean) {
+      val work = WorkManager.getInstance(context)
+      if (!enabled) {
+        work.cancelUniqueWork(RETURN_WORK_NAME)
+        return
+      }
+      val request =
+          PeriodicWorkRequestBuilder<PortalCheckWorker>(15, TimeUnit.MINUTES)
+              .setConstraints(
+                  Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+              )
+              .setInputData(workDataOf(KEY_MODE to MODE_RETURN))
+              .setInitialDelay(15, TimeUnit.MINUTES)
+              .build()
+      work.enqueueUniquePeriodicWork(RETURN_WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
     }
   }
 }
