@@ -293,6 +293,83 @@ it('accepts explicit exemption rows and rejects unknown completion status', () =
   expect(() => parseHistory(unknown)).toThrow('PORTAL_LAYOUT_CHANGED');
 });
 
+const attempt = (lead: string[], subject: string, status = 'Aprov. Nota') =>
+  cells([...lead, subject, '4', '60', 'Obrigatória', '100%', '8', status]);
+
+it('finds the subject wherever its code is in the row, with the period around it', () => {
+  const history = parseHistory(
+    content(
+      table(
+        historyHeaders,
+        [
+          // período com texto a mais na célula
+          attempt(['2024/2 (*)'], 'ABC01-12345 ÁLGEBRA'),
+          // uma célula vazia a mais antes da disciplina
+          attempt(['', ''], 'ABC01-12346 FÍSICA'),
+          // sem a célula do período (rowspan)
+          attempt([], 'ABC01-12347 QUÍMICA', 'Reprov. Nota'),
+        ].join(''),
+      ),
+    ),
+  );
+  expect(history.map(({ id, period, status }) => [id, period, status])).toEqual(
+    [
+      ['ABC01-12345', '2024.2', 'APPROVED'],
+      ['ABC01-12346', '2024.2', 'APPROVED'],
+      ['ABC01-12347', '2024.2', 'FAILED_BY_GRADE'],
+    ],
+  );
+  expect(history[0]).toMatchObject({
+    name: 'Álgebra',
+    credits: 4,
+    workload: 60,
+    frequency: 100,
+    grade: 8,
+  });
+});
+
+it('keeps the period of complementary activities out of the attempts', () => {
+  const history = parseHistory(
+    content(
+      table(
+        ['Período', 'Nome', 'CH', 'Descrição'],
+        cells(['2023/1', 'Monitoria', '30', 'Participação']),
+      ) +
+        table(
+          historyHeaders,
+          attempt(['2024/2'], 'ABC01-12345 ÁLGEBRA') +
+            cells(['2025/1', 'Extensão', '20', 'Participação']) +
+            attempt([''], 'ABC01-12346 FÍSICA'),
+        ),
+    ),
+  );
+  expect(history.map(item => item.period)).toEqual(['2024.2', '2024.2']);
+});
+
+it.each([
+  ['a code it does not recognize', attempt(['2024/2'], 'ÁLGEBRA')],
+  [
+    'unknown text before the code',
+    attempt(['Turma extra'], 'ABC01-12345 ÁLGEBRA'),
+  ],
+  [
+    'missing fields after the code',
+    cells([
+      '2024/2',
+      'ABC01-12345 ÁLGEBRA',
+      '4',
+      '60',
+      'Obrigatória',
+      '100%',
+      '8',
+    ]),
+  ],
+])('fails instead of dropping an attempt with %s', (_case, row) => {
+  expect(() => parseHistory(content(table(historyHeaders, row)))).toThrow(
+    'PORTAL_LAYOUT_CHANGED',
+  );
+});
+
 it('reads the nested full history page without turning summary or complementary activity cells into attempts', () => {
   const history = parseHistory(
     historyPage(

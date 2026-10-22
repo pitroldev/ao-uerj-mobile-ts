@@ -126,7 +126,7 @@ export function createAppServices() {
     }),
     support: new SubmitErrorReport(
       privateApi.errorReporter,
-      { appVersion: version, parserVersion: '2' },
+      { appVersion: version, parserVersion: '3' },
       currentAccount,
       errorMonitor,
     ),
