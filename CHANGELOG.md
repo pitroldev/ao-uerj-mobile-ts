@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.9.0 (2026-10-22)
+
+### Novidades
+
+- O app funciona melhor sem internet ou com o Aluno Online fora do ar:
+  - Com a conta salva, abre na hora com os dados salvos e entra no portal por trás ("Entrando no Aluno Online…").
+  - Quando o portal não responde, as telas não ficam esperando o tempo-limite. Um aviso diz desde quando, se a queda é de todos ou pode ser a sua rede e quando será a próxima tentativa, com "Tentar agora". Quando o portal volta, o app avisa e atualiza as telas.
+  - "Avisar quando voltar" manda uma notificação quando o Aluno Online volta a responder (Android).
+  - Grade, histórico, currículo e Síntese são renovados com antecedência, para estarem salvos quando faltar conexão.
+  - No Android, os dados salvos ficam criptografados no aparelho e valem o período inteiro; o RID, 7 dias.
+  - Emitir e excluir documentos e ler de novo os pré-requisitos do plano ficam indisponíveis enquanto o portal não responde.
+- Documentos: "Guardar no aparelho" mantém o PDF, criptografado, para abrir e compartilhar sem internet (Android).
+
+### Correções
+
+- Disciplinas Realizadas: uma disciplina com a linha num formato inesperado não some mais do histórico. O app a encontra em qualquer coluna e, se não conseguir ler a linha, avisa em vez de omiti-la.
+
 ## 2.8.0 (2026-10-19)
 
 ### Novidades
