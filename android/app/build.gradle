@@ -193,6 +193,12 @@ android {
             minifyEnabled enableProguardInReleaseBuilds
             shrinkResources enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+            // Native debug symbols go inside the AAB (BUNDLE-METADATA), where Play reads them to
+            // symbolicate native crashes and ANRs. SYMBOL_TABLE (function names) stays well under
+            // Play's 300 MB limit for symbols; FULL would add line numbers at many times the size.
+            ndk {
+                debugSymbolLevel 'SYMBOL_TABLE'
+            }
         }
     }
     sourceSets {
