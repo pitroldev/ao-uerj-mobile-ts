@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.10.0 (2026-10-25)
+
+### Novidades
+
+- Provas e trabalhos: anote as datas de P1, P2, PF, trabalhos e seminários das disciplinas em curso.
+  - Elas aparecem no Início ("Próximas avaliações", com a contagem e a observação), na semana e no quadro de notas. A próxima aula avisa quando tem prova nela.
+  - A data parte das próximas aulas da disciplina, com o horário da aula; trabalhos começam com prazo às 23:59. "Outra data" abre um calendário.
+  - Cada avaliação escolhe os próprios lembretes, de 1 semana a 30 minutos antes, com os horários que você quiser. Os padrões das novas ficam em Notificações.
+  - A nota manda: quando a nota sai no portal (ou a PF deixa de ser necessária), a avaliação sai do Início e os lembretes param. Nos trabalhos, "Já fiz" no aviso também para os lembretes.
+  - Tudo fica só no aparelho, e o logout apaga.
+- Meu Progresso: a seção "Atividades complementares" mostra as horas que contam por tipo de atividade, com o teto de cada tipo e as atividades registradas.
+- Widget "Hoje": todas as aulas do dia na tela inicial, com a que está acontecendo em destaque.
+- Android 13 ou mais novo: o ícone acompanha as cores do tema (ícone temático do Material You).
+- iPhone: "Próxima aula" e "Aulas de hoje" pela Siri e pelo app Atalhos, e o controle "Próxima aula" na Central de Controle (iOS 18).
+
+### Correções
+
+- Disciplinas Realizadas: um período antigo com uma disciplina que o portal deixou "Em Preparo" não aparece mais como "Em curso". O Plano até a formatura também não conta mais duas vezes os créditos de uma disciplina refeita e aprovada.
+- Android: o pacote enviado à Play leva os símbolos de depuração do código nativo, para os relatórios de falha mostrarem onde o app parou.
+
 ## 2.9.1 (2026-10-24)
 
 ### Novidades

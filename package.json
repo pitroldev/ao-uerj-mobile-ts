@@ -1,6 +1,6 @@
 {
   "name": "aouerjmobile",
-  "version": "2.9.1",
+  "version": "2.10.0",
   "private": true,
   "scripts": {
     "clean": "node scripts/gradle.cjs clean",
