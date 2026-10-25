@@ -1,6 +1,6 @@
 import type { WidgetSchedule } from '../domain/nextClassWidget';
 
-/** Widget "Próxima aula" da tela inicial (módulo nativo, só no Android). */
+/** Widget "Próxima aula" da tela inicial (módulo nativo, Android e iOS). */
 export interface WidgetDevicePort {
   /** Substitui a grade do widget; `null` (sem conta) o deixa pedindo o login. */
   setSchedule(schedule: WidgetSchedule | null): Promise<void>;

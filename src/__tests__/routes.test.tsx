@@ -146,7 +146,7 @@ describe('MainRoutes authorization', () => {
     expect(navigation.getRootState()?.routeNames).not.toContain('Notificações');
   });
 
-  it('leaves Notificações out without the native module (iOS)', async () => {
+  it('leaves Notificações out without the native module', async () => {
     const { navigation } = await setup(signedIn, false);
     expect(navigation.getRootState()?.routeNames).not.toContain('Notificações');
   });

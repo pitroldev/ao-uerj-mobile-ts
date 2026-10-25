@@ -1,6 +1,6 @@
 import type { LaunchTarget } from '../domain/launchTarget';
 
-/** Aberturas do app vindas de fora (módulo nativo, só no Android). */
+/** Aberturas do app vindas de fora (módulo nativo, Android e iOS). */
 export interface LaunchSource {
   /** Destino da abertura atual; lido uma vez. */
   consume(): Promise<LaunchTarget | null>;

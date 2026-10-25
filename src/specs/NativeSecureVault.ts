@@ -2,8 +2,9 @@ import type { TurboModule } from 'react-native';
 import { TurboModuleRegistry } from 'react-native';
 
 /**
- * Cofre do aparelho (só no Android): textos cifrados com AES-GCM, chave no
- * Android Keystore, em arquivos fora do backup. Guarda o cache acadêmico de
+ * Cofre do aparelho: textos cifrados com AES-GCM em arquivos fora do backup,
+ * com a chave no Android Keystore ou, no iOS, no Keychain (ECIES com P-256,
+ * ios/AOUerjMobile/Native/SecureVaultModule.mm). Guarda o cache acadêmico de
  * longa duração e os documentos que o aluno pediu para guardar.
  */
 export interface Spec extends TurboModule {

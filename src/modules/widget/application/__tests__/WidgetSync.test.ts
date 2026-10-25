@@ -132,7 +132,7 @@ it('tries again on the next change when the device fails', async () => {
   expect(device.setSchedule).toHaveBeenCalledTimes(2);
 });
 
-it('is inert without the widget (iOS)', async () => {
+it('is inert without the widget module', async () => {
   const { sync, setAccount } = setup({ withDevice: false });
   setAccount(ACCOUNT);
   await expect(sync.scheduleChanged()).resolves.toBeUndefined();

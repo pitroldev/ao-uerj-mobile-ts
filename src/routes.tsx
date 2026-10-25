@@ -79,7 +79,7 @@ const renderScreenLayout = ({
 export const MainRoutes = () => {
   const theme = useTheme();
   const { account, status } = useIdentity();
-  // os avisos dependem do módulo nativo, que só existe no Android
+  // os avisos dependem do módulo nativo (Android e iOS; ausente no Jest)
   const notificationsSupported =
     useAppServices().notifications.settings.getSnapshot().supported;
   // a conta salva aparece antes do login da abertura terminar

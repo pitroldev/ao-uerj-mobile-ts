@@ -105,6 +105,22 @@ it('loads the saved choices and schedules reminders and the portal check', async
   expect(device!.state.portal).toBe(true);
 });
 
+it('schedules only the reminders where there is no background check (iOS)', async () => {
+  const { settings, device, account } = setup({
+    device: createDevice({ backgroundChecks: false }),
+    saved: { classReminders: true, grades: true },
+  });
+  account.set(ACCOUNT);
+  await settle();
+  expect(settings.getSnapshot()).toMatchObject({
+    supported: true,
+    backgroundChecks: false,
+  });
+  expect(device!.state.plan?.reminders).toHaveLength(1);
+  expect(device!.setPortalCheck).not.toHaveBeenCalledWith(true, 4);
+  expect(device!.state.portal).toBe(false);
+});
+
 it('asks for the permission when a notification is turned on', async () => {
   const device = createDevice({ permission: 'denied', request: 'granted' });
   const { settings, store, account } = setup({ device });
@@ -236,7 +252,7 @@ it('answers the Home prompt once, enabling or not', async () => {
   });
 });
 
-it('is inert without the native module (iOS)', async () => {
+it('is inert without the native module', async () => {
   const { settings, account } = setup({ device: null });
   account.set(ACCOUNT);
   await settle();

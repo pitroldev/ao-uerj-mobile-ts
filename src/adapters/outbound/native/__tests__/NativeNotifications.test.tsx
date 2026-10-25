@@ -1,7 +1,7 @@
 import type { Spec } from '@root/specs/NativeAppNotifications';
 import { createNativeNotifications } from '../NativeNotifications';
 
-// fora do Android o TurboModuleRegistry não encontra o módulo
+// no Jest o TurboModuleRegistry não encontra o módulo
 jest.mock('@root/specs/NativeAppNotifications', () => ({
   __esModule: true,
   default: null,
@@ -13,12 +13,17 @@ const RESULTS = {
   NEVER_ASK_AGAIN: 'never_ask_again',
 } as const;
 
-function nativeModule({ enabled = false } = {}) {
+function nativeModule({ enabled = false, answer = 'granted' } = {}) {
   let handler: ((target: string) => void) | null = null;
   const remove = jest.fn();
   const state = { enabled };
   const module = {
     areNotificationsEnabled: jest.fn(async () => state.enabled),
+    // o pedido do iOS (no Android só lê o estado)
+    requestPermission: jest.fn(async () => {
+      if (answer === 'granted') state.enabled = true;
+      return answer;
+    }),
     openNotificationSettings: jest.fn(async () => undefined),
     canScheduleExactAlarms: jest.fn(async () => false),
     openExactAlarmSettings: jest.fn(async () => undefined),
@@ -56,13 +61,48 @@ function permissions(result: string, grant?: () => void) {
   } as never;
 }
 
-it('is absent where the native module does not exist (iOS)', () => {
+it('is absent where the native module does not exist', () => {
   expect(createNativeNotifications()).toBeNull();
+});
+
+it('runs the portal tasks only on Android', () => {
+  const { module } = nativeModule();
+  expect(
+    createNativeNotifications(module, { os: 'android', apiLevel: 34 })!
+      .backgroundChecks,
+  ).toBe(true);
+  expect(
+    createNativeNotifications(module, { os: 'ios' })!.backgroundChecks,
+  ).toBe(false);
+});
+
+it.each([
+  ['granted', 'granted'],
+  // o iOS só pergunta uma vez: depois, só os Ajustes
+  ['blocked', 'blocked'],
+])('asks the iOS system once and maps %s to %s', async (answer, expected) => {
+  const { module } = nativeModule({ answer });
+  const ask = permissions(RESULTS.GRANTED);
+  const device = createNativeNotifications(module, {
+    os: 'ios',
+    permissions: ask,
+  })!;
+  await expect(device.requestPermission()).resolves.toBe(expected);
+  expect(module.requestPermission).toHaveBeenCalledTimes(1);
+  expect((ask as { request: jest.Mock }).request).not.toHaveBeenCalled();
+});
+
+it('does not ask again once the system allows notifications', async () => {
+  const { module } = nativeModule({ enabled: true });
+  const device = createNativeNotifications(module, { os: 'ios' })!;
+  await expect(device.requestPermission()).resolves.toBe('granted');
+  expect(module.requestPermission).not.toHaveBeenCalled();
 });
 
 it('reports the system state and asks on Android 13+', async () => {
   const { module, state } = nativeModule();
   const device = createNativeNotifications(module, {
+    os: 'android',
     apiLevel: 34,
     permissions: permissions(RESULTS.GRANTED, () => {
       state.enabled = true;
@@ -81,6 +121,7 @@ it.each([
 ])('maps the answer %s to %s', async (answer, expected) => {
   const { module } = nativeModule();
   const device = createNativeNotifications(module, {
+    os: 'android',
     apiLevel: 33,
     permissions: permissions(answer),
   })!;
@@ -91,6 +132,7 @@ it('sends to the settings before Android 13, where there is no prompt', async ()
   const { module } = nativeModule();
   const ask = permissions(RESULTS.GRANTED);
   const device = createNativeNotifications(module, {
+    os: 'android',
     apiLevel: 31,
     permissions: ask,
   })!;
@@ -100,7 +142,10 @@ it('sends to the settings before Android 13, where there is no prompt', async ()
 
 it('hands the reminder plan to the native side as JSON, or cancels it', async () => {
   const { module } = nativeModule();
-  const device = createNativeNotifications(module, { apiLevel: 34 })!;
+  const device = createNativeNotifications(module, {
+    os: 'android',
+    apiLevel: 34,
+  })!;
   const plan = {
     expiresAt: 10,
     leadMinutes: 15,

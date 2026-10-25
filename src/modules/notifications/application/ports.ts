@@ -3,12 +3,17 @@ import type { NotificationContent } from '../domain/messages';
 
 /**
  * `blocked`: o aluno recusou de vez (ou desligou no sistema); só as
- * configurações do Android liberam de novo.
+ * configurações do sistema liberam de novo.
  */
 export type PermissionState = 'granted' | 'denied' | 'blocked';
 
-/** Recursos do aparelho para avisos (módulo nativo, só no Android). */
+/** Recursos do aparelho para avisos (módulo nativo do Android e do iOS). */
 export interface NotificationDevicePort {
+  /**
+   * Roda as tarefas sem tela no portal (verificação periódica e "Avisar
+   * quando voltar"): só no Android. No iOS ficam os lembretes de aula.
+   */
+  readonly backgroundChecks: boolean;
   permission(): Promise<PermissionState>;
   requestPermission(): Promise<PermissionState>;
   openSettings(): Promise<void>;

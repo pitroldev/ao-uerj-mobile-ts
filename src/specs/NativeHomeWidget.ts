@@ -1,7 +1,10 @@
 import type { TurboModule } from 'react-native';
 import { TurboModuleRegistry } from 'react-native';
 
-/** Widget "Próxima aula" da tela inicial (só no Android). */
+/**
+ * Widget "Próxima aula" da tela inicial: android/app/.../widget e, no iOS,
+ * ios/AOUerjMobile/Native/HomeWidgetModule.mm com a extensão NextClassWidget.
+ */
 export interface Spec extends TurboModule {
   /**
    * Substitui a grade do widget (JSON de `WidgetSchedule`) e redesenha os

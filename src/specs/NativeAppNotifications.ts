@@ -19,6 +19,11 @@ type NativeNotification = {
 export interface Spec extends TurboModule {
   /** Avisos liberados para o app (permissão do Android 13+ e chave do sistema). */
   areNotificationsEnabled(): Promise<boolean>;
+  /**
+   * Pede a permissão de avisos: `granted` ou `blocked`. É o caminho do iOS;
+   * no Android o pedido sai do `PermissionsAndroid` e aqui só se lê o estado.
+   */
+  requestPermission(): Promise<string>;
   /** Abre as configurações de notificação do app. */
   openNotificationSettings(): Promise<void>;
   /** Lembretes no horário exato; sempre `true` antes do Android 12. */
@@ -49,5 +54,8 @@ export interface Spec extends TurboModule {
   readonly onOpenTarget: CodegenTypes.EventEmitter<string>;
 }
 
-/** Só existe no Android (módulo local em android/app/.../notifications). */
+/**
+ * Módulo local: android/app/.../notifications e
+ * ios/AOUerjMobile/Native/AppNotificationsModule.mm.
+ */
 export default TurboModuleRegistry.get<Spec>('AppNotifications');

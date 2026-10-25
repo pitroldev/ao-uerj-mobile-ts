@@ -5,9 +5,9 @@
     <key>CADisableMinimumFrameDurationOnPhone</key>
     <true />
     <key>CFBundleDevelopmentRegion</key>
-    <string>en</string>
+    <string>pt-BR</string>
     <key>CFBundleDisplayName</key>
-    <string>AoUerjMobile</string>
+    <string>AO UERJ</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -22,6 +22,18 @@
     <string>$(MARKETING_VERSION)</string>
     <key>CFBundleSignature</key>
     <string>????</string>
+    <!-- Toque no widget "Próxima aula": aouerj://open?target=home (AppDelegate.swift). -->
+    <key>CFBundleURLTypes</key>
+    <array>
+      <dict>
+        <key>CFBundleURLName</key>
+        <string>com.aouerjmobile</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>aouerj</string>
+        </array>
+      </dict>
+    </array>
     <key>CFBundleVersion</key>
     <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>LSRequiresIPhoneOS</key>
@@ -34,8 +46,10 @@
       <key>NSAllowsLocalNetworking</key>
       <true />
     </dict>
-    <key>NSLocationWhenInUseUsageDescription</key>
-    <string></string>
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false />
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>O AO UERJ salva na galeria a imagem da grade quando você escolhe "Salvar imagem" ao compartilhar.</string>
     <key>UIAppFonts</key>
     <array>
       <string>Inter-Regular.ttf</string>
@@ -43,6 +57,50 @@
       <string>Inter-SemiBold.ttf</string>
       <string>Inter-Bold.ttf</string>
       <string>InterDisplay-SemiBold.ttf</string>
+    </array>
+    <!-- Atalhos do ícone, os mesmos do Android (res/xml/shortcuts.xml); o tipo é o destino. -->
+    <key>UIApplicationShortcutItems</key>
+    <array>
+      <dict>
+        <key>UIApplicationShortcutItemType</key>
+        <string>home</string>
+        <key>UIApplicationShortcutItemTitle</key>
+        <string>Próxima aula</string>
+        <key>UIApplicationShortcutItemSubtitle</key>
+        <string>Ver a próxima aula</string>
+        <key>UIApplicationShortcutItemIconSymbolName</key>
+        <string>calendar.badge.clock</string>
+      </dict>
+      <dict>
+        <key>UIApplicationShortcutItemType</key>
+        <string>grades</string>
+        <key>UIApplicationShortcutItemTitle</key>
+        <string>Notas</string>
+        <key>UIApplicationShortcutItemSubtitle</key>
+        <string>Notas do período</string>
+        <key>UIApplicationShortcutItemIconSymbolName</key>
+        <string>list.bullet.rectangle</string>
+      </dict>
+      <dict>
+        <key>UIApplicationShortcutItemType</key>
+        <string>map</string>
+        <key>UIApplicationShortcutItemTitle</key>
+        <string>Mapa</string>
+        <key>UIApplicationShortcutItemSubtitle</key>
+        <string>Mapa da UERJ</string>
+        <key>UIApplicationShortcutItemIconSymbolName</key>
+        <string>map</string>
+      </dict>
+      <dict>
+        <key>UIApplicationShortcutItemType</key>
+        <string>documents</string>
+        <key>UIApplicationShortcutItemTitle</key>
+        <string>Documentos</string>
+        <key>UIApplicationShortcutItemSubtitle</key>
+        <string>Emissão de Documentos</string>
+        <key>UIApplicationShortcutItemIconSymbolName</key>
+        <string>doc.text</string>
+      </dict>
     </array>
     <key>UILaunchStoryboardName</key>
     <string>BootSplash</string>
@@ -53,8 +111,6 @@
     <key>UISupportedInterfaceOrientations</key>
     <array>
       <string>UIInterfaceOrientationPortrait</string>
-      <string>UIInterfaceOrientationLandscapeLeft</string>
-      <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
     <key>UIViewControllerBasedStatusBarAppearance</key>
     <false />

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
 import {
   useAppServices,
   useIdentity,
@@ -24,14 +23,20 @@ import { Description } from './AppInfoModal.styles';
  * o que o AO UERJ faz além do Aluno Online.
  */
 export const AppInfoModal = () => {
-  const { preferences } = useAppServices();
+  const { preferences, launches } = useAppServices();
   const { account } = useIdentity();
-  // sem os avisos no aparelho (iOS) ou com eles desligados pelo aviso remoto
-  const { supported, remoteDisabled } = useNotificationSettings().snapshot;
+  // sem os avisos no aparelho (sem o módulo nativo) ou com eles desligados
+  // pelo aviso remoto
+  const { supported, remoteDisabled, backgroundChecks } =
+    useNotificationSettings().snapshot;
   const items = APP_INFO.filter(
     info =>
       (!info.needsNotifications || (supported && !remoteDisabled)) &&
-      (!info.androidOnly || Platform.OS === 'android'),
+      (!info.needsLaunches || launches != null),
+  ).map(info =>
+    info.remindersOnly && !backgroundChecks
+      ? { ...info, description: info.remindersOnly }
+      : info,
   );
   // Conta para a qual a folha foi aberta: trocar de conta já a esconde.
   const [shownFor, setShownFor] = useState<typeof account>(null);

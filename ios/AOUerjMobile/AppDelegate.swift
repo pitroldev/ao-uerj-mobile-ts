@@ -3,6 +3,7 @@ import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
 import RNBootSplash
+import UserNotifications
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -19,6 +20,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     // Credentials and account preferences live in separate, untouched stores.
     URLCache.shared.removeAllCachedResponses()
 
+    // antes de terminar a abertura, para receber o toque no aviso que abriu o app
+    UNUserNotificationCenter.current().delegate = LaunchCenter.shared
+
     let delegate = ReactNativeDelegate()
     let factory = RCTReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()
@@ -34,6 +38,31 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       launchOptions: launchOptions
     )
 
+    return true
+  }
+
+  // Atalho do ícone (Info.plist, UIApplicationShortcutItems): o tipo é o destino.
+  // Também chega na abertura, porque a função acima devolve true.
+  func application(
+    _ application: UIApplication,
+    performActionFor shortcutItem: UIApplicationShortcutItem,
+    completionHandler: @escaping (Bool) -> Void
+  ) {
+    LaunchCenter.shared.open(shortcutItem.type)
+    completionHandler(true)
+  }
+
+  // Toque no widget: aouerj://open?target=home. O JS confere o destino.
+  func application(
+    _ app: UIApplication,
+    open url: URL,
+    options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+  ) -> Bool {
+    guard url.scheme == "aouerj", url.host == "open",
+      let target = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+        .queryItems?.first(where: { $0.name == "target" })?.value
+    else { return false }
+    LaunchCenter.shared.open(target)
     return true
   }
 }

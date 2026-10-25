@@ -107,8 +107,10 @@ const mockServices = {
       getSnapshot: () => mockNotifications,
     },
   },
+  // sem aberturas nativas (widget e atalhos)
+  launches: null as object | null,
 };
-const mockNotifications = { supported: false };
+const mockNotifications = { supported: false, backgroundChecks: false };
 jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useIdentity: () => mockIdentity,
   useAppServices: () => mockServices,
@@ -753,7 +755,7 @@ it('presents what is new in a sheet once per version', async () => {
   expect(
     screen.getByText('O que o AO UERJ faz além do Aluno Online:'),
   ).toBeOnTheScreen();
-  // sem avisos no aparelho (iOS), a novidade da versão não aparece
+  // sem o módulo dos avisos no aparelho, a novidade da versão não aparece
   expect(screen.queryByText('Notificações')).toBeNull();
   expect(
     screen.getByLabelText(/^Quanto preciso na PF, novo\. No quadro de notas/),
@@ -761,19 +763,42 @@ it('presents what is new in a sheet once per version', async () => {
   expect(
     screen.getByLabelText(/^Controle de faltas, novo\. Marque as faltas/),
   ).toBeOnTheScreen();
-  // widget e atalhos só existem no Android (o Jest roda como iOS)
+  // widget e atalhos dependem das aberturas nativas (sem módulo no Jest)
   expect(screen.queryByText('Widget e atalhos')).toBeNull();
 });
 
 it('lists the notifications as new where the device has them', async () => {
   mockNotifications.supported = true;
+  mockNotifications.backgroundChecks = true;
   try {
     await renderHome();
     expect(
-      await screen.findByLabelText(/^Notificações, novo\. Lembrete antes/),
+      await screen.findByLabelText(
+        /^Notificações, novo\. Lembrete antes de cada aula e avisos de nota nova/,
+      ),
     ).toBeOnTheScreen();
   } finally {
     mockNotifications.supported = false;
+    mockNotifications.backgroundChecks = false;
+  }
+});
+
+it('lists only the class reminders where there is no portal check (iPhone)', async () => {
+  mockNotifications.supported = true;
+  mockServices.launches = {};
+  try {
+    await renderHome();
+    expect(
+      await screen.findByLabelText(
+        'Notificações, novo. Lembrete antes de cada aula, com o horário e a sala.',
+      ),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByLabelText(/^Widget e atalhos, novo\. A próxima aula/),
+    ).toBeOnTheScreen();
+  } finally {
+    mockNotifications.supported = false;
+    mockServices.launches = null;
   }
 });
 

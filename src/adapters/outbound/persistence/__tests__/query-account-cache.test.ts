@@ -249,7 +249,7 @@ it('keeps what changes little for the period with the encrypted cache', async ()
     'schedule',
     'history',
   ]);
-  // sem o cofre (iOS): 7 dias para tudo
+  // sem o cofre (sem o módulo nativo): 7 dias para tudo
   expect(await restore({})).toEqual([]);
   expect(longLivedCacheAge(['academics', 'a', '2026.2', 'grades'])).toBe(
     LONG_CACHE_AGE,

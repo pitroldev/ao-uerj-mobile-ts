@@ -3,6 +3,7 @@ import type { StyleProp, ViewStyle } from 'react-native';
 import styled from 'styled-components/native';
 
 import { Button, Notice, Text, snackbar } from '@components/ui';
+import { systemTexts } from './systemTexts';
 import { useNotificationSettings } from './useNotificationSettings';
 
 /** Mesmo recuo das ações dos avisos remotos (alvo de 48dp sem empurrar o aviso). */
@@ -14,7 +15,7 @@ const Actions = styled.View`
 
 /**
  * Convite no Início, abaixo da próxima aula: uma vez só. "Ativar" pede a
- * permissão do Android; recusada ou dispensada, o convite não volta (as
+ * permissão do sistema; recusada ou dispensada, o convite não volta (as
  * Notificações, no menu, continuam lá).
  */
 export function ReminderPrompt({ style }: { style?: StyleProp<ViewStyle> }) {
@@ -41,10 +42,7 @@ export function ReminderPrompt({ style }: { style?: StyleProp<ViewStyle> }) {
             `Você recebe um aviso ${lead} minutos antes de cada aula. Ajuste em Notificações, no menu.`,
           );
         else
-          snackbar.info(
-            'Lembretes não ligados',
-            'Sem a permissão do Android, o app não mostra avisos. Dá para ligar depois em Notificações.',
-          );
+          snackbar.info('Lembretes não ligados', systemTexts().promptRefused);
       })
       .catch(() => snackbar.error('Não foi possível salvar a escolha.'));
   };

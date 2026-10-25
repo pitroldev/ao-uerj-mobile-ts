@@ -1,7 +1,7 @@
 import NativeSecureVault, { type Spec } from '@root/specs/NativeSecureVault';
 import type { SecureVault } from '../persistence/vault-storage';
 
-/** Cofre cifrado do aparelho; `null` onde o módulo não existe (iOS). */
+/** Cofre cifrado do aparelho; `null` onde o módulo não existe. */
 export function createSecureVault(
   module: Spec | null | undefined = NativeSecureVault,
 ): SecureVault | null {

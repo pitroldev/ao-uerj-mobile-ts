@@ -25,6 +25,7 @@ import {
 } from '@root/modules/notifications/domain/preferences';
 import type { UpdateResult } from '@root/modules/notifications/application/NotificationSettings';
 import { checkStatusText } from '@root/modules/notifications/presentation/checkStatus';
+import { systemTexts } from '@root/modules/notifications/presentation/systemTexts';
 import { useNotificationSettings } from '@root/modules/notifications/presentation/useNotificationSettings';
 
 type Toggle = Exclude<
@@ -61,13 +62,16 @@ const Foot = styled.View`
 
 /**
  * Notificações: lembrete antes da aula (grade salva, sem portal) e avisos do
- * Aluno Online (nota, RID e documento), cada um ligado pelo aluno.
+ * Aluno Online (nota, RID e documento), cada um ligado pelo aluno. Os avisos
+ * do Aluno Online dependem da verificação em segundo plano, que só o Android
+ * tem; no iPhone a tela mostra os lembretes.
  */
 export function NotificationsPage() {
   const { snapshot, settings } = useNotificationSettings();
   const { preferences, permission, exactAlarms, check, ready } = snapshot;
   // a tela continua montada no menu: "hoje" e a pausa acompanham o relógio
   const now = useNow().getTime();
+  const texts = systemTexts();
 
   if (!snapshot.supported) {
     return (
@@ -82,15 +86,9 @@ export function NotificationsPage() {
 
   const explain = (result: UpdateResult) => {
     if (result === 'denied')
-      snackbar.info(
-        'Aviso não ligado',
-        'O Android precisa da sua permissão para mostrar avisos.',
-      );
+      snackbar.info('Aviso não ligado', texts.deniedHint);
     if (result === 'blocked')
-      snackbar.info(
-        'Avisos bloqueados no Android',
-        'Toque em “Abrir configurações”, no topo da tela, para liberar.',
-      );
+      snackbar.info(texts.blockedTitle, texts.blockedHint);
   };
 
   const save = (patch: Partial<NotificationPreferences>) => {
@@ -143,15 +141,14 @@ export function NotificationsPage() {
             icon="notifications"
             text={
               permission === 'blocked'
-                ? 'O Android está bloqueando os avisos do AO UERJ.'
-                : 'Os avisos precisam da sua permissão no Android.'
+                ? texts.blockedNotice
+                : texts.deniedNotice
             }
             action={{
-              label:
-                permission === 'blocked' ? 'Abrir configurações' : 'Permitir',
+              label: permission === 'blocked' ? texts.openSettings : 'Permitir',
               accessibilityLabel:
                 permission === 'blocked'
-                  ? 'Abrir as configurações de avisos do Android'
+                  ? texts.openSettingsLabel
                   : 'Permitir avisos',
               onPress:
                 permission === 'blocked' ? openSettings : allowNotifications,
@@ -199,40 +196,42 @@ export function NotificationsPage() {
         ) : null}
       </Section>
 
-      <Section
-        title="Aluno Online"
-        description={`O app consulta o portal a cada ${CHECK_INTERVAL_HOURS} horas, das 7h às 22h, com a conta salva neste aparelho.`}
-      >
-        <List>
-          {row(
-            'grades',
-            'Notas novas',
-            'Quando sair ou mudar uma nota do período.',
-          )}
-          {preferences.grades
-            ? row(
-                'gradeValues',
-                'Mostrar a nota no aviso',
-                'Desligado, o aviso diz só a disciplina e a avaliação.',
-              )
-            : null}
-          {row(
-            'rid',
-            'RID',
-            'Posição no RID Parcial e resultado da inscrição.',
-          )}
-          {row(
-            'documents',
-            'Documentos perto de vencer',
-            'Até 3 dias antes do vencimento de um documento emitido.',
-          )}
-        </List>
-        {usesPortalChecks(preferences) ? (
-          <Status variant="meta" tone="muted">
-            {checkStatusText(check, now)}
-          </Status>
-        ) : null}
-      </Section>
+      {snapshot.backgroundChecks ? (
+        <Section
+          title="Aluno Online"
+          description={`O app consulta o portal a cada ${CHECK_INTERVAL_HOURS} horas, das 7h às 22h, com a conta salva neste aparelho.`}
+        >
+          <List>
+            {row(
+              'grades',
+              'Notas novas',
+              'Quando sair ou mudar uma nota do período.',
+            )}
+            {preferences.grades
+              ? row(
+                  'gradeValues',
+                  'Mostrar a nota no aviso',
+                  'Desligado, o aviso diz só a disciplina e a avaliação.',
+                )
+              : null}
+            {row(
+              'rid',
+              'RID',
+              'Posição no RID Parcial e resultado da inscrição.',
+            )}
+            {row(
+              'documents',
+              'Documentos perto de vencer',
+              'Até 3 dias antes do vencimento de um documento emitido.',
+            )}
+          </List>
+          {usesPortalChecks(preferences) ? (
+            <Status variant="meta" tone="muted">
+              {checkStatusText(check, now)}
+            </Status>
+          ) : null}
+        </Section>
+      ) : null}
 
       <Foot>
         <FootNote

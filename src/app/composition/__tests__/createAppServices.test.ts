@@ -49,7 +49,10 @@ jest.mock('../createPortalMonitor', () => ({
     failed: jest.fn(),
   })),
 }));
-// sem o cofre (como no iOS): o cache segue no AsyncStorage
+jest.mock('../previousInstall', () => ({
+  forgetPreviousInstall: jest.fn(async () => undefined),
+}));
+// sem o cofre (sem o módulo nativo): o cache segue no AsyncStorage
 jest.mock('@root/adapters/outbound/native/NativeSecureVault', () => ({
   createSecureVault: jest.fn(() => null),
 }));

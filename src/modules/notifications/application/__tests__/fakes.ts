@@ -30,10 +30,13 @@ export function createDevice({
   permission = 'granted',
   request = 'granted',
   exactAlarms = true,
+  backgroundChecks = true,
 }: {
   permission?: PermissionState;
   request?: PermissionState;
   exactAlarms?: boolean;
+  /** `false` como no iOS: só os lembretes de aula. */
+  backgroundChecks?: boolean;
 } = {}) {
   const state: {
     permission: PermissionState;
@@ -43,6 +46,7 @@ export function createDevice({
   } = { permission };
   const device = {
     state,
+    backgroundChecks,
     permission: jest.fn(async () => state.permission),
     requestPermission: jest.fn(async () => {
       state.permission = request;

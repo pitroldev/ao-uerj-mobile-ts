@@ -37,6 +37,11 @@ class AppNotificationsModule(reactContext: ReactApplicationContext) :
     promise.resolve(AppNotifier.areEnabled(reactApplicationContext))
   }
 
+  // JS asks through PermissionsAndroid (POST_NOTIFICATIONS); this only reports the current state.
+  override fun requestPermission(promise: Promise) {
+    promise.resolve(if (AppNotifier.areEnabled(reactApplicationContext)) "granted" else "blocked")
+  }
+
   override fun openNotificationSettings(promise: Promise) {
     val packageName = reactApplicationContext.packageName
     val intent =

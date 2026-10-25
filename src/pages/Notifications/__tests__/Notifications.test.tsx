@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { act, screen, userEvent } from '@testing-library/react-native';
 
 import { snackbar } from '@components/ui';
@@ -23,6 +24,13 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 const ACCOUNT = { scope: 'account-1', period: '2026.2' };
+
+// a tela como no Android (os textos citam o sistema); o iPhone tem teste próprio
+const originalOS = Platform.OS;
+const setOS = (value: typeof Platform.OS) =>
+  Object.defineProperty(Platform, 'OS', { value, configurable: true });
+beforeEach(() => setOS('android'));
+afterEach(() => setOS(originalOS));
 
 async function mount({
   device = createDevice(),
@@ -111,6 +119,41 @@ it('explains a refused permission and keeps the switch off', async () => {
     }),
   );
   expect(device.openSettings).toHaveBeenCalled();
+});
+
+it('shows only the class reminders on the iPhone, in its own words', async () => {
+  setOS('ios');
+  const info = jest.spyOn(snackbar, 'info').mockImplementation(() => undefined);
+  const device = createDevice({
+    permission: 'denied',
+    request: 'blocked',
+    backgroundChecks: false,
+  });
+  await mount({ device });
+  // sem a verificação em segundo plano, sem os avisos do Aluno Online
+  expect(screen.queryByText('Aluno Online')).toBeNull();
+  expect(screen.queryByRole('switch', { name: /Notas novas/ })).toBeNull();
+
+  await userEvent.press(row('Lembrete antes da aula'));
+  await act(settle);
+  expect(row('Lembrete antes da aula')).not.toBeChecked();
+  expect(info).toHaveBeenCalledWith(
+    'Avisos bloqueados no iPhone',
+    'Toque em “Abrir Ajustes”, no topo da tela, para liberar.',
+  );
+  expect(
+    screen.getByText('O iPhone está bloqueando os avisos do AO UERJ.'),
+  ).toBeOnTheScreen();
+  await userEvent.press(
+    screen.getByRole('button', {
+      name: 'Abrir os Ajustes de avisos do iPhone',
+    }),
+  );
+  expect(device.openSettings).toHaveBeenCalled();
+  expect(device.setPortalCheck).not.toHaveBeenCalledWith(
+    true,
+    expect.any(Number),
+  );
 });
 
 it('asks for the permission again from the notice when it can', async () => {

@@ -104,7 +104,7 @@ it('opens the map without an account, and the rest only after the login', async 
   expect(mockNavigate).toHaveBeenLastCalledWith('Emissão de Documentos');
 });
 
-it('does nothing without the native module (iOS)', async () => {
+it('does nothing without the native module', async () => {
   mockStatus = 'signedIn';
   mockLaunches = null;
   await render(<LaunchHandler ready />);

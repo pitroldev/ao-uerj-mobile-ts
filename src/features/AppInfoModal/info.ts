@@ -29,7 +29,7 @@ export const APP_INFO = [
     title: 'Widget e atalhos',
     icon: 'grid_view',
     isNew: true,
-    androidOnly: true,
+    needsLaunches: true,
     description:
       'A próxima aula na tela inicial do celular e atalhos no ícone do app para Próxima aula, Notas, Mapa e Documentos.',
   },
@@ -40,6 +40,7 @@ export const APP_INFO = [
     needsNotifications: true,
     description:
       'Lembrete antes de cada aula e avisos de nota nova, RID, resultado da inscrição e documento perto de vencer.',
+    remindersOnly: 'Lembrete antes de cada aula, com o horário e a sala.',
   },
   {
     title: 'Gerador de Grade',
@@ -64,9 +65,11 @@ export const APP_INFO = [
   /** Ícone da linha (padrão "star"). */
   icon?: IconName;
   isNew?: boolean;
-  /** Só onde o aparelho tem os avisos (Android). */
+  /** Só onde o aparelho tem os avisos (módulo nativo). */
   needsNotifications?: boolean;
-  /** Só no Android (widget e atalhos do ícone). */
-  androidOnly?: boolean;
+  /** Só onde o app abre por fora (widget e atalhos do ícone). */
+  needsLaunches?: boolean;
   description: string;
+  /** A descrição sem a verificação no portal (no iPhone, só os lembretes). */
+  remindersOnly?: string;
 }[];

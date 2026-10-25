@@ -28,8 +28,13 @@ export const PREFERENCES_KEY = 'notifications';
 export const CHECK_STATE_KEY = 'notifications-check';
 
 export type NotificationsSnapshot = {
-  /** O aparelho tem os recursos (só no Android). */
+  /** O aparelho tem os recursos (o módulo nativo existe). */
   supported: boolean;
+  /**
+   * Há verificação no portal em segundo plano (só no Android); no iOS ficam
+   * os lembretes de aula.
+   */
+  backgroundChecks: boolean;
   /** Preferências da conta ativa já lidas. */
   ready: boolean;
   preferences: NotificationPreferences;
@@ -46,7 +51,7 @@ export type NotificationsSnapshot = {
 export type UpdateResult = 'saved' | PermissionState;
 
 type Dependencies = {
-  /** `null` onde não há suporte (iOS): tudo fica inerte. */
+  /** `null` onde não há o módulo nativo: tudo fica inerte. */
   device: NotificationDevicePort | null;
   store: NotificationStore;
   /** `undefined` enquanto a identidade é restaurada; `null` sem conta. */
@@ -94,6 +99,7 @@ export class NotificationSettings {
   constructor(private readonly dependencies: Dependencies) {
     this.snapshot = {
       supported: dependencies.device !== null,
+      backgroundChecks: dependencies.device?.backgroundChecks ?? false,
       ready: false,
       preferences: DEFAULT_NOTIFICATION_PREFERENCES,
       permission: null,
@@ -302,10 +308,11 @@ export class NotificationSettings {
   }
 
   private desired(account: ActiveAccount | null): Desired {
-    const { permission, remoteDisabled, preferences } = this.snapshot;
+    const { permission, remoteDisabled, preferences, backgroundChecks } =
+      this.snapshot;
     if (!account || permission !== 'granted' || remoteDisabled)
       return { plan: null, portal: false };
-    const portal = usesPortalChecks(preferences);
+    const portal = backgroundChecks && usesPortalChecks(preferences);
     if (!preferences.classReminders) return { plan: null, portal };
     const schedule = this.dependencies.schedule(account);
     // sem a grade salva (o cache em disco dura menos que os lembretes, ou o

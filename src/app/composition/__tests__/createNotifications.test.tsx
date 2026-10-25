@@ -41,7 +41,11 @@ const meeting: AttendedClassesSchedule = {
   end_time_in_minutes: 960,
 };
 
-function setup(preferences: Record<string, unknown>, disabled: string[] = []) {
+function setup(
+  preferences: Record<string, unknown>,
+  disabled: string[] = [],
+  device = createDevice(),
+) {
   let state: IdentityState = {
     status: 'restoring',
     account: null,
@@ -60,7 +64,6 @@ function setup(preferences: Record<string, unknown>, disabled: string[] = []) {
     listeners.forEach(listener => listener());
   };
   const queryClient = createTestQueryClient();
-  const device = createDevice();
   const store = createStore({
     [`${ACCOUNT.scope}/notifications`]: preferences,
   });
@@ -148,6 +151,24 @@ it('plans the reminders from the schedule the app loads', async () => {
       body: 'Sala 6019 B',
     }),
   ]);
+});
+
+it('leaves the portal tasks out where the device has no background checks (iOS)', async () => {
+  const { notifications, queryClient, device, signIn, key } = setup(
+    { classReminders: true, grades: true },
+    [],
+    createDevice({ backgroundChecks: false }),
+  );
+  expect(notifications.portalCheck).toBeNull();
+  expect(notifications.portalReturn).toBeNull();
+  signIn();
+  await act(() => {
+    queryClient.setQueryData(key('schedule'), [meeting]);
+  });
+  await act(settle);
+  // os lembretes de aula seguem
+  expect(device.state.plan?.reminders).toHaveLength(1);
+  expect(device.setPortalCheck).not.toHaveBeenCalledWith(true, 4);
 });
 
 it('compares the portal check with what the app showed and saves the new reading', async () => {

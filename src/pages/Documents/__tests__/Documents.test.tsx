@@ -17,7 +17,7 @@ import { DocumentsPage } from '../Documents';
 
 const mockDocuments = { list: jest.fn(), issue: jest.fn(), remove: jest.fn() };
 const mockSharing = { share: jest.fn() };
-/** PDFs guardados no aparelho (o cofre do Android); `null` como no iOS. */
+/** PDFs guardados no aparelho (o cofre); `null` sem o módulo nativo. */
 let mockSaved: SavedDocumentsPort | null = null;
 let mockFocused = true;
 jest.mock('@react-navigation/native', () => ({

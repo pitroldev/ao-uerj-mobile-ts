@@ -84,12 +84,14 @@ export function createNotifications({
     schedule: owner => cache.read(owner, 'schedule'),
     reminderText,
   });
-  const portalCheck = device
+  // as tarefas sem tela no portal só existem no Android (no iOS, os lembretes)
+  const background = device?.backgroundChecks ? device : null;
+  const portalCheck = background
     ? new PortalCheck({
         records,
         documents,
         cache,
-        device,
+        device: background,
         store: preferences,
         account,
         savedScope,
@@ -98,9 +100,9 @@ export function createNotifications({
         onRecorded: (scope, state) => settings.checkRecorded(scope, state),
       })
     : null;
-  const portalReturn = device
+  const portalReturn = background
     ? new PortalReturnAlert({
-        device,
+        device: background,
         store: preferences,
         account,
         savedScope,

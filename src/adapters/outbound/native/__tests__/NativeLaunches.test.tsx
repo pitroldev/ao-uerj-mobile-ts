@@ -1,7 +1,7 @@
 import type { Spec } from '@root/specs/NativeAppNotifications';
 import { createLaunches } from '../NativeLaunches';
 
-// fora do Android o TurboModuleRegistry não encontra o módulo
+// no Jest o TurboModuleRegistry não encontra o módulo
 jest.mock('@root/specs/NativeAppNotifications', () => ({
   __esModule: true,
   default: null,
@@ -26,7 +26,7 @@ function nativeModule() {
   };
 }
 
-it('is absent where the native module does not exist (iOS)', () => {
+it('is absent where the native module does not exist', () => {
   expect(createLaunches()).toBeNull();
 });
 

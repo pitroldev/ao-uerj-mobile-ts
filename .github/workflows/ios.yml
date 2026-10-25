@@ -25,6 +25,16 @@ jobs:
           ruby-version: '3.3'
           bundler-cache: true
       - run: pnpm install --frozen-lockfile
+      # O build Debug abaixo não empacota o JS: o bundle de release para iOS
+      # pega o que só quebra nessa plataforma (resolução de módulos, assets).
+      - name: Bundle the JS for iOS (release)
+        run: >-
+          pnpm exec react-native bundle
+          --platform ios
+          --dev false
+          --entry-file index.js
+          --bundle-output "$RUNNER_TEMP/main.jsbundle"
+          --assets-dest "$RUNNER_TEMP/assets"
       - run: bundle exec pod install --project-directory=ios
       - name: Build without signing for simulator
         run: >-

@@ -14,30 +14,40 @@ type Permissions = Pick<
 >;
 
 type Options = {
+  os?: typeof Platform.OS;
   permissions?: Permissions;
   /** Nível da API do Android (o pedido de permissão existe a partir do 33). */
   apiLevel?: number;
 };
 
 /**
- * Avisos pelo módulo nativo local (canais, lembretes com AlarmManager e a
- * verificação periódica com WorkManager). `null` no iOS, onde o módulo não
- * existe.
+ * Avisos pelo módulo nativo local. No Android: canais, lembretes com
+ * AlarmManager e as tarefas no portal com WorkManager. No iOS: lembretes de
+ * aula agendados no UNUserNotificationCenter, sem tarefas no portal (o iOS
+ * não garante quando uma tarefa em segundo plano roda). `null` onde o módulo
+ * não existe.
  */
 export function createNativeNotifications(
   module: Spec | null | undefined = NativeAppNotifications,
   {
+    os = Platform.OS,
     permissions = PermissionsAndroid,
-    apiLevel = Platform.OS === 'android' ? Number(Platform.Version) : 0,
+    apiLevel = os === 'android' ? Number(Platform.Version) : 0,
   }: Options = {},
 ): NotificationDevicePort | null {
   if (!module) return null;
   const enabled = async () =>
     (await module.areNotificationsEnabled()) ? 'granted' : 'denied';
   return {
+    backgroundChecks: os === 'android',
     permission: enabled,
     async requestPermission(): Promise<PermissionState> {
       if ((await enabled()) === 'granted') return 'granted';
+      // O iOS pergunta uma vez; depois da recusa, só os Ajustes liberam.
+      if (os === 'ios')
+        return (await module.requestPermission()) === 'granted'
+          ? 'granted'
+          : 'blocked';
       // Antes do Android 13 não há pedido: a chave fica nas configurações.
       if (apiLevel < 33) return 'blocked';
       const result = await permissions.request(

@@ -59,6 +59,7 @@ import { initializeIdentity } from './initializeIdentity';
 import { createDelivery } from './createDelivery';
 import { createNotifications } from './createNotifications';
 import { createPortalMonitor } from './createPortalMonitor';
+import { forgetPreviousInstall } from './previousInstall';
 import { createWidget } from './createWidget';
 
 /** Preferências da conta que o logout apaga junto com o cache. */
@@ -83,8 +84,8 @@ export function createAppServices() {
   const queryClient = createQueryClient(reportQueryError);
   const credentials = createCredentialStore();
   const preferences = createPreferencesStore(AsyncStorage);
-  // Android: cache cifrado no cofre, com o essencial valendo o período; sem
-  // o cofre (iOS), o cache segue no AsyncStorage por 7 dias
+  // cache cifrado no cofre (Android e iOS), com o essencial valendo o
+  // período; sem o cofre, o cache segue no AsyncStorage por 7 dias
   const vault = createSecureVault();
   const savedDocuments = vault ? createSavedDocumentsStore(vault) : null;
   const cache = createQueryAccountCache(
@@ -163,7 +164,7 @@ export function createAppServices() {
     scheduleSharing: new NativeScheduleSharing(),
     documents: portal.documents,
     documentSharing: new NativeDocumentSharing(),
-    // PDFs que o aluno guardou para usar sem o portal (cofre; só no Android)
+    // PDFs que o aluno guardou para usar sem o portal (no cofre)
     savedDocuments,
     delivery,
     notifications,
@@ -184,16 +185,16 @@ export function createAppServices() {
     }),
     flushCache: cache.flush,
     initialize() {
-      startup ??= initializeIdentity(
-        () =>
-          migrateLegacyStorage(
-            AsyncStorage,
-            credentials,
-            preferences,
-            createScope,
-          ),
-        identity,
-      );
+      startup ??= initializeIdentity(async () => {
+        // iOS: a conta salva no Keychain antes de uma desinstalação não volta
+        await forgetPreviousInstall(AsyncStorage, credentials);
+        await migrateLegacyStorage(
+          AsyncStorage,
+          credentials,
+          preferences,
+          createScope,
+        );
+      }, identity);
       return startup;
     },
   };

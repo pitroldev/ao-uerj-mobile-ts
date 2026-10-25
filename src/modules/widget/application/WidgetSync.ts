@@ -7,7 +7,7 @@ import {
 import type { WidgetAccount, WidgetDevicePort } from './ports';
 
 type Dependencies = {
-  /** `null` onde não há widget (iOS): nada acontece. */
+  /** `null` onde não há o módulo do widget: nada acontece. */
   device: WidgetDevicePort | null;
   /** `undefined` enquanto a identidade é restaurada; `null` sem conta. */
   account: () => WidgetAccount | null | undefined;

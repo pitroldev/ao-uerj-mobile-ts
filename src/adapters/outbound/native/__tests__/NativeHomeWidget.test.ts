@@ -1,12 +1,12 @@
 import { createNativeHomeWidget } from '../NativeHomeWidget';
 
-// fora do Android o TurboModuleRegistry não encontra o módulo
+// no Jest o TurboModuleRegistry não encontra o módulo
 jest.mock('@root/specs/NativeHomeWidget', () => ({
   __esModule: true,
   default: null,
 }));
 
-it('is absent where the native module does not exist (iOS)', () => {
+it('is absent where the native module does not exist', () => {
   expect(createNativeHomeWidget()).toBeNull();
 });
 
