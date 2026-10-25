@@ -19,6 +19,7 @@
 		A0F0B0003000000000000000 /* Inter-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A0F0F0003000000000000000 /* Inter-Bold.ttf */; };
 		A0F0B0004000000000000000 /* InterDisplay-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A0F0F0004000000000000000 /* InterDisplay-SemiBold.ttf */; };
 		C0DE00000000000000000002 /* LaunchCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000001 /* LaunchCenter.swift */; };
+		C0DE00000000000000000041 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000040 /* SceneDelegate.swift */; };
 		C0DE00000000000000000004 /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000003 /* WidgetStore.swift */; };
 		C0DE00000000000000000005 /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000003 /* WidgetStore.swift */; };
 		C0DE00000000000000000007 /* SecureVaultModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000006 /* SecureVaultModule.mm */; };
@@ -70,6 +71,7 @@
 		A0F0F0003000000000000000 /* Inter-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Inter-Bold.ttf"; path = "../src/assets/fonts/Inter-Bold.ttf"; sourceTree = "<group>"; };
 		A0F0F0004000000000000000 /* InterDisplay-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "InterDisplay-SemiBold.ttf"; path = "../src/assets/fonts/InterDisplay-SemiBold.ttf"; sourceTree = "<group>"; };
 		C0DE00000000000000000001 /* LaunchCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LaunchCenter.swift; path = AOUerjMobile/LaunchCenter.swift; sourceTree = "<group>"; };
+		C0DE00000000000000000040 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SceneDelegate.swift; path = AOUerjMobile/SceneDelegate.swift; sourceTree = "<group>"; };
 		C0DE00000000000000000003 /* WidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WidgetStore.swift; path = AOUerjMobile/WidgetStore.swift; sourceTree = "<group>"; };
 		C0DE00000000000000000006 /* SecureVaultModule.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = SecureVaultModule.mm; path = AOUerjMobile/Native/SecureVaultModule.mm; sourceTree = "<group>"; };
 		C0DE00000000000000000008 /* AppNotificationsModule.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = AppNotificationsModule.mm; path = AOUerjMobile/Native/AppNotificationsModule.mm; sourceTree = "<group>"; };
@@ -106,6 +108,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				B0075A5A0000000000000004 /* Colors.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
+				C0DE00000000000000000040 /* SceneDelegate.swift */,
 				C0DE00000000000000000001 /* LaunchCenter.swift */,
 				C0DE00000000000000000003 /* WidgetStore.swift */,
 				C0DE00000000000000000020 /* Native */,
@@ -400,6 +403,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
+				C0DE00000000000000000041 /* SceneDelegate.swift in Sources */,
 				C0DE00000000000000000002 /* LaunchCenter.swift in Sources */,
 				C0DE00000000000000000004 /* WidgetStore.swift in Sources */,
 				C0DE00000000000000000009 /* AppNotificationsModule.mm in Sources */,

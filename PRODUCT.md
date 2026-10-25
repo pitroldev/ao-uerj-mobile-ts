@@ -28,9 +28,9 @@ Não é o app da UERJ; é o app que os alunos gostariam que a UERJ tivesse feito
 
 ## Capabilities and Constraints
 
-- React Native 0.87 (nova arquitetura, React Compiler) com styled-components; Android publicado na Google Play, build iOS existe mas é secundário.
-- Rotas atuais: Início, Meu Progresso, Plano até a formatura, Emissão de Documentos, Gerador de Grade, Mural de Mensagens, Disciplinas Realizadas, Disciplinas do Currículo, Disciplinas Universais, Pesquisa de Disciplinas, Mapa, Notificações (Android), Sobre, além de Login e Carregamento.
-- Notificações são opt-in por tipo: lembrete antes da aula (grade salva, sem portal) e avisos do Aluno Online (nota, RID parcial, resultado da inscrição e documento perto de vencer), com verificação a cada 4 horas fora do horário noturno.
+- React Native 0.88 (nova arquitetura, React Compiler) com styled-components; Android publicado na Google Play, build iOS existe mas é secundário.
+- Rotas atuais: Início, Meu Progresso, Plano até a formatura, Emissão de Documentos, Gerador de Grade, Mural de Mensagens, Disciplinas Realizadas, Disciplinas do Currículo, Disciplinas Universais, Pesquisa de Disciplinas, Mapa, Notificações, Sobre, além de Login e Carregamento.
+- Notificações são opt-in por tipo: lembrete antes da aula (grade salva, sem portal) e avisos do Aluno Online (nota, RID parcial, resultado da inscrição e documento perto de vencer), com verificação a cada 4 horas fora do horário noturno. No iPhone há só o lembrete: a verificação em segundo plano é do Android.
 - No Android, o widget "Próxima aula" mostra a próxima aula da grade salva na tela inicial, e o ícone do app tem atalhos para Próxima aula, Notas, Mapa e Documentos. Nenhum dos dois acessa o portal.
 - O quadro de notas diz quanto falta na PF pela regra do regime de créditos (Deliberação nº 33/1995, art. 95) e simula a média final e o CR aproximado. O aluno marca as próprias faltas na agenda e vê quanto ainda pode faltar; elas ficam só no aparelho, porque o portal não mostra a frequência do período em curso.
 - O Plano até a formatura distribui as obrigatórias que faltam pelos próximos períodos, com os pré-requisitos da Pesquisa de Disciplinas (lidos uma vez e guardados por versão curricular), os gargalos, a formatura escolhida (cada data com a menor carga de disciplinas por período que chega lá) e o prazo máximo da Síntese da Formação. É uma estimativa: não conhece vagas, horários nem a oferta de cada período.

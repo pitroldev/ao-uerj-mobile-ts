@@ -7,8 +7,8 @@ import { toLaunchTarget } from '@root/modules/launch/domain/launchTarget';
 /**
  * Aberturas do app vindas de fora (aviso tocado, atalho do ícone, widget).
  * O módulo nativo dos avisos lê o destino do intent da MainActivity ou, no
- * iOS, o que o AppDelegate guardou (LaunchCenter.swift). `null` onde o módulo
- * não existe.
+ * iOS, o que a SceneDelegate e o delegate dos avisos guardaram
+ * (LaunchCenter.swift). `null` onde o módulo não existe.
  */
 export function createLaunches(
   module: Spec | null | undefined = NativeAppNotifications,

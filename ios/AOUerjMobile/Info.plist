@@ -22,7 +22,7 @@
     <string>$(MARKETING_VERSION)</string>
     <key>CFBundleSignature</key>
     <string>????</string>
-    <!-- Toque no widget "Próxima aula": aouerj://open?target=home (AppDelegate.swift). -->
+    <!-- Toque no widget "Próxima aula": aouerj://open?target=home (SceneDelegate.swift). -->
     <key>CFBundleURLTypes</key>
     <array>
       <dict>
@@ -50,6 +50,26 @@
     <false />
     <key>NSPhotoLibraryAddUsageDescription</key>
     <string>O AO UERJ salva na galeria a imagem da grade quando você escolhe "Salvar imagem" ao compartilhar.</string>
+    <key>RCTNewArchEnabled</key>
+    <true />
+    <!-- Ciclo de vida com cenas (template do React Native 0.88; exigido pelo SDK do iOS 27). -->
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+      <key>UIApplicationSupportsMultipleScenes</key>
+      <false />
+      <key>UISceneConfigurations</key>
+      <dict>
+        <key>UIWindowSceneSessionRoleApplication</key>
+        <array>
+          <dict>
+            <key>UISceneConfigurationName</key>
+            <string>Default Configuration</string>
+            <key>UISceneDelegateClassName</key>
+            <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+          </dict>
+        </array>
+      </dict>
+    </dict>
     <key>UIAppFonts</key>
     <array>
       <string>Inter-Regular.ttf</string>

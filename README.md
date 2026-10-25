@@ -1,6 +1,6 @@
 # AO UERJ
 
-Aplicativo não oficial do Aluno Online da UERJ, em React Native 0.87.1, React 19.2 e TypeScript. Consulta notas, histórico, currículo, disciplinas, RID e horários e emite documentos. Também oferece progresso acadêmico, plano até a formatura, quanto falta na PF com simulação do CR, controle de faltas, geração de grades, mural de mensagens e mapa offline do campus. No Android, tem ainda notificações, widget e atalhos.
+Aplicativo não oficial do Aluno Online da UERJ, em React Native 0.88, React 19.3 e TypeScript. Consulta notas, histórico, currículo, disciplinas, RID e horários e emite documentos. Também oferece progresso acadêmico, plano até a formatura, quanto falta na PF com simulação do CR, controle de faltas, geração de grades, mural de mensagens e mapa offline do campus. Tem ainda widget, atalhos e lembretes de aula. No Android, também avisa de nota nova, RID e documento perto de vencer.
 
 [Google Play](https://play.google.com/store/apps/details?id=com.aouerjmobile) · [Licença GPLv3](LICENSE)
 
@@ -51,7 +51,8 @@ Os scripts Gradle funcionam no Windows, Linux e macOS. Debug não exige assinatu
   - `SecureVault`: o cofre cifrado, com ECIES (P-256 no Keychain, só deste aparelho) e arquivos em Application Support fora do backup. Dá o cache de 180 dias e "Guardar no aparelho" nos documentos;
   - `AppNotifications`: permissão e lembretes de aula no `UNUserNotificationCenter`, como avisos de data única até a validade do plano. O iOS guarda 64 avisos agendados, e o app usa até 60. Também lê o destino das aberturas, guardado pela `LaunchCenter.swift`;
   - `HomeWidget`: grava a grade no App Group `group.com.aouerjmobile`, que a extensão `ios/NextClassWidget` (WidgetKit) lê. A `WidgetStore.swift` entra nos dois alvos.
-- **Aberturas:** o `AppDelegate` recebe o toque no aviso (delegate do `UNUserNotificationCenter`), os atalhos do ícone (`UIApplicationShortcutItems` no `Info.plist`, com os mesmos destinos do Android) e o toque no widget (`aouerj://open?target=home`).
+- **Ciclo de vida com cenas:** como no template do React Native 0.88 (e exigido pelo SDK do iOS 27), a janela e o React Native ficam na `SceneDelegate.swift` (`UIApplicationSceneManifest` no `Info.plist`); o `AppDelegate` só limpa o `URLCache` e registra o delegate dos avisos.
+- **Aberturas:** o toque no aviso chega pelo delegate do `UNUserNotificationCenter`; os atalhos do ícone (`UIApplicationShortcutItems` no `Info.plist`, com os mesmos destinos do Android) e o toque no widget (`aouerj://open?target=home`) chegam pela `SceneDelegate`, na abertura (`connectionOptions`) e com o app aberto.
 - **Fora do iPhone:**
   - a verificação no portal em segundo plano (notas, RID e documentos) e "Avisar quando voltar": o `BGTaskScheduler` não garante horário. A tela de Notificações mostra só os lembretes (`backgroundChecks` no `NotificationDevicePort`);
   - atualização e avaliação dentro do app (`InAppUpdates` é da Play).

@@ -27,7 +27,7 @@
     "docs/design-proposals/**"
   ],
   "settings": {
-    "react": { "version": "19.2.3" },
+    "react": { "version": "19.3.0" },
     "jest": { "version": 30 }
   },
   "rules": {
