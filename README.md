@@ -61,10 +61,6 @@ Os scripts Gradle funcionam no Windows, Linux e macOS. Debug não exige assinatu
 - **Testes:** o Jest roda como iOS (`defaultPlatform: 'ios'` no preset do React Native), sem os módulos nativos. Os testes que dependem do sistema trocam `Platform.OS`.
 - **Fontes:** os nomes em `fontFamily` (`Inter-Regular`, `InterDisplay-SemiBold`…) são os nomes PostScript dos arquivos, o que o iOS exige.
 - **Rede:** o portal (TLS 1.2 com ECDHE, certificado SHA-256 de 2048 bits) e o `pitrol.dev` (TLS 1.3) passam no App Transport Security sem exceções.
-- **Para publicar na App Store, falta:**
-  - definir `DEVELOPMENT_TEAM` e registrar os App IDs `com.aouerjmobile` (o mesmo identificador do Android) e `com.aouerjmobile.NextClassWidget`, os dois com o App Group `group.com.aouerjmobile`;
-  - preencher a privacidade no App Store Connect: relatos e mural vão para o servidor próprio, falhas vão para o Sentry;
-  - criar no `release.yml` um envio ao TestFlight, que hoje não existe.
 
 ## Commits, versão e release
 
@@ -307,7 +303,6 @@ O código do projeto é distribuído sob a [GPLv3](LICENSE). Fontes, ícones, da
 
 ## Documentação
 
-- [Dependências: decisões, status e pendências](docs/dependencias.md)
 - [Contexto de produto e design](PRODUCT.md)
 - [Design system “Agenda limpa”: tokens e componentes](src/components/ui/README.md)
 - [Ferramentas de desenvolvimento: conta real, deep links, capturas e E2E](scripts/dev/README.md)
