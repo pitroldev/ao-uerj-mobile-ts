@@ -6,13 +6,15 @@ import android.content.Intent
 
 /**
  * Alarms do not survive a reboot, and a clock or time zone change (or a new exact-alarm permission)
- * changes when they should fire: reschedule the saved class reminders. After an app update they
- * are rescheduled too, which also starts [ClassReminderWorker] for plans saved before it existed.
- * WorkManager reschedules its own work (that worker and the portal check) by itself.
+ * changes when they should fire: reschedule the saved class and evaluation reminders. After an app
+ * update they are rescheduled too, which also starts [ClassReminderWorker] for plans saved before
+ * it existed. WorkManager reschedules its own work (that worker and the portal check) by itself.
  */
 class RescheduleReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
-    if (intent.action in ACTIONS) ClassReminders.reschedule(context)
+    if (intent.action !in ACTIONS) return
+    ClassReminders.reschedule(context)
+    EvaluationReminders.reschedule(context)
   }
 
   private companion object {

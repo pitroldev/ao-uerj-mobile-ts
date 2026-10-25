@@ -42,7 +42,14 @@ public final class LaunchCenter: NSObject, UNUserNotificationCenterDelegate {
     didReceive response: UNNotificationResponse,
     withCompletionHandler completionHandler: @escaping () -> Void
   ) {
-    if let target = response.notification.request.content.userInfo["target"] as? String {
+    let userInfo = response.notification.request.content.userInfo
+    if response.actionIdentifier == EvaluationDone.action {
+      // "Já fiz" sem abrir o app: os lembretes dela param aqui, e o JS lê na volta
+      if let evaluation = userInfo["evaluationId"] as? String {
+        EvaluationDone.mark(evaluation, center: center, completion: completionHandler)
+        return
+      }
+    } else if let target = userInfo["target"] as? String {
       open(target)
     }
     completionHandler()
@@ -55,6 +62,39 @@ public final class LaunchCenter: NSObject, UNUserNotificationCenterDelegate {
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
   ) {
     completionHandler([.banner, .list, .sound])
+  }
+}
+
+/// "Já fiz" nos avisos de trabalhos (categoria `ao-evaluation` do
+/// `AppNotificationsModule.mm`): guarda a avaliação até o JS lê-la
+/// (`consumeDoneEvaluations`) e tira os lembretes que faltavam dela.
+enum EvaluationDone {
+  /// O mesmo identificador da ação registrada no módulo dos avisos.
+  static let action = "evaluation-done"
+  /// A mesma chave que o módulo lê e limpa.
+  static let key = "ao.evaluations.done"
+
+  static func mark(
+    _ evaluation: String,
+    center: UNUserNotificationCenter,
+    completion: @escaping () -> Void
+  ) {
+    let defaults = UserDefaults.standard
+    var done = defaults.stringArray(forKey: key) ?? []
+    if !done.contains(evaluation) {
+      done.append(evaluation)
+      defaults.set(done, forKey: key)
+    }
+    let prefix = "evaluation:\(evaluation):"
+    center.getPendingNotificationRequests { requests in
+      center.removePendingNotificationRequests(
+        withIdentifiers: requests.map(\.identifier).filter { $0.hasPrefix(prefix) })
+      center.getDeliveredNotifications { delivered in
+        center.removeDeliveredNotifications(
+          withIdentifiers: delivered.map(\.request.identifier).filter { $0.hasPrefix(prefix) })
+        completion()
+      }
+    }
   }
 }
 

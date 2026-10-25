@@ -1,4 +1,5 @@
 import type { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
+import type { EvaluationReminderPlan } from '@root/modules/evaluations/domain/reminders';
 import {
   buildReminderPlan,
   type ReminderPlan,
@@ -63,6 +64,13 @@ type Dependencies = {
     account: ActiveAccount,
   ) => { data: AttendedClassesSchedule[]; updatedAt: number } | null;
   reminderText: (item: AttendedClassesSchedule) => ReminderText;
+  /**
+   * Lembretes das avaliações anotadas na conta (só no aparelho). Sem ela,
+   * os lembretes de avaliações ficam de fora.
+   */
+  evaluationReminders?: (
+    account: ActiveAccount,
+  ) => Promise<EvaluationReminderPlan>;
 };
 
 /**
@@ -71,11 +79,18 @@ type Dependencies = {
  */
 type Desired = { plan: ReminderPlan | null | undefined; portal: boolean };
 
-const ENABLING_KEYS = ['classReminders', 'grades', 'rid', 'documents'] as const;
+const ENABLING_KEYS = [
+  'classReminders',
+  'evaluationReminders',
+  'grades',
+  'rid',
+  'documents',
+] as const;
 
 /**
  * Preferências de aviso da conta ativa e o que fica agendado no aparelho:
- * lembretes de aula (grade salva) e verificação periódica no portal. Só
+ * lembretes de aula (grade salva), lembretes das avaliações anotadas e
+ * verificação periódica no portal. Só
  * agenda com conta, permissão do sistema e sem desligamento remoto; o logout,
  * a troca de conta e a permissão retirada cancelam tudo.
  */
@@ -89,6 +104,7 @@ export class NotificationSettings {
   private started = false;
   /** O que já está no aparelho neste runtime (`null`: ainda não enviado). */
   private appliedPlan: string | null = null;
+  private appliedEvaluations: string | null = null;
   private appliedPortal: boolean | null = null;
   private applying: Promise<void> = Promise.resolve();
   /** As escolhas são salvas uma de cada vez: a segunda parte da primeira. */
@@ -175,6 +191,7 @@ export class NotificationSettings {
     const { device } = this.dependencies;
     if (!device) return;
     this.appliedPlan = null;
+    this.appliedEvaluations = null;
     void device.clearPosted().catch(() => undefined);
   }
 
@@ -235,10 +252,24 @@ export class NotificationSettings {
    * Salva a escolha. Ligar um aviso sem a permissão do sistema pede a
    * permissão antes; recusada, nada muda e o resultado diz por quê. Escolhas
    * feitas em sequência rápida são salvas uma de cada vez, sem que a segunda
-   * desfaça a primeira.
+   * desfaça a primeira. Uma escolha que depende do valor atual (os padrões das
+   * avaliações) vem como função: ela recebe as preferências já salvas pelas
+   * escolhas anteriores, não as da tela.
    */
-  update(patch: Partial<NotificationPreferences>): Promise<UpdateResult> {
-    const task = this.updating.then(() => this.save(patch));
+  update(
+    change:
+      | Partial<NotificationPreferences>
+      | ((
+          current: NotificationPreferences,
+        ) => Partial<NotificationPreferences>),
+  ): Promise<UpdateResult> {
+    const task = this.updating.then(() =>
+      this.save(
+        typeof change === 'function'
+          ? change(this.snapshot.preferences)
+          : change,
+      ),
+    );
     this.updating = task.catch(() => undefined);
     return task;
   }
@@ -302,6 +333,11 @@ export class NotificationSettings {
     return this.apply();
   }
 
+  /** O aluno anotou, mudou ou excluiu uma avaliação: refaz os lembretes dela. */
+  evaluationsChanged(): Promise<void> {
+    return this.apply();
+  }
+
   /** A verificação em segundo plano registrou um resultado. */
   checkRecorded(scope: string, check: CheckState) {
     if (scope === this.scope) this.publish({ check });
@@ -326,6 +362,27 @@ export class NotificationSettings {
       }),
       portal,
     };
+  }
+
+  /**
+   * Os lembretes das avaliações anotadas. `undefined`: não há como saber (a
+   * leitura falhou ou o app não monta o plano), e o que já está no aparelho
+   * continua.
+   */
+  private async evaluationPlan(
+    account: ActiveAccount | null,
+  ): Promise<EvaluationReminderPlan | null | undefined> {
+    const build = this.dependencies.evaluationReminders;
+    if (!build) return undefined;
+    const { permission, remoteDisabled, preferences } = this.snapshot;
+    if (
+      !account ||
+      permission !== 'granted' ||
+      remoteDisabled ||
+      !preferences.evaluationReminders
+    )
+      return null;
+    return build(account).catch(() => undefined);
   }
 
   /**
@@ -359,6 +416,19 @@ export class NotificationSettings {
           this.appliedPlan = plan;
           await device.setClassReminders(desired.plan).catch(() => {
             this.appliedPlan = null;
+          });
+        }
+      }
+      const generation = this.generation;
+      const evaluations = await this.evaluationPlan(account ?? null);
+      // a leitura das avaliações é do disco: um logout ou troca de conta no
+      // meio já limpou o aparelho, e o plano da conta anterior não volta
+      if (evaluations !== undefined && generation === this.generation) {
+        const plan = JSON.stringify(evaluations);
+        if (plan !== this.appliedEvaluations) {
+          this.appliedEvaluations = plan;
+          await device.setEvaluationReminders(evaluations).catch(() => {
+            this.appliedEvaluations = null;
           });
         }
       }

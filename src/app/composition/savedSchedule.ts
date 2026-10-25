@@ -43,15 +43,25 @@ export function onSavedScheduleChange(
   account: () => CacheOwner | null | undefined,
   listener: () => void,
 ): () => void {
+  return onSavedResourceChange(queryClient, account, 'schedule', listener);
+}
+
+/** Avisa quando um recurso salvo da conta ativa (grade, notas) muda. */
+export function onSavedResourceChange(
+  queryClient: QueryClient,
+  account: () => CacheOwner | null | undefined,
+  resource: string,
+  listener: () => void,
+): () => void {
   return queryClient.getQueryCache().subscribe(event => {
     const owner = account();
-    const [root, scope, period, resource] = event.query.queryKey;
+    const [root, scope, period, key] = event.query.queryKey;
     if (
       !owner ||
       root !== 'academics' ||
       scope !== owner.scope ||
       period !== owner.period ||
-      resource !== 'schedule'
+      key !== resource
     )
       return;
     const loaded =

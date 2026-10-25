@@ -1,3 +1,4 @@
+import type { EvaluationReminderPlan } from '@root/modules/evaluations/domain/reminders';
 import type { ReminderPlan } from '../domain/classReminders';
 import type { NotificationContent } from '../domain/messages';
 
@@ -22,14 +23,21 @@ export interface NotificationDevicePort {
   openExactAlarmSettings(): Promise<void>;
   /** Substitui os lembretes de aula; `null` cancela todos. */
   setClassReminders(plan: ReminderPlan | null): Promise<void>;
+  /** Substitui os lembretes das avaliações anotadas; `null` cancela todos. */
+  setEvaluationReminders(plan: EvaluationReminderPlan | null): Promise<void>;
+  /**
+   * Avaliações marcadas com "Já fiz" no aviso desde a última leitura (o
+   * aparelho já parou os lembretes delas); lidas uma vez.
+   */
+  consumeDoneEvaluations(): Promise<string[]>;
   /** Liga ou desliga a verificação periódica no portal (WorkManager). */
   setPortalCheck(enabled: boolean, intervalHours: number): Promise<void>;
   /** Liga ou desliga o teste do portal a cada 15 min ("Avisar quando voltar"). */
   setPortalReturnWatch(enabled: boolean): Promise<void>;
   notify(content: NotificationContent): Promise<void>;
   /**
-   * Tira da barra os avisos já mostrados e cancela os lembretes de aula
-   * (logout, troca de conta ou conta recusada na restauração).
+   * Tira da barra os avisos já mostrados e cancela os lembretes de aula e
+   * de avaliações (logout, troca de conta ou conta recusada na restauração).
    */
   clearPosted(): Promise<void>;
 }

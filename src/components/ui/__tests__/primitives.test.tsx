@@ -1,5 +1,10 @@
 import React from 'react';
-import { screen, userEvent, within } from '@testing-library/react-native';
+import {
+  fireEvent,
+  screen,
+  userEvent,
+  within,
+} from '@testing-library/react-native';
 
 import { LIGHT } from '@root/themes';
 import { renderWithProviders } from '@root/test-utils/render';
@@ -20,6 +25,7 @@ import {
   FieldGroupRow,
   FilterChip,
   FootNote,
+  formatTime,
   GradeCell,
   Icon,
   IconButton,
@@ -30,6 +36,7 @@ import {
   Notice,
   NumberStepper,
   OptionList,
+  parseTime,
   PORTAL_BLOCKED_FULL_TEXT,
   PORTAL_BLOCKED_TEXT,
   ProgressBar,
@@ -43,6 +50,7 @@ import {
   SkeletonList,
   Snackbar,
   Spinner,
+  TimeField,
   StatGroup,
   StatusLabel,
   Stepper,
@@ -399,6 +407,52 @@ it('selects the number on focus so typing replaces it', async () => {
     'selectTextOnFocus',
     true,
   );
+});
+
+it('reads the times typed in the time field', () => {
+  expect(parseTime('14:20')).toBe(860);
+  expect(parseTime('1420')).toBe(860);
+  expect(parseTime('820')).toBe(500);
+  expect(parseTime('8')).toBe(480);
+  expect(parseTime('8:5')).toBe(485);
+  expect(parseTime('24:00')).toBeNull();
+  expect(parseTime('12:60')).toBeNull();
+  expect(parseTime('')).toBeNull();
+  expect(formatTime(480)).toBe('08:00');
+  expect(formatTime(1439)).toBe('23:59');
+});
+
+it('commits every time typed, so saving with the field focused keeps it', async () => {
+  const onChange = jest.fn();
+  await renderWithProviders(
+    <TimeField label="Horário" value={480} onChange={onChange} />,
+  );
+  const field = screen.getByLabelText('Horário');
+  expect(field).toHaveDisplayValue('08:00');
+  // no aparelho o foco seleciona tudo, e o que se digita substitui
+  expect(field).toHaveProp('selectTextOnFocus', true);
+  await fireEvent.changeText(field, '9');
+  expect(onChange).toHaveBeenLastCalledWith(540);
+  await fireEvent.changeText(field, '93');
+  expect(onChange).toHaveBeenCalledTimes(1);
+  await fireEvent.changeText(field, '930');
+  expect(onChange).toHaveBeenLastCalledWith(570);
+  expect(field).toHaveDisplayValue('930');
+  await fireEvent.changeText(field, '1420');
+  expect(onChange).toHaveBeenLastCalledWith(860);
+  expect(field).toHaveDisplayValue('14:20');
+
+  onChange.mockClear();
+  await fireEvent.changeText(field, '2575');
+  expect(onChange).not.toHaveBeenCalled();
+  expect(
+    screen.getByText('Use um horário entre 00:00 e 23:59.'),
+  ).toBeOnTheScreen();
+
+  // ao sair, o campo mostra o horário que valeu (aqui o pai não mudou)
+  await fireEvent(field, 'blur');
+  expect(field).toHaveDisplayValue('08:00');
+  expect(screen.queryByText('Use um horário entre 00:00 e 23:59.')).toBeNull();
 });
 
 it('runs notice actions and selection callbacks', async () => {

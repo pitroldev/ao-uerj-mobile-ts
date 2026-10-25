@@ -47,6 +47,10 @@ import {
   AttendanceRecords,
 } from '@root/modules/attendance/application/AttendanceRecords';
 import {
+  EVALUATIONS_KEY,
+  EvaluationRecords,
+} from '@root/modules/evaluations/application/EvaluationRecords';
+import {
   PREREQUISITES_KEY,
   PrerequisiteCatalog,
 } from '@root/modules/graduation/application/PrerequisiteCatalog';
@@ -68,6 +72,7 @@ const ACCOUNT_PREFERENCES = [
   PREFERENCES_KEY,
   CHECK_STATE_KEY,
   ATTENDANCE_KEY,
+  EVALUATIONS_KEY,
   PREREQUISITES_KEY,
   PLAN_PREFERENCES_KEY,
   APP_INFO_VERSION_KEY,
@@ -130,11 +135,13 @@ export function createAppServices() {
     preferences,
     identity,
   });
+  const evaluations = new EvaluationRecords(preferences);
   const notifications = createNotifications({
     queryClient,
     identity,
     preferences,
     records: portal.records,
+    evaluations,
     documents: portal.documents,
     remoteStatus: delivery.status,
     flushCache: cache.flush,
@@ -170,6 +177,8 @@ export function createAppServices() {
     notifications,
     // faltas marcadas pelo aluno, só no aparelho (o logout apaga)
     attendance: new AttendanceRecords(preferences),
+    // datas de provas e trabalhos anotadas, também só no aparelho
+    evaluations,
     // plano até a formatura: pré-requisitos lidos e as escolhas do aluno
     graduation: {
       prerequisites: new PrerequisiteCatalog(preferences),

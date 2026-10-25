@@ -72,6 +72,10 @@
     <receiver
       android:name=".notifications.ClassReminderReceiver"
       android:exported="false" />
+    <!-- Lembretes das avaliações anotadas e o "Já fiz" dos avisos (EvaluationReminders.kt). -->
+    <receiver
+      android:name=".notifications.EvaluationReminderReceiver"
+      android:exported="false" />
     <receiver
       android:name=".notifications.RescheduleReceiver"
       android:exported="false">

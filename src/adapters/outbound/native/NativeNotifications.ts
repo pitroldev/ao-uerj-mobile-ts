@@ -65,6 +65,14 @@ export function createNativeNotifications(
     openExactAlarmSettings: () => module.openExactAlarmSettings(),
     setClassReminders: plan =>
       module.setClassReminders(plan ? JSON.stringify(plan) : ''),
+    setEvaluationReminders: plan =>
+      module.setEvaluationReminders(plan ? JSON.stringify(plan) : ''),
+    async consumeDoneEvaluations() {
+      const ids: unknown = await module.consumeDoneEvaluations();
+      return Array.isArray(ids)
+        ? ids.filter((id): id is string => typeof id === 'string')
+        : [];
+    },
     setPortalCheck: (on, intervalHours) =>
       module.setPortalCheck(on, intervalHours),
     setPortalReturnWatch: on => module.setPortalReturnWatch(on),

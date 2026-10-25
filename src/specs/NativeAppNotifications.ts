@@ -35,6 +35,17 @@ export interface Spec extends TurboModule {
    * cancela todos. O Android repete cada um toda semana até `expiresAt`.
    */
   setClassReminders(plan: string): Promise<void>;
+  /**
+   * Substitui os lembretes das avaliações pelo JSON de um
+   * `EvaluationReminderPlan`; texto vazio cancela todos. Cada um é um aviso
+   * de data única, no canal `evaluations`, mostrado uma vez só.
+   */
+  setEvaluationReminders(plan: string): Promise<void>;
+  /**
+   * Ids das avaliações com "Já fiz" tocado no aviso desde a última leitura
+   * (os lembretes delas já pararam); lidos uma vez.
+   */
+  consumeDoneEvaluations(): Promise<Array<string>>;
   /** Liga (a cada `intervalHours`) ou desliga a verificação no portal. */
   setPortalCheck(enabled: boolean, intervalHours: number): Promise<void>;
   /**
@@ -44,8 +55,8 @@ export interface Spec extends TurboModule {
   setPortalReturnWatch(enabled: boolean): Promise<void>;
   notify(notification: NativeNotification): Promise<void>;
   /**
-   * Cancela os lembretes de aula e tira da barra todos os avisos do app
-   * (logout ou troca de conta).
+   * Cancela os lembretes de aula e de avaliações, esquece os "Já fiz" não
+   * lidos e tira da barra todos os avisos do app (logout ou troca de conta).
    */
   clearNotifications(): Promise<void>;
   /** Destino do último aviso tocado (que abriu ou trouxe o app de volta); lido uma vez. */

@@ -136,7 +136,8 @@ internal object ClassReminders {
     val count = plan?.reminders?.size ?: 0
     for (index in count until previousCount) cancel(context, index)
     schedule(context, plan)
-    keepRescheduling(context, plan)
+    // while either plan has reminders to show, the periodic work keeps rescheduling them
+    ClassReminderWorker.refresh(context)
   }
 
   /**
@@ -144,9 +145,8 @@ internal object ClassReminders {
    */
   @Synchronized
   fun reschedule(context: Context) {
-    val plan = load(context)
-    schedule(context, plan)
-    keepRescheduling(context, plan)
+    schedule(context, load(context))
+    ClassReminderWorker.refresh(context)
   }
 
   private fun schedule(context: Context, plan: Plan?) {
@@ -165,13 +165,10 @@ internal object ClassReminders {
   private fun lowerBound(plan: Plan, from: Long, shownStart: Long?): Long =
       if (shownStart == null) from else maxOf(from, shownStart - plan.leadMinutes * MINUTE)
 
-  /** While there are reminders to show, the periodic work keeps rescheduling them. */
-  private fun keepRescheduling(context: Context, plan: Plan?) {
-    val active =
-        plan != null &&
-            plan.reminders.isNotEmpty() &&
-            System.currentTimeMillis() <= plan.expiresAt
-    ClassReminderWorker.schedule(context, active)
+  /** The saved plan still has reminders to show (no lock: it only reads the preferences). */
+  fun isActive(context: Context): Boolean {
+    val plan = load(context) ?: return false
+    return plan.reminders.isNotEmpty() && System.currentTimeMillis() <= plan.expiresAt
   }
 
   private fun scheduleNext(

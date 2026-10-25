@@ -4,6 +4,10 @@ import { createTestQueryClient } from '@root/test-utils/render';
 import type { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
 import { academicKeys } from '@root/modules/academics/presentation/queryKeys';
 import type { RemoteStatus } from '@root/modules/delivery/application/RemoteStatus';
+import { toIsoDate } from '@root/modules/attendance/domain/attendance';
+import { EvaluationRecords } from '@root/modules/evaluations/application/EvaluationRecords';
+import type { Evaluation } from '@root/modules/evaluations/domain/evaluations';
+import { evaluationsQueryKey } from '@root/modules/evaluations/presentation/queryKeys';
 import type { IdentityController } from '@root/modules/identity/application/IdentityController';
 import type { IdentityState } from '@root/modules/identity/domain/types';
 import {
@@ -108,11 +112,14 @@ function setup(
     await store.write(scope, name, next);
     return next;
   };
+  const preferenceStore = { ...store, update, remove: jest.fn() };
+  const evaluations = new EvaluationRecords(preferenceStore);
   const notifications = createNotifications({
     queryClient,
     identity,
-    preferences: { ...store, update, remove: jest.fn() },
+    preferences: preferenceStore,
     records,
+    evaluations,
     documents: { list: jest.fn(async () => []) },
     remoteStatus,
     flushCache,
@@ -130,6 +137,7 @@ function setup(
     key,
     records,
     flushCache,
+    evaluations,
   };
 }
 
@@ -152,6 +160,114 @@ it('plans the reminders from the schedule the app loads', async () => {
       body: 'Sala 6019 B',
     }),
   ]);
+});
+
+/** Uma terça (o dia da aula de `meeting`) daqui a duas semanas ou mais. */
+function tuesdayAhead(): string {
+  const day = new Date();
+  day.setDate(day.getDate() + 14 + ((2 - day.getDay() + 7) % 7));
+  return toIsoDate(day);
+}
+
+const exam = (patch: Partial<Evaluation> = {}): Evaluation => ({
+  id: 'e1',
+  subjectId: '1',
+  subjectName: 'Cálculo II',
+  type: 'P1',
+  date: tuesdayAhead(),
+  time: 860,
+  note: 'Integrais duplas.',
+  reminders: ['eve'],
+  earlyTime: 1200,
+  dayTime: 420,
+  done: false,
+  ...patch,
+});
+
+it('plans the evaluation reminders with the room of the class that day', async () => {
+  const { queryClient, device, signIn, key, evaluations } = setup({});
+  await evaluations.save(ACCOUNT.scope, ACCOUNT.period, exam());
+  await act(() => {
+    queryClient.setQueryData(key('schedule'), [meeting]);
+  });
+  signIn();
+  await act(settle);
+  expect(device.state.evaluations?.reminders).toEqual([
+    expect.objectContaining({
+      evaluationId: 'e1',
+      title: 'Amanhã: P1 de Cálculo II',
+      body: expect.stringContaining('14:20 · Sala 6019 B · Integrais duplas.'),
+      completable: false,
+    }),
+  ]);
+});
+
+it('takes "Já fiz" from the notification: the evaluation is done and its reminders stop', async () => {
+  const { queryClient, device, signIn, evaluations } = setup({});
+  await evaluations.save(
+    ACCOUNT.scope,
+    ACCOUNT.period,
+    exam({ type: 'work', time: 1439 }),
+  );
+  device.state.done = ['e1'];
+  signIn();
+  await act(settle);
+  expect(device.consumeDoneEvaluations).toHaveBeenCalled();
+  const saved = await evaluations.read(ACCOUNT.scope, ACCOUNT.period);
+  expect(saved[0].done).toBe(true);
+  expect(
+    queryClient.getQueryData(
+      evaluationsQueryKey(ACCOUNT.scope, ACCOUNT.period),
+    ),
+  ).toEqual(saved);
+  expect(device.state.evaluations).toEqual({ reminders: [] });
+});
+
+it('keeps a "Já fiz" that failed to save out of the plan and saves it on the next read', async () => {
+  const { device, signIn, evaluations, notifications } = setup({});
+  await evaluations.save(
+    ACCOUNT.scope,
+    ACCOUNT.period,
+    exam({ type: 'work', time: 1439 }),
+  );
+  device.state.done = ['e1'];
+  const setDone = jest
+    .spyOn(evaluations, 'setDone')
+    .mockRejectedValueOnce(new Error('disk'));
+  signIn();
+  await act(settle);
+  // o aparelho já entregou o id: sem a gravação, ele fica na memória
+  expect(device.state.done).toEqual([]);
+  expect(device.state.evaluations).toEqual({ reminders: [] });
+  await act(() => notifications.consumeDone());
+  expect(setDone).toHaveBeenLastCalledWith(
+    ACCOUNT.scope,
+    ACCOUNT.period,
+    ['e1'],
+    true,
+  );
+  const saved = await evaluations.read(ACCOUNT.scope, ACCOUNT.period);
+  expect(saved[0].done).toBe(true);
+});
+
+it('drops the PF reminders when new grades exempt the student', async () => {
+  const { queryClient, device, signIn, key, evaluations } = setup({});
+  await evaluations.save(ACCOUNT.scope, ACCOUNT.period, exam({ type: 'PF' }));
+  signIn();
+  await act(settle);
+  expect(device.state.evaluations?.reminders).toHaveLength(1);
+  await act(() => {
+    queryClient.setQueryData(key('grades'), [
+      {
+        id: 'IME02-00001',
+        name: 'Cálculo II',
+        class: '3',
+        grades: { p1: 8, p2: 9, pf: null, result: null },
+      },
+    ]);
+  });
+  await act(settle);
+  expect(device.state.evaluations).toEqual({ reminders: [] });
 });
 
 it('leaves the portal tasks out where the device has no background checks (iOS)', async () => {

@@ -13,6 +13,13 @@ import {
   Text,
 } from '@components/ui';
 import type { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
+import { subjectKey } from '@root/modules/academics/domain/rules/subjectId';
+import { toIsoDate } from '@root/modules/attendance/domain/attendance';
+import {
+  classEvaluation,
+  type Evaluation,
+} from '@root/modules/evaluations/domain/evaluations';
+import { TYPE_LABEL } from '@root/modules/evaluations/presentation/evaluationText';
 
 import {
   duration,
@@ -26,6 +33,7 @@ import {
 } from '../scheduleFormat';
 import {
   Chevron,
+  ExamTag,
   Main,
   MetaRow,
   Row,
@@ -38,7 +46,11 @@ type Props = {
   now: Date;
   /** Toque no card: abre "Disciplinas em Curso" com a disciplina em foco. */
   onPress: (item: AttendedClassesSchedule) => void;
+  /** Provas e trabalhos anotados: a aula avisa quando tem prova nela. */
+  evaluations?: readonly Evaluation[];
 };
+
+const NO_EVALUATIONS: readonly Evaluation[] = [];
 
 /** "Agora", "Hoje · em 22 min" ou o dia da semana (informação neutra). */
 function When({ next }: { next: NextClass }) {
@@ -68,6 +80,7 @@ export const NextClassCard = React.memo(function NextClassCard({
   data,
   now,
   onPress,
+  evaluations = NO_EVALUATIONS,
 }: Props) {
   const theme = useTheme();
   const navigation = useNavigation();
@@ -77,7 +90,21 @@ export const NextClassCard = React.memo(function NextClassCard({
   const { item } = next;
   const shift = shiftOf(item.start_time_in_minutes);
   const { room, place } = splitLocation(item.class?.uerjLocation);
-  const label = `${item.class.name}, ${item.startTimeAlias} às ${item.endTimeAlias}, ${room}. Ver disciplinas em curso`;
+  const classDate = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + next.dayOffset,
+  );
+  const exam = classEvaluation(
+    evaluations,
+    subjectKey(item.class?.id ?? item.subject_id),
+    toIsoDate(classDate),
+    { start: item.start_time_in_minutes, end: item.end_time_in_minutes },
+  );
+  const examText = exam ? `${TYPE_LABEL[exam.type]} nesta aula` : null;
+  const label = `${item.class.name}, ${item.startTimeAlias} às ${item.endTimeAlias}, ${room}${
+    examText ? `, ${examText}` : ''
+  }. Ver disciplinas em curso`;
 
   return (
     <Section title="Próxima aula" note={<When next={next} />}>
@@ -107,6 +134,9 @@ export const NextClassCard = React.memo(function NextClassCard({
               <Text variant="meta" tone="muted">
                 {place}
               </Text>
+            ) : null}
+            {examText ? (
+              <ExamTag tone="info" icon="event" label={examText} />
             ) : null}
           </Main>
           <Chevron>

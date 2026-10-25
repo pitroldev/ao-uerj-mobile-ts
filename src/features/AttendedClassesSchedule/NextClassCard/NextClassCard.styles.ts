@@ -1,6 +1,6 @@
 import styled from 'styled-components/native';
 
-import { Text } from '@components/ui';
+import { Tag, Text } from '@components/ui';
 
 /** ".next": padding 14 8 14 16, horário à esquerda e fio vertical. */
 export const Row = styled.View`
@@ -37,6 +37,11 @@ export const MetaRow = styled.View`
   column-gap: 10px;
   row-gap: 2px;
   margin-top: 2px;
+`;
+
+/** "P2 nesta aula", abaixo da sala. */
+export const ExamTag = styled(Tag)`
+  margin-top: 6px;
 `;
 
 export const Chevron = styled.View`

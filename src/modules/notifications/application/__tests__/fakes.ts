@@ -1,3 +1,4 @@
+import type { EvaluationReminderPlan } from '@root/modules/evaluations/domain/reminders';
 import type { ReminderPlan } from '../../domain/classReminders';
 import type { NotificationContent } from '../../domain/messages';
 import type {
@@ -41,9 +42,12 @@ export function createDevice({
   const state: {
     permission: PermissionState;
     plan?: ReminderPlan | null;
+    evaluations?: EvaluationReminderPlan | null;
+    /** "Já fiz" tocado nos avisos, ainda não lido pelo app. */
+    done: string[];
     portal?: boolean;
     returnWatch?: boolean;
-  } = { permission };
+  } = { permission, done: [] };
   const device = {
     state,
     backgroundChecks,
@@ -58,6 +62,16 @@ export function createDevice({
     setClassReminders: jest.fn(async (plan: ReminderPlan | null) => {
       state.plan = plan;
     }),
+    setEvaluationReminders: jest.fn(
+      async (plan: EvaluationReminderPlan | null) => {
+        state.evaluations = plan;
+      },
+    ),
+    consumeDoneEvaluations: jest.fn(async () => {
+      const ids = state.done;
+      state.done = [];
+      return ids;
+    }),
     setPortalCheck: jest.fn(async (enabled: boolean) => {
       state.portal = enabled;
     }),
@@ -68,6 +82,8 @@ export function createDevice({
     // como o módulo nativo: limpar a barra também cancela os lembretes
     clearPosted: jest.fn(async () => {
       state.plan = null;
+      state.evaluations = null;
+      state.done = [];
     }),
   };
   return device as typeof device & NotificationDevicePort;

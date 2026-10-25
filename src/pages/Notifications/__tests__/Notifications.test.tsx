@@ -1,6 +1,11 @@
 import React from 'react';
 import { Platform } from 'react-native';
-import { act, screen, userEvent } from '@testing-library/react-native';
+import {
+  act,
+  fireEvent,
+  screen,
+  userEvent,
+} from '@testing-library/react-native';
 
 import { snackbar } from '@components/ui';
 import { renderWithProviders } from '@root/test-utils/render';
@@ -202,4 +207,60 @@ it('explains when the device has no support', async () => {
       'Os avisos do AO UERJ ainda não estão disponíveis neste aparelho.',
     ),
   ).toBeOnTheScreen();
+});
+
+it('keeps the evaluation reminders on and changes the defaults of the next ones', async () => {
+  const { store } = await mount();
+  expect(row('Lembretes de avaliações')).toBeChecked();
+  expect(screen.getByText('Padrão das novas avaliações')).toBeOnTheScreen();
+  const chip = (name: string) =>
+    screen.getByRole('togglebutton', { name }).props.accessibilityState;
+  expect(chip('Na véspera')).toMatchObject({ checked: true });
+  expect(chip('No dia')).toMatchObject({ checked: true });
+  expect(chip('1 h antes')).toMatchObject({ checked: false });
+
+  await userEvent.press(
+    screen.getByRole('togglebutton', { name: '1 h antes' }),
+  );
+  await act(settle);
+  await fireEvent.changeText(
+    screen.getByLabelText('Horário padrão dos lembretes de dias antes'),
+    '1930',
+  );
+  await act(settle);
+  expect(mockSettings.getSnapshot().preferences.evaluationDefaults).toEqual({
+    reminders: ['eve', 'day', 'h1'],
+    earlyTime: 19 * 60 + 30,
+    dayTime: 7 * 60,
+  });
+  expect(store.data.get(`${ACCOUNT.scope}/notifications`)).toMatchObject({
+    evaluationDefaults: { reminders: ['eve', 'day', 'h1'] },
+  });
+
+  await userEvent.press(row('Lembretes de avaliações'));
+  await act(settle);
+  expect(row('Lembretes de avaliações')).not.toBeChecked();
+  expect(screen.queryByText('Padrão das novas avaliações')).toBeNull();
+});
+
+it('asks for the permission the evaluation reminders need, without a banner on top', async () => {
+  const device = createDevice({ permission: 'denied' });
+  await mount({ device });
+  // nenhum outro aviso ligado: o pedido do topo não aparece
+  expect(screen.queryByText(/Os avisos precisam da sua permissão/)).toBeNull();
+  expect(
+    screen.getByText(
+      'Sem a sua permissão, os lembretes das avaliações não chegam.',
+    ),
+  ).toBeOnTheScreen();
+  await userEvent.press(
+    screen.getByRole('button', { name: 'Permitir avisos' }),
+  );
+  await act(settle);
+  expect(device.requestPermission).toHaveBeenCalled();
+  expect(
+    screen.queryByText(
+      'Sem a sua permissão, os lembretes das avaliações não chegam.',
+    ),
+  ).toBeNull();
 });

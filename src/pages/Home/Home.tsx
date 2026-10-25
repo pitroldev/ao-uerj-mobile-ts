@@ -1,7 +1,16 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { View } from 'react-native';
 import { parseName } from '@services/parser';
-import { useIdentity } from '@root/app/providers/AppServicesProvider';
+import {
+  useAppServices,
+  useIdentity,
+} from '@root/app/providers/AppServicesProvider';
 import {
   useGrades,
   useSchedule,
@@ -14,6 +23,13 @@ import { RemoteNotices } from '@root/modules/delivery/presentation/RemoteNotices
 import { ReminderPrompt } from '@root/modules/notifications/presentation/ReminderPrompt';
 import { toIsoDate } from '@root/modules/attendance/domain/attendance';
 import { useAttendance } from '@root/modules/attendance/presentation/useAttendance';
+import {
+  isSettled,
+  type Evaluation,
+  type ExamType,
+} from '@root/modules/evaluations/domain/evaluations';
+import { gradesBySubject } from '@root/modules/evaluations/presentation/scheduleLookup';
+import { useEvaluations } from '@root/modules/evaluations/presentation/useEvaluations';
 import type {
   AttendedClassesSchedule,
   AttendedSubjectInfo,
@@ -29,6 +45,11 @@ import { NextClassCard } from '@features/AttendedClassesSchedule/NextClassCard';
 import { ClassScheduleBoard } from '@features/AttendedClassesSchedule/ClassScheduleBoard';
 import { AttendedClassesBoard } from '@features/AttendedClassesSchedule/AttendedClassesBoard';
 import { AttendanceSheet } from '@features/AttendedClassesSchedule/AttendanceSheet';
+import {
+  EvaluationSheet,
+  type EvaluationRequest,
+} from '@features/Evaluations/EvaluationSheet';
+import { UpcomingEvaluations } from '@features/Evaluations/UpcomingEvaluations';
 import {
   dateLabel,
   hasClassTime,
@@ -53,6 +74,13 @@ type ErrorControl = {
 };
 
 type ClassesSheet = { visible: boolean; focusId: string | null };
+
+/** A folha da avaliação; `key` muda a cada abertura e recomeça o formulário. */
+type EvaluationState = {
+  visible: boolean;
+  key: number;
+  request: EvaluationRequest | null;
+};
 
 type AttendanceState = {
   visible: boolean;
@@ -80,8 +108,20 @@ export const HomePage = () => {
   // a outra termina de descer (no iOS, um modal não abre enquanto outro sai)
   const pendingAttendance = useRef<AttendedSubjectInfo | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [evaluationSheet, setEvaluationSheet] = useState<EvaluationState>({
+    visible: false,
+    key: 0,
+    request: null,
+  });
   const now = useNow();
   const { keys: absenceKeys } = useAttendance();
+  const { evaluations } = useEvaluations();
+  const { notifications } = useAppServices();
+  // "Já fiz" tocado na barra com o app aberto não muda o AppState: a cada
+  // minuto do relógio da tela, o Início lê o que o aparelho guardou
+  useEffect(() => {
+    void notifications.consumeDone();
+  }, [notifications, now]);
 
   const { account } = useIdentity();
   const online = useOnlineStatus();
@@ -106,6 +146,12 @@ export const HomePage = () => {
   } = ridQuery;
   const currentSchedule = scheduleQuery.data ?? [];
   const classGrades = gradesQuery.data ?? [];
+  // a nota manda: a prova com nota (ou a PF que deixou de existir) sai da
+  // semana e da próxima aula; o quadro de notas tem a regra própria
+  const openEvaluations = useMemo(() => {
+    const grades = gradesBySubject(classGrades);
+    return evaluations.filter(item => !isSettled(item, grades));
+  }, [evaluations, classGrades]);
   const isClassGradesAvailable = classGrades.some(({ grades }) =>
     Object.values(grades).some(
       grade => typeof grade === 'number' && Number.isFinite(grade),
@@ -227,6 +273,30 @@ export const HomePage = () => {
   const closeAttendance = useCallback(() => {
     setAttendance(sheet => ({ ...sheet, visible: false }));
   }, []);
+  const openEvaluation = useCallback((request: EvaluationRequest) => {
+    setEvaluationSheet(sheet => ({
+      visible: true,
+      key: sheet.key + 1,
+      request,
+    }));
+  }, []);
+  const editEvaluation = useCallback(
+    (evaluation: Evaluation) =>
+      openEvaluation({ kind: 'edit', id: evaluation.id }),
+    [openEvaluation],
+  );
+  const annotateExam = useCallback(
+    (subjectId: string, type: ExamType) =>
+      openEvaluation({ kind: 'new', subjectId, type }),
+    [openEvaluation],
+  );
+  const annotateOn = useCallback(
+    (date: string) => openEvaluation({ kind: 'new', date }),
+    [openEvaluation],
+  );
+  const closeEvaluation = useCallback(() => {
+    setEvaluationSheet(sheet => ({ ...sheet, visible: false }));
+  }, []);
 
   const greeting = <HomeGreeting firstName={firstName} date={dateLabel(now)} />;
 
@@ -315,13 +385,30 @@ export const HomePage = () => {
               data={currentSchedule}
               now={now}
               onPress={openClasses}
+              evaluations={openEvaluations}
             />
             <ReminderPrompt style={styles.prompt} />
           </>
         ) : null}
+        {isScheduleAvailable ? (
+          <UpcomingEvaluations
+            evaluations={evaluations}
+            schedule={currentSchedule}
+            grades={classGrades}
+            now={now}
+            onAdd={() => openEvaluation({ kind: 'new' })}
+            onPress={editEvaluation}
+          />
+        ) : null}
         {isClassGradesAvailable ? (
           <View onLayout={onGradesLayout} testID="home-grades">
-            <GradeBoard data={classGrades} period={period} />
+            <GradeBoard
+              data={classGrades}
+              period={period}
+              evaluations={evaluations}
+              onAnnotate={annotateExam}
+              onEvaluationPress={editEvaluation}
+            />
           </View>
         ) : null}
         <ClassScheduleBoard
@@ -331,6 +418,9 @@ export const HomePage = () => {
           absences={absenceKeys}
           onEndedClassPress={openEndedClass}
           period={period}
+          evaluations={openEvaluations}
+          onEvaluationPress={editEvaluation}
+          onAddEvaluation={annotateOn}
         />
         <UntimedClasses data={currentSchedule} onSubjectPress={openClasses} />
         {!isScheduleAvailable && isPartialRidAvailable && partialRID ? (
@@ -353,6 +443,17 @@ export const HomePage = () => {
         focus={attendance.focus}
         now={now}
       />
+      {evaluationSheet.request ? (
+        <EvaluationSheet
+          key={evaluationSheet.key}
+          visible={evaluationSheet.visible}
+          request={evaluationSheet.request}
+          onClose={closeEvaluation}
+          schedule={currentSchedule}
+          grades={classGrades}
+          now={now}
+        />
+      ) : null}
     </>
   );
 };

@@ -10,14 +10,15 @@ import androidx.core.app.NotificationManagerCompat
 import com.aouerjmobile.AppLaunch
 import com.aouerjmobile.specs.NativeAppNotificationsSpec
 import com.facebook.react.bridge.ActivityEventListener
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReadableMap
 
 /**
  * Notifications for JS (spec: src/specs/NativeAppNotifications.ts): permission state, system
- * settings, weekly class reminders, the periodic portal check and the notification that opened the
- * app.
+ * settings, weekly class reminders, one-shot evaluation reminders (and their "Já fiz"), the
+ * periodic portal check and the notification that opened the app.
  */
 class AppNotificationsModule(reactContext: ReactApplicationContext) :
     NativeAppNotificationsSpec(reactContext), ActivityEventListener {
@@ -80,6 +81,21 @@ class AppNotificationsModule(reactContext: ReactApplicationContext) :
     }
   }
 
+  override fun setEvaluationReminders(plan: String, promise: Promise) {
+    try {
+      EvaluationReminders.replace(reactApplicationContext, plan)
+      promise.resolve(null)
+    } catch (error: RuntimeException) {
+      promise.reject(E_EVALUATIONS, error.message, error)
+    }
+  }
+
+  override fun consumeDoneEvaluations(promise: Promise) {
+    val ids = Arguments.createArray()
+    EvaluationReminders.consumeDone(reactApplicationContext).forEach { ids.pushString(it) }
+    promise.resolve(ids)
+  }
+
   override fun setPortalCheck(enabled: Boolean, intervalHours: Double, promise: Promise) {
     try {
       PortalCheckWorker.schedule(
@@ -120,15 +136,16 @@ class AppNotificationsModule(reactContext: ReactApplicationContext) :
   }
 
   /**
-   * Sign out or account switch: the previous account's class reminders are cancelled, then its
-   * notifications leave the shade. In this order no reminder firing in between stays in the shade;
-   * JS sends the next account's plan afterwards.
+   * Sign out or account switch: the previous account's class and evaluation reminders (and its
+   * unread "Já fiz") are cancelled, then its notifications leave the shade. In this order no
+   * reminder firing in between stays in the shade; JS sends the next account's plans afterwards.
    */
   override fun clearNotifications(promise: Promise) {
     try {
       ClassReminders.replace(reactApplicationContext, "")
+      EvaluationReminders.clear(reactApplicationContext)
     } catch (_: RuntimeException) {
-      // the shade is cleared anyway, and JS cancels the plan again right after
+      // the shade is cleared anyway, and JS cancels the plans again right after
     }
     NotificationManagerCompat.from(reactApplicationContext).cancelAll()
     promise.resolve(null)
@@ -180,6 +197,7 @@ class AppNotificationsModule(reactContext: ReactApplicationContext) :
     const val NAME = NativeAppNotificationsSpec.NAME
     private const val E_SETTINGS = "E_NOTIFICATION_SETTINGS"
     private const val E_REMINDERS = "E_CLASS_REMINDERS"
+    private const val E_EVALUATIONS = "E_EVALUATION_REMINDERS"
     private const val E_PORTAL_CHECK = "E_PORTAL_CHECK"
     private const val MIN_INTERVAL_HOURS = 1L
     private const val MAX_INTERVAL_HOURS = 24L

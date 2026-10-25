@@ -17,6 +17,8 @@ import type {
 import { snackbar, type IconName } from '@components/ui';
 import { OUTLINED_GLYPHS } from '@components/ui/Icon/glyphs';
 import { renderWithProviders } from '@root/test-utils/render';
+import type { Evaluation } from '@root/modules/evaluations/domain/evaluations';
+import { DEFAULT_NOTIFICATION_PREFERENCES } from '@root/modules/notifications/domain/preferences';
 import { HomePage } from '../Home';
 
 type QueryOverrides = Partial<{
@@ -106,11 +108,19 @@ const mockServices = {
       subscribe: () => () => undefined,
       getSnapshot: () => mockNotifications,
     },
+    // "Já fiz" dos avisos, lido a cada minuto do relógio do Início
+    consumeDone: jest.fn(async () => undefined),
   },
   // sem aberturas nativas (widget e atalhos)
   launches: null as object | null,
 };
-const mockNotifications = { supported: false, backgroundChecks: false };
+const mockNotifications = {
+  supported: false,
+  backgroundChecks: false,
+  ready: true,
+  permission: null,
+  preferences: DEFAULT_NOTIFICATION_PREFERENCES,
+};
 jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useIdentity: () => mockIdentity,
   useAppServices: () => mockServices,
@@ -130,6 +140,17 @@ jest.mock('@root/modules/attendance/presentation/useAttendance', () => ({
     absences: [],
     keys: mockAbsenceKeys,
     mark: mockMark,
+  }),
+}));
+// provas e trabalhos anotados no aparelho
+let mockEvaluations: Evaluation[] = [];
+const mockSaveEvaluation = jest.fn(async (_evaluation: Evaluation) => true);
+jest.mock('@root/modules/evaluations/presentation/useEvaluations', () => ({
+  useEvaluations: () => ({
+    evaluations: mockEvaluations,
+    save: mockSaveEvaluation,
+    remove: jest.fn(async () => true),
+    setDone: jest.fn(async () => true),
   }),
 }));
 const mockLoads = new Map([
@@ -304,15 +325,21 @@ it('greets the student and answers the next class first', async () => {
 
 it('lists the grades with health spelled out, never by color alone', async () => {
   await renderHome();
-  const rows = screen.getAllByLabelText(/: P1 /);
-  // só com a P1, o rótulo diz quanto a P2 precisa ser para dispensar a PF
-  const labels = [
-    'Sistemas Distribuídos: P1 8,5, P2 sem nota, PF sem nota, Média sem nota. 5,5 na P2 dispensa a PF',
-    'Compiladores: P1 6,0, P2 sem nota, PF sem nota, Média sem nota. 8,0 na P2 dispensa a PF',
-    'Ética e Computação: P1 sem nota, P2 sem nota, PF sem nota, Média 9,0. Média final 9,0',
-  ];
-  expect(rows).toHaveLength(labels.length);
-  rows.forEach((row, i) => expect(row).toHaveAccessibleName(labels[i]));
+  // com as células tocáveis (anotar a data da prova), cada uma é lida
+  // sozinha; só com a P1, o rótulo diz quanto a P2 precisa para dispensar a PF
+  [
+    'Sistemas Distribuídos. 5,5 na P2 dispensa a PF',
+    'Compiladores. 8,0 na P2 dispensa a PF',
+    'Ética e Computação. Média final 9,0',
+    'P1: nota 8,5, Bom',
+    'P1: nota 6,0, Atenção',
+    'Média: nota 9,0, Bom',
+  ].forEach(label => expect(screen.getByLabelText(label)).toBeOnTheScreen());
+  expect(
+    screen.getByRole('button', {
+      name: 'P2 sem nota. Anotar a data da P2 de Sistemas Distribuídos',
+    }),
+  ).toBeOnTheScreen();
   expect(screen.getByText('Atenção: 5 a 6,9')).toBeOnTheScreen();
 });
 
@@ -592,7 +619,7 @@ it('keeps saved data visible under a single blocked notice', async () => {
   expect(mockSchedule.refetch).toHaveBeenCalled();
   expect(mockGrades.refetch).toHaveBeenCalled();
   expect(screen.getByRole('header', { name: 'Olá, Marina' })).toBeOnTheScreen();
-  expect(screen.getAllByLabelText(/: P1 /)).toHaveLength(3);
+  expect(screen.getAllByLabelText(/^P1/)).toHaveLength(3);
 });
 
 it('shows one offline notice for all the saved data', async () => {
@@ -833,4 +860,100 @@ it('keeps the grades shortcut waiting when the grades failed to load', async () 
   // "Sem notas no período" seria falso: o pedido espera as notas chegarem
   expect(info).not.toHaveBeenCalled();
   expect(mockSetParams).not.toHaveBeenCalled();
+});
+
+describe('provas e trabalhos', () => {
+  const evaluation = (patch: Partial<Evaluation>): Evaluation => ({
+    id: 'e1',
+    subjectId: '10892',
+    subjectName: 'Sistemas Distribuídos',
+    type: 'P2',
+    date: '2026-10-19',
+    time: 860,
+    note: '',
+    reminders: ['eve', 'day'],
+    earlyTime: 1200,
+    dayTime: 420,
+    done: false,
+    ...patch,
+  });
+
+  afterEach(() => {
+    mockEvaluations = [];
+    mockSaveEvaluation.mockClear();
+  });
+
+  it('lists the coming ones under the next class, with the count and the note', async () => {
+    mockEvaluations = [
+      evaluation({ note: 'Capítulos 3 a 5 do Tanenbaum.' }),
+      evaluation({
+        id: 'e2',
+        subjectId: '10871',
+        subjectName: 'Compiladores',
+        type: 'work',
+        date: '2026-10-15',
+        time: 1439,
+      }),
+    ];
+    await renderHome();
+    expect(
+      screen.getByRole('header', { name: 'Próximas avaliações' }),
+    ).toBeOnTheScreen();
+    const rows = screen.getAllByRole('button', { name: /\. Em \d dias\./ });
+    expect(rows.map(row => row.props.accessibilityLabel)).toEqual([
+      'Entrega do trabalho de Compiladores, Quinta, 15 de outubro, até 23:59. Em 2 dias.',
+      'P2 de Sistemas Distribuídos, Segunda, 19 de outubro, 14:20 · Sala 6019 B. Em 6 dias. Capítulos 3 a 5 do Tanenbaum.',
+    ]);
+    // o quadro de notas mostra a data da P2 até a nota sair
+    expect(
+      screen.getByRole('button', {
+        name: 'P2 de Sistemas Distribuídos anotada para Segunda, 19 de outubro',
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText('19/10')).toBeOnTheScreen();
+    // a semana marca o dia do trabalho
+    expect(
+      screen.getByRole('tab', { name: 'Quinta, 15 de outubro, 1 avaliação' }),
+    ).toBeOnTheScreen();
+  });
+
+  it('flags the exam in the next class', async () => {
+    mockEvaluations = [
+      evaluation({
+        subjectId: '10933',
+        subjectName: 'Otimização Combinatória',
+        type: 'P1',
+        date: '2026-10-13',
+        time: 740,
+      }),
+    ];
+    await renderHome();
+    expect(
+      screen.getByRole('button', {
+        name: 'Otimização Combinatória, 12:20 às 14:10, Sala 6019 B, P1 nesta aula. Ver disciplinas em curso',
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText('P1 nesta aula')).toBeOnTheScreen();
+  });
+
+  it('writes one down from the grades: the empty cell opens the sheet with the exam', async () => {
+    await renderHome();
+    expect(screen.getByText('Nenhuma avaliação anotada')).toBeOnTheScreen();
+    const user = userEvent.setup();
+    await user.press(
+      screen.getByRole('button', {
+        name: 'P2 sem nota. Anotar a data da P2 de Sistemas Distribuídos',
+      }),
+    );
+    expect(sheet('Nova avaliação')).not.toBeNull();
+    await user.press(screen.getByRole('button', { name: 'Salvar' }));
+    expect(mockSaveEvaluation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subjectId: '10892',
+        type: 'P2',
+        date: '2026-10-19',
+        time: 860,
+      }),
+    );
+  });
 });

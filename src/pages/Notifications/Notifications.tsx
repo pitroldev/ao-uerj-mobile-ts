@@ -2,7 +2,9 @@ import React from 'react';
 import styled from 'styled-components/native';
 
 import {
+  ChipGroup,
   EmptyState,
+  FilterChip,
   FootNote,
   List,
   ListRow,
@@ -11,8 +13,11 @@ import {
   SegmentedControl,
   Switch,
   Text,
+  TimeField,
   snackbar,
 } from '@components/ui';
+import { REMINDER_KEYS } from '@root/modules/evaluations/domain/evaluations';
+import { REMINDER_LABEL } from '@root/modules/evaluations/presentation/evaluationText';
 import { ScreenPanel } from '@templates/ScreenPanel';
 import { useNow } from '@features/AttendedClassesSchedule/useNow';
 import { CHECK_INTERVAL_HOURS } from '@root/modules/notifications/domain/checkState';
@@ -20,6 +25,7 @@ import {
   REMINDER_LEADS,
   hasAnyNotification,
   usesPortalChecks,
+  type EvaluationDefaults,
   type NotificationPreferences,
   type ReminderLead,
 } from '@root/modules/notifications/domain/preferences';
@@ -30,7 +36,7 @@ import { useNotificationSettings } from '@root/modules/notifications/presentatio
 
 type Toggle = Exclude<
   keyof NotificationPreferences,
-  'reminderLead' | 'promptAnswered'
+  'reminderLead' | 'promptAnswered' | 'evaluationDefaults'
 >;
 
 const LEAD_OPTIONS = REMINDER_LEADS.map(lead => ({
@@ -60,10 +66,21 @@ const Foot = styled.View`
   margin-top: ${({ theme }) => theme.layout.sectionGap}px;
 `;
 
+const Times = styled.View`
+  flex-direction: row;
+  gap: ${({ theme }) => theme.spacing.md}px;
+  margin-top: ${({ theme }) => theme.spacing.lg}px;
+`;
+
+const Half = styled.View`
+  flex: 1;
+`;
+
 /**
- * Notificações: lembrete antes da aula (grade salva, sem portal) e avisos do
- * Aluno Online (nota, RID e documento), cada um ligado pelo aluno. Os avisos
- * do Aluno Online dependem da verificação em segundo plano, que só o Android
+ * Notificações: lembrete antes da aula (grade salva, sem portal), lembretes
+ * das avaliações anotadas (com os padrões das novas) e avisos do Aluno
+ * Online (nota, RID e documento), cada um ligado pelo aluno. Os avisos do
+ * Aluno Online dependem da verificação em segundo plano, que só o Android
  * tem; no iPhone a tela mostra os lembretes.
  */
 export function NotificationsPage() {
@@ -91,9 +108,9 @@ export function NotificationsPage() {
       snackbar.info(texts.blockedTitle, texts.blockedHint);
   };
 
-  const save = (patch: Partial<NotificationPreferences>) => {
+  const save = (change: Parameters<typeof settings.update>[0]) => {
     settings
-      .update(patch)
+      .update(change)
       .then(explain)
       .catch(() => snackbar.error('Não foi possível salvar a escolha.'));
   };
@@ -131,6 +148,40 @@ export function NotificationsPage() {
   const blocked =
     permission === 'blocked' ||
     (permission === 'denied' && hasAnyNotification(preferences));
+
+  const defaults = preferences.evaluationDefaults;
+  /**
+   * Parte dos padrões já salvos, não dos desta tela: dois toques seguidos
+   * (ou um horário e um toque) não se desfazem.
+   */
+  const saveDefaults = (
+    change: (current: EvaluationDefaults) => Partial<EvaluationDefaults>,
+  ) => {
+    if (!ready) return;
+    save(current => ({
+      evaluationDefaults: {
+        ...current.evaluationDefaults,
+        ...change(current.evaluationDefaults),
+      },
+    }));
+  };
+  // a chave das avaliações começa ligada: sem a permissão, nada chega e
+  // nenhum outro aviso abriu o pedido no topo
+  const evaluationsNeedPermission =
+    preferences.evaluationReminders && permission === 'denied' && !blocked;
+
+  const exactAlarmNotice = (
+    <Notice
+      tone="info"
+      icon="schedule"
+      text="Para o lembrete chegar na hora, mesmo com o celular parado, permita “Alarmes e lembretes” para o AO UERJ."
+      action={{
+        label: 'Permitir',
+        accessibilityLabel: 'Permitir alarmes e lembretes',
+        onPress: openExactAlarmSettings,
+      }}
+    />
+  );
 
   return (
     <ScreenPanel>
@@ -178,19 +229,84 @@ export function NotificationsPage() {
               }
               accessibilityLabel="Antecedência do lembrete"
             />
-            {exactAlarms === false ? (
-              <Spaced>
-                <Notice
-                  tone="info"
-                  icon="schedule"
-                  text="Para o lembrete chegar na hora, mesmo com o celular parado, permita “Alarmes e lembretes” para o AO UERJ."
-                  action={{
-                    label: 'Permitir',
-                    accessibilityLabel: 'Permitir alarmes e lembretes',
-                    onPress: openExactAlarmSettings,
-                  }}
+            {exactAlarms === false ? <Spaced>{exactAlarmNotice}</Spaced> : null}
+          </>
+        ) : null}
+      </Section>
+
+      <Section title="Avaliações">
+        <List>
+          {row(
+            'evaluationReminders',
+            'Lembretes de avaliações',
+            'Nas provas e trabalhos que você anota no Início, com os lembretes escolhidos em cada um.',
+          )}
+        </List>
+        {evaluationsNeedPermission ? (
+          <Spaced>
+            <Notice
+              tone="warn"
+              icon="notifications"
+              text="Sem a sua permissão, os lembretes das avaliações não chegam."
+              action={{
+                label: 'Permitir',
+                accessibilityLabel: 'Permitir avisos',
+                onPress: allowNotifications,
+              }}
+            />
+          </Spaced>
+        ) : null}
+        {preferences.evaluationReminders ? (
+          <>
+            <LeadLabel variant="meta" tone="muted">
+              Padrão das novas avaliações
+            </LeadLabel>
+            <ChipGroup accessibilityLabel="Lembretes padrão das novas avaliações">
+              {REMINDER_KEYS.map(key => {
+                const on = defaults.reminders.includes(key);
+                return (
+                  <FilterChip
+                    key={key}
+                    label={REMINDER_LABEL[key]}
+                    selected={on}
+                    disabled={!ready}
+                    onPress={() =>
+                      saveDefaults(current => ({
+                        reminders: REMINDER_KEYS.filter(item =>
+                          item === key
+                            ? !current.reminders.includes(key)
+                            : current.reminders.includes(item),
+                        ),
+                      }))
+                    }
+                  />
+                );
+              })}
+            </ChipGroup>
+            <Times>
+              <Half>
+                <TimeField
+                  label="Dias antes, às"
+                  accessibilityLabel="Horário padrão dos lembretes de dias antes"
+                  value={defaults.earlyTime}
+                  onChange={earlyTime => saveDefaults(() => ({ earlyTime }))}
                 />
-              </Spaced>
+              </Half>
+              <Half>
+                <TimeField
+                  label="No dia, às"
+                  accessibilityLabel="Horário padrão do lembrete no dia"
+                  value={defaults.dayTime}
+                  onChange={dayTime => saveDefaults(() => ({ dayTime }))}
+                />
+              </Half>
+            </Times>
+            <Status variant="meta" tone="muted">
+              Vale para as próximas que você anotar; as já anotadas mantêm os
+              lembretes delas.
+            </Status>
+            {exactAlarms === false && !preferences.classReminders ? (
+              <Spaced>{exactAlarmNotice}</Spaced>
             ) : null}
           </>
         ) : null}

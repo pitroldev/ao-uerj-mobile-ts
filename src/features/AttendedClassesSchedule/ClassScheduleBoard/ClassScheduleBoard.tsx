@@ -10,6 +10,7 @@ import { useTheme } from 'styled-components/native';
 import {
   Button,
   DayTimeline,
+  Notice,
   Section,
   SHIFT_LABEL,
   StatusLabel,
@@ -51,8 +52,26 @@ import {
   weekDates,
   weekdayOf,
 } from '../scheduleFormat';
+import {
+  classEvaluation,
+  evaluationsOn,
+  type Evaluation,
+} from '@root/modules/evaluations/domain/evaluations';
+import {
+  evaluationName,
+  evaluationTitle,
+  TYPE_LABEL,
+  whenText,
+} from '@root/modules/evaluations/presentation/evaluationText';
 import { buildWeekImage } from '../weekImage/weekImage';
-import { DayCount, DayHead, DayView } from './ClassScheduleBoard.styles';
+import {
+  DayAction,
+  DayHead,
+  DayLine,
+  DayNotice,
+  DayTitle,
+  DayView,
+} from './ClassScheduleBoard.styles';
 
 type Props = {
   data: AttendedClassesSchedule[];
@@ -69,9 +88,25 @@ type Props = {
   onEndedClassPress?: (item: AttendedClassesSchedule, date: Date) => void;
   /** Período ("2026.1") no título da imagem compartilhada. */
   period?: string;
+  /** Provas e trabalhos anotados: marca no dia, aviso no topo e na aula. */
+  evaluations?: readonly Evaluation[];
+  /** Toque numa avaliação do dia: abre a edição. */
+  onEvaluationPress?: (evaluation: Evaluation) => void;
+  /** "Avaliação" no dia mostrado (de hoje em diante): anota naquele dia. */
+  onAddEvaluation?: (date: string) => void;
 };
 
 const NO_ABSENCES: ReadonlySet<string> = new Set();
+const NO_EVALUATIONS: readonly Evaluation[] = [];
+/** A observação no aviso do dia fica curta: a completa está na folha. */
+const NOTE_PREVIEW = 120;
+
+function preview(note: string): string {
+  const text = note.trim().replace(/\s+/g, ' ');
+  return text.length > NOTE_PREVIEW
+    ? `${text.slice(0, NOTE_PREVIEW - 1).trimEnd()}…`
+    : text;
+}
 const NO_TEACHERS: SubjectTeachers = new Map();
 
 /** Dois quadros: o SVG novo já está desenhado quando a captura acontece. */
@@ -97,6 +132,9 @@ export const ClassScheduleBoard = React.memo(function ClassScheduleBoard({
   absences = NO_ABSENCES,
   onEndedClassPress,
   period,
+  evaluations = NO_EVALUATIONS,
+  onEvaluationPress,
+  onAddEvaluation,
 }: Props) {
   const theme = useTheme();
   const reduced = useReducedMotion();
@@ -165,15 +203,17 @@ export const ClassScheduleBoard = React.memo(function ClassScheduleBoard({
     const date = dates.get(day) as Date;
     const hasEvents = safeData.some(item => weekdayOf(item) === day);
     const isToday = isClassDay && day === today;
+    const marked = evaluationsOn(evaluations, toIsoDate(date)).length;
     return {
       key: day,
       short: WEEKDAY_SHORT[day],
       date: date.getDate(),
       hasEvents,
+      flagged: marked > 0,
       isToday,
       accessibilityLabel: `${dateLabel(date)}${isToday ? ', hoje' : ''}${
         hasEvents ? '' : ', sem aulas'
-      }`,
+      }${marked ? `, ${plural(marked, 'avaliação', 'avaliações')}` : ''}`,
     };
   });
 
@@ -186,6 +226,17 @@ export const ClassScheduleBoard = React.memo(function ClassScheduleBoard({
   const dayItems = safeData
     .filter(item => weekdayOf(item) === selected)
     .sort((a, b) => a.start_time_in_minutes - b.start_time_in_minutes);
+  const dayEvaluations = evaluationsOn(evaluations, selectedDay);
+  // sem aula nem avaliação, a régua vazia já diz tudo
+  const dayCount = [
+    dayItems.length ? plural(dayItems.length, 'aula', 'aulas') : null,
+    !dayItems.length && dayEvaluations.length ? 'Sem aulas' : null,
+    dayEvaluations.length
+      ? plural(dayEvaluations.length, 'avaliação', 'avaliações')
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   // Aulas de um tempo só (50 min) precisam de mais altura para as duas
   // linhas; a escala cresce também com o tamanho de fonte do sistema.
@@ -218,10 +269,22 @@ export const ClassScheduleBoard = React.memo(function ClassScheduleBoard({
     const shift = shiftOf(start);
     const { room } = splitLocation(item.class?.uerjLocation);
     const slots = slotRange(item);
+    const exam = classEvaluation(
+      evaluations,
+      subjectKey(item.class?.id ?? item.subject_id),
+      selectedDay,
+      { start, end },
+    );
 
     let status: React.ReactNode;
     let statusText: string;
-    if (canceled) {
+    if (exam && !canceled && !past) {
+      // a prova é o que importa nesta aula
+      status = (
+        <StatusLabel tone="accent" icon="event" label={TYPE_LABEL[exam.type]} />
+      );
+      statusText = `${evaluationName(exam)} nesta aula${live ? ', agora' : ''}`;
+    } else if (canceled) {
       status = <StatusLabel tone="neutral" icon="block" label="Cancelada" />;
       statusText = 'cancelada';
     } else if (absent) {
@@ -310,16 +373,56 @@ export const ClassScheduleBoard = React.memo(function ClassScheduleBoard({
       <DayView>
         <Animated.View style={fadeStyle}>
           <DayHead>
-            <Text weight="semibold">{dateLabel(selectedDate)}</Text>
-            {selectedIsToday ? <Tag tone="accent" label="Hoje" /> : null}
-            {dayItems.length ? (
-              <DayCount>
-                <Text tone="muted">
-                  {plural(dayItems.length, 'aula', 'aulas')}
+            <DayTitle>
+              <DayLine>
+                <Text weight="semibold">{dateLabel(selectedDate)}</Text>
+                {selectedIsToday ? <Tag tone="accent" label="Hoje" /> : null}
+              </DayLine>
+              {dayCount ? (
+                <Text variant="meta" tone="muted">
+                  {dayCount}
                 </Text>
-              </DayCount>
+              ) : null}
+            </DayTitle>
+            {onAddEvaluation && !selectedIsPast ? (
+              <DayAction>
+                <Button
+                  variant="text"
+                  size="sm"
+                  icon="add"
+                  label="Avaliação"
+                  accessibilityLabel={`Anotar avaliação em ${dateLabel(
+                    selectedDate,
+                  )}`}
+                  onPress={() => onAddEvaluation(selectedDay)}
+                />
+              </DayAction>
             ) : null}
           </DayHead>
+          {dayEvaluations.map(item => (
+            <DayNotice key={item.id}>
+              <Notice
+                tone={item.done ? 'neutral' : 'info'}
+                icon={item.done ? 'task_alt' : 'event'}
+                text={[
+                  `${evaluationTitle(item)}, ${whenText(item)}`,
+                  item.done ? 'feita' : null,
+                  item.note ? preview(item.note) : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+                action={
+                  onEvaluationPress
+                    ? {
+                        label: 'Editar',
+                        accessibilityLabel: `Editar ${evaluationTitle(item)}`,
+                        onPress: () => onEvaluationPress(item),
+                      }
+                    : undefined
+                }
+              />
+            </DayNotice>
+          ))}
           <DayTimeline
             events={events}
             pxPerMinute={pxPerMinute}

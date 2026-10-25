@@ -241,7 +241,7 @@ export const sizes = {
   iconTile: 40,
   /** Ícone do estado vazio (".empty-ic"). */
   emptyIcon: 64,
-  icon: { xs: 15, sm: 16, md: 18, lg: 20, xl: 22, xxl: 24, empty: 30 },
+  icon: { xxs: 12, xs: 15, sm: 16, md: 18, lg: 20, xl: 22, xxl: 24, empty: 30 },
   switch: { width: 52, height: 32 },
   checkbox: 20,
   stepNumber: 24,

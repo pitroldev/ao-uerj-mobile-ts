@@ -2,6 +2,7 @@ import React from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import styled, { useTheme } from 'styled-components/native';
 
+import { Icon } from '../Icon';
 import { Text } from '../Text';
 
 export type WeekDayItem<K extends string | number = number> = {
@@ -12,6 +13,8 @@ export type WeekDayItem<K extends string | number = number> = {
   date?: string | number;
   /** Ponto indicando que há aulas no dia. */
   hasEvents?: boolean;
+  /** Marca de calendário ao lado do ponto: o dia tem uma avaliação anotada. */
+  flagged?: boolean;
   isToday?: boolean;
   /** Ex.: "Terça, 13 de outubro, hoje". Padrão: abreviação + estado. */
   accessibilityLabel?: string;
@@ -46,9 +49,17 @@ const Day = styled.Pressable<{ $selected: boolean; $first: boolean }>`
     $selected ? theme.colors.fill : theme.colors.surface};
 `;
 
-const Dot = styled.View<{ $color: string }>`
+/** O ponto e a marca, centrados 10dp acima da base da célula. */
+const Marks = styled.View`
   position: absolute;
-  bottom: 8px;
+  bottom: 4px;
+  height: 12px;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+`;
+
+const Dot = styled.View<{ $color: string }>`
   width: 4px;
   height: 4px;
   border-radius: 2px;
@@ -58,7 +69,7 @@ const Dot = styled.View<{ $color: string }>`
 /**
  * Seletor de dias (".days"): faixa única com fios de 1px, como o cabeçalho
  * de uma agenda. Hoje em acento; o dia escolhido preenchido de acento; ponto
- * quando há aulas.
+ * quando há aulas e a marca de calendário quando há avaliação anotada.
  */
 export function WeekDaySelector<K extends string | number = number>({
   days,
@@ -118,15 +129,24 @@ export function WeekDaySelector<K extends string | number = number>({
                 {day.short}
               </Text>
             )}
-            <Dot
-              $color={
-                day.hasEvents
-                  ? isSelected
-                    ? c.onFill
-                    : c.inkSubtle
-                  : 'transparent'
-              }
-            />
+            <Marks>
+              <Dot
+                $color={
+                  day.hasEvents
+                    ? isSelected
+                      ? c.onFill
+                      : c.inkSubtle
+                    : 'transparent'
+                }
+              />
+              {day.flagged ? (
+                <Icon
+                  name="event"
+                  size={theme.sizes.icon.xxs}
+                  color={isSelected ? c.onFill : c.accent}
+                />
+              ) : null}
+            </Marks>
           </Day>
         );
       })}

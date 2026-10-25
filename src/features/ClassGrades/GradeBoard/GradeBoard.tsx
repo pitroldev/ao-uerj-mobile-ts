@@ -25,8 +25,18 @@ import {
   type FinalExamOutlook,
 } from '@root/modules/academics/domain/rules/finalExam';
 import { numberToColor } from '@utils/numberToColor';
+import { subjectKey } from '@root/modules/academics/domain/rules/subjectId';
+import type {
+  Evaluation,
+  ExamType,
+} from '@root/modules/evaluations/domain/evaluations';
+import {
+  dayMonth,
+  longDate,
+} from '@root/modules/evaluations/presentation/evaluationText';
 
 import { FinalExamSheet } from '../FinalExamSheet';
+import { AnnotateCell, DateCell, DateSwatch } from './DateCell';
 import { formatTenth, outlookText } from '../finalExamText';
 import {
   GradeSlot,
@@ -45,6 +55,15 @@ type Props = {
    * simulação, a tentativa do histórico que é a deste quadro.
    */
   period?: string;
+  /**
+   * Provas anotadas pelo aluno: enquanto a nota não sai, a célula mostra a
+   * data, tracejada.
+   */
+  evaluations?: readonly Evaluation[];
+  /** Toque numa célula vazia (ou na PF necessária): anota a data da prova. */
+  onAnnotate?: (subjectId: string, type: ExamType) => void;
+  /** Toque numa data anotada: abre a avaliação. */
+  onEvaluationPress?: (evaluation: Evaluation) => void;
 };
 
 const GRADE_KEYS = [
@@ -53,6 +72,18 @@ const GRADE_KEYS = [
   ['pf', 'PF'],
   ['result', 'Média'],
 ] as const;
+
+const EXAM_OF = { p1: 'P1', p2: 'P2', pf: 'PF' } as const;
+
+/** Sem PF pela frente: a data anotada dela não vale mais. */
+const NO_FINAL_EXAM = new Set<FinalExamOutlook['kind']>([
+  'exempt',
+  'no-final-exam',
+  'final-exam-done',
+  'published',
+]);
+
+const NO_EVALUATIONS: readonly Evaluation[] = [];
 
 /** Largura das colunas de nota no tamanho de fonte padrão (".gt", 45px). */
 const BASE_GRADE_COLUMN = 45;
@@ -82,6 +113,13 @@ function minNameWidth(theme: DefaultTheme, fontScale: number): number {
 
 function isGrade(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
+}
+
+/** "P1: nota 8,5, Bom", com a coluna, para a célula lida sozinha. */
+function gradeLabel(column: string, value: number | null): string {
+  if (value === null) return `${column} sem nota`;
+  const health = healthTone(numberToColor(value));
+  return `${column}: nota ${formatGrade(value)}, ${HEALTH_LABEL[health]}`;
 }
 
 /** Nota mais recente: média, PF, P2 ou P1 (nessa ordem). */
@@ -119,6 +157,9 @@ const NO_ROWS: ClassGrade[] = [];
 export const GradeBoard = React.memo(function GradeBoard({
   data,
   period,
+  evaluations = NO_EVALUATIONS,
+  onAnnotate,
+  onEvaluationPress,
 }: Props) {
   const rows = data ?? NO_ROWS;
   const theme = useTheme();
@@ -131,6 +172,30 @@ export const GradeBoard = React.memo(function GradeBoard({
   );
   const hasTarget = outlooks.some(outlook => outlook.kind === 'final-exam');
   const canSimulate = outlooks.some(outlook => SIMULATED.has(outlook.kind));
+  const interactive = Boolean(onAnnotate || onEvaluationPress);
+
+  /** A data anotada que a célula mostra: só enquanto a nota não sai. */
+  const dateOf = (
+    item: ClassGrade,
+    outlook: FinalExamOutlook,
+    key: keyof typeof EXAM_OF,
+  ): Evaluation | null => {
+    if (isGrade(item.grades[key])) return null;
+    if (key === 'pf' && NO_FINAL_EXAM.has(outlook.kind)) return null;
+    const subjectId = subjectKey(item.id);
+    return (
+      evaluations.find(
+        evaluation =>
+          evaluation.subjectId === subjectId &&
+          evaluation.type === EXAM_OF[key],
+      ) ?? null
+    );
+  };
+  const hasDates = rows.some((item, index) =>
+    (['p1', 'p2', 'pf'] as const).some(key =>
+      dateOf(item, outlooks[index], key),
+    ),
+  );
 
   const scale = fontScale || 1;
   const columnWidth = gradeColumnWidth(theme, scale);
@@ -192,28 +257,93 @@ export const GradeBoard = React.memo(function GradeBoard({
                 isGrade(grades[key]) ? formatGrade(grades[key]) : 'sem nota'
               }`;
             }).join(', ');
+            const subjectId = subjectKey(id);
+            // com células tocáveis, cada uma é lida sozinha (a linha não agrupa)
             const nameCell = (
-              <NameCell key="name">
+              <NameCell
+                key="name"
+                accessible={interactive || undefined}
+                accessibilityLabel={
+                  interactive ? `${name}. ${summary}` : undefined
+                }
+              >
                 <Text weight="medium">{name}</Text>
                 <StatusLabel tone={tone} label={summary} lines={2} />
               </NameCell>
             );
-            const cells = GRADE_KEYS.map(([key, label]) => {
-              const cell =
-                key === 'pf' && needed !== null ? (
+            const cellFor = (
+              key: (typeof GRADE_KEYS)[number][0],
+              label: string,
+            ) => {
+              const value = isGrade(grades[key]) ? grades[key] : null;
+              const spoken = interactive ? gradeLabel(label, value) : undefined;
+              if (key === 'result')
+                return (
+                  <GradeCell
+                    key={key}
+                    value={value}
+                    accessibilityLabel={spoken}
+                  />
+                );
+              const annotated = dateOf(item, outlook, key);
+              if (annotated)
+                return (
+                  <DateCell
+                    key={key}
+                    label={dayMonth(annotated.date)}
+                    accessibilityLabel={`${label} de ${name} anotada para ${longDate(
+                      annotated.date,
+                    )}`}
+                    onPress={
+                      onEvaluationPress
+                        ? () => onEvaluationPress(annotated)
+                        : undefined
+                    }
+                  />
+                );
+              if (key === 'pf' && needed !== null) {
+                const neededText = `PF necessária ${formatTenth(needed)}`;
+                const target = (
                   <GradeCell
                     key={key}
                     value={needed}
                     tone="neutral"
                     target
-                    accessibilityLabel={`PF necessária ${formatTenth(needed)}`}
-                  />
-                ) : (
-                  <GradeCell
-                    key={key}
-                    value={isGrade(grades[key]) ? grades[key] : null}
+                    accessibilityLabel={neededText}
                   />
                 );
+                return onAnnotate ? (
+                  <AnnotateCell
+                    key={key}
+                    accessibilityLabel={`${neededText}. Anotar a data da PF de ${name}`}
+                    onPress={() => onAnnotate(subjectId, 'PF')}
+                  >
+                    {target}
+                  </AnnotateCell>
+                ) : (
+                  target
+                );
+              }
+              if (value === null && key !== 'pf' && onAnnotate)
+                return (
+                  <AnnotateCell
+                    key={key}
+                    accessibilityLabel={`${label} sem nota. Anotar a data da ${label} de ${name}`}
+                    onPress={() => onAnnotate(subjectId, EXAM_OF[key])}
+                  >
+                    <GradeCell value={null} />
+                  </AnnotateCell>
+                );
+              return (
+                <GradeCell
+                  key={key}
+                  value={value}
+                  accessibilityLabel={spoken}
+                />
+              );
+            };
+            const cells = GRADE_KEYS.map(([key, label]) => {
+              const cell = cellFor(key, label);
               return stacked ? (
                 <GradeSlot key={key} $width={columnWidth}>
                   <Text variant="caption" tone="muted" numberOfLines={1}>
@@ -228,7 +358,9 @@ export const GradeBoard = React.memo(function GradeBoard({
             return (
               <TableRow
                 key={id}
-                accessibilityLabel={`${name}: ${values}. ${summary}`}
+                accessibilityLabel={
+                  interactive ? undefined : `${name}: ${values}. ${summary}`
+                }
               >
                 {stacked ? (
                   <View>
@@ -252,6 +384,14 @@ export const GradeBoard = React.memo(function GradeBoard({
             <TargetSwatch />
             <Text variant="caption" weight="regular" tone="muted">
               Necessária na PF
+            </Text>
+          </LegendItem>
+        ) : null}
+        {hasDates ? (
+          <LegendItem>
+            <DateSwatch />
+            <Text variant="caption" weight="regular" tone="muted">
+              Data anotada por você, até a nota sair
             </Text>
           </LegendItem>
         ) : null}

@@ -9,15 +9,16 @@ import androidx.work.WorkerParameters
 import java.util.concurrent.TimeUnit
 
 /**
- * Reschedules the saved class reminders every few hours, with no network and without React Native.
- * Revoking "Alarms & reminders" cancels the exact alarms with no broadcast, and the portal check
- * (which reschedules them too) may be off: without this the reminders would stop until the app
- * opens or the phone restarts.
+ * Reschedules the saved class and evaluation reminders every few hours, with no network and without
+ * React Native. Revoking "Alarms & reminders" cancels the exact alarms with no broadcast, and the
+ * portal check (which reschedules class reminders too) may be off: without this the reminders would
+ * stop until the app opens or the phone restarts.
  */
 class ClassReminderWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
 
   override fun doWork(): Result {
     ClassReminders.reschedule(applicationContext)
+    EvaluationReminders.reschedule(applicationContext)
     return Result.success()
   }
 
@@ -26,11 +27,16 @@ class ClassReminderWorker(context: Context, params: WorkerParameters) : Worker(c
     /** The longest stretch without reminders after the exact alarms were revoked. */
     private const val INTERVAL_HOURS = 6L
 
+    /** Keeps the work while either plan has reminders to show (reads both, without their locks). */
+    fun refresh(context: Context) {
+      schedule(context, ClassReminders.isActive(context) || EvaluationReminders.hasPending(context))
+    }
+
     /**
-     * Keeps the work while the plan has reminders to show, cancels it otherwise. The first run
-     * waits a full interval: the plan was just scheduled.
+     * Keeps the work while a plan has reminders to show, cancels it otherwise. The first run waits
+     * a full interval: the plan was just scheduled.
      */
-    fun schedule(context: Context, enabled: Boolean) {
+    private fun schedule(context: Context, enabled: Boolean) {
       val work = WorkManager.getInstance(context)
       if (!enabled) {
         work.cancelUniqueWork(WORK_NAME)

@@ -28,6 +28,12 @@ function nativeModule({ enabled = false, answer = 'granted' } = {}) {
     canScheduleExactAlarms: jest.fn(async () => false),
     openExactAlarmSettings: jest.fn(async () => undefined),
     setClassReminders: jest.fn(async (_plan: string) => undefined),
+    setEvaluationReminders: jest.fn(async (_plan: string) => undefined),
+    consumeDoneEvaluations: jest.fn(async (): Promise<unknown> => [
+      'e1',
+      7,
+      'e2',
+    ]),
     setPortalCheck: jest.fn(async (_on: boolean, _hours: number) => undefined),
     setPortalReturnWatch: jest.fn(async (_on: boolean) => undefined),
     notify: jest.fn(async () => undefined),
@@ -161,4 +167,38 @@ it('hands the reminder plan to the native side as JSON, or cancels it', async ()
   expect(module.setPortalCheck).toHaveBeenCalledWith(true, 4);
   await device.clearPosted();
   expect(module.clearNotifications).toHaveBeenCalledTimes(1);
+});
+
+it('hands the evaluation reminders as JSON and reads the "Já fiz" ids', async () => {
+  const { module } = nativeModule();
+  const device = createNativeNotifications(module, { os: 'ios' })!;
+  const plan = {
+    reminders: [
+      {
+        id: 'e1:eve@1',
+        evaluationId: 'e1',
+        at: 1,
+        until: 2,
+        latest: 2,
+        local: {
+          at: '2026-11-23T20:00',
+          until: '2026-11-24T08:00',
+          latest: '2026-11-24T08:00',
+        },
+        title: 'Amanhã: P1 de Física III',
+        body: '',
+        completable: false,
+      },
+    ],
+  };
+  await device.setEvaluationReminders(plan);
+  await device.setEvaluationReminders(null);
+  expect(module.setEvaluationReminders.mock.calls).toEqual([
+    [JSON.stringify(plan)],
+    [''],
+  ]);
+  // só os textos: um valor estranho do módulo não vira id
+  await expect(device.consumeDoneEvaluations()).resolves.toEqual(['e1', 'e2']);
+  module.consumeDoneEvaluations.mockResolvedValueOnce(null);
+  await expect(device.consumeDoneEvaluations()).resolves.toEqual([]);
 });

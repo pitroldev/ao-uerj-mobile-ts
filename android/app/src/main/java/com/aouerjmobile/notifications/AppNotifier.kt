@@ -3,6 +3,7 @@ package com.aouerjmobile.notifications
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.os.Build
 import androidx.core.app.NotificationCompat
@@ -25,11 +26,17 @@ internal data class AppNotification(
     val target: String,
     /** Dismissed by the system after this many milliseconds (0 keeps it). */
     val timeoutMillis: Long = 0,
+    /** Buttons below the text ("Já fiz"). */
+    val actions: List<NotificationAction> = emptyList(),
 )
+
+/** A notification button and the broadcast it sends. */
+internal data class NotificationAction(val label: String, val intent: PendingIntent)
 
 /** Channels and posting. Every notification is private: the lock screen gets a generic version. */
 internal object AppNotifier {
   const val CHANNEL_CLASS_REMINDERS = "class-reminders"
+  const val CHANNEL_EVALUATIONS = "evaluations"
   private const val CHANNEL_GRADES = "grades"
   private const val CHANNEL_ENROLLMENT = "enrollment"
   private const val CHANNEL_DOCUMENTS = "documents"
@@ -41,6 +48,12 @@ internal object AppNotifier {
               CHANNEL_CLASS_REMINDERS,
               "Lembretes de aula",
               "Aviso antes de cada aula, com o horário e a sala.",
+              NotificationManager.IMPORTANCE_HIGH,
+          ),
+          Channel(
+              CHANNEL_EVALUATIONS,
+              "Avaliações",
+              "Lembretes das provas e trabalhos que você anota no app.",
               NotificationManager.IMPORTANCE_HIGH,
           ),
           Channel(
@@ -103,7 +116,7 @@ internal object AppNotifier {
             NotificationCompat.PRIORITY_HIGH
         else NotificationCompat.PRIORITY_DEFAULT
     val category =
-        if (channel.id == CHANNEL_CLASS_REMINDERS) NotificationCompat.CATEGORY_REMINDER
+        if (channel.id in REMINDER_CHANNELS) NotificationCompat.CATEGORY_REMINDER
         else NotificationCompat.CATEGORY_STATUS
     val open = AppLaunch.pendingIntent(context, notification.target)
     val publicVersion =
@@ -128,6 +141,7 @@ internal object AppNotifier {
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(publicVersion)
     if (notification.timeoutMillis > 0) builder.setTimeoutAfter(notification.timeoutMillis)
+    notification.actions.forEach { builder.addAction(0, it.label, it.intent) }
     try {
       NotificationManagerCompat.from(context).notify(notification.id, NOTIFICATION_ID, builder.build())
     } catch (_: SecurityException) {
@@ -136,5 +150,7 @@ internal object AppNotifier {
   }
 
   /** Notifications are told apart by their tag (the string id). */
-  private const val NOTIFICATION_ID = 1
+  const val NOTIFICATION_ID = 1
+
+  private val REMINDER_CHANNELS = setOf(CHANNEL_CLASS_REMINDERS, CHANNEL_EVALUATIONS)
 }

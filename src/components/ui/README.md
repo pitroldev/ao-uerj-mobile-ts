@@ -130,7 +130,7 @@ Fora do `Text` (por exemplo num `TextInput`) use `typeStyle(theme, 'body')`.
 - `theme.layout`: `gutter 20` (margem lateral), `panelPaddingTop 32`, `panelPaddingBottom 40`, `panelRadius 48`, `sectionGap 30`, `sectionHeaderGap 10`, `sectionHeaderMinHeight 32`, `appBarHeight 52`, `drawerWidth 300`, `sheetMaxHeight 0.86`.
 - `theme.radii`: `xs 4 · checkbox 5 · sm 6 (tag, nota) · md 8 (chip) · lg 10 (botão, campo, aviso) · xl 12 (card, grupo, agenda) · xxl 20 (ícone vazio) · sheet 24 · panel 48`. **Canto cortado**: raio nos cantos e `border-top-right-radius: 0`. Botões são a exceção: raio 10 em todos os cantos.
 - `theme.borders`: `hairline 1`, `focus 2` (borda de foco/erro; compense 1px de padding para o texto não pular).
-- `theme.sizes`: `touch 48`, `row 56`, `field 48`, `select 52`, `fieldGroupRow 56`, `chip 36`, `tag 24`, `gradeCell 40×28`, `avatar 40`, `iconTile 40`, `emptyIcon 64`, `icon` (`xs 15 · sm 16 · md 18 · lg 20 · xl 22 · xxl 24 · empty 30`; ex.: `<Icon size={theme.sizes.icon.lg} />`).
+- `theme.sizes`: `touch 48`, `row 56`, `field 48`, `select 52`, `fieldGroupRow 56`, `chip 36`, `tag 24`, `gradeCell 40×28`, `avatar 40`, `iconTile 40`, `emptyIcon 64`, `icon` (`xxs 12` só para marcas dentro de células, como a da avaliação no seletor de dias · `xs 15 · sm 16 · md 18 · lg 20 · xl 22 · xxl 24 · empty 30`; ex.: `<Icon size={theme.sizes.icon.lg} />`).
 - `theme.motion`: `fast 150`, `base 200`, `slow 250`, `easing [.2,.8,.2,1]` (use `Easing.bezier(...theme.motion.easing)`).
 - `theme.shadows`: `panel`, `sheet`, `snackbar` (o sistema não usa sombra em cards).
 
@@ -316,6 +316,7 @@ Fora do `Text` (por exemplo num `TextInput`) use `typeStyle(theme, 'body')`.
 **`SearchField`**: lupa + limpar + tecla de busca; o `placeholder` vira o rótulo acessível.
 **`FieldGroup` + `FieldGroupRow`**: o grupo do login (rótulo na coluna da esquerda, fio entre linhas, borda de foco no grupo). `FieldGroup error` mostra a mensagem do formulário abaixo, anunciada.
 **`FieldError`**: a linha de erro de campo isolada.
+**`TimeField`**: horário de 24 h no teclado numérico (`label`, `value` e `onChange` em minutos desde 00:00, `helper`). O que já forma um horário vale enquanto se digita ("8" é 8:00, "930" é 9:30), para que um "Salvar" tocado com o campo em foco leve o valor; "1420" vira "14:20" no quarto dígito. Ao sair, o campo mostra o horário que valeu, e um impossível volta ao anterior. `formatTime` e `parseTime` também são exportados.
 **`NumberStepper`**: − [campo] + e unidade (`value` string, `onChangeText`, `min`, `max`, `step`, `unit`, `accessibilityLabel`, `invalid`). Ao focar, o campo seleciona o número, e o que se digita o substitui.
 
 ```tsx
@@ -437,7 +438,7 @@ O título é 14/20 semibold e o detalhe 13/18; o aviso fica 10 s na tela e some 
 
 ### Agenda
 
-- **`WeekDaySelector`**: `days` (`WeekDayItem[]`: `key`, `short`, `date`, `hasEvents`, `isToday`, `accessibilityLabel`), `selected`, `onSelect`. Hoje em acento; o escolhido preenchido; ponto quando há aulas.
+- **`WeekDaySelector`**: `days` (`WeekDayItem[]`: `key`, `short`, `date`, `hasEvents`, `flagged`, `isToday`, `accessibilityLabel`), `selected`, `onSelect`. Hoje em acento; o escolhido preenchido; ponto quando há aulas e, com `flagged`, a marca de calendário ao lado (avaliação anotada).
 - **`DayTimeline`**: `events` (`key`, `start`/`end` em minutos desde 00:00, `title`, `meta`, `status`, `state` `past|live|upcoming`, `onPress`, `accessibilityLabel`), `now` (`minutes`, `label`), `pxPerMinute` (0,8 = 48dp por hora), `freeGapMinutes` (40), `freeLabel`, `hourLabel`, `emptyText`. Desenha a régua de horas, os intervalos "Livre · 1h50" e a linha de agora. `formatDuration(110)` → "1h50". Para aulas de um tempo só (50 min), o bloco tem 40dp e mostra uma linha: considere `pxPerMinute={1}` se a tela precisar.
 
 ```tsx
