@@ -215,7 +215,7 @@ const grades: ClassGrade[] = [
 ];
 
 const rid: PartialRidResult = {
-  updatedAt: ' 12/08/2026 14:32 ',
+  updatedAt: ' 12/10/2026 14:32 ',
   subjects: [
     {
       id: 'IME02-10892',
@@ -669,6 +669,59 @@ it('shows the error card and the help when several parts fail', async () => {
   expect(mockGrades.refetch).toHaveBeenCalled();
 });
 
+it('does not show the RID of a past enrollment as the current state', async () => {
+  // fim do período: a grade veio vazia e o portal ainda tem o RID de março
+  mockSchedule = makeQuery<AttendedClassesSchedule[]>([]);
+  mockGrades = makeQuery<ClassGrade[]>([]);
+  mockRid = makeQuery<PartialRidResult>({ ...rid, updatedAt: ' 03/03/2026 ' });
+  await renderHome();
+  expect(
+    screen.queryByRole('header', { name: 'RID Parcial' }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByText(
+      'O Aluno Online não lista disciplinas em curso para você.',
+    ),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText(NOT_STARTED)).not.toBeOnTheScreen();
+});
+
+it('lists the subjects without a time in the grid instead of an empty week', async () => {
+  const internship = subject(
+    'IME02-10999',
+    'Estágio Supervisionado III',
+    'Não informado',
+  );
+  mockSchedule = makeQuery<AttendedClassesSchedule[]>([
+    {
+      class: internship,
+      dayAlias: '',
+      dayNumber: 0,
+      subject_id: internship.id,
+      periodAlias: '',
+      startTimeAlias: '',
+      endTimeAlias: '',
+      start_time_in_minutes: -1,
+      end_time_in_minutes: -1,
+    },
+  ]);
+  mockGrades = makeQuery<ClassGrade[]>([]);
+  mockRid = makeQuery<PartialRidResult>({ ...rid, updatedAt: ' 03/03/2026 ' });
+  await renderHome();
+  expect(
+    screen.getByRole('header', { name: 'Sem horário fixo' }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText('Estágio Supervisionado III')).toBeOnTheScreen();
+  // nem semana vazia, nem próxima aula, nem RID antigo, nem "não se iniciou"
+  expect(
+    screen.queryByRole('header', { name: 'Semana' }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole('header', { name: 'RID Parcial' }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByText(NOT_STARTED)).not.toBeOnTheScreen();
+});
+
 it('shows the partial RID during enrollment, with the queue status spelled out', async () => {
   mockSchedule = makeQuery<AttendedClassesSchedule[]>([]);
   mockGrades = makeQuery<ClassGrade[]>([]);
@@ -676,7 +729,7 @@ it('shows the partial RID during enrollment, with the queue status spelled out',
   await renderHome();
   expect(screen.getByRole('header', { name: 'RID Parcial' })).toBeOnTheScreen();
   expect(
-    screen.getByText('Última atualização em 12/08/2026 14:32'),
+    screen.getByText('Última atualização em 12/10/2026 14:32'),
   ).toBeOnTheScreen();
   expect(screen.getByText('Sem posição')).toBeOnTheScreen();
   expect(screen.getByText('Indeferida: choque de horário')).toBeOnTheScreen();

@@ -39,6 +39,7 @@ import {
   CLASS_DAYS,
   clockLabel,
   dateLabel,
+  hasClassTime,
   isCanceled,
   minutesOfDay,
   plural,
@@ -100,7 +101,7 @@ export const ClassScheduleBoard = React.memo(function ClassScheduleBoard({
   const theme = useTheme();
   const reduced = useReducedMotion();
   const { fontScale } = useWindowDimensions();
-  const safeData = useMemo(() => data ?? [], [data]);
+  const safeData = useMemo(() => (data ?? []).filter(hasClassTime), [data]);
   const { share, exporting, SvgRenderer } = useScheduleSharing();
   const loadTeachers = useSubjectTeachers();
   const [teachers, setTeachers] = useState<SubjectTeachers>(NO_TEACHERS);

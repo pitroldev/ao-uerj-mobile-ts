@@ -455,6 +455,48 @@ it('keeps disjoint schedule intervals separate while merging adjacent slots', ()
   expect(result[0].endTimeAlias).toBe('8:40');
 });
 
+it('keeps subjects without a time in the grid, after the classes', () => {
+  const subjects = table(
+    ['Índice', 'Disciplina', 'Turma', 'AVA', 'Local'],
+    [
+      cells(['1', 'ABC01-12345 ÁLGEBRA', '1', '', 'Sala 1']),
+      cells(['2', 'ABC01-54321 ESTÁGIO SUPERVISIONADO III', '2', '', '-']),
+    ].join(''),
+  );
+  const scheduleRows = [
+    '<tr><th>Segunda</th></tr>',
+    '<tr id="start"><td>ABC01-12345</td></tr>',
+  ].join('');
+  const result = parseSchedule(
+    content(`<div>${subjects}</div><div><table>${scheduleRows}</table></div>`),
+  );
+  expect(
+    result.map(item => [
+      item.subject_id,
+      item.dayNumber,
+      item.start_time_in_minutes,
+    ]),
+  ).toEqual([
+    ['ABC01-12345', 1, 420],
+    ['ABC01-54321', 0, -1],
+  ]);
+  expect(result[1].class).toMatchObject({
+    name: 'Estágio Supervisionado III',
+    class: '2',
+  });
+
+  // só disciplinas sem horário (fim do curso): a grade vem vazia, elas não
+  const onlyUntimed = parseSchedule(
+    content(
+      `<div>${table(
+        ['Índice', 'Disciplina', 'Turma', 'AVA', 'Local'],
+        cells(['1', 'ABC01-54321 ESTÁGIO SUPERVISIONADO III', '2', '', '-']),
+      )}</div><div><table><tr><th>Segunda</th></tr></table></div>`,
+    ),
+  );
+  expect(onlyUntimed.map(item => item.subject_id)).toEqual(['ABC01-54321']);
+});
+
 it('reads subject details and classes from a class table without an explicit tbody', () => {
   const subject = parseSubject(subjectPage);
   expect(subject).toMatchObject({

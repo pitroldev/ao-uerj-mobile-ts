@@ -128,3 +128,11 @@ it('summarises meetings grouped by time', () => {
     ['Ter e Qui · T1–T2 · 12:20–14:10'],
   );
 });
+
+it('says when a subject has no time in the grid', () => {
+  // estágio ou TCC: o portal não o põe na grade
+  expect(meetingSummary([item('EST', 0, '', ['', -1], ['', -1])])).toEqual([
+    'Sem horário fixo na grade',
+  ]);
+  expect(meetingSummary([])).toEqual([]);
+});

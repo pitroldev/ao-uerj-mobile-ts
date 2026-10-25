@@ -29,7 +29,15 @@ import { NextClassCard } from '@features/AttendedClassesSchedule/NextClassCard';
 import { ClassScheduleBoard } from '@features/AttendedClassesSchedule/ClassScheduleBoard';
 import { AttendedClassesBoard } from '@features/AttendedClassesSchedule/AttendedClassesBoard';
 import { AttendanceSheet } from '@features/AttendedClassesSchedule/AttendanceSheet';
-import { dateLabel } from '@features/AttendedClassesSchedule/scheduleFormat';
+import {
+  dateLabel,
+  hasClassTime,
+} from '@features/AttendedClassesSchedule/scheduleFormat';
+import { UntimedClasses } from '@features/AttendedClassesSchedule/UntimedClasses';
+import {
+  isCurrentPartialRid,
+  isPastPartialRid,
+} from '@root/modules/academics/domain/rules/partialRid';
 import { useNow } from '@features/AttendedClassesSchedule/useNow';
 
 import { HomeGreeting } from './components/HomeGreeting';
@@ -54,6 +62,9 @@ type AttendanceState = {
 };
 
 const NOT_STARTED_TEXT = 'Parece que o período não se iniciou ainda.';
+/** Com um RID de inscrição já encerrada, o período começou: a grade é que veio vazia. */
+const NO_CLASSES_TEXT =
+  'O Aluno Online não lista disciplinas em curso para você.';
 
 export const HomePage = () => {
   const [classesSheet, setClassesSheet] = useState<ClassesSheet>({
@@ -122,7 +133,9 @@ export const HomePage = () => {
     ridQuery.isPaused;
 
   const isScheduleAvailable = currentSchedule?.length > 0;
-  const isPartialRidAvailable = partialRID && partialRID?.subjects?.length > 0;
+  const hasTimedClasses = currentSchedule.some(hasClassTime);
+  const isPartialRidAvailable = isCurrentPartialRid(partialRID, now);
+  const hasPastRid = isPastPartialRid(partialRID, now);
 
   const hasSomethingAvailable =
     isClassGradesAvailable || isPartialRidAvailable || isScheduleAvailable;
@@ -291,9 +304,12 @@ export const HomePage = () => {
           </>
         ) : null}
         {showNotStarted ? (
-          <EmptyState icon="event_upcoming" text={NOT_STARTED_TEXT} />
+          <EmptyState
+            icon="event_upcoming"
+            text={hasPastRid ? NO_CLASSES_TEXT : NOT_STARTED_TEXT}
+          />
         ) : null}
-        {isScheduleAvailable ? (
+        {hasTimedClasses ? (
           <>
             <NextClassCard
               data={currentSchedule}
@@ -316,7 +332,8 @@ export const HomePage = () => {
           onEndedClassPress={openEndedClass}
           period={period}
         />
-        {!isScheduleAvailable && isPartialRidAvailable ? (
+        <UntimedClasses data={currentSchedule} onSubjectPress={openClasses} />
+        {!isScheduleAvailable && isPartialRidAvailable && partialRID ? (
           <RIDBoard data={partialRID} />
         ) : null}
       </ScreenPanel>

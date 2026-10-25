@@ -180,6 +180,25 @@ function populateScheduleWithClassInfo(
   }));
 }
 
+/**
+ * Disciplina em curso sem horário na grade (estágio, TCC, EAD): um item sem
+ * dia nem horário, para ela continuar no app. A linha do tempo, a próxima
+ * aula, o widget e os lembretes só usam aulas com horário.
+ */
+function untimedClass(subject: AttendedSubjectInfo): AttendedClassesSchedule {
+  return {
+    class: subject,
+    dayAlias: '',
+    dayNumber: 0,
+    subject_id: subject.id,
+    periodAlias: '',
+    startTimeAlias: '',
+    endTimeAlias: '',
+    start_time_in_minutes: -1,
+    end_time_in_minutes: -1,
+  };
+}
+
 export function parseAttendedClassesSchedule(
   $: CheerioAPI,
 ): AttendedClassesSchedule[] {
@@ -202,6 +221,11 @@ export function parseAttendedClassesSchedule(
   sortedSchedule.forEach(item => {
     requireStructure(item.class && item.startTimeAlias && item.endTimeAlias);
   });
-  assertFiniteValues(sortedSchedule);
-  return sortedSchedule;
+  // as que não estão na grade vêm depois, sem horário (não somem do app)
+  const untimed = subjects
+    .filter(subject => !sortedSchedule.some(item => item.class === subject))
+    .map(untimedClass);
+  const schedule = [...sortedSchedule, ...untimed];
+  assertFiniteValues(schedule);
+  return schedule;
 }

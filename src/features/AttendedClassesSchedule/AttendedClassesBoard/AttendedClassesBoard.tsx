@@ -25,6 +25,7 @@ import { useAttendance } from '@root/modules/attendance/presentation/useAttendan
 
 import { attendanceTone, remainingText, usedText } from '../attendanceText';
 import {
+  hasClassTime,
   isCanceled,
   locationLabel,
   meetingSummary,
@@ -183,18 +184,21 @@ function ClassesList({
     const { id, name } = item;
     const meetings = data.filter(c => c.class?.id === id && !isCanceled(c));
     const isItemCanceled = item.status === 'CANCELED';
+    // estágio, TCC: sem aulas na grade, não há sala certa nem faltas por aula
+    const untimed = !meetings.some(hasClassTime);
+    const room = parseLocation(item.uerjLocation).kind === 'room';
     const meta = isItemCanceled
       ? undefined
       : [
           ...meetingSummary(meetings),
-          locationLabel(item.uerjLocation),
+          ...(untimed && !room ? [] : [locationLabel(item.uerjLocation)]),
           ...(item.avaLocation
             ? [`Sala virtual (AVA): ${item.avaLocation}`]
             : []),
         ];
-    const absenceInfo = isItemCanceled ? null : renderAbsences(item, meetings);
-    const hasMap =
-      !isItemCanceled && parseLocation(item.uerjLocation).kind === 'room';
+    const absenceInfo =
+      isItemCanceled || untimed ? null : renderAbsences(item, meetings);
+    const hasMap = !isItemCanceled && room;
     return (
       <React.Fragment key={id}>
         <ListRow
@@ -216,9 +220,9 @@ function ClassesList({
         >
           {absenceInfo?.bar}
         </ListRow>
-        {hasMap || (!isItemCanceled && onAttendancePress) ? (
+        {hasMap || (!isItemCanceled && !untimed && onAttendancePress) ? (
           <Actions>
-            {!isItemCanceled && onAttendancePress ? (
+            {!isItemCanceled && !untimed && onAttendancePress ? (
               <Button
                 label="Faltas"
                 accessibilityLabel={`Marcar faltas em ${name}`}

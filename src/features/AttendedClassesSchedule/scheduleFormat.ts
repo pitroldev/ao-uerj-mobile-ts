@@ -159,16 +159,20 @@ export function duration(min: number): string {
   return `${h}h${m ? String(m).padStart(2, '0') : ''}`;
 }
 
+const NO_FIXED_TIME = 'Sem horário fixo na grade';
+
 /**
  * Encontros de uma disciplina agrupados pelo mesmo horário:
- * ["Ter e Qui · T1–T2 · 12:20–14:10"].
+ * ["Ter e Qui · T1–T2 · 12:20–14:10"]; sem nenhum horário, [NO_FIXED_TIME].
  */
 export function meetingSummary(items: AttendedClassesSchedule[]): string[] {
+  const timed = items.filter(hasClassTime);
+  if (!timed.length) return items.length ? [NO_FIXED_TIME] : [];
   const groups = new Map<
     string,
     { days: number[]; item: AttendedClassesSchedule }
   >();
-  [...items]
+  timed
     .sort((a, b) => a.dayNumber - b.dayNumber)
     .forEach(item => {
       const key = `${item.start_time_in_minutes}-${item.end_time_in_minutes}`;
