@@ -6,6 +6,7 @@ import type {
 import { completedSubjectIds } from '@root/modules/academics/domain/rules/completion';
 import {
   calculateAcademicProgress,
+  currentInProgress,
   type ElectiveCreditsConfig,
 } from '@root/modules/academics/domain/rules/progress';
 import { normalizeSubjectId } from '@root/modules/academics/domain/rules/subjectId';
@@ -120,17 +121,15 @@ function missingElectives(sources: PlanSources) {
 /** O que o plano precisa saber, a partir do que o app já lê do portal. */
 export function planInputs(sources: PlanSources): PlanInputs {
   const { curriculum, history, synthesis } = sources;
+  // "Em Preparo" de um período anterior não é em curso (`currentInProgress`)
   const inProgress = new Set(
-    [
-      ...sources.inProgress,
-      ...history
-        .filter(item => item.status === 'IN_PROGRESS')
-        .map(item => item.id),
-    ]
+    [...sources.inProgress, ...currentInProgress(history).map(item => item.id)]
       .map(keyOf)
       .filter((key): key is string => key !== null),
   );
   const completed = completedSubjectIds(history, curriculum);
+  // uma já aprovada não soma os créditos de novo como em curso
+  const ongoing = [...inProgress].filter(key => !completed.has(key));
   inProgress.forEach(key => completed.add(key));
 
   const byKey = new Map<string, CurriculumSubject>();
@@ -143,7 +142,7 @@ export function planInputs(sources: PlanSources): PlanInputs {
     .map(([, item]) => item);
 
   // créditos das em curso, pelo currículo (as que ele não lista ficam de fora)
-  const current = [...inProgress]
+  const current = ongoing
     .map(key => byKey.get(key))
     .filter((item): item is CurriculumSubject => item !== undefined);
   const currentCredits = (kind: CurriculumSubject['type']) =>

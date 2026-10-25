@@ -2,6 +2,7 @@ import type { SelectOption } from '@components/ui';
 import type { SubjectsTaken } from '@root/modules/academics/domain/models';
 import {
   calculateCraProgression,
+  currentInProgress,
   getPeriodList,
 } from '@root/modules/academics/domain/rules/progress';
 
@@ -16,6 +17,8 @@ function formatCra(cra: number): string {
  * ainda tem disciplinas em andamento, "CR aprox. atual 7,77" no último período
  * encerrado e "CR 7,65" nos anteriores. Períodos de isenção ficam sem CR.
  * Os valores de CR vêm das regras de domínio (`calculateCraProgression`).
+ * Um período anterior com "Em Preparo" que o portal nunca fechou mostra o CR
+ * (ver `currentInProgress`).
  */
 export function buildPeriodOptions(
   subjects: readonly SubjectsTaken[],
@@ -26,15 +29,10 @@ export function buildPeriodOptions(
       point.cra,
     ]),
   );
-  const inProgress = new Set(
-    subjects
-      .filter(subject => subject.status === 'IN_PROGRESS')
-      .map(subject => subject.period),
-  );
+  const inProgress = currentInProgress(subjects)[0]?.period ?? null;
   let currentMarked = false;
   return getPeriodList(subjects).map(({ value }) => {
-    if (inProgress.has(value))
-      return { value, label: value, aside: 'Em curso' };
+    if (value === inProgress) return { value, label: value, aside: 'Em curso' };
     const cra = craByPeriod.get(value);
     if (cra === undefined) return { value, label: value };
     const prefix = currentMarked ? 'CR aprox.' : 'CR aprox. atual';

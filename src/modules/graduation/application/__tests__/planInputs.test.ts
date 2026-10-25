@@ -130,6 +130,33 @@ describe('plan inputs', () => {
     ]);
   });
 
+  it('ignores an older "Em Preparo" the portal never closed', () => {
+    const pending: Partial<SubjectsTaken> = {
+      period: '2024.1',
+      status: 'IN_PROGRESS',
+      grade: null,
+    };
+    const inputs = planInputs(
+      sources({
+        inProgress: [],
+        history: [
+          taken('FEN04-00007'),
+          // refeita e aprovada depois: os créditos contam uma vez
+          taken('FEN04-00002', pending),
+          taken('FEN04-00002'),
+          // nunca fechada nem refeita: segue no plano
+          taken('FEN04-00004', pending),
+        ],
+      }),
+    );
+    expect(inputs.remaining.map(item => item.id)).toEqual([
+      'FEN04-00003',
+      'FEN04-00004',
+    ]);
+    // as duas aprovadas (4 + 4), sem as linhas de 2024.1
+    expect(inputs.mandatoryCredits).toBe(8);
+  });
+
   it('uses the electives configured in Meu Progresso without the Síntese', () => {
     const inputs = planInputs(
       sources({ electiveCredits: { RESTRICTED: 6, DEFINED: 0, UNIVERSAL: 0 } }),

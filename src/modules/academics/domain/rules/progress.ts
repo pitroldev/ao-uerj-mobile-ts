@@ -79,6 +79,21 @@ export function sortAcademicPeriods(periods: readonly string[]): string[] {
   });
 }
 
+/**
+ * As disciplinas em curso do histórico: "Em Preparo" no período mais recente.
+ * Num período anterior, "Em Preparo" é um resultado que o portal nunca fechou
+ * (a disciplina refeita e aprovada depois, por exemplo), não uma em curso.
+ */
+export function currentInProgress(
+  subjects: readonly SubjectsTaken[],
+): SubjectsTaken[] {
+  const periods = sortAcademicPeriods(subjects.map(subject => subject.period));
+  const latest = periods[periods.length - 1];
+  return subjects.filter(
+    subject => subject.status === 'IN_PROGRESS' && subject.period === latest,
+  );
+}
+
 /** An attempt that counts for the CR: finished, graded and worth credits. */
 export function isGradedAttempt(
   subject: SubjectsTaken,

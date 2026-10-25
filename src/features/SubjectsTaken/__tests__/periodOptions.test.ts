@@ -32,6 +32,21 @@ it('marks the period in progress, the current CR and leaves exemptions without C
   ]);
 });
 
+it('keeps an older period with a result the portal never closed out of "Em curso"', () => {
+  // "Em Preparo" deixado em 2024.1 e a disciplina refeita e aprovada em 2024.2
+  const options = buildPeriodOptions([
+    taken('2023.2', 'APPROVED', 8),
+    taken('2024.1', 'APPROVED', 6),
+    { ...taken('2024.1', 'IN_PROGRESS', null), id: 'FEN06-04635' },
+    { ...taken('2024.2', 'APPROVED', 9), id: 'FEN06-04635' },
+  ]);
+  expect(options).toEqual([
+    { value: '2024.2', label: '2024.2', aside: 'CR aprox. atual 7,67' },
+    { value: '2024.1', label: '2024.1', aside: 'CR aprox. 7,00' },
+    { value: '2023.2', label: '2023.2', aside: 'CR aprox. 8,00' },
+  ]);
+});
+
 it('returns no options without history', () => {
   expect(buildPeriodOptions([])).toEqual([]);
 });
