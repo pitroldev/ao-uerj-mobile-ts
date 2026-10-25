@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.9.1 (2026-10-24)
+
+### Novidades
+
+- iPhone: lembretes de aula, widget "Próxima aula", atalhos no ícone e os dados salvos criptografados, como no Android. O iPhone ainda não está na App Store.
+
+### Correções
+
+- Android: o app não fecha mais sozinho ao montar ou atualizar listas (como Disciplinas do Currículo). A falha vinha de uma biblioteca usada pelo React Native, que perdia o controle das telas montadas; o app passou para o React Native 0.88, que traz a correção.
+- Início: disciplinas sem horário na grade (estágio, TCC, ensino a distância) não somem mais. Elas aparecem em "Sem horário fixo", e "Disciplinas em Curso" diz "Sem horário fixo na grade".
+- Início: o RID Parcial só conta como inscrição em andamento quando o portal o atualizou nos últimos 30 dias. Com só um RID antigo e nenhuma disciplina, o Início diz que o Aluno Online não lista disciplinas em curso, em vez de "o período não se iniciou".
+
 ## 2.9.0 (2026-10-22)
 
 ### Novidades
