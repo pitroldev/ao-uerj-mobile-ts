@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Frente do ícone adaptativo: a arte de sempre (resources/web_hi_res_512.png, com o degradê e a
+     sombra longa), recuada 18dp de cada lado para ocupar os 72dp visíveis da camada de 108dp. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_launcher_art"
+    android:inset="18dp" />

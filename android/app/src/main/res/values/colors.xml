@@ -6,6 +6,8 @@
   <color name="text_primary">#333333</color>
   <!-- Fundo do splash: o `brand` de src/themes/light.ts. -->
   <color name="bootsplash_background">#003468</color>
+  <!-- Fundo do ícone adaptativo: o azul dos cantos da arte (resources/web_hi_res_512.png). -->
+  <color name="ic_launcher_background">#003468</color>
   <!-- Ícone e nome do app nos avisos: o `accent` de src/themes/light.ts. -->
   <color name="notification_accent">#004891</color>
   <!-- Widget "Próxima aula": surface, ink, inkMuted, rule e accent de src/themes/light.ts. -->

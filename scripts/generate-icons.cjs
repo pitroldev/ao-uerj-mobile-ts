@@ -11,6 +11,8 @@
  * Saídas (não edite à mão):
  *   src/components/ui/Icon/glyphs.ts      caminhos dos ícones por nome
  *   src/components/ui/AoLogo/logoPaths.ts caminhos do logo AO (preenchimento único)
+ *   android/app/src/main/res/drawable/ic_launcher_monochrome.xml
+ *                                         logo AO do ícone temático (Material You)
  *
  * Para acrescentar um ícone: inclua o nome em OUTLINED (e em FILLED se a
  * variante preenchida for usada, como no item ativo do menu lateral) e rode o
@@ -23,6 +25,13 @@ const ROOT = path.resolve(__dirname, '..');
 const GLYPHS_FILE = path.join(ROOT, 'src/components/ui/Icon/glyphs.ts');
 const LOGO_SOURCE = path.join(ROOT, 'src/assets/AO_Logo.svg');
 const LOGO_FILE = path.join(ROOT, 'src/components/ui/AoLogo/logoPaths.ts');
+const MONOCHROME_FILE = path.join(
+  ROOT,
+  'android/app/src/main/res/drawable/ic_launcher_monochrome.xml',
+);
+/** Camada de 108dp do ícone adaptativo; o logo cabe nos 66dp da zona segura. */
+const ICON_CANVAS = 108;
+const MONOCHROME_LOGO_WIDTH = 44;
 const BASE =
   'https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web';
 
@@ -481,6 +490,46 @@ export const AO_LOGO_PATHS: readonly string[] = ${JSON.stringify(shapes)};
   console.log(
     `OK: ${path.relative(ROOT, LOGO_FILE)} (${shapes.length} formas)`,
   );
+  fs.writeFileSync(MONOCHROME_FILE, monochromeIcon(viewBox, shapes));
+  console.log(`OK: ${path.relative(ROOT, MONOCHROME_FILE)}`);
+}
+
+/**
+ * O logo AO num vetor de 108dp, centralizado e com 44dp de largura, perto do
+ * tamanho dos glifos dos outros ícones temáticos; a caixa (44 × 27dp) fica bem
+ * dentro da zona segura de 66dp. O sistema pinta o branco com as cores do
+ * tema; os vãos do selo deixam o fundo aparecer.
+ */
+function monochromeIcon(viewBox, shapes) {
+  const [, , width, height] = viewBox.split(/\s+/).map(Number);
+  const scale = MONOCHROME_LOGO_WIDTH / width;
+  const round = value => Number(value.toFixed(4));
+  const left = round((ICON_CANVAS - width * scale) / 2);
+  const top = round((ICON_CANVAS - height * scale) / 2);
+  const paths = shapes
+    .map(
+      d => `    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="${d}" />`,
+    )
+    .join('\n');
+  return `<?xml version="1.0" encoding="utf-8"?>
+<!-- Gerado por scripts/generate-icons.cjs a partir de src/assets/AO_Logo.svg. Não edite à mão.
+     Camada monochrome do ícone adaptativo (ícone temático do Material You, Android 13+). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="${ICON_CANVAS}dp"
+    android:height="${ICON_CANVAS}dp"
+    android:viewportWidth="${ICON_CANVAS}"
+    android:viewportHeight="${ICON_CANVAS}">
+  <group
+      android:translateX="${left}"
+      android:translateY="${top}"
+      android:scaleX="${round(scale)}"
+      android:scaleY="${round(scale)}">
+${paths}
+  </group>
+</vector>
+`;
 }
 
 async function main() {
@@ -501,6 +550,7 @@ module.exports = {
   FILLED,
   TARGET_VIEWBOX,
   absolutePoints,
+  monochromeIcon,
   normalizePath,
   parsePath,
   pathsOf,

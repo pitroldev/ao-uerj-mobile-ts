@@ -245,6 +245,7 @@ Só no Android, sem acesso ao portal.
   - O widget se redesenha quando a aula mostrada começa ou termina, à meia-noite e depois de mudar o relógio, reiniciar ou atualizar o app. O alarme nunca acorda o aparelho. Com "Alarmes e lembretes" liberado (a permissão dos lembretes), chega no minuto certo; sem ela, pode atrasar até 10 minutos.
   - Depois do logout, pede o login. Pede para abrir o app em dois casos: antes de receber a primeira grade (widget posto antes de abrir o app) ou com a conta sem grade lida, e com a grade parada há mais de 21 dias.
   - Sem nenhuma disciplina em curso com horário, mostra "Sem aulas na grade". O toque abre o Início.
+- **Ícone temático** (Material You, Android 13+): o ícone é adaptativo, com a arte de sempre na frente (`drawable-nodpi/ic_launcher_art.png`) e o logo AO na camada `monochrome`, que o sistema pinta com as cores do tema. O vetor sai de `src/assets/AO_Logo.svg` por `node scripts/generate-icons.cjs --logo`.
 - **Atalhos do ícone** (tocar e segurar): Próxima aula, Notas, Mapa e Documentos ([shortcuts.xml](android/app/src/main/res/xml/shortcuts.xml)).
   - O Android abre atalhos limpando a tarefa. Por isso eles passam pela `ShortcutActivity`, sem tela, que repassa o destino à `MainActivity` pelo mesmo caminho do toque nos avisos e no widget. Com o app aberto, a tela atual fica.
   - Não há esquema de deep link público, mas a `MainActivity` é exportada: outro app pode abri-la com a mesma ação. O JS só aceita os quatro destinos.

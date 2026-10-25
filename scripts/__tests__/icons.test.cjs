@@ -41,6 +41,26 @@ test('o logo AO gerado tem as mesmas formas do SVG original', () => {
   assert.equal(generated, shapes);
 });
 
+test('o ícone adaptativo tem a camada temática com o logo AO inteiro', () => {
+  const svg = read('src/assets/AO_Logo.svg');
+  const monochrome = read(
+    'android/app/src/main/res/drawable/ic_launcher_monochrome.xml',
+  );
+  const shapes = (svg.match(/<(path|polygon)\b/g) || []).length;
+  assert.equal((monochrome.match(/<path\b/g) || []).length, shapes);
+  for (const name of ['ic_launcher', 'ic_launcher_round']) {
+    const icon = read(`android/app/src/main/res/mipmap-anydpi-v26/${name}.xml`);
+    assert.match(
+      icon,
+      /<monochrome android:drawable="@drawable\/ic_launcher_monochrome"/,
+    );
+    assert.match(
+      icon,
+      /<foreground android:drawable="@drawable\/ic_launcher_foreground"/,
+    );
+  }
+});
+
 test('extrai caminhos e converte polígonos', () => {
   assert.equal(
     pathsOf(
