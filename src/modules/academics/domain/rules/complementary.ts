@@ -22,6 +22,12 @@ export type ComplementarySummary = {
   excess: number;
   /** Carga exigida pela Síntese da Formação, quando ela informa. */
   required: number | null;
+  /**
+   * O que conta para a exigência: o cumprido da Síntese, que é o oficial e
+   * inclui horas que "Disciplinas Realizadas" não detalha; sem ele, a soma
+   * por tipo.
+   */
+  progress: number;
   types: ComplementaryType[];
 };
 
@@ -68,10 +74,16 @@ export function summarizeComplementary(
       activities: own,
     };
   });
+  const counted = types.reduce((sum, item) => sum + positive(item.counted), 0);
+  const official = requirement?.done;
   return {
-    counted: types.reduce((sum, item) => sum + positive(item.counted), 0),
+    counted,
     excess: types.reduce((sum, item) => sum + positive(item.excess), 0),
     required: positive(required) ? required : null,
+    progress:
+      typeof official === 'number' && Number.isFinite(official) && official >= 0
+        ? official
+        : counted,
     types,
   };
 }

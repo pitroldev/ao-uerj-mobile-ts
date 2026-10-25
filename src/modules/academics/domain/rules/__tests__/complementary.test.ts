@@ -67,7 +67,37 @@ it('takes the required hours from a "complementar" requirement of the Síntese',
       },
     ]),
   );
-  expect(summary).toMatchObject({ counted: 30, required: 200 });
+  expect(summary).toMatchObject({ counted: 30, required: 200, progress: 30 });
+});
+
+it('counts the official done hours of the Síntese, even the ones not itemized', () => {
+  const summary = summarizeComplementary(
+    { activities: [activity('Extensão', 180)], byType: [] },
+    synthesis([
+      {
+        kind: 'OTHER',
+        label: 'Atividades Complementares',
+        branch: null,
+        done: 200,
+        required: 200,
+      },
+    ]),
+  );
+  expect(summary).toMatchObject({ counted: 180, required: 200, progress: 200 });
+  // sem o cumprido na Síntese, vale a soma por tipo
+  const itemized = summarizeComplementary(
+    { activities: [activity('Extensão', 180)], byType: [] },
+    synthesis([
+      {
+        kind: 'OTHER',
+        label: 'Atividades Complementares',
+        branch: null,
+        done: null,
+        required: 200,
+      },
+    ]),
+  );
+  expect(itemized?.progress).toBe(180);
 });
 
 it('has nothing to show without activities, summary nor requirement', () => {

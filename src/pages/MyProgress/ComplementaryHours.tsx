@@ -66,11 +66,14 @@ function Bar({ value, label }: { value: number; label: string }) {
 
 /** O total: com a carga exigida pela Síntese, o quanto falta; sem ela, o que conta. */
 function TotalRow({ summary }: { summary: ComplementarySummary }) {
-  const { counted, excess, required } = summary;
+  const { counted, excess, required, progress } = summary;
   if (required) {
-    const pct = Math.min(100, Math.round((counted / required) * 100));
-    const left = Math.max(0, required - counted);
-    const meta = `${formatHours(counted)} de ${formatHours(required)}${
+    const left = Math.max(0, required - progress);
+    // 100% só com a exigência cumprida: 199,5 de 200 é 99%, com "faltam"
+    const pct = left
+      ? Math.min(99, Math.floor((progress / required) * 100))
+      : 100;
+    const meta = `${formatHours(progress)} de ${formatHours(required)}${
       left ? ` · faltam ${formatHours(left)}` : ' · concluído'
     }`;
     return (
