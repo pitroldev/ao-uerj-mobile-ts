@@ -84,6 +84,7 @@ function setup() {
     records: {
       getGrades: jest.fn(),
       getHistory: jest.fn(),
+      getComplementaryActivities: jest.fn(),
       getCurriculum: jest.fn(),
       getSchedule: jest.fn(),
       getPartialRid: jest.fn(),

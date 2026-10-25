@@ -8,6 +8,8 @@ export class ReadAcademicRecords {
     this.records.getGrades(options);
   history = (options?: AcademicRequestOptions) =>
     this.records.getHistory(options);
+  complementaryActivities = (options?: AcademicRequestOptions) =>
+    this.records.getComplementaryActivities(options);
   curriculum = (options?: AcademicRequestOptions) =>
     this.records.getCurriculum(options);
   schedule = (options?: AcademicRequestOptions) =>

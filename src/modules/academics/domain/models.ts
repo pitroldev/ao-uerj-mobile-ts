@@ -152,6 +152,36 @@ export interface SubjectsTaken {
     | 'EXEMPT';
 }
 
+/** Atividade complementar registrada em "Disciplinas Realizadas". */
+export type ComplementaryActivity = {
+  /** "2023.1"; o portal deixa vazio nas linhas seguintes do mesmo período. */
+  period: string | null;
+  /** O tipo, como no portal ("Participação em cursos de extensão"). */
+  type: string;
+  /** Horas registradas desta atividade. */
+  hours: number | null;
+  /** Texto livre do portal; vazio em muitas atividades. */
+  description: string;
+};
+
+/** "Resumo por Tipo de Atividade": cada tipo conta só até um teto de horas. */
+export type ComplementaryHoursByType = {
+  type: string;
+  /** "CH Máxima": o máximo que conta deste tipo. */
+  maximum: number | null;
+  /** "CH Cumprida": o que conta (até o teto). */
+  counted: number | null;
+  /** "CH Excedente": o que passou do teto e não conta. */
+  excess: number | null;
+  /** "CH Total": tudo o que foi registrado. */
+  total: number | null;
+};
+
+export type ComplementaryActivities = {
+  activities: ComplementaryActivity[];
+  byType: ComplementaryHoursByType[];
+};
+
 export interface UniversalSubject {
   id: string;
   name: string;

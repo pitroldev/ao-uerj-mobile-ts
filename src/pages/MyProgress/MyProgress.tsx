@@ -26,6 +26,7 @@ import { useMyProgress } from './useMyProgress';
 import { CrChart } from './CrChart';
 import { formatCr } from './crChartModel';
 import { CurriculumPath, pathGoal } from './CurriculumPath';
+import { ComplementaryHours } from './ComplementaryHours';
 import { CreditsSheet } from './CreditsSheet';
 import { GraduationPlanCard } from './GraduationPlanCard';
 import { ProgressSkeleton } from './ProgressSkeleton';
@@ -220,6 +221,8 @@ export function MyProgressPage() {
             </PathNote>
           ) : null}
         </Section>
+
+        <ComplementaryHours />
       </>
     );
   }

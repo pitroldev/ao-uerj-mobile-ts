@@ -89,6 +89,7 @@ function setup(
       },
     ]),
     getHistory: jest.fn(),
+    getComplementaryActivities: jest.fn(),
     getCurriculum: jest.fn(),
     getSchedule: jest.fn(async () => [meeting]),
     getPartialRid: jest.fn(),

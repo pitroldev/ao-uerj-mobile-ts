@@ -39,6 +39,7 @@ import { getReqIds } from './parsers/parseReqIds';
 import { parseSubjectInfoReqId } from './parsers/subjectInfoReqId';
 import { parseClassGrades } from './parsers/ClassGrades';
 import { parseSubjectsTaken } from './parsers/SubjectsTaken';
+import { parseComplementaryActivities } from './parsers/ComplementaryActivities';
 import { parseCurriculumSubjects } from './parsers/CurriculumSubjects';
 import { parseAttendedClassesSchedule } from './parsers/AttendedClassesSchedule';
 import { parsePartialRID } from './parsers/PartialRID';
@@ -76,6 +77,8 @@ type Session = {
  * pages come and go with enrollment) and earns one new login.
  */
 const FRESH_MENU = 5 * 60 * 1000;
+/** Uma página lida há menos que isto serve à outra leitura da mesma página. */
+const SHARED_PAGE_TTL = 15 * 1000;
 
 const operationKeys: Record<PortalOperation, string[]> = {
   grades: ['notas'],
@@ -415,6 +418,35 @@ export function createAlunoOnlineAdapter({
     throw new AppError('SESSION_EXPIRED');
   }
 
+  /**
+   * A página do histórico serve a duas leituras: as disciplinas e as
+   * atividades complementares. Pedidas juntas, como no Meu Progresso, elas
+   * saem de uma requisição só. A busca compartilhada não leva o sinal de
+   * nenhuma das duas, para uma desistência não derrubar a outra.
+   */
+  let sharedHistory: {
+    identity: number;
+    at: number;
+    page: Promise<PortalPage>;
+  } | null = null;
+
+  function historyPage(): Promise<PortalPage> {
+    const identity = identityGeneration;
+    const now = Date.now();
+    if (
+      !sharedHistory ||
+      sharedHistory.identity !== identity ||
+      now - sharedHistory.at > SHARED_PAGE_TTL
+    ) {
+      const entry = { identity, at: now, page: fetchPage('history') };
+      sharedHistory = entry;
+      entry.page.catch(() => {
+        if (sharedHistory === entry) sharedHistory = null;
+      });
+    }
+    return sharedHistory.page;
+  }
+
   async function read<T>(
     operation: PortalOperation,
     parser: ($: CheerioAPI) => T,
@@ -425,7 +457,11 @@ export function createAlunoOnlineAdapter({
     if (operation === 'subjectDetails' && !params?.subjectId?.trim()) {
       throw new AppError('INVALID_INPUT');
     }
-    const { $ } = await fetchPage(operation, params, options);
+    guard(identity, options?.signal);
+    const { $ } =
+      operation === 'history'
+        ? await historyPage()
+        : await fetchPage(operation, params, options);
     guard(identity, options?.signal);
     return parse(parser, $);
   }
@@ -446,6 +482,8 @@ export function createAlunoOnlineAdapter({
   const records: AcademicRecordsPort = {
     getGrades: options => read('grades', parseClassGrades, options),
     getHistory: options => read('history', parseSubjectsTaken, options),
+    getComplementaryActivities: options =>
+      read('history', parseComplementaryActivities, options),
     getCurriculum: options =>
       read('curriculum', parseCurriculumSubjects, options),
     getSchedule: options =>

@@ -19,6 +19,7 @@ const HOUR = 60 * 60 * 1000;
 const STALE_HOURS = {
   grades: 6,
   history: 24,
+  'complementary-activities': 24,
   curriculum: 24,
   schedule: 12,
   'partial-rid': 1,
@@ -103,6 +104,13 @@ export function useGrades() {
 }
 export function useHistory() {
   return useAcademicQuery('history', useRecords().history);
+}
+/** Atividades complementares: a mesma página do histórico, lida junto. */
+export function useComplementaryActivities() {
+  return useAcademicQuery(
+    'complementary-activities',
+    useRecords().complementaryActivities,
+  );
 }
 export function useCurriculum() {
   return useAcademicQuery('curriculum', useRecords().curriculum);

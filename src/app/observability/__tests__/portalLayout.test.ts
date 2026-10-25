@@ -20,6 +20,9 @@ function setup() {
   const records = {
     getGrades: jest.fn().mockResolvedValue([]),
     getHistory: jest.fn().mockResolvedValue([]),
+    getComplementaryActivities: jest
+      .fn()
+      .mockResolvedValue({ activities: [], byType: [] }),
     getCurriculum: jest.fn().mockResolvedValue([]),
     getSchedule: jest.fn().mockResolvedValue([]),
     getPartialRid: jest.fn(),

@@ -196,6 +196,17 @@ Em Meu Progresso, o cartão "Plano até a formatura" abre a tela do plano: as ob
   - Uma disciplina sem os pré-requisitos lidos entra como livre, com aviso. Uma que depende de disciplina fora das que faltam fica fora do plano, também com aviso.
 - Para desligar a tela sem nova versão, inclua `graduation-plan` em `disabledFeatures` do aviso remoto.
 
+### Atividades complementares
+
+Em Meu Progresso, a seção "Atividades complementares" mostra as horas que contam e, ao tocar num tipo de atividade, as atividades dele.
+
+- **Fonte:** as duas tabelas que "Disciplinas Realizadas" só traz para quem tem atividades registradas (`parsers/ComplementaryActivities.ts`):
+  - a das atividades (período, tipo, horas e descrição);
+  - o "Resumo por Tipo de Atividade", em que cada tipo conta só até um teto (CH Máxima); o que passa dele é excedente e não conta.
+- **Leitura:** a mesma página do histórico. O adaptador compartilha por 15 segundos a requisição dessa página, então o histórico e as atividades pedidos juntos saem de uma requisição só.
+- **Carga exigida:** a página não a informa. Ela aparece ("120 de 200 h · faltam 80") só quando a Síntese da Formação traz um requisito de atividades complementares; senão, a seção mostra o total que conta.
+- Sem atividades nem exigência, a seção não aparece.
+
 ### Notificações
 
 A tela **Notificações** (só no Android) liga cada aviso separadamente; o Início convida uma vez a ligar o lembrete de aula.

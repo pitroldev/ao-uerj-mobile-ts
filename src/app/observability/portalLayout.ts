@@ -52,6 +52,10 @@ export function reportPortalLayoutChanges<T extends PortalPorts>(
   const records: AcademicRecordsPort = {
     getGrades: watch('grades', source.getGrades.bind(source)),
     getHistory: watch('history', source.getHistory.bind(source)),
+    getComplementaryActivities: watch(
+      'complementary-activities',
+      source.getComplementaryActivities.bind(source),
+    ),
     getCurriculum: watch('curriculum', source.getCurriculum.bind(source)),
     getSchedule: watch('schedule', source.getSchedule.bind(source)),
     getPartialRid: watch('partial-rid', source.getPartialRid.bind(source)),

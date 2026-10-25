@@ -6,6 +6,7 @@ import type {
 } from '../contracts';
 import { SignInError } from '@root/modules/identity/application/ports';
 import { AppError } from '@root/shared/errors/AppError';
+import { historyPage, historyRow } from '../__fixtures__/historyPage';
 import {
   studentHeader,
   rejectedLoginPage,
@@ -625,4 +626,26 @@ it('cancels without logging in when the caller signal has already aborted', asyn
     app.records.getGrades({ signal: controller.signal }),
   ).rejects.toBeInstanceOf(AppError);
   expect(app.transport.request).not.toHaveBeenCalled();
+});
+
+it('reads the history page once for the subjects and the complementary activities asked together', async () => {
+  const app = setup();
+  app.setLoginResult(`${studentHeader}<div id="menu_linha_item">
+      <a onclick="go('${key('history', 1)}')">Requisitos realizados</a>
+    </div>`);
+  app.handle(async () =>
+    response(
+      historyPage(historyRow('2024/2', 'ABC01-00103', 'Aprov. Nota', '8,0')),
+    ),
+  );
+  await app.authentication.signIn(credentials);
+
+  const [history, complementary] = await Promise.all([
+    app.records.getHistory(),
+    app.records.getComplementaryActivities(),
+  ]);
+  expect(history).toHaveLength(1);
+  expect(complementary.activities).toHaveLength(3);
+  expect(complementary.byType).toHaveLength(2);
+  expect(app.operations).toHaveLength(1);
 });

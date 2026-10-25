@@ -1,6 +1,7 @@
 import type {
   AttendedClassesSchedule,
   ClassGrade,
+  ComplementaryActivities,
   CurriculumSubject,
   EnrollmentResult,
   GraduationSynthesis,
@@ -15,6 +16,10 @@ export type AcademicRequestOptions = { signal?: AbortSignal };
 export interface AcademicRecordsPort {
   getGrades(options?: AcademicRequestOptions): Promise<ClassGrade[]>;
   getHistory(options?: AcademicRequestOptions): Promise<SubjectsTaken[]>;
+  /** Atividades complementares, da mesma página do histórico. */
+  getComplementaryActivities(
+    options?: AcademicRequestOptions,
+  ): Promise<ComplementaryActivities>;
   getCurriculum(options?: AcademicRequestOptions): Promise<CurriculumSubject[]>;
   getSchedule(
     options?: AcademicRequestOptions,

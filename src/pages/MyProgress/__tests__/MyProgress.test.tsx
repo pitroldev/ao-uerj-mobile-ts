@@ -8,6 +8,7 @@ import {
   within,
 } from '@testing-library/react-native';
 import type {
+  ComplementaryActivities,
   SubjectsTaken,
   CurriculumSubject,
 } from '@root/modules/academics/domain/models';
@@ -32,9 +33,14 @@ let mockCurriculum: ReturnType<typeof makeQuery<CurriculumSubject[]>>;
 const mockSetConfig = jest.fn();
 // os grupos que a Síntese da Formação informa (vazio: só a configuração)
 let mockFromSynthesis: Partial<typeof mockDefaultElectiveCredits>;
+// sem atividades complementares, a seção não aparece (tem teste próprio abaixo)
+let mockComplementary: ReturnType<typeof makeQuery<ComplementaryActivities>> =
+  makeQuery<ComplementaryActivities>(undefined);
 jest.mock('@root/modules/academics/presentation/queries', () => ({
   useHistory: () => mockHistory,
   useCurriculum: () => mockCurriculum,
+  useComplementaryActivities: () => mockComplementary,
+  useSynthesis: () => ({ data: undefined }),
 }));
 jest.mock('@hooks/useElectiveCreditsConfig', () => ({
   useElectiveCreditsConfig: () => ({
@@ -103,6 +109,57 @@ beforeEach(() => {
   mockHistory = makeQuery(history);
   mockCurriculum = makeQuery(curriculum);
   mockFromSynthesis = {};
+  mockComplementary = makeQuery<ComplementaryActivities>(undefined);
+});
+
+it('shows the complementary hours that count per type and lists the activities of a type', async () => {
+  mockComplementary = makeQuery<ComplementaryActivities>({
+    activities: [
+      {
+        period: '2023.1',
+        type: 'Participação em cursos de extensão',
+        hours: 30,
+        description: 'Oficina de teste',
+      },
+      {
+        period: '2024.2',
+        type: 'Participação em cursos de extensão',
+        hours: 40,
+        description: 'Curso de teste',
+      },
+    ],
+    byType: [
+      {
+        type: 'Participação em cursos de extensão',
+        maximum: 60,
+        counted: 60,
+        excess: 10,
+        total: 70,
+      },
+    ],
+  });
+  await renderPage();
+  expect(
+    screen.getByRole('header', { name: 'Atividades complementares' }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText(
+      'Horas que contam: 60 h. 10 h acima do teto de cada tipo não contam',
+    ),
+  ).toBeOnTheScreen();
+  const type = screen.getByLabelText(
+    'Participação em cursos de extensão: 60 de 60 h · 10 h acima do teto · 2 atividades',
+  );
+  await userEvent.press(type);
+  expect(await screen.findByText('Curso de teste')).toBeOnTheScreen();
+  expect(screen.getByText('2024.2')).toBeOnTheScreen();
+});
+
+it('leaves the complementary hours out when nothing is on record', async () => {
+  await renderPage();
+  expect(
+    screen.queryByRole('header', { name: 'Atividades complementares' }),
+  ).toBeNull();
 });
 
 it('preserves curriculum-confirmed completion when history is unavailable without displaying a fabricated zero CR', async () => {

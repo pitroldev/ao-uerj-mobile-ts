@@ -18,6 +18,7 @@ const LONG_LIVED = new Set([
   'schedule',
   'grades',
   'history',
+  'complementary-activities',
   'curriculum',
   'synthesis',
   'universal-subjects',
