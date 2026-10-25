@@ -50,6 +50,18 @@ test('iOS source resources exist with exact casing and privacy manifest is bundl
 
 test('native module name agrees with JavaScript registration', () => {
   const { name } = JSON.parse(read('app.json'));
-  const delegate = read('ios/AOUerjMobile/AppDelegate.swift');
+  // React Native starts in the scene delegate (UIScene life cycle, RN 0.88)
+  const delegate = read('ios/AOUerjMobile/SceneDelegate.swift');
   assert.ok(delegate.includes(`withModuleName: "${name}"`));
+});
+
+test('Info.plist points the app scene at the SceneDelegate class', () => {
+  const plist = read('ios/AOUerjMobile/Info.plist');
+  const delegate = read('ios/AOUerjMobile/SceneDelegate.swift');
+  assert.match(plist, /<key>UIApplicationSceneManifest<\/key>/);
+  assert.match(
+    plist,
+    /<key>UISceneDelegateClassName<\/key>\s*<string>\$\(PRODUCT_MODULE_NAME\)\.SceneDelegate<\/string>/,
+  );
+  assert.match(delegate, /class SceneDelegate: [^{]*UIWindowSceneDelegate/);
 });
