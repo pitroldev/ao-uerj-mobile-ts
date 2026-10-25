@@ -20,6 +20,14 @@
 		A0F0B0004000000000000000 /* InterDisplay-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A0F0F0004000000000000000 /* InterDisplay-SemiBold.ttf */; };
 		C0DE00000000000000000002 /* LaunchCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000001 /* LaunchCenter.swift */; };
 		C0DE00000000000000000041 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000040 /* SceneDelegate.swift */; };
+		C0DE00000000000000000051 /* AppShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000050 /* AppShortcuts.swift */; };
+		C0DE00000000000000000053 /* OpenAppIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000052 /* OpenAppIntent.swift */; };
+		C0DE00000000000000000054 /* OpenAppIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000052 /* OpenAppIntent.swift */; };
+		C0DE00000000000000000056 /* WidgetStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000055 /* WidgetStyle.swift */; };
+		C0DE00000000000000000058 /* TodayWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000057 /* TodayWidget.swift */; };
+		C0DE0000000000000000005A /* NextClassControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000059 /* NextClassControl.swift */; };
+		C0DE0000000000000000005C /* AOUerjWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE0000000000000000005B /* AOUerjWidgets.swift */; };
+		C0DE0000000000000000005E /* LaunchBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE0000000000000000005D /* LaunchBridge.swift */; };
 		C0DE00000000000000000004 /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000003 /* WidgetStore.swift */; };
 		C0DE00000000000000000005 /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000003 /* WidgetStore.swift */; };
 		C0DE00000000000000000007 /* SecureVaultModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000006 /* SecureVaultModule.mm */; };
@@ -72,6 +80,13 @@
 		A0F0F0004000000000000000 /* InterDisplay-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "InterDisplay-SemiBold.ttf"; path = "../src/assets/fonts/InterDisplay-SemiBold.ttf"; sourceTree = "<group>"; };
 		C0DE00000000000000000001 /* LaunchCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LaunchCenter.swift; path = AOUerjMobile/LaunchCenter.swift; sourceTree = "<group>"; };
 		C0DE00000000000000000040 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SceneDelegate.swift; path = AOUerjMobile/SceneDelegate.swift; sourceTree = "<group>"; };
+		C0DE00000000000000000050 /* AppShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppShortcuts.swift; path = AOUerjMobile/AppShortcuts.swift; sourceTree = "<group>"; };
+		C0DE00000000000000000052 /* OpenAppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OpenAppIntent.swift; path = AOUerjMobile/OpenAppIntent.swift; sourceTree = "<group>"; };
+		C0DE00000000000000000055 /* WidgetStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WidgetStyle.swift; path = NextClassWidget/WidgetStyle.swift; sourceTree = "<group>"; };
+		C0DE00000000000000000057 /* TodayWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TodayWidget.swift; path = NextClassWidget/TodayWidget.swift; sourceTree = "<group>"; };
+		C0DE00000000000000000059 /* NextClassControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NextClassControl.swift; path = NextClassWidget/NextClassControl.swift; sourceTree = "<group>"; };
+		C0DE0000000000000000005B /* AOUerjWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AOUerjWidgets.swift; path = NextClassWidget/AOUerjWidgets.swift; sourceTree = "<group>"; };
+		C0DE0000000000000000005D /* LaunchBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LaunchBridge.swift; path = NextClassWidget/LaunchBridge.swift; sourceTree = "<group>"; };
 		C0DE00000000000000000003 /* WidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WidgetStore.swift; path = AOUerjMobile/WidgetStore.swift; sourceTree = "<group>"; };
 		C0DE00000000000000000006 /* SecureVaultModule.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = SecureVaultModule.mm; path = AOUerjMobile/Native/SecureVaultModule.mm; sourceTree = "<group>"; };
 		C0DE00000000000000000008 /* AppNotificationsModule.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = AppNotificationsModule.mm; path = AOUerjMobile/Native/AppNotificationsModule.mm; sourceTree = "<group>"; };
@@ -111,6 +126,8 @@
 				C0DE00000000000000000040 /* SceneDelegate.swift */,
 				C0DE00000000000000000001 /* LaunchCenter.swift */,
 				C0DE00000000000000000003 /* WidgetStore.swift */,
+				C0DE00000000000000000052 /* OpenAppIntent.swift */,
+				C0DE00000000000000000050 /* AppShortcuts.swift */,
 				C0DE00000000000000000020 /* Native */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				C0DE0000000000000000000C /* AOUerjMobile.entitlements */,
@@ -133,7 +150,12 @@
 		C0DE00000000000000000021 /* NextClassWidget */ = {
 			isa = PBXGroup;
 			children = (
+				C0DE0000000000000000005B /* AOUerjWidgets.swift */,
 				C0DE00000000000000000010 /* NextClassWidget.swift */,
+				C0DE00000000000000000057 /* TodayWidget.swift */,
+				C0DE00000000000000000059 /* NextClassControl.swift */,
+				C0DE00000000000000000055 /* WidgetStyle.swift */,
+				C0DE0000000000000000005D /* LaunchBridge.swift */,
 				C0DE00000000000000000012 /* Info.plist */,
 				C0DE00000000000000000013 /* NextClassWidget.entitlements */,
 			);
@@ -404,6 +426,8 @@
 			files = (
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
 				C0DE00000000000000000041 /* SceneDelegate.swift in Sources */,
+				C0DE00000000000000000053 /* OpenAppIntent.swift in Sources */,
+				C0DE00000000000000000051 /* AppShortcuts.swift in Sources */,
 				C0DE00000000000000000002 /* LaunchCenter.swift in Sources */,
 				C0DE00000000000000000004 /* WidgetStore.swift in Sources */,
 				C0DE00000000000000000009 /* AppNotificationsModule.mm in Sources */,
@@ -416,7 +440,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0DE0000000000000000005C /* AOUerjWidgets.swift in Sources */,
 				C0DE00000000000000000011 /* NextClassWidget.swift in Sources */,
+				C0DE00000000000000000058 /* TodayWidget.swift in Sources */,
+				C0DE0000000000000000005A /* NextClassControl.swift in Sources */,
+				C0DE00000000000000000056 /* WidgetStyle.swift in Sources */,
+				C0DE0000000000000000005E /* LaunchBridge.swift in Sources */,
+				C0DE00000000000000000054 /* OpenAppIntent.swift in Sources */,
 				C0DE00000000000000000005 /* WidgetStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

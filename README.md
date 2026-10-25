@@ -50,7 +50,8 @@ Os scripts Gradle funcionam no Windows, Linux e macOS. Debug não exige assinatu
 - **Módulos nativos no iPhone:** as specs de `src/specs` têm implementação em `ios/AOUerjMobile/Native/*.mm`, registradas pelo `codegenConfig.ios.modulesProvider` do `package.json`:
   - `SecureVault`: o cofre cifrado, com ECIES (P-256 no Keychain, só deste aparelho) e arquivos em Application Support fora do backup. Dá o cache de 180 dias e "Guardar no aparelho" nos documentos;
   - `AppNotifications`: permissão e lembretes de aula no `UNUserNotificationCenter`, como avisos de data única até a validade do plano. O iOS guarda 64 avisos agendados, e o app usa até 60. Também lê o destino das aberturas, guardado pela `LaunchCenter.swift`;
-  - `HomeWidget`: grava a grade no App Group `group.com.aouerjmobile`, que a extensão `ios/NextClassWidget` (WidgetKit) lê. A `WidgetStore.swift` entra nos dois alvos.
+  - `HomeWidget`: grava a grade no App Group `group.com.aouerjmobile`, que a extensão `ios/NextClassWidget` (WidgetKit) lê para os widgets "Próxima aula" e "Hoje". A `WidgetStore.swift` (a grade, a regra da próxima aula e os textos) entra nos dois alvos.
+- **App Intents:** "Próxima aula" e "Aulas de hoje" respondem pela Siri, pelo app Atalhos e pelo Spotlight com a grade salva, sem abrir o app (`AppShortcuts.swift`, com frases prontas no iOS 17+). "Abrir no AO UERJ" (`OpenAppIntent.swift`, nos dois alvos) abre o Início, as notas, o mapa ou os documentos, e é a ação do controle "Próxima aula" da Central de Controle (iOS 18).
 - **Ciclo de vida com cenas:** como no template do React Native 0.88 (e exigido pelo SDK do iOS 27), a janela e o React Native ficam na `SceneDelegate.swift` (`UIApplicationSceneManifest` no `Info.plist`); o `AppDelegate` só limpa o `URLCache` e registra o delegate dos avisos.
 - **Aberturas:** o toque no aviso chega pelo delegate do `UNUserNotificationCenter`; os atalhos do ícone (`UIApplicationShortcutItems` no `Info.plist`, com os mesmos destinos do Android) e o toque no widget (`aouerj://open?target=home`) chegam pela `SceneDelegate`, na abertura (`connectionOptions`) e com o app aberto.
 - **Fora do iPhone:**
@@ -236,7 +237,7 @@ A tela **Notificações** (só no Android) liga cada aviso separadamente; o Iní
 
 ### Widget e atalhos
 
-Só no Android, sem acesso ao portal.
+Sem acesso ao portal. No iPhone, os mesmos widgets ficam na extensão `ios/NextClassWidget` (ver [iOS](#ios)).
 
 - **Widget "Próxima aula"** (4×1, redimensionável): a próxima aula da grade salva, pela mesma regra do card do Início.
   - Um bloco à esquerda traz o dia ("Agora", "Hoje" ou o dia da semana) e o horário de início, em azul cheio quando a aula é hoje. Ao lado vêm a disciplina, o fim da aula com os tempos e a sala, e o local.
@@ -245,6 +246,9 @@ Só no Android, sem acesso ao portal.
   - O widget se redesenha quando a aula mostrada começa ou termina, à meia-noite e depois de mudar o relógio, reiniciar ou atualizar o app. O alarme nunca acorda o aparelho. Com "Alarmes e lembretes" liberado (a permissão dos lembretes), chega no minuto certo; sem ela, pode atrasar até 10 minutos.
   - Depois do logout, pede o login. Pede para abrir o app em dois casos: antes de receber a primeira grade (widget posto antes de abrir o app) ou com a conta sem grade lida, e com a grade parada há mais de 21 dias.
   - Sem nenhuma disciplina em curso com horário, mostra "Sem aulas na grade". O toque abre o Início.
+- **Widget "Hoje"** (4×2, redimensionável, `TodayWidget.kt`): todas as aulas do dia, com o início, o fim, a disciplina e a sala. A aula em andamento ganha o fundo azul suave e as que já terminaram ficam esmaecidas; cabem 6 linhas, e o resto vira "mais N aulas hoje".
+  - Usa a mesma grade e a mesma política de alarmes do "Próxima aula": redesenha em cada início e fim de aula do dia e à meia-noite.
+  - Sem aulas no dia, mostra a próxima ("Sem aulas hoje. Próxima: Segunda, 17:00 · …"). Os avisos de login, grade não lida e grade parada são os do "Próxima aula".
 - **Ícone temático** (Material You, Android 13+): o ícone é adaptativo, com a arte de sempre na frente (`drawable-nodpi/ic_launcher_art.png`) e o logo AO na camada `monochrome`, que o sistema pinta com as cores do tema. O vetor sai de `src/assets/AO_Logo.svg` por `node scripts/generate-icons.cjs --logo`.
 - **Atalhos do ícone** (tocar e segurar): Próxima aula, Notas, Mapa e Documentos ([shortcuts.xml](android/app/src/main/res/xml/shortcuts.xml)).
   - O Android abre atalhos limpando a tarefa. Por isso eles passam pela `ShortcutActivity`, sem tela, que repassa o destino à `MainActivity` pelo mesmo caminho do toque nos avisos e no widget. Com o app aberto, a tela atual fica.

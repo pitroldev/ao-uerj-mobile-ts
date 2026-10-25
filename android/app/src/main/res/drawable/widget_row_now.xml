@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Linha da aula em andamento no widget "Hoje": o azul suave do bloco do "Próxima aula". -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+  <solid android:color="@color/widget_tile_soft" />
+  <corners android:radius="10dp" />
+</shape>

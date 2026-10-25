@@ -53,4 +53,28 @@
     <string name="widget_preview_title">Cálculo II</string>
     <string name="widget_preview_detail">até 16:00 · T3–T4 · Sala 6019 B</string>
     <string name="widget_preview_place">Pav. João Lyra Filho · 6º andar</string>
+
+    <!-- Widget "Hoje" (TodayWidget.kt): as aulas do dia. -->
+    <string name="widget_today_label">Aulas de hoje</string>
+    <string name="widget_today_description">As aulas do dia, com o horário e a sala, a partir da grade salva no app.</string>
+    <string name="widget_today_none">Sem aulas hoje.</string>
+    <!-- "Sem aulas hoje. Próxima: Segunda, 17:00 · Circuitos Elétricos IV" -->
+    <string name="widget_today_next">Sem aulas hoje. Próxima: %1$s, %2$s · %3$s</string>
+    <!-- Aulas que não cabem nas linhas do widget. -->
+    <plurals name="widget_today_more">
+        <item quantity="one">mais %d aula hoje</item>
+        <item quantity="other">mais %d aulas hoje</item>
+    </plurals>
+    <!-- Leitor de tela, por aula: "Agora: Cálculo II, das 14:20 às 16:00, T3–T4 · Sala 6019 B." -->
+    <string name="widget_today_row_description">%1$s%2$s, das %3$s às %4$s%5$s.</string>
+    <string name="widget_today_row_now">Agora: </string>
+    <string name="widget_today_row_past">Já terminou: </string>
+    <!-- Prévia na lista de widgets (aulas de exemplo). -->
+    <string name="widget_today_preview_date">Segunda, 26 de outubro</string>
+    <string name="widget_today_preview_end">até 16:00</string>
+    <string name="widget_today_preview_second_start">17:00</string>
+    <string name="widget_today_preview_second_end">até 18:50</string>
+    <string name="widget_today_preview_second_title">Circuitos Elétricos IV</string>
+    <string name="widget_today_preview_second_detail">T6–N1 · Sala 5032 F</string>
+    <string name="widget_today_preview_first_detail">T3–T4 · Sala 6019 B</string>
 </resources>

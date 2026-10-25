@@ -57,3 +57,11 @@ public final class LaunchCenter: NSObject, UNUserNotificationCenterDelegate {
     completionHandler([.banner, .list, .sound])
   }
 }
+
+/// O destino dos App Intents de abrir (`OpenAppIntent.swift`). A extensão do
+/// widget tem a sua versão, vazia: lá o intent só declara a ação.
+enum LaunchBridge {
+  static func open(_ target: String) {
+    LaunchCenter.shared.open(target)
+  }
+}

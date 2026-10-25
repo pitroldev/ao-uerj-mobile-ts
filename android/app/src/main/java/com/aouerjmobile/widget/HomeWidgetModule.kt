@@ -13,6 +13,7 @@ class HomeWidgetModule(reactContext: ReactApplicationContext) :
     try {
       NextClassStore.replace(reactApplicationContext, schedule)
       NextClassWidget.updateAll(reactApplicationContext)
+      TodayWidget.updateAll(reactApplicationContext)
       promise.resolve(null)
     } catch (error: IllegalArgumentException) {
       promise.reject(E_SCHEDULE, error.message, error)
@@ -26,6 +27,7 @@ class HomeWidgetModule(reactContext: ReactApplicationContext) :
   override fun setSignedIn(promise: Promise) {
     NextClassStore.signIn(reactApplicationContext)
     NextClassWidget.updateAll(reactApplicationContext)
+    TodayWidget.updateAll(reactApplicationContext)
     promise.resolve(null)
   }
 

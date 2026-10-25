@@ -191,7 +191,7 @@ class NextClassWidget : AppWidgetProvider() {
       else alarms.setWindow(AlarmManager.RTC, at, REFRESH_WINDOW, intent)
     }
 
-    private fun todayAt(now: Long, minutes: Int): Long =
+    internal fun todayAt(now: Long, minutes: Int): Long =
         Calendar.getInstance()
             .apply {
               timeInMillis = now
@@ -202,7 +202,7 @@ class NextClassWidget : AppWidgetProvider() {
             }
             .timeInMillis
 
-    private fun nextMidnight(now: Long): Long =
+    internal fun nextMidnight(now: Long): Long =
         Calendar.getInstance()
             .apply {
               timeInMillis = now

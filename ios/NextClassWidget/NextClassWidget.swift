@@ -8,7 +8,6 @@ import WidgetKit
 /// A linha do tempo já traz um desenho para cada virada (a aula começa ou
 /// termina, a meia-noite muda o rótulo do dia, a grade vence), sem acordar o
 /// app; o app pede um redesenho quando manda uma grade nova.
-@main
 struct NextClassWidget: Widget {
   var body: some WidgetConfiguration {
     StaticConfiguration(kind: WidgetStore.kind, provider: NextClassProvider()) { entry in
@@ -30,15 +29,9 @@ struct NextClassWidget: Widget {
 
 // MARK: - Linha do tempo
 
-enum NextClassState {
-  /// Sem aula para mostrar: um título e o motivo.
-  case message(title: String, text: String)
-  case next(NextClass)
-}
-
 struct NextClassEntry: TimelineEntry {
   let date: Date
-  let state: NextClassState
+  let state: ClassLookup
 
   /// Prévia na galeria de widgets (aula de exemplo).
   static func preview(_ date: Date = Date()) -> NextClassEntry {
@@ -66,136 +59,24 @@ struct NextClassProvider: TimelineProvider {
       completion(.preview())
       return
     }
-    completion(entry(at: Date(), schedule: WidgetStore.load(), signedOut: WidgetStore.signedOut))
+    let now = Date()
+    completion(NextClassEntry(date: now, state: WidgetStore.lookup(at: now)))
   }
 
   func getTimeline(in context: Context, completion: @escaping (Timeline<NextClassEntry>) -> Void) {
     let now = Date()
     let schedule = WidgetStore.load()
     let signedOut = WidgetStore.signedOut
-    let moments = changes(after: now, schedule: schedule)
-    let entries = ([now] + moments).map { entry(at: $0, schedule: schedule, signedOut: signedOut) }
+    let moments = WidgetStore.changes(after: now, schedule: schedule)
+    let entries = ([now] + moments).map {
+      NextClassEntry(date: $0, state: WidgetStore.lookup(at: $0, schedule: schedule, signedOut: signedOut))
+    }
     // sem grade, nada muda até o app mandar uma (ele pede o redesenho)
     completion(Timeline(entries: entries, policy: moments.isEmpty ? .never : .atEnd))
-  }
-
-  private func entry(at date: Date, schedule: WidgetSchedule?, signedOut: Bool) -> NextClassEntry {
-    guard let schedule = schedule else {
-      // logout, ou nada recebido ainda: widget posto antes de o app abrir, ou
-      // conta com a grade não lida
-      return NextClassEntry(
-        date: date,
-        state: .message(
-          title: "Próxima aula",
-          text: signedOut ? "Entre no AO UERJ para ver suas aulas." : "Abra o AO UERJ para carregar a grade."
-        )
-      )
-    }
-    if date > schedule.expiresAt {
-      return NextClassEntry(
-        date: date, state: .message(title: "Próxima aula", text: "Abra o AO UERJ para atualizar a grade."))
-    }
-    guard let next = WidgetStore.next(schedule, at: date) else {
-      return NextClassEntry(
-        date: date,
-        state: .message(title: "Sem aulas na grade", text: "Nenhuma disciplina em curso com horário."))
-    }
-    return NextClassEntry(date: date, state: .next(next))
-  }
-
-  /**
-   * Os momentos em que o widget muda nas próximas 48 horas: cada aula começa
-   * ("Agora") ou termina, a meia-noite (o rótulo do dia) e o vencimento da
-   * grade. No fim deles, o WidgetKit pede outra linha do tempo.
-   */
-  private func changes(after now: Date, schedule: WidgetSchedule?) -> [Date] {
-    guard let schedule = schedule, now <= schedule.expiresAt else { return [] }
-    let calendar = Calendar.current
-    let today = calendar.startOfDay(for: now)
-    let horizon = now.addingTimeInterval(48 * 60 * 60)
-    var moments: [Date] = [schedule.expiresAt.addingTimeInterval(1)]
-    for offset in 0...2 {
-      guard let day = calendar.date(byAdding: .day, value: offset, to: today) else { continue }
-      if offset > 0 { moments.append(day) }
-      let weekday = WidgetStore.weekdayOf(day, calendar: calendar)
-      for item in schedule.classes where item.weekday == weekday {
-        moments.append(day.addingTimeInterval(TimeInterval(item.start * 60)))
-        moments.append(day.addingTimeInterval(TimeInterval(item.end * 60)))
-      }
-    }
-    return Array(Set(moments.filter { $0 > now && $0 <= horizon })).sorted()
-  }
-}
-
-// MARK: - Cores (as do widget do Android, claro e escuro)
-
-private struct Palette {
-  let surface: Color
-  let ink: Color
-  let muted: Color
-  let accent: Color
-  let tileStrong: Color
-  let onTileStrong: Color
-  let onTileStrongMuted: Color
-  let tileSoft: Color
-
-  static let light = Palette(
-    surface: Color(hex: 0xFFFFFF),
-    ink: Color(hex: 0x101828),
-    muted: Color(hex: 0x5D6679),
-    accent: Color(hex: 0x004891),
-    tileStrong: Color(hex: 0x004891),
-    onTileStrong: Color(hex: 0xFFFFFF),
-    onTileStrongMuted: Color(hex: 0xCFDDEE),
-    tileSoft: Color(hex: 0xE8F0FA)
-  )
-
-  static let dark = Palette(
-    surface: Color(hex: 0x111F33),
-    ink: Color(hex: 0xE6EDF6),
-    muted: Color(hex: 0xA7B4C6),
-    accent: Color(hex: 0x6DAEF0),
-    tileStrong: Color(hex: 0x2A6BC0),
-    onTileStrong: Color(hex: 0xFFFFFF),
-    onTileStrongMuted: Color(hex: 0xFFFFFF),
-    tileSoft: Color(hex: 0x123458)
-  )
-}
-
-extension Color {
-  fileprivate init(hex: UInt32) {
-    self.init(
-      red: Double((hex >> 16) & 0xFF) / 255,
-      green: Double((hex >> 8) & 0xFF) / 255,
-      blue: Double(hex & 0xFF) / 255
-    )
   }
 }
 
 // MARK: - Desenho
-
-private let weekdays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
-private let weekdaysShort = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
-
-/// "Agora", "Hoje" ou o dia da semana (inteiro, ou o "Seg" do bloco).
-private func dayLabel(_ next: NextClass, short: Bool) -> String {
-  if next.ongoing { return "Agora" }
-  if next.dayOffset == 0 { return "Hoje" }
-  return (short ? weekdaysShort : weekdays)[next.item.weekday - 1]
-}
-
-/// "até 18:50 · T6–N1 · Sala 6019 B", ou só "até 18:50".
-private func detailText(_ item: WidgetClass) -> String {
-  item.detail.isEmpty ? "até \(item.endLabel)" : "até \(item.endLabel) · \(item.detail)"
-}
-
-/// Leitor de tela: "Próxima aula, Hoje: Cálculo II, das 14:20 às 16:00, T3–T4 · Sala 6019 B."
-private func classDescription(_ next: NextClass) -> String {
-  let item = next.item
-  let place = [item.detail, item.place].filter { !$0.isEmpty }.joined(separator: ", ")
-  let base = "Próxima aula, \(dayLabel(next, short: false)): \(item.title), das \(item.startLabel) às \(item.endLabel)"
-  return place.isEmpty ? "\(base)." : "\(base), \(place)."
-}
 
 struct NextClassView: View {
   let entry: NextClassEntry
@@ -203,20 +84,20 @@ struct NextClassView: View {
   @Environment(\.colorScheme) private var colorScheme
   @Environment(\.widgetFamily) private var family
 
-  private var palette: Palette { colorScheme == .dark ? .dark : .light }
+  private var palette: Palette { Palette.of(colorScheme) }
 
   var body: some View {
     content
       .accessibilityElement(children: .ignore)
       .accessibilityLabel(spokenText)
-      .widgetURL(URL(string: "aouerj://open?target=home"))
+      .widgetURL(homeURL)
       .widgetBackground(palette.surface)
   }
 
   private var spokenText: String {
     switch entry.state {
     case let .message(title, text): return "\(title). \(text)"
-    case let .next(next): return classDescription(next)
+    case let .next(next): return ClassTexts.describe(next)
     }
   }
 
@@ -264,7 +145,7 @@ struct NextClassView: View {
 
   private func classTile(_ next: NextClass, today: Bool) -> some View {
     VStack(spacing: 1) {
-      Text(dayLabel(next, short: true).uppercased())
+      Text(ClassTexts.dayLabel(next, short: true).uppercased())
         .font(.system(size: 10, weight: .medium))
         .kerning(0.6)
         .foregroundColor(today ? palette.onTileStrongMuted : palette.accent)
@@ -298,7 +179,7 @@ struct NextClassView: View {
           .font(.system(size: 15, weight: .semibold))
           .foregroundColor(palette.ink)
           .lineLimit(titleLines)
-        Text(detailText(next.item))
+        Text(ClassTexts.detail(next.item))
           .font(.system(size: 13))
           .foregroundColor(palette.muted)
           .lineLimit(1)
@@ -320,37 +201,13 @@ struct NextClassView: View {
         Text(title).font(.headline).lineLimit(1)
         Text(text).font(.caption).lineLimit(2)
       case let .next(next):
-        Text("\(dayLabel(next, short: false).uppercased()) · \(next.item.startLabel)")
+        Text("\(ClassTexts.dayLabel(next, short: false).uppercased()) · \(next.item.startLabel)")
           .font(.caption2.weight(.semibold))
           .lineLimit(1)
         Text(next.item.title).font(.headline).lineLimit(1)
-        Text(detailText(next.item)).font(.caption).lineLimit(1)
+        Text(ClassTexts.detail(next.item)).font(.caption).lineLimit(1)
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
-  }
-}
-
-// MARK: - Compatibilidade com iOS 15 a 17
-
-extension View {
-  /// O iOS 17 desenha o fundo do widget pelo `containerBackground`; antes, é um fundo comum.
-  @ViewBuilder fileprivate func widgetBackground(_ color: Color) -> some View {
-    if #available(iOSApplicationExtension 17.0, *) {
-      containerBackground(for: .widget) { color }
-    } else {
-      background(color)
-    }
-  }
-}
-
-extension WidgetConfiguration {
-  /// As margens do iOS 17 ficam por conta do `padding` de cada tamanho.
-  fileprivate func contentMarginsDisabledIfAvailable() -> some WidgetConfiguration {
-    if #available(iOSApplicationExtension 17.0, *) {
-      return contentMarginsDisabled()
-    } else {
-      return self
-    }
   }
 }
