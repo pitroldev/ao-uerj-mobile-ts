@@ -1,0 +1,141 @@
+name: Servidor
+
+# Confere e implanta o servidor (server/) na VM de pitrol.dev. A implantação é
+# azul/verde: a versão nova sobe ao lado da que está no ar e só recebe tráfego
+# depois de passar na conferência (deploy/server/release.sh). Uma falha deixa
+# a versão no ar como estava.
+#
+# Precisa do ambiente "production" com:
+#   secrets SERVER_SSH_KEY (a chave do CI, presa ao bin/remote na VM) e
+#           SERVER_KNOWN_HOSTS (a chave do host, conferida no bootstrap);
+#   vars    SERVER_HOST e SERVER_USER.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - 'deploy/server/**'
+      - 'src/adapters/outbound/private-api/**'
+      - 'src/adapters/outbound/schedule-generator/**'
+      - 'src/adapters/outbound/__tests__/server.contract.test.ts'
+      - '.github/workflows/server.yml'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: deploy implanta este commit; rollback volta para a versão anterior
+        type: choice
+        options: [deploy, rollback]
+        default: deploy
+
+permissions:
+  contents: read
+
+# `shell: bash` liga o pipefail: um ssh que falha não passa pelo `| tee`
+defaults:
+  run:
+    shell: bash
+
+# uma implantação por vez, e nenhuma é cancelada no meio
+concurrency:
+  group: server-production
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.event_name == 'push' || inputs.action == 'deploy'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            server/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm type-check
+      - run: pnpm test:server
+      # os adaptadores do app contra o servidor de verdade: o contrato
+      - run: pnpm jest --ci src/adapters/outbound
+
+  deploy:
+    needs: verify
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://pitrol.dev/aouerj/health
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - name: Chave da VM
+        env:
+          SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SERVER_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Implantar (sobe ao lado, confere e só então troca)
+        env:
+          TARGET: ${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}
+        run: |
+          ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$TARGET" "deploy $GITHUB_SHA" | tee deploy.log
+      # o GET /aouerj/status tem de mostrar este commit, pela internet
+      - name: Conferir pela internet, como os apps
+        run: |
+          if grep -qx 'traffic=switched' deploy.log; then
+            node deploy/server/smoke.mjs https://pitrol.dev --require-database \
+              --expect-commit "$GITHUB_SHA"
+          else
+            echo '::notice::Implantado sem tráfego: falta o cutover (deploy/server/cutover.sh).'
+          fi
+
+  rollback:
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'rollback' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://pitrol.dev/aouerj/health
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - name: Chave da VM
+        env:
+          SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SERVER_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Voltar para a versão anterior
+        env:
+          TARGET: ${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}
+        run: |
+          ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$TARGET" rollback | tee deploy.log
+      - name: Conferir pela internet, como os apps
+        run: |
+          if grep -qx 'traffic=switched' deploy.log; then
+            node deploy/server/smoke.mjs https://pitrol.dev --require-database
+          fi

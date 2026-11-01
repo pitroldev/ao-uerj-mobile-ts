@@ -1,0 +1,4 @@
+# Rodam na VM (bash e node): sempre LF, mesmo num checkout com autocrlf.
+*.sh text eol=lf
+*.mjs text eol=lf
+*.conf text eol=lf
