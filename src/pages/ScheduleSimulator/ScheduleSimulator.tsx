@@ -15,6 +15,7 @@ import { SubjectsStep } from '@features/ScheduleSimulator/steps/SubjectsStep';
 import { FetchDataStep } from '@features/ScheduleSimulator/steps/FetchDataStep';
 import { ClassesStep } from '@features/ScheduleSimulator/steps/ClassesStep';
 import { GenerationStep } from '@features/ScheduleSimulator/steps/GenerationStep';
+import { CriticalityProvider } from '@features/ScheduleSimulator/criticality/CriticalityProvider';
 
 /**
  * Cada passo desenha o próprio painel (`GeneratorStep`): trilho de passos no
@@ -45,9 +46,12 @@ export const ScheduleCreationPage = () => {
 
   return (
     <FormProvider {...methods}>
-      <StepsProvider values={{ step, nextStep, prevStep, setStep }}>
-        {CurrentStep && <CurrentStep />}
-      </StepsProvider>
+      {/* aqui, e não no passo: a leitura dos pré-requisitos segue entre os passos */}
+      <CriticalityProvider>
+        <StepsProvider values={{ step, nextStep, prevStep, setStep }}>
+          {CurrentStep && <CurrentStep />}
+        </StepsProvider>
+      </CriticalityProvider>
     </FormProvider>
   );
 };

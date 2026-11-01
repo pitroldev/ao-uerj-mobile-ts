@@ -45,6 +45,35 @@ describe('GenerateSchedules', () => {
       { signal },
     );
   });
+  it('sends how many pending subjects each one locks, when it is known', async () => {
+    const generator = { generate: jest.fn().mockResolvedValue([]) };
+    await new GenerateSchedules(generator).execute({
+      ...form,
+      priority: ['CRITICAL_FIRST'],
+      criticality: { [details.id!]: 3, 'IME01-99999': 7 },
+    });
+    expect(generator.generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subjects: [{ curriculum, details, criticality: 3 }],
+      }),
+      undefined,
+    );
+  });
+
+  it.each([-1, 1.5, Number.NaN])(
+    'drops a criticality that is not a count (%s)',
+    async value => {
+      const generator = { generate: jest.fn().mockResolvedValue([]) };
+      await new GenerateSchedules(generator).execute({
+        ...form,
+        criticality: { [details.id!]: value },
+      });
+      expect(generator.generate.mock.calls[0][0].subjects).toStrictEqual([
+        { curriculum, details },
+      ]);
+    },
+  );
+
   it.each([
     { min_subject_amount: 5, max_subject_amount: 3 },
     { min_subject_amount: 0 },

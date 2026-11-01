@@ -173,8 +173,11 @@ O que mudou de propósito:
 - **O que nenhum app manda** saiu: `avoid_groups`, `blacklisted_teachers` e o
   `selected_by_user` da disciplina (este, quebrado: exigia todas as turmas da
   disciplina na mesma grade).
-- **`CRITICAL_FIRST`** depende de `criticality` em cada disciplina, que o app
-  não manda: a ordem não muda, como na produção.
+- **`CRITICAL_FIRST`** soma o `criticality` das disciplinas da grade. Os apps
+  até a 2.10 não o mandavam (a ordem não mudava, como na produção antiga).
+  Desde então, o app manda quantas obrigatórias que faltam cada disciplina
+  trava, direta ou indiretamente, pelos pré-requisitos lidos no Plano até a
+  formatura. Sem eles, o campo não vai, e o servidor conta zero.
 
 ## Segurança e privacidade
 

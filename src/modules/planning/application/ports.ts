@@ -16,7 +16,12 @@ export type ScheduleGenerationRequest = {
     priorities: Priority[];
     busyIntervals: Schedule[];
   };
-  subjects: Array<{ curriculum: CurriculumSubject; details: SubjectInfo }>;
+  subjects: Array<{
+    curriculum: CurriculumSubject;
+    details: SubjectInfo;
+    /** Obrigatórias que faltam que ela trava (só com `CRITICAL_FIRST`). */
+    criticality?: number;
+  }>;
   classes: SubjectClasses[];
 };
 export type GenerationOptions = { signal?: AbortSignal };

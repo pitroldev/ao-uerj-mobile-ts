@@ -23,6 +23,8 @@ import {
   createScheduleDraft,
 } from '@root/modules/planning/domain/models';
 
+import { CriticalityNotice } from '../../criticality/CriticalityNotice';
+import { useCriticality } from '../../criticality/context';
 import { ScheduleVisualizer } from '../../ScheduleVisualizer';
 import { ScheduleInfo } from '../../ScheduleInfo';
 import { GeneratorStep, StepIntro, type StepAction } from '../../layout';
@@ -74,10 +76,17 @@ export const GenerationStep = () => {
 
   const body = useWatch({ control }) as ScheduleCreationParams;
   const generation = useGenerateSchedules();
+  const criticality = useCriticality();
   const { isPending: loading, data = [], error } = generation;
   const handleGenerate = () => {
     setSelectedIndex(0);
-    generation.mutate(body);
+    // "Matérias críticas" soma quantas obrigatórias cada disciplina trava
+    const counts = body.priority?.includes('CRITICAL_FIRST')
+      ? criticality.criticalityFor(
+          (body.subjects ?? []).flatMap(item => (item.id ? [item.id] : [])),
+        )
+      : undefined;
+    generation.mutate(counts ? { ...body, criticality: counts } : body);
   };
 
   const handleResetPress = () => {
@@ -165,6 +174,9 @@ export const GenerationStep = () => {
             },
           ]}
         />
+      ) : null}
+      {generation.isIdle ? (
+        <CriticalityNotice summary style={styles.notice} />
       ) : null}
 
       {loading ? (
@@ -270,6 +282,7 @@ export const GenerationStep = () => {
 
 const styles = StyleSheet.create({
   summary: { marginTop: 18 },
+  notice: { marginTop: 16 },
   picker: { marginTop: 16 },
   chips: { marginTop: 10 },
   tabs: { marginTop: 20, marginBottom: 4 },

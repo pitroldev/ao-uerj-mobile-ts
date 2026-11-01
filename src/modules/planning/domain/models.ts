@@ -39,6 +39,12 @@ export type ScheduleCreationParams = {
   curriculumSubjects?: CurriculumSubject[];
   subjects: SubjectInfo[];
   selectedClasses: SubjectClasses[];
+  /**
+   * Para `CRITICAL_FIRST`: quantas obrigatórias que faltam cada disciplina
+   * trava, direta ou indiretamente, pelo código do portal (`subjects[].id`).
+   * Sem ela, a prioridade não muda a ordem.
+   */
+  criticality?: Readonly<Record<string, number>>;
 };
 
 type GeneratedSubject = {

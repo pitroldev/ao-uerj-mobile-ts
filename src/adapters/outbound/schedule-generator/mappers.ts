@@ -15,17 +15,21 @@ export function legacyPrerequisiteIds(
 }
 
 export function toGeneratorPayload(request: ScheduleGenerationRequest) {
-  const subjects = request.subjects.map(({ curriculum, details }) => ({
-    id: details.id!,
-    name: details.name!,
-    type: curriculum.type,
-    credits: details.credits ?? 0,
-    prerequisites: legacyPrerequisiteIds(details.prerequisite),
-    allow_conflict: details.conflito ?? false,
-    recomended_period: curriculum.period ?? undefined,
-    minimum_credits: curriculum.minimum_credits ?? undefined,
-    total_workload: details.workload ?? 0,
-  }));
+  const subjects = request.subjects.map(
+    ({ curriculum, details, criticality }) => ({
+      id: details.id!,
+      name: details.name!,
+      type: curriculum.type,
+      credits: details.credits ?? 0,
+      prerequisites: legacyPrerequisiteIds(details.prerequisite),
+      allow_conflict: details.conflito ?? false,
+      recomended_period: curriculum.period ?? undefined,
+      minimum_credits: curriculum.minimum_credits ?? undefined,
+      total_workload: details.workload ?? 0,
+      // o CRITICAL_FIRST soma este número; ausente, o servidor conta zero
+      criticality,
+    }),
+  );
   const classes = request.classes.map(group => {
     const subject = subjects.find(
       candidate => candidate.id === group.subject_id,

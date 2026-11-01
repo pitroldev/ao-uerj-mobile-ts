@@ -62,6 +62,28 @@ it('sends the expected legacy DTO only at the adapter boundary', async () => {
   );
 });
 
+it('sends the criticality CRITICAL_FIRST ranks by, and nothing without it', async () => {
+  const transport = {
+    post: jest.fn().mockResolvedValue({ data: { data: [] } }),
+  };
+  const generate = (changes: Partial<ScheduleCreationParams>) =>
+    new GenerateSchedules(createScheduleGeneratorAdapter(transport)).execute({
+      ...form,
+      ...changes,
+    });
+  const sentSubject = (call: number) =>
+    JSON.parse(JSON.stringify(transport.post.mock.calls[call][1])).subjects[0];
+
+  await generate({
+    priority: ['CRITICAL_FIRST'],
+    criticality: { [form.subjects[0].id!]: 4 },
+  });
+  expect(sentSubject(0)).toMatchObject({ criticality: 4 });
+
+  await generate({});
+  expect(sentSubject(1)).not.toHaveProperty('criticality');
+});
+
 it('characterizes legacy prerequisite flattening without changing the domain groups', () => {
   const groups = [
     [

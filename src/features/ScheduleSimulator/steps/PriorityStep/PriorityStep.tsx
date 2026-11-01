@@ -18,6 +18,7 @@ import {
   ScheduleCreationParams,
 } from '@root/modules/planning/domain/models';
 
+import { CriticalityNotice } from '../../criticality/CriticalityNotice';
 import { GeneratorStep, StepIntro, SubHeading } from '../../layout';
 import { plural } from '../../format';
 
@@ -198,25 +199,42 @@ export const PriorityStep = () => {
         note={plural(priority.length, 'ligada', 'ligadas')}
       />
       <List>
-        {priorities.map(group =>
-          group.length === 1 ? (
-            renderRow(group[0])
-          ) : (
-            <Pair key={group.map(o => o.key).join('|')}>
-              <PairNote>
-                <Icon
-                  name="swap_vert"
-                  size={theme.sizes.icon.sm}
-                  color={theme.colors.inkMuted}
-                />
-                <Text variant="caption" tone="muted">
-                  Só uma destas pode ficar ligada
-                </Text>
-              </PairNote>
-              <List bleed={false}>{group.map(o => renderRow(o, true))}</List>
-            </Pair>
-          ),
-        )}
+        {priorities.flatMap(group => {
+          if (group.length > 1) {
+            return [
+              <Pair key={group.map(o => o.key).join('|')}>
+                <PairNote>
+                  <Icon
+                    name="swap_vert"
+                    size={theme.sizes.icon.sm}
+                    color={theme.colors.inkMuted}
+                  />
+                  <Text variant="caption" tone="muted">
+                    Só uma destas pode ficar ligada
+                  </Text>
+                </PairNote>
+                <List bleed={false}>{group.map(o => renderRow(o, true))}</List>
+              </Pair>,
+            ];
+          }
+          const [option] = group;
+          const row = renderRow(option);
+          // a conta das que travam outras depende dos pré-requisitos lidos
+          return option.key === 'CRITICAL_FIRST' &&
+            priority.includes('CRITICAL_FIRST')
+            ? [
+                row,
+                <CriticalityNotice
+                  key="CRITICAL_FIRST:notice"
+                  style={{
+                    marginHorizontal: theme.layout.gutter,
+                    marginTop: 4,
+                    marginBottom: 12,
+                  }}
+                />,
+              ]
+            : [row];
+        })}
       </List>
     </GeneratorStep>
   );

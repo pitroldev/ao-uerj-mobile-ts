@@ -192,3 +192,51 @@ it('generates schedules the app accepts, with the most subjects first', async ()
       new Set(schedule.schedule.map(option => option.subject_id)).size,
     ).toBe(schedule.schedule.length);
 });
+
+it('puts the subject that locks more pending subjects first with CRITICAL_FIRST', async () => {
+  const subject = (id: string, day: string) => ({
+    curriculum: { ...curriculum, id },
+    details: {
+      ...details,
+      id,
+      classes: [
+        { ...details.classes![0], schedule: [{ [day]: [['M1', 'M2']] }] },
+      ],
+    },
+  });
+  // A e C batem na segunda; as duas cabem com B
+  const subjects = [
+    subject('IME01-10001', 'Segunda'),
+    subject('IME01-10002', 'Terça'),
+    subject('IME01-10003', 'Segunda'),
+  ];
+  const request: ScheduleCreationParams = {
+    ...form,
+    min_subject_amount: 2,
+    max_subject_amount: 2,
+    priority: ['CRITICAL_FIRST'],
+    subjectsToTake: subjects.map(entry => entry.curriculum),
+    selectedSubjects: subjects.map(entry => entry.curriculum),
+    subjects: subjects.map(entry => entry.details),
+    selectedClasses: subjects.map(entry => ({
+      ...entry.details.classes[0],
+      subject_id: entry.curriculum.id,
+    })),
+  };
+  const generate = (criticality?: Record<string, number>) =>
+    new GenerateSchedules(
+      createScheduleGeneratorAdapter(
+        createGeneratorTransport(`${base}/schedules`),
+      ),
+    ).execute({ ...request, criticality });
+  const first = (schedules: Awaited<ReturnType<typeof generate>>) =>
+    schedules[0].schedule.map(option => option.subject_id).sort();
+
+  // sem a conta, empate: vale a ordem em que a busca acha (A antes de C)
+  expect(first(await generate())).toEqual(['IME01-10001', 'IME01-10002']);
+  // C trava 5 obrigatórias que faltam
+  expect(first(await generate({ 'IME01-10003': 5 }))).toEqual([
+    'IME01-10002',
+    'IME01-10003',
+  ]);
+});

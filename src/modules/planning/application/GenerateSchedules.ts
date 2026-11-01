@@ -8,6 +8,9 @@ import {
 } from '../domain/rules';
 import { GenerationOptions, ScheduleGeneratorPort } from './ports';
 
+const isCount = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isInteger(value) && value >= 0;
+
 export class GenerateSchedules {
   constructor(private readonly generator: ScheduleGeneratorPort) {}
   async execute(form: ScheduleCreationParams, options?: GenerationOptions) {
@@ -52,7 +55,10 @@ export class GenerateSchedules {
           'INVALID_INPUT',
           `${details.name}: ${eligibility.reason}`,
         );
-      return { curriculum, details };
+      const criticality = form.criticality?.[details.id];
+      return isCount(criticality)
+        ? { curriculum, details, criticality }
+        : { curriculum, details };
     });
     const subjectIds = new Set(subjects.map(subject => subject.details.id));
     if (form.selectedClasses.some(group => !subjectIds.has(group.subject_id)))
