@@ -67,6 +67,12 @@ export function parseDiagnostic(content: string): Diagnostic | null {
   };
 }
 
+/**
+ * A tela dos relatos antigos que chegaram sem ela (na produção, 6 de 76, de
+ * antes de o servidor exigir o campo).
+ */
+export const UNKNOWN_PAGE = 'Sem tela';
+
 /** A situação de um relato na triagem. */
 export type ReviewStatus = 'open' | 'resolved' | 'all';
 

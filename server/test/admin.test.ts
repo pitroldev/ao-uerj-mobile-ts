@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, test } from 'node:test';
 
+import { LOGIN_ATTEMPTS } from '../src/adapters/inbound/http/aouerj/admin/routes.ts';
 import { createServer, type Server } from '../src/composition.ts';
 import { createPortalWatch } from '../src/modules/portal/application.ts';
 import {
@@ -140,14 +141,19 @@ test('the page asks for the token, and the login sets a strict, http-only cookie
   assert.match(login.headers.get('content-type') ?? '', /^text\/html/);
   assert.equal(login.headers.get('cache-control'), 'no-store');
   assert.equal(login.headers.get('x-robots-tag'), 'noindex, nofollow');
-  assert.match(login.text, /Entrar na administração/);
+  assert.match(login.text, /Acesso restrito/);
+  // a página que qualquer um vê não diz o que protege nem onde fica o token
+  assert.doesNotMatch(
+    login.text,
+    /ADMIN_TOKEN|\.env|ao-uerj-server|Administração|relatos|sugest/i,
+  );
 
   const wrong = await app.call('/aouerj/admin/entrar', {
     method: 'POST',
     form: { token: 'errado' },
   });
   assert.equal(wrong.status, 401);
-  assert.match(wrong.text, /Esse token não confere/);
+  assert.match(wrong.text, /Token inválido\./);
   assert.equal(wrong.headers.get('set-cookie'), null);
 
   const right = await app.signIn();
@@ -163,6 +169,21 @@ test('the page asks for the token, and the login sets a strict, http-only cookie
   const page = await app.call('/aouerj/admin');
   assert.equal(page.status, 200);
   assert.match(page.text, /Relatos de erro/);
+});
+
+test('wrong tokens are limited per address; the right one never counts', async () => {
+  const app = await serve();
+  const attempt = (token: string) =>
+    app.call('/aouerj/admin/entrar', { method: 'POST', form: { token } });
+  // acertar não gasta tentativas
+  for (let i = 0; i < 3; i++) assert.equal((await attempt(TOKEN)).status, 303);
+  for (let i = 0; i < LOGIN_ATTEMPTS; i++)
+    assert.equal((await attempt(`errado-${i}`)).status, 401);
+  const blocked = await attempt('mais-um');
+  assert.equal(blocked.status, 429);
+  assert.match(blocked.text, /Muitas tentativas/);
+  // nem o certo passa até a janela acabar
+  assert.equal((await attempt(TOKEN)).status, 429);
 });
 
 test('behind HTTPS the cookie is also Secure', async () => {
@@ -185,12 +206,13 @@ test('the cookie also opens the JSON listings; another cookie does not, and leav
     signedIn: false,
     headers: { cookie: 'ao_uerj_admin=forjado' },
   });
-  assert.equal(forged.status, 401);
+  // sem o acesso, a listagem responde como uma rota que não existe
+  assert.equal(forged.status, 404);
   // um Bearer errado não cai para o cookie
   const mixed = await app.call('/aouerj/reportError', {
     headers: { authorization: 'Bearer errado' },
   });
-  assert.equal(mixed.status, 401);
+  assert.equal(mixed.status, 404);
 
   const out = await app.call('/aouerj/admin/sair', { method: 'POST' });
   assert.equal(out.status, 303);

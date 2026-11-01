@@ -8,6 +8,7 @@ import { createDatabase } from '../src/adapters/outbound/mongo/connection.ts';
 import { defineModels } from '../src/adapters/outbound/mongo/models.ts';
 import { createMongoRepositories } from '../src/adapters/outbound/mongo/repositories.ts';
 import { createServer } from '../src/composition.ts';
+import { UNKNOWN_PAGE } from '../src/modules/reports/domain.ts';
 import { createPortalWatch } from '../src/modules/portal/application.ts';
 import { UnavailableError } from '../src/shared/errors.ts';
 import { startMongo, type Mongo } from './mongo.ts';
@@ -281,6 +282,36 @@ test('the review counts by screen, filters by status and resolves by id, old rep
   assert.equal(await reports.findById('0123456789abcdef01234567'), null);
   assert.equal(await reports.setResolvedAt('nao-e-um-id', at), null);
   assert.equal((await reports.setResolvedAt(notes.id, null))?.resolvedAt, null);
+});
+
+test('old reports without a screen join one "Sem tela" line that filters like any other', async () => {
+  const { db, models, repositories } = await open();
+  opened.push(db);
+  const { reports } = repositories;
+  // como os 6 da produção: sem tela nem descrição; e um nulo, por garantia
+  await models.errorReports.collection.insertMany([
+    { filesID: [], createdAt: new Date(Date.UTC(2023, 0, 1)) },
+    { page: null, filesID: [], createdAt: new Date(Date.UTC(2023, 0, 2)) },
+  ]);
+  // o empate de contagem que derrubou a página: a ordem compara os nomes
+  await reports.create({ page: 'Notas', attachmentIds: [] });
+  await reports.create({ page: 'Notas', attachmentIds: [] });
+
+  const summary = await reports.summarize();
+  assert.deepEqual(
+    summary.pages.map(({ page, open: count }) => [page, count]),
+    [
+      ['Notas', 2],
+      [UNKNOWN_PAGE, 2],
+    ],
+  );
+  const unknown = await reports.listForReview(
+    { status: 'open', page: UNKNOWN_PAGE },
+    10,
+  );
+  assert.equal(unknown.total, 2);
+  assert.ok(unknown.reports.every(report => report.page === UNKNOWN_PAGE));
+  assert.ok(unknown.reports.every(report => report.description === undefined));
 });
 
 test('a database that goes away mid-flight is a 503, and a refused document is not', async () => {

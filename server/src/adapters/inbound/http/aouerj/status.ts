@@ -70,8 +70,8 @@ export function statusRoutes({
       release: {
         ...release,
         startedAt: new Date(now - uptimeSeconds * 1000).toISOString(),
+        // sem a versão do Node: ela só serviria para mirar uma falha conhecida
         uptimeSeconds,
-        node: process.version,
       },
       database: database.status(),
       portal: toPortalStatusResponse(portal.snapshot()),

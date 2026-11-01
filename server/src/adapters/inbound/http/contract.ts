@@ -39,7 +39,6 @@ export type StatusResponse = {
     color: 'blue' | 'green' | null;
     startedAt: string;
     uptimeSeconds: number;
-    node: string;
   };
   database: string;
   portal: PortalStatusResponse;

@@ -64,19 +64,13 @@ export function requireDatabase(isReady: () => boolean): RequestHandler {
 /**
  * Rotas de administração (as listagens com e-mail): exigem
  * `Authorization: Bearer <ADMIN_TOKEN>` ou o cookie do login de
- * `/aouerj/admin`. Sem o token configurado, não existem.
+ * `/aouerj/admin`. Sem o acesso (ou sem o token configurado), respondem como
+ * uma rota que não existe: nada indica que há algo ali para tentar abrir.
  */
 export function adminOnly(session: AdminSession | null): RequestHandler {
   return (req, res, next) => {
-    if (!session) {
+    if (!session?.allows(req)) {
       send(res, 404, { error: 'not_found', message: 'Route not found' });
-      return;
-    }
-    if (!session.allows(req)) {
-      send(res, 401, {
-        error: 'unauthorized',
-        message: 'A valid admin token is required',
-      });
       return;
     }
     next();

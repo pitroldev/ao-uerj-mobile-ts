@@ -125,7 +125,8 @@ test('the status shows the release and the parts, and is a 503 without the datab
   assert.equal(ok.body.status, 'ok');
   assert.equal(ok.body.release.commit, commit);
   assert.equal(ok.body.release.color, 'green');
-  assert.equal(ok.body.release.node, process.version);
+  // nada que identifique as versões do servidor
+  assert.equal('node' in ok.body.release, false);
   assert.ok(ok.body.release.uptimeSeconds >= 0);
   assert.ok(Date.parse(ok.body.release.startedAt) <= Date.now());
   assert.equal(ok.body.database, 'connected');
@@ -341,13 +342,18 @@ test('with the admin token configured, the listings need it', async () => {
     body: { name: 'Ada', content: 'Oi', email: 'ada@example.com' },
   });
 
+  // sem o acesso, a rota responde como se não existisse
   for (const token of ['token-de-administracaX', 'outro']) {
     const refused = await admin.call('/aouerj/suggestions', {
       headers: { authorization: `Bearer ${token}` },
     });
-    assert.equal(refused.status, 401);
+    assert.equal(refused.status, 404);
+    assert.deepEqual(refused.body, {
+      error: 'not_found',
+      message: 'Route not found',
+    });
   }
-  assert.equal((await admin.call('/aouerj/suggestions')).status, 401);
+  assert.equal((await admin.call('/aouerj/suggestions')).status, 404);
 
   const allowed = await admin.call('/aouerj/suggestions', {
     headers: { authorization: `Bearer ${ADMIN_TOKEN}` },

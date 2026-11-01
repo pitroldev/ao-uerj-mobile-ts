@@ -213,8 +213,6 @@ a.tag:hover{text-decoration:underline}
 .field{width:100%;min-height:3rem;padding:0 .875rem;border:1px solid var(--field);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;letter-spacing:.02em}
 .field:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
 .login .btn{width:100%;min-height:3rem;margin-top:1rem;font-size:.9375rem}
-.hint{margin:.75rem 0 0;color:var(--ink-muted);font-size:.875rem}
-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.875em}
 .back{display:inline-flex;align-items:center;gap:.375rem;margin-bottom:1rem;min-height:2.25rem}
 .sheet{margin-top:1.5rem;display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.5rem 1.5rem;max-width:40rem}
 .sheet dt{color:var(--ink-muted)}
@@ -278,7 +276,7 @@ function layout({
         <header class="band">
           <div class="band-in">
             <a class="brand" href="${base}/admin"
-              >${logo}<b>Administração</b></a
+              >${logo}${csrf ? html`<b>Administração</b>` : null}</a
             >
             ${
               csrf
@@ -308,18 +306,31 @@ function layout({
 
 /* ------------------------------------------------------------------ login */
 
-export function loginPage({ base, failed }: { base: string; failed: boolean }) {
+/**
+ * A única página que qualquer um vê: não diz o que há atrás dela, onde fica o
+ * token nem como ele é feito.
+ */
+export function loginPage({
+  base,
+  notice,
+}: {
+  base: string;
+  notice: 'failed' | 'limited' | null;
+}) {
+  const messages = {
+    failed: 'Token inválido.',
+    limited: 'Muitas tentativas. Espere alguns minutos e tente de novo.',
+  };
   return layout({
     base,
-    title: 'Entrar',
+    title: 'Acesso restrito',
     tab: null,
     csrf: null,
     body: html`<section class="login">
-      <h1>Entrar na administração</h1>
-      <p class="lede">Os relatos de erro e as sugestões que chegam dos apps.</p>
-      ${failed ? html`<p class="notice" role="alert">Esse token não confere. Copie de novo, sem espaços, e tente outra vez.</p>` : null}
+      <h1>Acesso restrito</h1>
+      ${notice ? html`<p class="notice" role="alert">${messages[notice]}</p>` : null}
       <form method="post" action="${base}/admin/entrar">
-        <label for="token">Token de administração</label>
+        <label for="token">Token</label>
         <input
           class="field"
           id="token"
@@ -332,11 +343,6 @@ export function loginPage({ base, failed }: { base: string; failed: boolean }) {
         />
         <button class="btn" type="submit">Entrar</button>
       </form>
-      <p class="hint">
-        É o <code>ADMIN_TOKEN</code> do servidor, em
-        <code>~/ao-uerj-server/shared/.env</code> na VM. O login vale 30 dias
-        neste navegador.
-      </p>
     </section>`,
   });
 }

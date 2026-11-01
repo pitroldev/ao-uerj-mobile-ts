@@ -4,6 +4,7 @@ import express, {
   type RequestHandler,
   type Response,
 } from 'express';
+import { rateLimit } from 'express-rate-limit';
 
 import type { ErrorReports } from '../../../../../modules/reports/ports.ts';
 import type { Suggestions } from '../../../../../modules/suggestions/ports.ts';
@@ -29,6 +30,10 @@ import {
 const SANDBOXED =
   "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:";
 
+/** Tentativas erradas de login por IP antes de esperar (o token tem 192 bits). */
+export const LOGIN_ATTEMPTS = 10;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+
 /**
  * A administração no navegador (`/aouerj/admin`): o login por token, que
  * grava o cookie, a triagem dos relatos e as sugestões. Sem o ADMIN_TOKEN,
@@ -39,14 +44,12 @@ export function adminRoutes({
   suggestions,
   session,
   isDatabaseReady,
-  loginLimit,
   now = () => new Date(),
 }: {
   reports: ErrorReports;
   suggestions: Suggestions;
   session: AdminSession | null;
   isDatabaseReady: () => boolean;
-  loginLimit: RequestHandler;
   now?: () => Date;
 }) {
   const routes = express.Router();
@@ -60,6 +63,18 @@ export function adminRoutes({
       .send(page.value);
   };
 
+  // só as tentativas erradas contam: quem acerta não espera
+  const loginLimit = rateLimit({
+    windowMs: LOGIN_WINDOW_MS,
+    limit: LOGIN_ATTEMPTS,
+    skipSuccessfulRequests: true,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler(req, res) {
+      send(res, 429, loginPage({ base: req.baseUrl, notice: 'limited' }));
+    },
+  });
+
   /** Sem o token configurado, a administração não existe. */
   const configured: RequestHandler = (req, res, next) => {
     if (session) next();
@@ -69,7 +84,7 @@ export function adminRoutes({
   /** Sem o login, a página de entrar (com o 401). */
   const signedIn: RequestHandler = (req, res, next) => {
     if (session!.allows(req)) next();
-    else send(res, 401, loginPage({ base: req.baseUrl, failed: false }));
+    else send(res, 401, loginPage({ base: req.baseUrl, notice: null }));
   };
 
   /** Sem o banco, uma página que diz isso, em vez do 503 em JSON. */
@@ -189,7 +204,7 @@ export function adminRoutes({
   routes.post('/admin/entrar', configured, loginLimit, form, (req, res) => {
     const token = (req.body as Record<string, unknown>)?.token;
     if (!session!.isToken(token)) {
-      send(res, 401, loginPage({ base: req.baseUrl, failed: true }));
+      send(res, 401, loginPage({ base: req.baseUrl, notice: 'failed' }));
       return;
     }
     res.set('Set-Cookie', session!.login(req));

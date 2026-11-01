@@ -133,12 +133,17 @@ que o app também importa.
   relato ou sugestão é descartado, sem recusar o resto.
 - **Administração:** as listagens trazem e-mail. Elas exigem
   `Authorization: Bearer <ADMIN_TOKEN>` ou o cookie do login de
-  `/aouerj/admin`, e não existem (404) sem o token configurado.
+  `/aouerj/admin`. Sem o acesso (ou sem o token configurado), respondem 404,
+  como uma rota que não existe.
+- **Gerador:** fila cheia é 503 `generator_busy`; uma thread que não responde
+  é 503 `generator_timeout`. Entrada inválida diz onde
+  (`classes[0].schedules[0].week_day`).
 
 ### Administração no navegador
 
-`https://pitrol.dev/aouerj/admin` pede o `ADMIN_TOKEN` (o do `shared/.env` na
-VM) e grava um cookie de 30 dias:
+`https://pitrol.dev/aouerj/admin` pede o `ADMIN_TOKEN` e grava um cookie de 30
+dias. A página de login não diz o que protege nem onde fica o token, e cada IP
+tem 10 tentativas erradas a cada 15 minutos (acertar não conta).
 
 - **O cookie:** `HttpOnly`, `SameSite=Strict`, `Secure` em HTTPS e no caminho
   `/aouerj`. O valor é tirado do token por HMAC, não é o próprio token. Trocar
@@ -157,11 +162,8 @@ VM) e grava um cookie de 30 dias:
 - **Sugestões:** numa aba ao lado, das mais novas às mais antigas.
 
 As páginas são HTML montado no servidor (`http/aouerj/admin/`), sem
-JavaScript, com as cores dos temas claro e escuro do app.
-
-- **Gerador:** fila cheia é 503 `generator_busy`; uma thread que não responde
-  é 503 `generator_timeout`. Entrada inválida diz onde
-  (`classes[0].schedules[0].week_day`).
+JavaScript, com as cores dos temas claro e escuro do app. Os relatos antigos
+que chegaram sem a tela aparecem como "Sem tela".
 
 ### Consultar o que está no ar
 
@@ -170,8 +172,9 @@ curl -s https://pitrol.dev/aouerj/status
 ```
 
 Responde o commit e a cor (azul ou verde) implantados, quando o processo
-subiu, a versão do Node, o banco, a situação do portal e a fila do gerador,
-sem dado de aluno e sem cache. O status HTTP é 200, ou 503 enquanto o banco
+subiu, o banco, a situação do portal e a fila do gerador, sem dado de aluno e
+sem cache. A versão do Node fica de fora: só serviria para mirar uma falha
+conhecida. O status HTTP é 200, ou 503 enquanto o banco
 não está conectado: serve para um monitor de disponibilidade. A implantação
 usa a mesma rota para conferir que a versão que responde é o commit que
 acabou de subir (`smoke.mjs --expect-commit`).

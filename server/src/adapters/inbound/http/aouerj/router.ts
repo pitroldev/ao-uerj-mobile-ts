@@ -85,7 +85,6 @@ export function createAoUerjRouter({
         suggestions: services.suggestions,
         session,
         isDatabaseReady: () => database.isReady(),
-        loginLimit: writeLimit,
       }),
     );
 }
