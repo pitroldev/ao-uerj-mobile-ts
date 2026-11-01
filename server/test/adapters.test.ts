@@ -68,6 +68,17 @@ test('a write that fails leaves nothing behind', async () => {
   await fs.rm(blocked);
 });
 
+test('when one document of a report fails, the ones written with it are removed', async () => {
+  const folder = await fs.mkdtemp(path.join(directory, 'partial-'));
+  const store = createFileAttachmentStore(folder);
+  // um documento que não é texto falha na gravação; o outro chega a gravar
+  await assert.rejects(
+    store.save('Notas', ['<html>ok</html>', 42 as unknown as string]),
+    { code: 'ERR_INVALID_ARG_TYPE' },
+  );
+  assert.deepEqual(await fs.readdir(folder), []);
+});
+
 test('the models keep the old names, fields and limits', async () => {
   const models = defineModels(mongoose.createConnection());
   assert.equal(models.muralMessages.collection.collectionName, 'muralmessages');
@@ -171,6 +182,46 @@ test('a database that does not answer is tried again, with growing pauses, until
   assert.equal(failures.length, attemptsWhenStopped);
 });
 
+test('stopping during an attempt does not wait for the next pause', async () => {
+  const database = createDatabase({
+    uri: 'mongodb://127.0.0.1:1/aouerj',
+    timeoutMs: 200,
+    // uma pausa longa: se o connect esperasse por ela, o teste estouraria
+    backoff: { firstMs: 60_000, maxMs: 60_000 },
+    logger: pino({ level: 'silent' }),
+  });
+  const started = performance.now();
+  const connecting = database.connect();
+  await database.disconnect();
+  assert.equal(await connecting, false);
+  assert.ok(performance.now() - started < 5000);
+});
+
+test('a request that arrives already given up is refused at the door, as an AbortError', async () => {
+  const gaveUp = new AbortController();
+  // um motivo que não é Error vira um AbortError, como o fetch daria
+  gaveUp.abort('o app fechou');
+  const isAbort = (err: unknown) =>
+    err instanceof Error && err.name === 'AbortError';
+
+  const admission = createAdmission({
+    concurrency: 1,
+    queueLimit: 1,
+    whenFull: () => new Error('full'),
+  });
+  await assert.rejects(admission.enter(gaveUp.signal), isAbort);
+
+  const pool = createWorkerPool({ url: ECHO_WORKER, memoryMb: 16 });
+  await assert.rejects(pool.run('a', gaveUp.signal), isAbort);
+  // nem chegou a abrir uma thread
+  assert.equal(pool.size(), 0);
+
+  await assert.rejects(
+    createInlineSolver().solve(smallRequest(), { signal: gaveUp.signal }),
+    isAbort,
+  );
+});
+
 const SILENT_WORKER = new URL('./fixtures/silentWorker.ts', import.meta.url);
 const ECHO_WORKER = new URL('./fixtures/echoWorker.ts', import.meta.url);
 
@@ -200,6 +251,63 @@ test('the pool keeps a warm thread, and replaces the one of a task that was give
 
   await pool.close();
   assert.equal(pool.size(), 0);
+});
+
+/**
+ * As threads do pool não seguram o processo (no servidor, o HTTP segura):
+ * sem um timer, o teste acabaria antes de a thread responder.
+ */
+function keepAlive(t: { after(fn: () => void): void }) {
+  const timer = setInterval(() => undefined, 1000);
+  t.after(() => clearInterval(timer));
+}
+
+test('a thread that runs out of heap or exits fails only its task, and the next gets a new one', async t => {
+  keepAlive(t);
+  const pool = createWorkerPool({ url: ECHO_WORKER, memoryMb: 16 });
+  const open = () => new AbortController().signal;
+  type Echo = { threadId: number; data: string };
+
+  const first = (await pool.run<Echo>('a', open())).threadId;
+  await assert.rejects(pool.run('hog', open()), {
+    code: 'ERR_WORKER_OUT_OF_MEMORY',
+  });
+  const afterHog = (await pool.run<Echo>('b', open())).threadId;
+  assert.notEqual(afterHog, first);
+
+  await assert.rejects(
+    pool.run('exit', open()),
+    /The worker thread exited with code 3/,
+  );
+  assert.notEqual((await pool.run<Echo>('c', open())).threadId, afterHog);
+  // as que morreram saíram da conta
+  assert.equal(pool.size(), 1);
+  await pool.close();
+});
+
+const SCHEDULE_WORKER = new URL(
+  '../src/adapters/outbound/scheduleSolver/scheduleWorker.ts',
+  import.meta.url,
+);
+
+test('the schedule thread answers a broken job with its error and stays for the next', async t => {
+  keepAlive(t);
+  const pool = createWorkerPool({ url: SCHEDULE_WORKER, memoryMb: 64 });
+  const open = () => new AbortController().signal;
+
+  await assert.rejects(
+    pool.run({ request: null, budgetMs: 1000 }, open()),
+    (err: Error) => err instanceof Error && err.message.length > 0,
+  );
+  assert.equal(pool.size(), 1);
+  const result = await pool.run<{ schedules: unknown[]; exhaustive: boolean }>(
+    { request: smallRequest(), budgetMs: 1000 },
+    open(),
+  );
+  assert.equal(result.exhaustive, true);
+  assert.ok(result.schedules.length > 0);
+  assert.equal(pool.size(), 1);
+  await pool.close();
 });
 
 /** Um pedido pequeno, já no formato do domínio. */

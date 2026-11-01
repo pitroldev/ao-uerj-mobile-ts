@@ -1,8 +1,14 @@
 import assert from 'node:assert/strict';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { test } from 'node:test';
 
 import { toPortalStatusResponse } from '../src/adapters/inbound/http/aouerj/status.ts';
 import { repeatEvery } from '../src/adapters/inbound/scheduling/repeat.ts';
+import {
+  ALUNO_ONLINE_URL,
+  createPortalProbe,
+} from '../src/adapters/outbound/portal/probe.ts';
 import { createPortalWatch } from '../src/modules/portal/application.ts';
 import {
   INITIAL_STATUS,
@@ -114,4 +120,56 @@ test('the response has ISO dates and nothing else', () => {
     since: null,
     checkedAt: null,
   });
+});
+
+/** Um "Aluno Online" local, que responde como o teste mandar. */
+async function fakePortal(handler: http.RequestListener) {
+  const server = http.createServer(handler);
+  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  return {
+    url: `http://127.0.0.1:${port}/`,
+    close: () =>
+      new Promise<void>(resolve => {
+        server.closeAllConnections();
+        server.close(() => resolve());
+      }),
+  };
+}
+
+test('the probe asks the Aluno Online home page and keeps its redirect as the answer', async () => {
+  assert.equal(ALUNO_ONLINE_URL, 'https://www.alunoonline.uerj.br/');
+  const seen: string[] = [];
+  const portal = await fakePortal((req, res) => {
+    seen.push(`${req.method} ${req.url}`);
+    res.writeHead(req.url === '/' ? 302 : 200, { location: '/login' });
+    res.end();
+  });
+  try {
+    // o portal no ar redireciona para o login: não segue, o 302 basta
+    assert.equal(await createPortalProbe(portal.url)(1000), 302);
+    assert.deepEqual(seen, ['GET /']);
+  } finally {
+    await portal.close();
+  }
+});
+
+test('a page that never finishes counts by its status, and silence ends at the timeout', async () => {
+  const portal = await fakePortal((req, res) => {
+    // o corpo nunca termina; /silent nem responde
+    if (req.url === '/slow') {
+      res.writeHead(200);
+      res.write('<html>');
+    }
+  });
+  try {
+    const started = performance.now();
+    assert.equal(await createPortalProbe(`${portal.url}slow`)(5000), 200);
+    assert.ok(performance.now() - started < 2000, 'esperou o corpo');
+    await assert.rejects(createPortalProbe(`${portal.url}silent`)(200), {
+      name: 'TimeoutError',
+    });
+  } finally {
+    await portal.close();
+  }
 });

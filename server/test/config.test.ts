@@ -41,6 +41,8 @@ test('the tests stay quiet and leave the portal alone', () => {
 test('TRUST_PROXY becomes what Express expects: hops, a flag or addresses', () => {
   assert.equal(loadConfig({ TRUST_PROXY: '1' }).http.trustProxy, 1);
   assert.equal(loadConfig({ TRUST_PROXY: 'true' }).http.trustProxy, true);
+  assert.equal(loadConfig({ TRUST_PROXY: 'false' }).http.trustProxy, false);
+  assert.equal(loadConfig({ TRUST_PROXY: '' }).http.trustProxy, undefined);
   assert.equal(
     loadConfig({ TRUST_PROXY: 'loopback' }).http.trustProxy,
     'loopback',

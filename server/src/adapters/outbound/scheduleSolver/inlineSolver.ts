@@ -1,6 +1,7 @@
 import { generateSchedules } from '../../../modules/schedules/domain/search.ts';
 import type { ScheduleSolver } from '../../../modules/schedules/ports.ts';
 import { systemClock, type Clock } from '../../../shared/clock.ts';
+import { reasonOf } from './cancellation.ts';
 
 /**
  * A busca na thread de quem chama, com o mesmo orçamento: para testes e
@@ -13,7 +14,8 @@ export function createInlineSolver({
   let running = 0;
   return {
     async solve(request, { signal } = {}) {
-      signal?.throwIfAborted();
+      // como o `threadedSolver`: o motivo sempre como Error
+      if (signal?.aborted) throw reasonOf(signal);
       running += 1;
       try {
         const deadline = now() + budgetMs;

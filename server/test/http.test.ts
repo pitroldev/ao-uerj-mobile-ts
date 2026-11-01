@@ -1,9 +1,15 @@
 import assert from 'node:assert/strict';
+import { Writable } from 'node:stream';
 import { after, before, test } from 'node:test';
 
+import type { Request, Response } from 'express';
+import { pino } from 'pino';
+
+import { handleError } from '../src/adapters/inbound/http/errors.ts';
 import { createServer, type Server } from '../src/composition.ts';
 import { createPortalWatch } from '../src/modules/portal/application.ts';
-import { UnavailableError } from '../src/shared/errors.ts';
+import type { ScheduleSolver } from '../src/modules/schedules/ports.ts';
+import { DomainError, UnavailableError } from '../src/shared/errors.ts';
 import {
   memoryAttachments,
   memoryRepositories,
@@ -356,10 +362,38 @@ test('with the admin token configured, the listings need it', async () => {
     'updatedAt',
   ]);
 
+  const empty = await admin.call('/aouerj/reportError', {
+    headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+  });
+  assert.deepEqual(empty.body, { reports: [] });
+
+  await admin.call('/aouerj/reportError', {
+    method: 'POST',
+    body: {
+      page: 'Notas',
+      description: 'Sumiu a nota',
+      email: 'ada@example.com',
+      html: ['<html></html>'],
+    },
+  });
   const reports = await admin.call('/aouerj/reportError', {
     headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
   });
-  assert.deepEqual(reports.body, { reports: [] });
+  assert.equal(reports.status, 200);
+  const [record] = reports.body.reports;
+  // os campos do servidor antigo, com as datas em ISO
+  assert.deepEqual(Object.keys(record), [
+    '_id',
+    'page',
+    'description',
+    'email',
+    'filesID',
+    'createdAt',
+    'updatedAt',
+  ]);
+  assert.equal(record.page, 'Notas');
+  assert.equal(record.filesID.length, 1);
+  assert.match(record.createdAt, /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/);
 });
 
 test('without the database, its routes answer 503 at once and the others keep working', async () => {
@@ -795,4 +829,205 @@ test('the generator health shows its load, and generations are limited per minut
   const second = await post();
   assert.equal(second.status, 429);
   assert.equal(second.body.error, 'rate_limited');
+});
+
+/** O log da requisição em linhas de JSON, para o teste conferir. */
+function capturedLogger() {
+  const lines: Array<Record<string, unknown>> = [];
+  const logger = pino(
+    { level: 'warn' },
+    new Writable({
+      write(chunk, _encoding, done) {
+        lines.push(JSON.parse(String(chunk)));
+        done();
+      },
+    }),
+  );
+  return { logger, lines };
+}
+
+/** Um servidor com o solver e o log que o teste der. */
+async function serveWith(solver: ScheduleSolver, logger = silentLogger) {
+  const server = createServer(testConfig(), logger, {
+    database: switchableDatabase().database,
+    repositories: memoryRepositories().repositories,
+    attachments: memoryAttachments().store,
+    portal: createPortalWatch({ probe: async () => 200 }),
+    solver,
+  });
+  opened.push(server);
+  const { port } = await server.start(0);
+  return `http://127.0.0.1:${port}`;
+}
+
+const idle = () => ({ running: 0, queued: 0 });
+const postGeneration = (base: string, signal?: AbortSignal) =>
+  fetch(`${base}/schedules/generate`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(generation(conflictingThree())),
+    signal,
+  });
+
+test('a search stopped by the time budget still answers, says so and leaves a warning', async () => {
+  const { logger, lines } = capturedLogger();
+  const base = await serveWith(
+    {
+      solve: async () => ({ schedules: [], exhaustive: false, visited: 42 }),
+      load: idle,
+    },
+    logger,
+  );
+  const response = await postGeneration(base);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { data: [], exhaustive: false });
+  const warning = lines.find(
+    line => line.msg === 'schedule search stopped at the time budget',
+  );
+  assert.equal(warning?.visited, 42);
+  assert.equal(warning?.classes, 3);
+});
+
+test('when the app gives up, the search is told to stop and nothing fails', async () => {
+  const { logger, lines } = capturedLogger();
+  let told!: () => void;
+  const stopped = new Promise<void>(resolve => (told = resolve));
+  const base = await serveWith(
+    {
+      solve: (_request, { signal } = {}) =>
+        new Promise((_resolve, reject) => {
+          signal?.addEventListener(
+            'abort',
+            () => {
+              told();
+              reject(new DOMException('The app gave up', 'AbortError'));
+            },
+            { once: true },
+          );
+        }),
+      load: idle,
+    },
+    logger,
+  );
+
+  const client = new AbortController();
+  const pending = postGeneration(base, client.signal);
+  setTimeout(() => client.abort(), 100);
+  await assert.rejects(pending, { name: 'AbortError' });
+  await stopped;
+
+  // o servidor segue atendendo, e a desistência não virou um 500 no log
+  assert.equal((await fetch(`${base}/schedules/health`)).status, 200);
+  assert.equal(
+    lines.some(line => line.msg === 'request failed'),
+    false,
+  );
+});
+
+test('what old apps send: no pages, empty texts, nulls and an e-mail that is not text', async () => {
+  // um relato só com a página, e a descrição vazia
+  const report = await app.call('/aouerj/reportError', {
+    method: 'POST',
+    body: { page: 'Horários', description: '' },
+  });
+  assert.deepEqual(report.body, { status: 'ok' });
+  const saved = app.memory.data.reports.at(-1)!;
+  assert.deepEqual(saved.attachmentIds, []);
+  assert.equal(saved.description, undefined);
+
+  // um e-mail que não é texto some, em vez de recusar a sugestão
+  await app.call('/aouerj/suggestions', {
+    method: 'POST',
+    body: { name: 'Ana', content: 'Oi', email: 12345 },
+  });
+  assert.equal(app.memory.data.suggestions.at(-1)!.email, undefined);
+
+  // nulo num campo obrigatório é o mesmo que faltar
+  const refused = await app.call('/aouerj/messages/post', {
+    method: 'POST',
+    body: { ...thread, fullName: null, message: 'Oi' },
+  });
+  assert.equal(refused.status, 400);
+  assert.equal(refused.body.message, 'fullName is required');
+
+  app.memory.data.teachers.push({
+    id: 't-datas',
+    name: 'Yara Datas',
+    subjects: {},
+    createdAt: new Date(Date.UTC(2023, 0, 1)),
+    updatedAt: new Date(Date.UTC(2024, 0, 1)),
+  });
+  const found = await app.call('/aouerj/docentes/yara');
+  assert.equal(found.body.docentes[0].updatedAt, '2024-01-01T00:00:00.000Z');
+});
+
+test('the generator takes nulls as absent and numbers as text, as the old apps send', async () => {
+  const [first, ...others] = conflictingThree();
+  const body = generation([
+    { ...first, id: 7 as unknown as string, name: null as unknown as string },
+    ...others,
+  ]);
+  body.subjects = body.subjects.map(entry => ({
+    ...entry,
+    recomended_period: null,
+  }));
+  const schedules = await generate(body);
+  assert.ok(schedules.length > 0);
+});
+
+/** A resposta que o tratador de erros daria, sem passar pelo Express. */
+function answerOf(err: unknown) {
+  const answer = { status: 0, body: undefined as unknown };
+  const res = {
+    headersSent: false,
+    status(code: number) {
+      answer.status = code;
+      return this;
+    },
+    json(body: unknown) {
+      answer.body = body;
+      return this;
+    },
+  };
+  handleError(
+    err,
+    { log: { error: () => undefined } } as unknown as Request,
+    res as unknown as Response,
+    () => undefined,
+  );
+  return answer;
+}
+
+test('a rule of the domain is a 422, and an unexpected 4xx of a library keeps its status', () => {
+  assert.deepEqual(answerOf(new DomainError('too_soon', 'Espere')), {
+    status: 422,
+    body: { error: 'too_soon', message: 'Espere' },
+  });
+  const odd = Object.assign(new Error('Method Not Allowed'), {
+    status: 405,
+    expose: true,
+  });
+  assert.deepEqual(answerOf(odd), {
+    status: 405,
+    body: { error: 'bad_request', message: 'The request could not be read' },
+  });
+  // um status de servidor de uma biblioteca é um 500 como outro qualquer
+  assert.equal(
+    answerOf(Object.assign(new Error('x'), { status: 502 })).status,
+    500,
+  );
+});
+
+test('an error after the answer started goes to Express, which closes the connection', () => {
+  const failure = new Error('late');
+  let passed: unknown;
+  handleError(
+    failure,
+    {} as Request,
+    { headersSent: true } as Response,
+    err => {
+      passed = err;
+    },
+  );
+  assert.equal(passed, failure);
 });

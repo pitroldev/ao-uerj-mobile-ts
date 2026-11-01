@@ -10,7 +10,7 @@ export const systemClock: Clock = () => Date.now();
 export function cacheFor<T>(
   load: () => Promise<T>,
   { ttlMs, now = systemClock }: { ttlMs: number; now?: Clock },
-): { get: () => Promise<T>; clear: () => void } {
+): { get: () => Promise<T> } {
   let entry: { value: Promise<T>; expiresAt: number } | null = null;
 
   return {
@@ -23,9 +23,6 @@ export function cacheFor<T>(
         if (entry === current) entry = null;
       });
       return value;
-    },
-    clear() {
-      entry = null;
     },
   };
 }
