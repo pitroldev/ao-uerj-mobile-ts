@@ -50,8 +50,11 @@ run_release() {
   local commit="$1" log pid
   mkdir -p "$LOGS"
   log="$LOGS/$(date -u +%Y%m%dT%H%M%SZ)-${commit:0:7}.log"
+  # o arquivo existe antes de a implantação começar: senão o tail pode
+  # chegar primeiro, desistir, e o CI ficar sem a saída (e sem o traffic=)
+  : >"$log"
   setsid -w bash "$ROOT/releases/$commit/deploy/server/release.sh" "$commit" \
-    >"$log" 2>&1 </dev/null &
+    >>"$log" 2>&1 </dev/null &
   pid=$!
   tail --pid="$pid" -n +1 -f "$log" || true
   # shellcheck disable=SC2012

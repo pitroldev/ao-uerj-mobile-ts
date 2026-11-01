@@ -99,14 +99,18 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "$TARGET" "deploy $GITHUB_SHA" | tee deploy.log
-      # o GET /aouerj/status tem de mostrar este commit, pela internet
+      # o GET /aouerj/status tem de mostrar este commit, pela internet; sem a
+      # linha final da implantação, não dá para saber o que houve: falha
       - name: Conferir pela internet, como os apps
         run: |
           if grep -qx 'traffic=switched' deploy.log; then
             node deploy/server/smoke.mjs https://pitrol.dev --require-database \
               --expect-commit "$GITHUB_SHA"
-          else
+          elif grep -qx 'traffic=pending' deploy.log; then
             echo '::notice::Implantado sem tráfego: falta o cutover (deploy/server/cutover.sh).'
+          else
+            echo '::error::A implantação não disse como terminou (sem a linha traffic=).'
+            exit 1
           fi
 
   rollback:
@@ -145,4 +149,7 @@ jobs:
         run: |
           if grep -qx 'traffic=switched' deploy.log; then
             node deploy/server/smoke.mjs https://pitrol.dev --require-database
+          elif ! grep -qx 'traffic=pending' deploy.log; then
+            echo '::error::A volta não disse como terminou (sem a linha traffic=).'
+            exit 1
           fi
