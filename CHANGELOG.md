@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.11.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.10.0...v2.11.0) (2026-11-01)
+
+
+### Novidades
+
+* **planning:** rank schedules by the subjects that lock others ([3ff1bb8](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/3ff1bb8b36802f98247d6390d280bcd472e50214))
+* **server:** bring the UERJ backend and the schedule generator into server/ ([83912f2](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/83912f2b59de0244857c32ccdb31eac96f43f4e3))
+* **server:** triage the error reports in the browser at /aouerj/admin ([9148ac6](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/9148ac69f8559e5295a78adc32668a87c908cfe3))
+
+
+### Correções
+
+* **deploy:** install logrotate in the bootstrap and fix the pm2 unit check ([15ad77e](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/15ad77e34d0d2575d6793e0e8572b2473c04f75e))
+* **deploy:** skip the pm2 logrotate when the VM has no logrotate ([8867fe7](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/8867fe7f28c37b3c1a75f3c9359155dd145d3853))
+* **deploy:** stream the deploy output to the CI and fail without its outcome ([ee9a5a4](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/ee9a5a4018e331ec8bdb92f674722ec8ae128c5f))
+* **deploy:** survive a dropped SSH channel and a stale state file ([fcd480a](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/fcd480a46e88ce6afaea6dc2dff78091aaceba60))
+* **planning:** send one generator request and accept overbooked classes ([ebb8193](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/ebb81936a70337f271caa55b2aeb3163eeefcc0d))
+* **server:** close the MongoDB client even after the database went down ([d94cc18](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/d94cc18a1c298eda7441c1ce294bc02c9fa35068))
+* **server:** load the admin page with old screenless reports, and expose less ([1a5ae05](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/1a5ae05a3549cb9e7ffb87f24502a98768d08949))
+* **server:** reconnect to MongoDB, keep a warm generator thread, tighten edges ([929a4fd](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/929a4fde83b66dfe08e7a5a7df462eb1d9d7e63f))
+
 ## 2.10.0 (2026-10-25)
 
 ### Novidades
