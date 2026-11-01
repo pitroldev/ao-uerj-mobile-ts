@@ -96,9 +96,7 @@ export function createDatabase({
     async disconnect(): Promise<void> {
       stopped = true;
       wake?.();
-      if (connection.readyState !== mongoose.ConnectionStates.disconnected) {
-        await connection.close();
-      }
+      await connection.close();
     },
   };
 }
