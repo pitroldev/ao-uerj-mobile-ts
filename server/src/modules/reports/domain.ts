@@ -17,9 +17,71 @@ export type ErrorReport = {
   description?: string;
   email?: string;
   attachmentIds: string[];
+  /** Quando foi dado como resolvido na administração; aberto, `null`. */
+  resolvedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };
+
+/**
+ * O anexo dos apps 2.x: um JSON de diagnóstico, sem dado pessoal (o app
+ * escolhe os campos). O da 1.x é a página do portal, em HTML.
+ */
+export type Diagnostic = {
+  operation: string;
+  category: string;
+  appVersion: string;
+  parserVersion: string;
+  subjectCode?: string;
+  eventId?: string;
+};
+
+const text = (value: unknown, max = 200) =>
+  typeof value === 'string' && value.length <= max ? value : undefined;
+
+/** O diagnóstico de um anexo, ou `null` se ele não for um (HTML da 1.x). */
+export function parseDiagnostic(content: string): Diagnostic | null {
+  if (!content.trimStart().startsWith('{')) return null;
+  let value: Record<string, unknown>;
+  try {
+    value = JSON.parse(content) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+  if (!value || typeof value !== 'object' || value.schemaVersion !== 1)
+    return null;
+  const operation = text(value.operation);
+  const category = text(value.category);
+  const appVersion = text(value.appVersion, 40);
+  const parserVersion = text(value.parserVersion, 40);
+  if (!operation || !category || !appVersion || !parserVersion) return null;
+  const subjectCode = text(value.subjectCode, 40);
+  const eventId = text(value.eventId, 64);
+  return {
+    operation,
+    category,
+    appVersion,
+    parserVersion,
+    ...(subjectCode ? { subjectCode } : {}),
+    ...(eventId ? { eventId } : {}),
+  };
+}
+
+/** A situação de um relato na triagem. */
+export type ReviewStatus = 'open' | 'resolved' | 'all';
+
+/** O recorte da triagem: a situação e, opcional, a tela. */
+export type ReviewFilter = { status: ReviewStatus; page?: string };
+
+/** Quantos relatos há de cada tela, abertos e resolvidos. */
+export type ReviewSummary = {
+  open: number;
+  resolved: number;
+  pages: Array<{ page: string; open: number; resolved: number }>;
+};
+
+/** A triagem mostra até estes relatos por vez (os mais recentes). */
+export const REVIEW_LIMIT = 100;
 
 /** Bem acima do que os apps mandam (o atual corta a descrição em 4000). */
 export const REPORT_LIMITS = {

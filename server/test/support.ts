@@ -4,7 +4,10 @@ import { loadConfig, type Config } from '../src/config.ts';
 import type { Overrides } from '../src/composition.ts';
 import type { Message } from '../src/modules/mural/domain.ts';
 import type { MessageRepository } from '../src/modules/mural/ports.ts';
-import type { ErrorReport } from '../src/modules/reports/domain.ts';
+import type {
+  ErrorReport,
+  ReviewFilter,
+} from '../src/modules/reports/domain.ts';
 import type {
   AttachmentStore,
   ErrorReportRepository,
@@ -76,15 +79,59 @@ export function memoryRepositories(clock = manualClock()) {
     },
   };
 
+  const inReview = ({ status, page }: ReviewFilter) =>
+    [...reports]
+      .reverse()
+      .filter(
+        report =>
+          (status === 'all' ||
+            (status === 'open') === (report.resolvedAt === null)) &&
+          (page === undefined || report.page === page),
+      );
   const reportRepository: ErrorReportRepository = {
     async create(report) {
       const at = stamp();
-      const created = { ...report, id: id(), createdAt: at, updatedAt: at };
+      const created = {
+        ...report,
+        id: id(),
+        resolvedAt: null,
+        createdAt: at,
+        updatedAt: at,
+      };
       reports.push(created);
       return created;
     },
     async listRecent(limit) {
       return [...reports].reverse().slice(0, limit);
+    },
+    async findById(reportId) {
+      return reports.find(report => report.id === reportId) ?? null;
+    },
+    async listForReview(filter, limit) {
+      const found = inReview(filter);
+      return { reports: found.slice(0, limit), total: found.length };
+    },
+    async summarize() {
+      const pages = new Map<string, { open: number; resolved: number }>();
+      for (const report of reports) {
+        const entry = pages.get(report.page) ?? { open: 0, resolved: 0 };
+        if (report.resolvedAt) entry.resolved += 1;
+        else entry.open += 1;
+        pages.set(report.page, entry);
+      }
+      const list = [...pages].map(([page, counts]) => ({ page, ...counts }));
+      return {
+        open: list.reduce((sum, item) => sum + item.open, 0),
+        resolved: list.reduce((sum, item) => sum + item.resolved, 0),
+        pages: list.sort((a, b) => b.open - a.open || b.resolved - a.resolved),
+      };
+    },
+    async setResolvedAt(reportId, at) {
+      const report = reports.find(item => item.id === reportId);
+      if (!report) return null;
+      report.resolvedAt = at;
+      report.updatedAt = stamp();
+      return report;
     },
   };
 
@@ -125,6 +172,15 @@ export function memoryAttachments() {
     },
     async discard(page, ids) {
       ids.forEach(fileId => files.delete(`${page}/${fileId}`));
+    },
+    async read(page, fileId, { maxBytes } = {}) {
+      const text = files.get(`${page}/${fileId}`);
+      if (text === undefined) return null;
+      const bytes = Buffer.byteLength(text);
+      return {
+        bytes,
+        text: maxBytes === undefined ? text : text.slice(0, maxBytes),
+      };
     },
   };
   return { files, store };

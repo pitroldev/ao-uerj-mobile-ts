@@ -41,6 +41,8 @@ const errorReportSchema = new mongoose.Schema(
     /** Os anexos gravados em arquivo (`<página>-<id>.html`). */
     filesID: { default: [], type: [String] },
     email,
+    /** Resolvido na triagem (`/aouerj/admin`); os antigos não têm o campo. */
+    resolvedAt: { default: null, type: Date },
   },
   OPTIONS,
 );

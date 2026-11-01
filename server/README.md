@@ -119,6 +119,7 @@ que o app também importa.
 | `POST /aouerj/suggestions`   | Grava a sugestão; responde `{ "status": "ok" }`                                |
 | `GET /aouerj/reportError`    | Administração: os 100 relatos mais recentes, com e-mail                        |
 | `GET /aouerj/suggestions`    | Administração: as 200 sugestões mais recentes, com e-mail                      |
+| `GET /aouerj/admin`          | Administração no navegador: a triagem dos relatos (veja abaixo)                |
 | `POST /schedules/generate`   | As até 5 melhores grades das turmas enviadas (`{ data, exhaustive }`)          |
 | `GET /schedules/health`      | O gerador: buscas rodando e na fila                                            |
 
@@ -131,8 +132,33 @@ que o app também importa.
   `disciplina` vira texto, como o Mongoose já fazia. Um e-mail inválido num
   relato ou sugestão é descartado, sem recusar o resto.
 - **Administração:** as listagens trazem e-mail. Elas exigem
-  `Authorization: Bearer <ADMIN_TOKEN>` e não existem (404) sem o token
-  configurado.
+  `Authorization: Bearer <ADMIN_TOKEN>` ou o cookie do login de
+  `/aouerj/admin`, e não existem (404) sem o token configurado.
+
+### Administração no navegador
+
+`https://pitrol.dev/aouerj/admin` pede o `ADMIN_TOKEN` (o do `shared/.env` na
+VM) e grava um cookie de 30 dias:
+
+- **O cookie:** `HttpOnly`, `SameSite=Strict`, `Secure` em HTTPS e no caminho
+  `/aouerj`. O valor é tirado do token por HMAC, não é o próprio token. Trocar
+  o `ADMIN_TOKEN` derruba todos os logins; "Sair" apaga o deste navegador.
+- **Relatos:** os abertos primeiro, por dia (no fuso de São Paulo), com
+  filtro por situação (abertos, resolvidos, todos) e por tela. O diagnóstico
+  que os apps 2.x mandam vira fatos no relato (versão do app, da leitura do
+  portal, tipo e disciplina).
+- **Resolver e reabrir:** grava `resolvedAt` no relato (os antigos não têm o
+  campo e contam como abertos). O formulário leva um `csrf` tirado do token,
+  além do cookie `SameSite=Strict`.
+- **Anexos:** o diagnóstico abre numa página. A página do portal que os apps
+  1.x mandavam abre com `Content-Security-Policy: sandbox`: sem script, numa
+  origem própria e sem buscar nada na rede, então não lê o cookie nem as
+  outras páginas. Só abre o anexo do próprio relato.
+- **Sugestões:** numa aba ao lado, das mais novas às mais antigas.
+
+As páginas são HTML montado no servidor (`http/aouerj/admin/`), sem
+JavaScript, com as cores dos temas claro e escuro do app.
+
 - **Gerador:** fila cheia é 503 `generator_busy`; uma thread que não responde
   é 503 `generator_timeout`. Entrada inválida diz onde
   (`classes[0].schedules[0].week_day`).

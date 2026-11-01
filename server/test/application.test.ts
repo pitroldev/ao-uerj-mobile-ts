@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { createMural } from '../src/modules/mural/application.ts';
 import { THREAD_PAGE } from '../src/modules/mural/domain.ts';
 import { createErrorReports } from '../src/modules/reports/application.ts';
+import { parseDiagnostic } from '../src/modules/reports/domain.ts';
 import { createSuggestions } from '../src/modules/suggestions/application.ts';
 import { createTeacherDirectory } from '../src/modules/teachers/application.ts';
 import { cacheFor } from '../src/shared/clock.ts';
@@ -111,6 +112,112 @@ test('an error report keeps its attachments, and loses them when the report fail
     /banco fora/,
   );
   assert.deepEqual([...attachments.files.keys()], ['Notas/file-1']);
+});
+
+test('only a JSON of schema 1 with the expected fields is a diagnostic', () => {
+  const valid = {
+    schemaVersion: 1,
+    operation: 'Notas',
+    category: 'USER_REPORT',
+    appVersion: '2.10.0',
+    parserVersion: '2026.10.2',
+  };
+  assert.deepEqual(parseDiagnostic(JSON.stringify(valid)), {
+    operation: 'Notas',
+    category: 'USER_REPORT',
+    appVersion: '2.10.0',
+    parserVersion: '2026.10.2',
+  });
+  assert.deepEqual(
+    parseDiagnostic(
+      JSON.stringify({
+        ...valid,
+        subjectCode: 'IME02-10871',
+        eventId: 'abc',
+        extra: 1,
+      }),
+    ),
+    {
+      operation: 'Notas',
+      category: 'USER_REPORT',
+      appVersion: '2.10.0',
+      parserVersion: '2026.10.2',
+      subjectCode: 'IME02-10871',
+      eventId: 'abc',
+    },
+  );
+  for (const content of [
+    '<html><body>página do portal</body></html>',
+    '{quebrado',
+    'null',
+    JSON.stringify({ ...valid, schemaVersion: 2 }),
+    JSON.stringify({ ...valid, appVersion: 210 }),
+    JSON.stringify({ ...valid, appVersion: 'x'.repeat(41) }),
+  ])
+    assert.equal(parseDiagnostic(content), null, content);
+});
+
+test('the review opens each attachment only enough to tell what it is, and one opens only from its own report', async () => {
+  const { repositories } = memoryRepositories();
+  const attachments = memoryAttachments();
+  const reports = createErrorReports(repositories.reports, attachments.store, {
+    now: () => Date.UTC(2026, 10, 1, 12),
+  });
+  const diagnostic = JSON.stringify({
+    schemaVersion: 1,
+    operation: 'Notas',
+    category: 'USER_REPORT',
+    appVersion: '2.10.0',
+    parserVersion: '2026.10.2',
+  });
+  const modern = await reports.submit({
+    page: 'Notas',
+    attachments: [diagnostic],
+  });
+  const old = await reports.submit({
+    page: 'Notas',
+    attachments: [`<html>${'x'.repeat(20_000)}</html>`],
+  });
+  // um anexo que sumiu da pasta
+  const lost = await reports.submit({
+    page: 'Login',
+    attachments: ['<p></p>'],
+  });
+  attachments.files.delete(`Login/${lost.attachmentIds[0]}`);
+  const kept = await reports.submit({
+    page: 'Login',
+    attachments: ['<p>1.x</p>'],
+  });
+
+  const review = await reports.review({ status: 'open' });
+  assert.equal(review.total, 4);
+  const kinds = new Map(
+    review.reports.map(report => [report.id, report.attachments[0].kind]),
+  );
+  assert.equal(kinds.get(modern.id), 'diagnostic');
+  // a página grande da 1.x nem é lida inteira
+  assert.equal(kinds.get(old.id), 'page');
+  assert.equal(kinds.get(lost.id), 'missing');
+  assert.equal(kinds.get(kept.id), 'page');
+
+  const resolved = await reports.setResolved(modern.id, true);
+  assert.deepEqual(resolved?.resolvedAt, new Date(Date.UTC(2026, 10, 1, 12)));
+  assert.equal((await reports.summarize()).resolved, 1);
+
+  const opened = await reports.attachment(modern.id, modern.attachmentIds[0]);
+  assert.equal(opened?.kind, 'diagnostic');
+  assert.equal(opened?.kind === 'diagnostic' && opened.raw, diagnostic);
+  assert.equal(
+    (await reports.attachment(kept.id, kept.attachmentIds[0]))?.kind,
+    'page',
+  );
+  // o anexo de outro relato não abre por este
+  assert.equal(
+    await reports.attachment(modern.id, kept.attachmentIds[0]),
+    null,
+  );
+  assert.equal(await reports.attachment('nenhum', kept.attachmentIds[0]), null);
+  assert.equal(await reports.attachment(lost.id, lost.attachmentIds[0]), null);
 });
 
 test('the admin listings bring the newest first', async () => {

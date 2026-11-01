@@ -219,6 +219,11 @@ await check('GET /aouerj/reportError sem token não lista e-mails', async () => 
   expect(status === 404 || status === 401, `status ${status}`);
 });
 
+await check('GET /aouerj/admin sem login não mostra relatos', async () => {
+  const { status } = await call('GET', '/aouerj/admin');
+  expect(status === 404 || status === 401, `status ${status}`);
+});
+
 await check('GET /schedules/health', async () => {
   const { status, json } = await call('GET', '/schedules/health');
   expect(status === 200 && json?.online === true, `status ${status}`);

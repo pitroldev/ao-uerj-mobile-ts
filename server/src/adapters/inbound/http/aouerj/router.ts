@@ -6,7 +6,9 @@ import type { ErrorReports } from '../../../../modules/reports/ports.ts';
 import type { ScheduleGenerator } from '../../../../modules/schedules/ports.ts';
 import type { Suggestions } from '../../../../modules/suggestions/ports.ts';
 import type { TeacherDirectory } from '../../../../modules/teachers/ports.ts';
+import { adminSession } from '../adminSession.ts';
 import { adminOnly, perMinuteLimit, requireDatabase } from '../middleware.ts';
+import { adminRoutes } from './admin/routes.ts';
 import { muralRoutes } from './mural.ts';
 import { reportRoutes } from './reports.ts';
 import { statusRoutes, type DatabaseHealth, type Release } from './status.ts';
@@ -29,12 +31,15 @@ export type AoUerjServices = {
  * os apps publicados já usam. As gravações dividem um só limite por IP.
  */
 export function createAoUerjRouter({
+  basePath,
   services,
   database,
   release,
   adminToken,
   writesPerMinute,
 }: {
+  /** Onde este roteador está montado (`/aouerj`): o caminho do cookie. */
+  basePath: string;
   services: AoUerjServices;
   database: DatabaseHealth;
   release: Release;
@@ -43,7 +48,8 @@ export function createAoUerjRouter({
 }) {
   const withDatabase = requireDatabase(() => database.isReady());
   const writeLimit = perMinuteLimit(writesPerMinute);
-  const admin = adminOnly(adminToken);
+  const session = adminToken ? adminSession(adminToken, basePath) : null;
+  const admin = adminOnly(session);
 
   return express
     .Router()
@@ -71,6 +77,15 @@ export function createAoUerjRouter({
         withDatabase,
         writeLimit,
         adminOnly: admin,
+      }),
+    )
+    .use(
+      adminRoutes({
+        reports: services.reports,
+        suggestions: services.suggestions,
+        session,
+        isDatabaseReady: () => database.isReady(),
+        loginLimit: writeLimit,
       }),
     );
 }

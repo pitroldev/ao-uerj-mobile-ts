@@ -68,6 +68,36 @@ test('a write that fails leaves nothing behind', async () => {
   await fs.rm(blocked);
 });
 
+test('an attachment is read whole or in part, found by id under an old name, and never outside the folder', async () => {
+  const folder = await fs.mkdtemp(path.join(directory, 'read-'));
+  const store = createFileAttachmentStore(folder);
+  const [id] = await store.save('Notas', ['{"schemaVersion":1}']);
+
+  assert.deepEqual(await store.read('Notas', id), {
+    bytes: 19,
+    text: '{"schemaVersion":1}',
+  });
+  assert.deepEqual(await store.read('Notas', id, { maxBytes: 5 }), {
+    bytes: 19,
+    text: '{"sch',
+  });
+  // um relato antigo com outra regra de nome da página
+  const old = '0f8fad5b-d9cb-469f-a165-70867728950e';
+  await fs.writeFile(
+    path.join(folder, `Notas-e-Faltas-${old}.html`),
+    '<p>1.x</p>',
+  );
+  assert.equal((await store.read('Notas', old))?.text, '<p>1.x</p>');
+
+  for (const forged of ['../segredo', 'a/b', '..', '']) {
+    assert.equal(await store.read('Notas', forged), null, forged);
+  }
+  assert.equal(
+    await store.read('Notas', '6ba7b810-9dad-11d1-80b4-00c04fd430c8'),
+    null,
+  );
+});
+
 test('when one document of a report fails, the ones written with it are removed', async () => {
   const folder = await fs.mkdtemp(path.join(directory, 'partial-'));
   const store = createFileAttachmentStore(folder);

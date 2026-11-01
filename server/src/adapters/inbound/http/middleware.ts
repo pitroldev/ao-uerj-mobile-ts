@@ -1,10 +1,11 @@
-import { randomUUID, timingSafeEqual } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import type { Logger } from 'pino';
 import { pinoHttp } from 'pino-http';
 
+import type { AdminSession } from './adminSession.ts';
 import type { ApiError } from './contract.ts';
 
 const send = (res: Response, status: number, body: ApiError) => {
@@ -60,24 +61,18 @@ export function requireDatabase(isReady: () => boolean): RequestHandler {
   };
 }
 
-function sameSecret(given: string, expected: string): boolean {
-  const a = Buffer.from(given);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
-
 /**
  * Rotas de administração (as listagens com e-mail): exigem
- * `Authorization: Bearer <ADMIN_TOKEN>`. Sem o token configurado, não existem.
+ * `Authorization: Bearer <ADMIN_TOKEN>` ou o cookie do login de
+ * `/aouerj/admin`. Sem o token configurado, não existem.
  */
-export function adminOnly(token: string | undefined): RequestHandler {
+export function adminOnly(session: AdminSession | null): RequestHandler {
   return (req, res, next) => {
-    if (!token) {
+    if (!session) {
       send(res, 404, { error: 'not_found', message: 'Route not found' });
       return;
     }
-    const given = /^Bearer\s+(.+)$/i.exec(req.get('authorization') ?? '')?.[1];
-    if (!given || !sameSecret(given, token)) {
+    if (!session.allows(req)) {
       send(res, 401, {
         error: 'unauthorized',
         message: 'A valid admin token is required',

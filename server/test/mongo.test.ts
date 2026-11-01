@@ -225,6 +225,64 @@ test('an error report and a suggestion keep the old fields and are listed newest
   assert.equal(suggestions[0].email, undefined);
 });
 
+test('the review counts by screen, filters by status and resolves by id, old reports included', async () => {
+  const { db, models, repositories } = await open();
+  opened.push(db);
+  const { reports } = repositories;
+  const login = await reports.create({ page: 'Login', attachmentIds: [] });
+  await tick();
+  const notes = await reports.create({ page: 'Notas', attachmentIds: [] });
+  await tick();
+  await reports.create({ page: 'Notas', attachmentIds: [] });
+  // um relato de antes da triagem: sem o campo resolvedAt
+  await models.errorReports.collection.insertOne({
+    page: 'RID',
+    filesID: [],
+    createdAt: new Date(Date.UTC(2024, 5, 1)),
+  });
+  assert.equal(login.resolvedAt, null);
+
+  assert.deepEqual(await reports.summarize(), {
+    open: 4,
+    resolved: 0,
+    pages: [
+      { page: 'Notas', open: 2, resolved: 0 },
+      { page: 'Login', open: 1, resolved: 0 },
+      { page: 'RID', open: 1, resolved: 0 },
+    ],
+  });
+
+  const at = new Date(Date.UTC(2026, 10, 1, 12));
+  const resolved = await reports.setResolvedAt(notes.id, at);
+  assert.deepEqual(resolved?.resolvedAt, at);
+  const summary = await reports.summarize();
+  assert.deepEqual([summary.open, summary.resolved], [3, 1]);
+  assert.deepEqual(summary.pages[0], { page: 'Notas', open: 1, resolved: 1 });
+
+  const pages = (found: { reports: { page: string }[] }) =>
+    found.reports.map(report => report.page);
+  const pending = await reports.listForReview({ status: 'open' }, 10);
+  assert.deepEqual(pages(pending), ['Notas', 'Login', 'RID']);
+  assert.equal(pending.total, 3);
+  const limited = await reports.listForReview({ status: 'open' }, 1);
+  assert.deepEqual([limited.reports.length, limited.total], [1, 3]);
+  assert.deepEqual(
+    pages(await reports.listForReview({ status: 'resolved' }, 10)),
+    ['Notas'],
+  );
+  assert.deepEqual(
+    pages(await reports.listForReview({ status: 'all', page: 'Notas' }, 10)),
+    ['Notas', 'Notas'],
+  );
+
+  assert.equal((await reports.findById(login.id))?.page, 'Login');
+  // um id que não é do Mongo não vira consulta, nem erro
+  assert.equal(await reports.findById('nao-e-um-id'), null);
+  assert.equal(await reports.findById('0123456789abcdef01234567'), null);
+  assert.equal(await reports.setResolvedAt('nao-e-um-id', at), null);
+  assert.equal((await reports.setResolvedAt(notes.id, null))?.resolvedAt, null);
+});
+
 test('a database that goes away mid-flight is a 503, and a refused document is not', async () => {
   // um mongod só deste teste, para derrubar sem atrapalhar os outros
   const own = await startMongo();

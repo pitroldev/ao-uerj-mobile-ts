@@ -24,7 +24,7 @@ export type HttpSettings = {
   /** Com a origem pública, HTTP volta para HTTPS (308). */
   forceHttps: boolean;
   publicUrl: string | undefined;
-  /** Libera as listagens com e-mail (`Authorization: Bearer`). */
+  /** Libera a administração: as listagens com e-mail e `/aouerj/admin`. */
   adminToken: string | undefined;
   /** Por IP, por minuto: as gravações de `/aouerj`, juntas. */
   writesPerMinute: number;
@@ -66,6 +66,7 @@ export function createHttpApp({
     '/aouerj',
     express.json({ limit: settings.jsonLimit }),
     createAoUerjRouter({
+      basePath: '/aouerj',
       services,
       database,
       release: settings.release,
