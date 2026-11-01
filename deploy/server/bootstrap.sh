@@ -18,7 +18,8 @@
 #     (o cutover copia de novo o que chegar até a troca);
 #   - o upstream do nginx (conf.d), sem uso até o cutover;
 #   - o pm2 no boot (systemd), que hoje não existe: um reboot derrubava tudo;
-#   - o logrotate dos logs do pm2, que cresciam sem fim;
+#   - o logrotate dos logs do pm2, que cresciam sem fim (se o logrotate estiver
+#     instalado: a imagem mínima da Oracle não o traz);
 #   - ~/ao-uerj-server/bin/remote e a chave do CI no authorized_keys, presa a ele.
 set -euo pipefail
 
@@ -115,7 +116,12 @@ fi
 # sistema gira por dia, guarda 14 compactados e não custa um processo a mais
 # (o pm2-logrotate custaria uns 40 MB numa VM de 1 GB).
 ROTATE="/etc/logrotate.d/pm2-$USER"
-if [ ! -f "$ROTATE" ]; then
+LOGROTATE=/usr/sbin/logrotate
+if [ ! -x "$LOGROTATE" ]; then
+  # a imagem mínima da Oracle não traz o logrotate; instalá-lo também gira
+  # (e, com o tempo, apaga) os logs do nginx, então fica para quem decide
+  log 'sem o logrotate na VM: os logs do pm2 seguem sem girar (apt install logrotate liga)'
+elif [ ! -f "$ROTATE" ]; then
   log 'girando os logs do pm2 (logrotate)'
   printf '%s\n' \
     "$HOME/.pm2/logs/*.log {" \
@@ -128,7 +134,7 @@ if [ ! -f "$ROTATE" ]; then
     '  delaycompress' \
     '  copytruncate' \
     '}' | sudo -n tee "$ROTATE" >/dev/null
-  sudo -n logrotate --debug "$ROTATE" >/dev/null 2>&1 ||
+  sudo -n "$LOGROTATE" --debug "$ROTATE" >/dev/null 2>&1 ||
     { sudo -n rm -f "$ROTATE"; echo 'o logrotate recusou a configuração'; exit 1; }
 fi
 
