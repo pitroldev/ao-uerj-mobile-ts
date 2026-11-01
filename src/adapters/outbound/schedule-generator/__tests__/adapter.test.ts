@@ -96,73 +96,68 @@ it.each([
   );
 });
 
+it('accepts a class with more students than seats (negative vacancies)', () => {
+  const overbooked = {
+    ...generated,
+    schedule: [{ ...generated.schedule[0], vacancies_amount: -3 }],
+  };
+  expect(parseGeneratorResponse({ data: [overbooked] })).toEqual([overbooked]);
+  expect(() =>
+    parseGeneratorResponse({
+      data: [
+        {
+          ...generated,
+          schedule: [{ ...generated.schedule[0], vacancies_amount: 'x' }],
+        },
+      ],
+    }),
+  ).toThrow('O gerador retornou uma resposta inválida.');
+});
+
 it('recognizes an empty valid result', () => {
   expect(parseGeneratorResponse({ data: [] })).toEqual([]);
 });
 
-it('recovers valid two-subject schedules omitted by the legacy minimum of three and stops at the first solution', async () => {
-  const twoSubjects = {
-    ...generated,
-    schedule: [
-      generated.schedule[0],
-      {
-        ...generated.schedule[0],
-        subject_id: 'IME01-12346',
-        subject: { ...generated.schedule[0].subject, id: 'IME01-12346' },
-      },
-    ],
-    total_credits: 8,
-    total_workload: 120,
-  };
-  const transport = {
-    post: jest
-      .fn()
-      .mockResolvedValueOnce({ data: { data: [] } })
-      .mockResolvedValueOnce({ data: { data: [twoSubjects] } }),
-  };
-  const draft = formWithSubjects(5);
-  await expect(
-    new GenerateSchedules(createScheduleGeneratorAdapter(transport)).execute(
-      draft,
-    ),
-  ).resolves.toEqual([twoSubjects]);
-  expect(
-    transport.post.mock.calls.map(
-      ([, body]) => body.preferences.max_subject_amount,
-    ),
-  ).toEqual([5, 2]);
-  expect(draft.max_subject_amount).toBe(5);
-});
-
-it.each([
-  [1, [5, 2, 1]],
-  [2, [5, 2]],
-  [3, [5]],
-] as const)(
-  'limits empty-result probes to the requested minimum %s',
-  async (minimum, maximums) => {
+it.each([1, 2, 3])(
+  'an empty answer is final: one POST with the minimum %s',
+  async minimum => {
     const transport = {
       post: jest.fn().mockResolvedValue({ data: { data: [] } }),
     };
+    const draft = formWithSubjects(5, minimum);
     await expect(
       new GenerateSchedules(createScheduleGeneratorAdapter(transport)).execute(
-        formWithSubjects(5, minimum),
+        draft,
       ),
     ).resolves.toEqual([]);
     expect(
-      transport.post.mock.calls.map(
-        ([, body]) => body.preferences.max_subject_amount,
-      ),
-    ).toEqual(maximums);
+      transport.post.mock.calls.map(([, body]) => [
+        body.preferences.min_subject_amount,
+        body.preferences.max_subject_amount,
+      ]),
+    ).toEqual([[minimum, 5]]);
+    expect(draft.max_subject_amount).toBe(5);
   },
 );
 
-it('does not start another size probe after cancellation', async () => {
+it('sends the maximum clamped to the subjects that have classes', async () => {
+  const transport = {
+    post: jest.fn().mockResolvedValue({ data: { data: [generated] } }),
+  };
+  await new GenerateSchedules(
+    createScheduleGeneratorAdapter(transport),
+  ).execute({ ...formWithSubjects(3), max_subject_amount: 12 });
+  expect(transport.post.mock.calls[0][1].preferences.max_subject_amount).toBe(
+    3,
+  );
+});
+
+it('reports a cancellation that arrives with the answer', async () => {
   const controller = new AbortController();
   const transport = {
     post: jest.fn().mockImplementation(async () => {
       controller.abort();
-      return { data: { data: [] } };
+      return { data: { data: [generated] } };
     }),
   };
   await expect(

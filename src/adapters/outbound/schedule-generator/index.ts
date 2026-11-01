@@ -39,34 +39,22 @@ export function createScheduleGeneratorAdapter(
         const minimum = request.preferences.minimumSubjects;
         if (maximum < minimum) return [];
 
-        // Older server versions enumerate sizes >= 3 plus the exact maximum.
-        // They rank subject count first. Probe their omitted sizes only
-        // after an empty result; this preserves ranking with at most 3 POSTs.
-        const candidateMaximums = [maximum, 2, 1].filter(
-          (amount, index, values) =>
-            amount >= minimum &&
-            amount <= maximum &&
-            values.indexOf(amount) === index,
-        );
+        // The server (server/) enumerates every size from the minimum up and
+        // ranks subject count first: an empty answer is final, one POST.
         const payload = toGeneratorPayload(request);
-        for (const candidateMaximum of candidateMaximums) {
-          if (options?.signal?.aborted) throw new AppError('CANCELLED');
-          const response = await transport.post(
-            '/generate',
-            {
-              ...payload,
-              preferences: {
-                ...payload.preferences,
-                max_subject_amount: candidateMaximum,
-              },
+        const response = await transport.post(
+          '/generate',
+          {
+            ...payload,
+            preferences: {
+              ...payload.preferences,
+              max_subject_amount: maximum,
             },
-            { signal: options?.signal },
-          );
-          if (options?.signal?.aborted) throw new AppError('CANCELLED');
-          const schedules = parseGeneratorResponse(response.data);
-          if (schedules.length) return schedules;
-        }
-        return [];
+          },
+          { signal: options?.signal },
+        );
+        if (options?.signal?.aborted) throw new AppError('CANCELLED');
+        return parseGeneratorResponse(response.data);
       } catch (error) {
         if (error instanceof AppError) throw error;
         if (options?.signal?.aborted || axios.isCancel(error))

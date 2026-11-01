@@ -68,8 +68,8 @@ export class GenerateSchedules {
         'INVALID_INPUT',
         'Selecione turmas de disciplinas suficientes para atingir o mínimo.',
       );
-    // Keep unavailable hours enforced locally too, including manually
-    // reselected classes and compatibility with older generator deployments.
+    // Busy hours are enforced here too (the server also filters them): a
+    // class the student reselected by hand never reaches the request.
     const compatibleClasses = form.selectedClasses.filter(
       group =>
         !hasScheduleConflict(

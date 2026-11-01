@@ -3,8 +3,10 @@ import { AppError } from '@root/shared/errors/AppError';
 
 const record = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+const finite = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
 const numeric = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isFinite(value) && value >= 0;
+  finite(value) && value >= 0;
 const text = (value: unknown): value is string => typeof value === 'string';
 const strings = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every(text);
@@ -33,7 +35,9 @@ const validClass = (value: unknown) =>
   text(value.type) &&
   text(value.subject_id) &&
   strings(value.teachers) &&
-  numeric(value.vacancies_amount) &&
+  // o que o app mandou de volta; o portal mostra vagas negativas numa turma
+  // com mais inscritos que vagas, e isso não invalida a grade
+  finite(value.vacancies_amount) &&
   validSubject(value.subject) &&
   Array.isArray(value.schedules) &&
   value.schedules.every(validInterval);
