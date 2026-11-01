@@ -18,8 +18,8 @@
 #     (o cutover copia de novo o que chegar até a troca);
 #   - o upstream do nginx (conf.d), sem uso até o cutover;
 #   - o pm2 no boot (systemd), que hoje não existe: um reboot derrubava tudo;
-#   - o logrotate dos logs do pm2, que cresciam sem fim (se o logrotate estiver
-#     instalado: a imagem mínima da Oracle não o traz);
+#   - o logrotate (a imagem mínima da Oracle não o traz), que passa a girar os
+#     logs do pm2 e os do nginx, até então sem fim;
 #   - ~/ao-uerj-server/bin/remote e a chave do CI no authorized_keys, presa a ele.
 set -euo pipefail
 
@@ -105,7 +105,9 @@ fi
 
 # Sem a unidade do systemd, um reboot da VM não traz processo nenhum de volta
 # (nem os antigos). O daemon segue com o Node do sistema, como hoje.
-if ! systemctl list-unit-files 2>/dev/null | grep -q "^pm2-$USER.service"; then
+# (sem `| grep -q`: com o pipefail, o grep que sai cedo derruba o systemctl
+# com SIGPIPE, e a condição dava falso sempre)
+if ! systemctl is-enabled --quiet "pm2-$USER.service" 2>/dev/null; then
   log 'ligando o pm2 no boot (systemd)'
   sudo -n env PATH="$PATH:/usr/bin" "$(command -v pm2)" startup systemd \
     -u "$USER" --hp "$HOME" >/dev/null
@@ -114,17 +116,20 @@ fi
 
 # Os logs do pm2 crescem sem fim (uma linha por requisição). O logrotate do
 # sistema gira por dia, guarda 14 compactados e não custa um processo a mais
-# (o pm2-logrotate custaria uns 40 MB numa VM de 1 GB).
+# (o pm2-logrotate custaria uns 40 MB numa VM de 1 GB). A imagem mínima da
+# Oracle não o traz; com ele, o /etc/logrotate.d/nginx do pacote do nginx
+# passa a valer também: 14 dias de log do nginx (com os IPs), não mais tudo.
 ROTATE="/etc/logrotate.d/pm2-$USER"
 LOGROTATE=/usr/sbin/logrotate
 if [ ! -x "$LOGROTATE" ]; then
-  # a imagem mínima da Oracle não traz o logrotate; instalá-lo também gira
-  # (e, com o tempo, apaga) os logs do nginx, então fica para quem decide
-  log 'sem o logrotate na VM: os logs do pm2 seguem sem girar (apt install logrotate liga)'
-elif [ ! -f "$ROTATE" ]; then
+  log 'instalando o logrotate'
+  sudo -n env DEBIAN_FRONTEND=noninteractive \
+    apt-get install -y --no-install-recommends logrotate >/dev/null
+fi
+if [ ! -f "$ROTATE" ]; then
   log 'girando os logs do pm2 (logrotate)'
   printf '%s\n' \
-    "$HOME/.pm2/logs/*.log {" \
+    "$HOME/.pm2/pm2.log $HOME/.pm2/logs/*.log {" \
     "  su $USER $USER" \
     '  daily' \
     '  rotate 14' \
