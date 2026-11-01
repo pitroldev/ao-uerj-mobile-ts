@@ -91,6 +91,7 @@ que o app também importa.
 | ---------------------------- | ------------------------------------------------------------------------------ |
 | `GET /aouerj/portal-status`  | Situação do portal (`up`, `down`, `unknown`), sem banco, com cache de 60 s     |
 | `GET /aouerj/health`         | O processo e o estado do banco                                                 |
+| `GET /aouerj/status`         | A versão no ar (commit, cor, desde quando) e as partes; 503 sem o banco        |
 | `POST /aouerj/messages/get`  | A conversa de uma turma: as 500 mais recentes, da mais antiga para a mais nova |
 | `POST /aouerj/messages/post` | Grava e devolve a mensagem (200)                                               |
 | `GET /aouerj/docentes`       | Os nomes, em ordem alfabética (cache de 5 min)                                 |
@@ -115,6 +116,19 @@ que o app também importa.
 - **Gerador:** fila cheia é 503 `generator_busy`; uma thread que não responde
   é 503 `generator_timeout`. Entrada inválida diz onde
   (`classes[0].schedules[0].week_day`).
+
+### Consultar o que está no ar
+
+```sh
+curl -s https://pitrol.dev/aouerj/status
+```
+
+Responde o commit e a cor (azul ou verde) implantados, quando o processo
+subiu, a versão do Node, o banco, a situação do portal e a fila do gerador,
+sem dado de aluno e sem cache. O status HTTP é 200, ou 503 enquanto o banco
+não está conectado: serve para um monitor de disponibilidade. A implantação
+usa a mesma rota para conferir que a versão que responde é o commit que
+acabou de subir (`smoke.mjs --expect-commit`).
 
 ## Gerador de grades
 
