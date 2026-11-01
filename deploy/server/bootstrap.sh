@@ -35,7 +35,9 @@ LEGACY="$HOME/server-pitroldev"
 REPORTS="$ROOT/shared/AOreports"
 # o ensaio local usa uma cópia; na VM, o repositório público
 REPO="${AO_UERJ_REPO:-https://github.com/pitroldev/ao-uerj-mobile-ts.git}"
-UPSTREAM=/etc/nginx/conf.d/ao-uerj-upstream.conf
+# os testes (deploy/server/test) trocam o /etc e o logrotate por pastas próprias
+ETC="${AO_UERJ_ETC:-/etc}"
+UPSTREAM="$ETC/nginx/conf.d/ao-uerj-upstream.conf"
 
 log() { printf '[bootstrap] %s\n' "$*"; }
 
@@ -119,8 +121,8 @@ fi
 # (o pm2-logrotate custaria uns 40 MB numa VM de 1 GB). A imagem mínima da
 # Oracle não o traz; com ele, o /etc/logrotate.d/nginx do pacote do nginx
 # passa a valer também: 14 dias de log do nginx (com os IPs), não mais tudo.
-ROTATE="/etc/logrotate.d/pm2-$USER"
-LOGROTATE=/usr/sbin/logrotate
+ROTATE="$ETC/logrotate.d/pm2-$USER"
+LOGROTATE="${AO_UERJ_LOGROTATE:-/usr/sbin/logrotate}"
 if [ ! -x "$LOGROTATE" ]; then
   log 'instalando o logrotate'
   sudo -n env DEBIAN_FRONTEND=noninteractive \

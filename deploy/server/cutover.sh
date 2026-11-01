@@ -15,9 +15,11 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$HOME/ao-uerj-server"
 STATE="$ROOT/state"
+# os testes (deploy/server/test) trocam o /etc por uma pasta própria
+ETC="${AO_UERJ_ETC:-/etc}"
 # o arquivo que o nginx carrega de fato (o sites-enabled costuma ser um link)
-SITE="$(readlink -f /etc/nginx/sites-enabled/default)"
-SNIPPET=/etc/nginx/snippets/ao-uerj-proxy.conf
+SITE="$(readlink -f "$ETC/nginx/sites-enabled/default")"
+SNIPPET="$ETC/nginx/snippets/ao-uerj-proxy.conf"
 BACKUP="$STATE/nginx-default.before-cutover"
 LEGACY_APPS="$STATE/legacy-apps.tsv"
 LEGACY_REPORTS="$HOME/server-pitroldev/AOreports"

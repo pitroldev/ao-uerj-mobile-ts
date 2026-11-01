@@ -19,8 +19,10 @@ SHA="${1:?uso: release.sh <sha>}"
 ROOT="${AO_UERJ_ROOT:-$HOME/ao-uerj-server}"
 RELEASE="$ROOT/releases/$SHA"
 STATE="$ROOT/state"
-UPSTREAM=/etc/nginx/conf.d/ao-uerj-upstream.conf
-SITE=/etc/nginx/sites-enabled/default
+# os testes (deploy/server/test) trocam o /etc por uma pasta própria
+ETC="${AO_UERJ_ETC:-/etc}"
+UPSTREAM="$ETC/nginx/conf.d/ao-uerj-upstream.conf"
+SITE="$ETC/nginx/sites-enabled/default"
 KEEP_RELEASES=5
 SYSTEM_PATH="$PATH"
 export PATH="$ROOT/node/bin:$PATH"

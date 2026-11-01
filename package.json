@@ -18,6 +18,7 @@
     "test:ci": "jest --runInBand --ci",
     "test:tooling": "node --test scripts/__tests__/*.test.cjs",
     "test:server": "pnpm --dir server test",
+    "test:deploy": "node --test \"deploy/server/test/*.test.mjs\"",
     "server": "pnpm --dir server",
     "e2e": "maestro test .maestro",
     "diagnose:ao": "node scripts/diagnose-ao.cjs",

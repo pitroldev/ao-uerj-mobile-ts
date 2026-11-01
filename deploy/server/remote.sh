@@ -40,7 +40,7 @@ unpack() {
 live_commit() {
   local color
   color="$(cat "$STATE/active" 2>/dev/null || true)"
-  [ -n "$color" ] && cat "$STATE/$color.sha" 2>/dev/null || true
+  if [ -n "$color" ]; then cat "$STATE/$color.sha" 2>/dev/null || true; fi
 }
 
 # A implantação roda numa sessão própria, com o log num arquivo: se o canal
