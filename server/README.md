@@ -21,11 +21,13 @@ nada dele entra no `node_modules` do React Native.
 ```sh
 cp server/.env.example server/.env   # ajuste o MONGODB_URI
 pnpm server dev                      # node --watch src/main.ts
-pnpm test:server                     # node --test, sem MongoDB
+pnpm test:server                     # node --test (sobe um mongod próprio)
+pnpm test:deploy                     # os scripts de deploy/server (só Linux)
 ```
 
 `pnpm type-check`, `pnpm lint` e `pnpm format:check` da raiz cobrem o
-servidor; o CI roda `pnpm test:server` no mesmo job do app.
+servidor. O CI roda `pnpm test:server`, `pnpm test:deploy` e o `shellcheck`
+dos scripts no Quality e antes de cada implantação.
 
 ## Arquitetura
 
@@ -77,8 +79,25 @@ O Oxlint guarda as fronteiras:
 - um adaptador de entrada não importa um de saída, nem o contrário: eles só
   se encontram no `composition.ts`.
 
-Os testes trocam os adaptadores de saída por versões em memória
-(`test/support.ts`), sem banco e sem tocar no Mongoose.
+Os testes:
+
+| Arquivo               | O que cobre                                                                      |
+| --------------------- | -------------------------------------------------------------------------------- |
+| `schedules.test.ts`   | O domínio do gerador, comparado com um porte do gerador antigo                   |
+| `application.test.ts` | Os casos de uso, com os repositórios em memória (`test/support.ts`)              |
+| `http.test.ts`        | As rotas, os status e os corpos que os apps publicados esperam                   |
+| `mongo.test.ts`       | Os repositórios, os índices e a queda do banco, num mongod de verdade            |
+| `adapters.test.ts`    | Anexos, a reconexão do banco, a fila e o pool de threads (heap estourado, saída) |
+| `portal.test.ts`      | A situação do Aluno Online e a sonda, contra um portal local                     |
+| `config.test.ts`      | O ambiente e os erros de configuração                                            |
+| `main.test.ts`        | O processo de verdade: a partida, o log e o SIGTERM (este, fora do Windows)      |
+| `smoke.test.ts`       | O `deploy/server/smoke.mjs` contra o servidor, como o deploy o roda              |
+
+O mongod vem do `mongodb-memory-server`, na versão de produção
+(`test/mongo.ts`). A primeira execução baixa o binário para
+`~/.cache/mongodb-binaries`: uns 100 MB no Linux, 800 MB no Windows. Os
+scripts de implantação têm os próprios testes em `deploy/server/test/`, com
+pm2, nginx e sudo de mentira no `PATH`.
 
 ## API
 

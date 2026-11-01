@@ -38,6 +38,12 @@ jobs:
           cache-dependency-path: |
             pnpm-lock.yaml
             server/pnpm-lock.yaml
+      # o mongod dos testes do servidor (mongodb-memory-server), ~100 MB; a
+      # versão está em server/test/mongo.ts
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('server/test/mongo.ts') }}
       # o postinstall instala também o servidor (server/), com o lockfile dele
       - run: pnpm install --frozen-lockfile
       - name: Conferir atlas offline
@@ -49,6 +55,8 @@ jobs:
       - run: pnpm knip
       - run: pnpm test:tooling
       - run: pnpm test:server
+      - run: pnpm test:deploy
+      - run: shellcheck deploy/server/*.sh
       - run: pnpm test:ci
 
   android-debug:
