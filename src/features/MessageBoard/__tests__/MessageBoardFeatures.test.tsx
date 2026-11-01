@@ -37,7 +37,7 @@ let mockSchedule: {
 const ACCOUNT = {
   scope: 'account-a',
   name: 'Marina Albuquerque',
-  matricula: '202310045612',
+  matricula: '209912345678',
   period: '2026.2',
 };
 

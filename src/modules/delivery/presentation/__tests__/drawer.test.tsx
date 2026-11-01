@@ -22,7 +22,7 @@ jest.mock('@root/app/providers/AppServicesProvider', () => ({
     account: {
       scope: 's',
       name: 'Marina Albuquerque Teixeira',
-      matricula: '202310045612',
+      matricula: '209912345678',
       period: '2026.2',
     },
   }),

@@ -36,7 +36,7 @@ beforeEach(() => {
   mockAccount = {
     scope: 's',
     name: 'Marina Albuquerque Teixeira',
-    matricula: '202310045612',
+    matricula: '209912345678',
     period: '2026.2',
   };
   mockSavedTheme.clear();
@@ -286,7 +286,7 @@ it('lists the routes in groups, navigates and signs out from the drawer', async 
     screen.getByText('MT', { includeHiddenElements: true }),
   ).toBeOnTheScreen();
   expect(screen.getByText('Marina Albuquerque Teixeira')).toBeOnTheScreen();
-  expect(screen.getByText('Matrícula 202310045612')).toBeOnTheScreen();
+  expect(screen.getByText('Matrícula 209912345678')).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Acadêmico' })).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Ferramentas' })).toBeOnTheScreen();
   for (const route of routeNames) {
