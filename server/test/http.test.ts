@@ -422,6 +422,39 @@ test('broken and oversized JSON get their own answers', async () => {
   });
   assert.equal(large.status, 413);
   assert.equal(large.body.error, 'payload_too_large');
+
+  // 150 KB: acima do limite antigo de /aouerj, dentro do gerador
+  const padding = 'x'.repeat(150 * 1024);
+  const report = await app.call('/aouerj/reportError', {
+    method: 'POST',
+    body: { page: 'Notas', html: [padding] },
+  });
+  assert.equal(report.status, 413);
+  const generation_ = await app.call('/schedules/generate', {
+    method: 'POST',
+    body: { ...generation(conflictingThree()), padding },
+  });
+  assert.equal(generation_.status, 200);
+});
+
+test('a request the libraries refuse keeps its 4xx instead of a 500', async () => {
+  const badPath = await app.call('/aouerj/docentes/%E0%A4%A');
+  assert.equal(badPath.status, 400);
+  assert.equal(badPath.body.error, 'bad_request');
+
+  const refusals: Record<string, string>[] = [
+    { 'content-type': 'application/json; charset=latin1' },
+    { 'content-type': 'application/json', 'content-encoding': 'foo' },
+  ];
+  for (const headers of refusals) {
+    const refused = await app.call('/aouerj/messages/get', {
+      method: 'POST',
+      body: JSON.stringify(thread),
+      headers,
+    });
+    assert.equal(refused.status, 415);
+    assert.equal(refused.body.error, 'unsupported_media_type');
+  }
 });
 
 test('the writes are limited per minute', async () => {
@@ -446,6 +479,7 @@ test('HTTPS redirects keep the public origin even for protocol-relative paths', 
   const secure = await serve({
     FORCE_HTTPS: 'true',
     PUBLIC_URL: 'https://pitrol.dev',
+    TRUST_PROXY: '1',
   });
   opened.push(secure.server);
 
@@ -456,6 +490,11 @@ test('HTTPS redirects keep the public origin even for protocol-relative paths', 
     response.headers.get('location'),
     'https://pitrol.dev/aouerj/health?x=1',
   );
+  // o que chega pelo proxy em HTTPS passa direto
+  const proxied = await secure.call('/aouerj/health', {
+    headers: { 'x-forwarded-proto': 'https' },
+  });
+  assert.equal(proxied.status, 200);
 });
 
 /*

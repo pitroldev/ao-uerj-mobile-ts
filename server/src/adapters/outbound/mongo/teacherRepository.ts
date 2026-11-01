@@ -26,9 +26,13 @@ export function createTeacherRepository(
   return {
     listNames: () =>
       guarded(async () => {
+        // ordenado pelo índice { docente: 1 }, só com o nome: o Mongo lê o
+        // índice e não abre os documentos (cada um traz as disciplinas e
+        // turmas inteiras). A ordem do app é a do português, feita depois.
         const found = await model
           .find()
           .select({ _id: 0, docente: 1 })
+          .sort({ docente: 1 })
           .lean<{ docente: string }[]>();
         // um documento sem nome não vira `null` na lista (o app recusaria a
         // lista inteira)

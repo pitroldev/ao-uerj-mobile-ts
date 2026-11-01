@@ -106,7 +106,8 @@ que o app também importa.
 - **Erros:** sempre `{ "error", "message" }`. Entrada inválida é 400
   `invalid_request`, com a mensagem do servidor antigo ("fullName is
   required"); banco fora é 503 `database_unavailable`; excesso de gravações é
-  429 `rate_limited`; JSON quebrado é 400 `invalid_json`; corpo grande demais é 413.
+  429 `rate_limited`; JSON quebrado é 400 `invalid_json`; corpo grande demais é
+  413 (100 KB em `/aouerj`, como no servidor antigo, e 1 MB em `/schedules`).
 - **Tolerância com os apps antigos:** número em `turma`, `periodo` e
   `disciplina` vira texto, como o Mongoose já fazia. Um e-mail inválido num
   relato ou sugestão é descartado, sem recusar o resto.
@@ -155,9 +156,12 @@ compara as respostas com um porte linha a linha do gerador antigo
 
 Cada busca roda numa thread (`worker_threads`), para a CPU ocupada não travar
 o mural: `GENERATOR_CONCURRENCY` ao mesmo tempo, `GENERATOR_QUEUE_LIMIT` na
-fila, 128 MB de heap por thread. Depois de `GENERATOR_BUDGET_MS`, a busca
-devolve o melhor que achou com `exhaustive: false` (o servidor antigo seguia
-até o app desistir, aos 60 s). Se o app cancela, a busca para.
+fila, 128 MB de heap por thread. A thread fica aquecida de uma busca para a
+outra (`workerPool.ts`): abrir uma e carregar o TypeScript custava uns 0,5 s
+na VM a cada geração. Depois de `GENERATOR_BUDGET_MS`, a busca devolve o
+melhor que achou com `exhaustive: false` (o servidor antigo seguia até o app
+desistir, aos 60 s). Se o app cancela, a thread da busca é encerrada e a
+próxima abre outra.
 
 O que mudou de propósito:
 
@@ -203,7 +207,8 @@ O que mudou de propósito:
 
 Automática, pelo workflow [`server.yml`](../.github/workflows/server.yml):
 cada push na `main` que mexe no servidor, no contrato ou nos adaptadores do
-app que falam com ele roda lint, tipos, os testes do servidor e o **teste de
+app que falam com ele (um que só muda Markdown não implanta) roda lint, tipos,
+os testes do servidor e o **teste de
 contrato** (os adaptadores do app, com o axios do app, contra este servidor),
 e só então implanta.
 

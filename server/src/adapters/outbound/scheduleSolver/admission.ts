@@ -7,15 +7,18 @@ export type Release = () => void;
 /**
  * Um compartimento (bulkhead) para trabalho pesado: `concurrency` rodando e
  * até `queueLimit` esperando, na ordem de chegada. Com a fila cheia, quem
- * chega é recusado na hora (`whenFull`); quem desiste na fila sai dela.
+ * chega é recusado na hora (`whenFull`); quem espera mais que `maxWaitMs`
+ * também, e quem desiste na fila sai dela.
  */
 export function createAdmission({
   concurrency,
   queueLimit,
+  maxWaitMs = Number.POSITIVE_INFINITY,
   whenFull,
 }: {
   concurrency: number;
   queueLimit: number;
+  maxWaitMs?: number;
   whenFull: () => Error;
 }) {
   let running = 0;
@@ -41,16 +44,28 @@ export function createAdmission({
       if (running < concurrency) return Promise.resolve(occupy());
       if (waiting.length >= queueLimit) return Promise.reject(whenFull());
       return new Promise((resolve, reject) => {
-        const turn = () => {
+        let timer: NodeJS.Timeout | undefined;
+        const leave = () => {
+          const at = waiting.indexOf(turn);
+          if (at !== -1) waiting.splice(at, 1);
           signal.removeEventListener('abort', giveUp);
+          clearTimeout(timer);
+        };
+        const turn = () => {
+          leave();
           resolve(occupy());
         };
         const giveUp = () => {
-          waiting.splice(waiting.indexOf(turn), 1);
+          leave();
           reject(reasonOf(signal));
         };
         waiting.push(turn);
         signal.addEventListener('abort', giveUp, { once: true });
+        if (Number.isFinite(maxWaitMs))
+          timer = setTimeout(() => {
+            leave();
+            reject(whenFull());
+          }, maxWaitMs);
       });
     },
   };

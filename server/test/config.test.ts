@@ -13,7 +13,9 @@ test('the defaults run a development server on 3300 with the portal monitor', ()
   assert.equal(config.logLevel, 'info');
   assert.equal(config.mongo.uri, 'mongodb://localhost:27017/aouerj');
   assert.equal(config.mongo.autoIndex, true);
-  assert.equal(config.http.jsonLimit, '1mb');
+  // o corpo de /aouerj como no servidor antigo; o do gerador, folgado
+  assert.equal(config.http.jsonLimit, '100kb');
+  assert.equal(config.http.generatorJsonLimit, '1mb');
   // folgado: os alunos de um campus saem pelo mesmo IP
   assert.equal(config.http.rateLimitPerMinute, 120);
   assert.equal(config.http.adminToken, undefined);
@@ -68,9 +70,17 @@ test('an invalid configuration stops the start with every problem listed', () =>
       /RELEASE_COMMIT must be a git commit hash/.test(err.message) &&
       /RELEASE_COLOR/.test(err.message),
   );
+  // sem proxy confiável, o redirecionamento não teria fim
+  assert.throws(
+    () => loadConfig({ FORCE_HTTPS: 'true', PUBLIC_URL: 'https://pitrol.dev' }),
+    /TRUST_PROXY is required when FORCE_HTTPS is true/,
+  );
   assert.equal(
-    loadConfig({ FORCE_HTTPS: 'true', PUBLIC_URL: 'https://pitrol.dev' }).http
-      .forceHttps,
+    loadConfig({
+      FORCE_HTTPS: 'true',
+      PUBLIC_URL: 'https://pitrol.dev',
+      TRUST_PROXY: '1',
+    }).http.forceHttps,
     true,
   );
 });

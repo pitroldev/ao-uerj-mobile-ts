@@ -5,7 +5,7 @@ import type {
 import type { ScheduleSolver } from '../../../modules/schedules/ports.ts';
 import { UnavailableError } from '../../../shared/errors.ts';
 import { createAdmission } from './admission.ts';
-import { runInThread } from './thread.ts';
+import { createWorkerPool } from './workerPool.ts';
 
 /** O que a thread recebe. */
 export type WorkerJob = { request: GenerationRequest; budgetMs: number };
@@ -14,6 +14,13 @@ const WORKER_URL = new URL('./scheduleWorker.ts', import.meta.url);
 
 /** Depois do orçamento, quanto a thread tem para responder antes de ser encerrada. */
 const GRACE_MS = 5000;
+
+/**
+ * Quanto um pedido espera na fila. O app (axios) e o nginx desistem aos
+ * 60 s: a espera e a busca (até o orçamento) cabem em uns 50 s, e quem
+ * esperaria mais recebe um 503 em JSON na hora, não o 504 do nginx.
+ */
+const queueWaitFor = (budgetMs: number) => Math.max(5000, 50000 - budgetMs);
 
 const busy = () =>
   new UnavailableError(
@@ -32,9 +39,10 @@ const timedOut = () =>
   );
 
 /**
- * Cada busca numa thread nova (`worker_threads`), para a CPU ocupada não
- * travar o mural: `concurrency` ao mesmo tempo, `queueLimit` esperando (o
- * resto recebe 503 na hora) e `memoryMb` de heap por thread. A busca para
+ * As buscas em threads (`worker_threads`), para a CPU ocupada não travar o
+ * mural: `concurrency` ao mesmo tempo, `queueLimit` esperando (o resto
+ * recebe 503 na hora) e `memoryMb` de heap por thread. As threads ficam
+ * aquecidas entre uma busca e outra (ver workerPool.ts). A busca para
  * sozinha em `budgetMs` com o melhor que achou; a thread que não responde
  * até `graceMs` depois disso é encerrada. Quem desiste sai da fila ou
  * encerra a thread; `close` encerra todas.
@@ -58,8 +66,11 @@ export function createThreadedSolver({
   const admission = createAdmission({
     concurrency,
     queueLimit,
+    maxWaitMs: queueWaitFor(budgetMs),
     whenFull: busy,
   });
+  // a admissão limita as buscas juntas; o pool nunca passa de `concurrency`
+  const pool = createWorkerPool({ url: workerUrl, memoryMb });
   const closing = new AbortController();
 
   return {
@@ -80,10 +91,9 @@ export function createThreadedSolver({
         budgetMs + graceMs,
       );
       try {
-        return await runInThread<GenerationResult>(
-          workerUrl,
+        return await pool.run<GenerationResult>(
           { request, budgetMs } satisfies WorkerJob,
-          { signal: cancel, memoryMb },
+          cancel,
         );
       } finally {
         clearTimeout(timer);
@@ -93,6 +103,7 @@ export function createThreadedSolver({
 
     async close() {
       closing.abort(shuttingDown());
+      await pool.close();
     },
   };
 }

@@ -15,7 +15,10 @@ export type Services = AoUerjServices & { schedules: ScheduleGenerator };
 
 /** O que o HTTP precisa da configuração. */
 export type HttpSettings = {
+  /** O corpo das rotas de `/aouerj` (100 KB, como no servidor antigo). */
   jsonLimit: string;
+  /** O corpo das rotas de `/schedules`. */
+  generatorJsonLimit: string;
   /** Saltos de proxy confiáveis, como o Express espera. */
   trustProxy: number | boolean | string | undefined;
   /** Com a origem pública, HTTP volta para HTTPS (308). */
@@ -57,10 +60,11 @@ export function createHttpApp({
   app.use(cors());
   if (settings.forceHttps && settings.publicUrl)
     app.use(forceHttps(settings.publicUrl));
-  app.use(express.json({ limit: settings.jsonLimit }));
 
+  // cada parte com o próprio limite de corpo
   app.use(
     '/aouerj',
+    express.json({ limit: settings.jsonLimit }),
     createAoUerjRouter({
       services,
       database,
@@ -71,6 +75,7 @@ export function createHttpApp({
   );
   app.use(
     '/schedules',
+    express.json({ limit: settings.generatorJsonLimit }),
     createSchedulesRouter({
       generator: services.schedules,
       generationsPerMinute: settings.generationsPerMinute,

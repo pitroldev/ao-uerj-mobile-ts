@@ -14,7 +14,21 @@ export function notFound(req: Request, res: Response): void {
   } satisfies ApiError);
 }
 
-type BodyParserError = Error & { status?: number; type?: string };
+/** O erro das bibliotecas (Express, body-parser): status e se é do cliente. */
+type LibraryError = Error & {
+  status?: number;
+  type?: string;
+  expose?: boolean;
+};
+
+/** Os 4xx que as bibliotecas dão, com um código estável e sem a mensagem delas. */
+const CLIENT_ERRORS: Record<number, ApiError> = {
+  400: { error: 'bad_request', message: 'The request could not be read' },
+  415: {
+    error: 'unsupported_media_type',
+    message: 'The request body encoding or charset is not supported',
+  },
+};
 
 /** O erro em `{ error, message }`, com o status de cada tipo. */
 function describe(err: unknown): { status: number; body: ApiError } {
@@ -25,7 +39,7 @@ function describe(err: unknown): { status: number; body: ApiError } {
   if (err instanceof DomainError)
     return { status: 422, body: { error: err.code, message: err.message } };
 
-  const parser = err as BodyParserError;
+  const parser = err as LibraryError;
   if (parser.type === 'entity.parse.failed')
     return {
       status: 400,
@@ -42,6 +56,17 @@ function describe(err: unknown): { status: number; body: ApiError } {
         message: 'Request body exceeds the configured size limit',
       },
     };
+  // outro erro do cliente que a biblioteca já marcou (um caminho com
+  // codificação quebrada, um charset desconhecido): o status dela, não 500.
+  // O roteador do Express marca o caminho com status 400 e sem `expose`.
+  const status = parser.status;
+  if (
+    parser.expose !== false &&
+    typeof status === 'number' &&
+    status >= 400 &&
+    status < 500
+  )
+    return { status, body: CLIENT_ERRORS[status] ?? CLIENT_ERRORS[400] };
   return {
     status: 500,
     body: {

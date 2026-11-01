@@ -44,7 +44,11 @@ const EnvSchema = z
       .default('true')
       .transform(value => value === 'true'),
 
-    JSON_LIMIT: z.string().min(1).default('1mb'),
+    // o corpo de /aouerj, como no servidor antigo: um relato dos apps 1.x traz
+    // a página do portal, e o limite não deixa guardar mais do que antes
+    JSON_LIMIT: z.string().min(1).default('100kb'),
+    // o pedido ao gerador (o antigo aceitava 16 MB; o app manda uns 15 KB)
+    GENERATOR_JSON_LIMIT: z.string().min(1).default('1mb'),
     CACHE_TTL_MS: milliseconds(5 * 60 * 1000, 1000),
     RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(120),
     REPORTS_DIR: z.string().min(1).optional(),
@@ -81,7 +85,18 @@ const EnvSchema = z
   .refine(env => !env.FORCE_HTTPS || env.PUBLIC_URL, {
     message: 'PUBLIC_URL (https) is required when FORCE_HTTPS is true',
     path: ['PUBLIC_URL'],
-  });
+  })
+  // sem um proxy confiável, `req.secure` nunca é verdadeiro e toda
+  // requisição voltaria para ela mesma (um 308 sem fim)
+  .refine(
+    env =>
+      !env.FORCE_HTTPS ||
+      (env.TRUST_PROXY !== undefined && env.TRUST_PROXY !== false),
+    {
+      message: 'TRUST_PROXY is required when FORCE_HTTPS is true',
+      path: ['TRUST_PROXY'],
+    },
+  );
 
 /** A configuração do servidor, lida e conferida uma vez, na partida. */
 export type Config = {
@@ -97,7 +112,10 @@ export type Config = {
     autoIndex: boolean;
   };
   http: {
+    /** O corpo das rotas de /aouerj. */
     jsonLimit: string;
+    /** O corpo das rotas de /schedules. */
+    generatorJsonLimit: string;
     /** Por IP, por minuto: as gravações juntas. */
     rateLimitPerMinute: number;
     forceHttps: boolean;
@@ -152,6 +170,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     },
     http: {
       jsonLimit: value.JSON_LIMIT,
+      generatorJsonLimit: value.GENERATOR_JSON_LIMIT,
       rateLimitPerMinute: value.RATE_LIMIT_PER_MINUTE,
       forceHttps: value.FORCE_HTTPS,
       publicUrl: value.PUBLIC_URL,

@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { Writable } from 'node:stream';
 import { after, before, test } from 'node:test';
 
 import mongoose from 'mongoose';
+import { pino } from 'pino';
 
 import {
   createFileAttachmentStore,
@@ -21,8 +23,8 @@ import {
 import { createAdmission } from '../src/adapters/outbound/scheduleSolver/admission.ts';
 import { createInlineSolver } from '../src/adapters/outbound/scheduleSolver/inlineSolver.ts';
 import { createThreadedSolver } from '../src/adapters/outbound/scheduleSolver/threadedSolver.ts';
+import { createWorkerPool } from '../src/adapters/outbound/scheduleSolver/workerPool.ts';
 import type { GenerationRequest } from '../src/modules/schedules/domain/model.ts';
-import { silentLogger } from './support.ts';
 
 let directory: string;
 
@@ -138,21 +140,67 @@ test('the documents become domain objects, old numeric classes included', () => 
   assert.equal(escapeRegularExpression('a.*(b)'), 'a\\.\\*\\(b\\)');
 });
 
-test('a database that does not answer fails fast without stopping the server', async () => {
+test('a database that does not answer is tried again, with growing pauses, until the server stops', async () => {
+  const failures: number[] = [];
+  const logger = pino(
+    { level: 'error' },
+    new Writable({
+      write(chunk, encoding, done) {
+        if (String(chunk).includes('MongoDB connection failed'))
+          failures.push(Date.now());
+        done();
+      },
+    }),
+  );
   const database = createDatabase({
     uri: 'mongodb://127.0.0.1:1/aouerj',
-    timeoutMs: 50,
-    logger: silentLogger,
+    timeoutMs: 30,
+    backoff: { firstMs: 20, maxMs: 80 },
+    logger,
   });
-  const startedAt = Date.now();
-  assert.equal(await database.connect(), false);
+  const connecting = database.connect();
+  // a primeira falha não desiste: o servidor segue, sem banco, e tenta de novo
+  await new Promise(resolve => setTimeout(resolve, 600));
   assert.equal(database.isReady(), false);
-  assert.equal(database.status(), 'disconnected');
-  assert.ok(Date.now() - startedAt < 1000);
+  assert.ok(failures.length >= 3, `${failures.length} tentativas`);
+
   await database.disconnect();
+  assert.equal(await connecting, false);
+  const attemptsWhenStopped = failures.length;
+  await new Promise(resolve => setTimeout(resolve, 200));
+  assert.equal(failures.length, attemptsWhenStopped);
 });
 
 const SILENT_WORKER = new URL('./fixtures/silentWorker.ts', import.meta.url);
+const ECHO_WORKER = new URL('./fixtures/echoWorker.ts', import.meta.url);
+
+test('the pool keeps a warm thread, and replaces the one of a task that was given up', async () => {
+  const pool = createWorkerPool({ url: ECHO_WORKER, memoryMb: 64 });
+  const open = () => new AbortController().signal;
+  type Echo = { threadId: number; data: string };
+
+  const first = await pool.run<Echo>('a', open());
+  const second = await pool.run<Echo>('b', open());
+  // a mesma thread atende as duas
+  assert.equal(second.threadId, first.threadId);
+  assert.equal(second.data, 'b');
+  assert.equal(pool.size(), 1);
+
+  // um erro da tarefa não derruba a thread
+  await assert.rejects(pool.run('fail', open()), /the task failed/);
+  assert.equal((await pool.run<Echo>('c', open())).threadId, first.threadId);
+
+  // quem desiste encerra a thread; a próxima tarefa ganha outra
+  const gone = new AbortController();
+  const hanging = pool.run('hang', gone.signal);
+  setTimeout(() => gone.abort(), 20);
+  await assert.rejects(hanging, { name: 'AbortError' });
+  const fresh = await pool.run<Echo>('d', open());
+  assert.notEqual(fresh.threadId, first.threadId);
+
+  await pool.close();
+  assert.equal(pool.size(), 0);
+});
 
 /** Um pedido pequeno, já no formato do domínio. */
 const smallRequest = (): GenerationRequest => ({
@@ -174,6 +222,28 @@ const smallRequest = (): GenerationRequest => ({
   maxSubjects: 2,
   busy: [],
   priorities: ['MIN_GAPS'],
+});
+
+test('whoever waits in the queue longer than allowed is refused and leaves it', async () => {
+  const admission = createAdmission({
+    concurrency: 1,
+    queueLimit: 2,
+    maxWaitMs: 30,
+    whenFull: () => new Error('busy'),
+  });
+  const open = new AbortController().signal;
+  const release = await admission.enter(open);
+  const late = admission.enter(open);
+  assert.deepEqual(admission.load(), { running: 1, queued: 1 });
+  await assert.rejects(late, /busy/);
+  assert.deepEqual(admission.load(), { running: 1, queued: 0 });
+  // quem entra a tempo não é recusado depois
+  const onTime = admission.enter(open);
+  release();
+  const second = await onTime;
+  await new Promise(resolve => setTimeout(resolve, 50));
+  assert.deepEqual(admission.load(), { running: 1, queued: 0 });
+  second();
 });
 
 test('the admission lets some in, queues some in order, refuses the rest and counts a release once', async () => {

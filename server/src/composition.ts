@@ -66,6 +66,7 @@ function storageFor(
 function httpSettingsOf(config: Config): HttpSettings {
   return {
     jsonLimit: config.http.jsonLimit,
+    generatorJsonLimit: config.http.generatorJsonLimit,
     trustProxy: config.http.trustProxy,
     forceHttps: config.http.forceHttps,
     publicUrl: config.http.publicUrl,
@@ -149,6 +150,12 @@ export function createServer(
       return address;
     },
 
+    /**
+     * Para de aceitar conexões e espera as requisições em andamento (uma
+     * geração inclusive) até `SHUTDOWN_GRACE_MS`; o que passar disso é
+     * cortado. Só então fecha as threads e o banco. Na troca azul/verde, o
+     * nginx já mandou o tráfego novo para a outra cor.
+     */
     async stop(): Promise<void> {
       portalChecks.stop();
       const forceClose = setTimeout(
@@ -156,13 +163,12 @@ export function createServer(
         SHUTDOWN_GRACE_MS,
       );
       forceClose.unref();
-      // as buscas em andamento acabam antes, para as conexões fecharem
-      await solver.close?.();
       await new Promise<void>(resolve => {
         server.close(() => resolve());
         server.closeIdleConnections();
       });
       clearTimeout(forceClose);
+      await solver.close?.();
       await database.disconnect();
     },
   };
