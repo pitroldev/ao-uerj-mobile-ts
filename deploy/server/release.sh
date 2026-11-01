@@ -4,7 +4,8 @@
 # troca o tráfego depois de conferir. Qualquer falha antes da troca deixa a
 # versão no ar como estava; uma falha depois dela volta o nginx para a anterior.
 #
-#   release.sh <sha>      (chamado pelo remote.sh, com a trava já tomada)
+#   release.sh <sha>      (chamado pelo remote.sh, com a trava já tomada e
+#                          fora do canal do ssh, que pode cair no meio)
 #
 # Na VM (ver bootstrap.sh):
 #   ~/ao-uerj-server/node/            Node 22 só deste servidor
@@ -31,16 +32,34 @@ pm2() { PATH="$SYSTEM_PATH" command pm2 "$@"; }
 
 log() { printf '[implantação %s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 port_of() { if [ "$1" = blue ]; then echo 3101; else echo 3102; fi; }
-
-active="$(cat "$STATE/active" 2>/dev/null || echo none)"
-next=blue
-[ "$active" = blue ] && next=green
-port="$(port_of "$next")"
-name="ao-uerj-$next"
+color_of() {
+  case "$1" in
+    3101) echo blue ;;
+    3102) echo green ;;
+    *) echo none ;;
+  esac
+}
 
 # A troca de tráfego só existe depois do cutover.sh (o nginx usa o upstream).
 switched=false
 grep -q 'ao-uerj-proxy.conf' "$SITE" && switched=true
+
+# A cor no ar é a que o nginx serve, não a que o estado diz: se um passo
+# anterior morreu no meio, o estado pode ter ficado para trás, e a versão
+# nova nunca pode subir na porta que atende os apps.
+recorded="$(cat "$STATE/active" 2>/dev/null || echo none)"
+if [ "$switched" = true ]; then
+  live_port="$(grep -o '127\.0\.0\.1:[0-9]*' "$UPSTREAM" | head -n 1 | cut -d: -f2)"
+  active="$(color_of "$live_port")"
+  [ "$active" = "$recorded" ] ||
+    log "o estado dizia $recorded, mas o nginx serve $active: vale o nginx"
+else
+  active="$recorded"
+fi
+next=blue
+[ "$active" = blue ] && next=green
+port="$(port_of "$next")"
+name="ao-uerj-$next"
 
 # O fim do log da versão que falhou, para o log do CI. O repositório é
 # público: de cada linha saem só o nível, a mensagem e a classe do erro, nunca
@@ -72,7 +91,16 @@ abandon() {
   exit 1
 }
 
+# Grava um arquivo do estado de uma vez (um arquivo pela metade não existe).
+write_state() {
+  printf '%s\n' "$2" >"$STATE/.$1.tmp"
+  mv -f "$STATE/.$1.tmp" "$STATE/$1"
+}
+
 log "versão $SHA, cor $next (porta $port); no ar: $active; tráfego pelo upstream: $switched"
+mkdir -p "$STATE"
+# a versão mais recente fica entre as guardadas, mesmo numa volta a uma antiga
+touch "$RELEASE"
 
 log 'instalando as dependências'
 (cd "$RELEASE/server" &&
@@ -104,33 +132,44 @@ if [ "$switched" = true ]; then
     printf '%s\n' "$previous_upstream" >"$UPSTREAM"
     sudo -n nginx -t -q && sudo -n systemctl reload nginx
   }
+  # Depois da troca, desfazer só apaga a versão nova se o nginx de fato
+  # voltou para a anterior; senão ele pode estar nela, e ela fica.
+  undo_switch() {
+    if restore_upstream; then
+      abandon "$1; o nginx voltou para a $active"
+    fi
+    log "$1; o nginx NÃO voltou para a $active, então a $next continua rodando"
+    log 'confira na VM: cat /etc/nginx/conf.d/ao-uerj-upstream.conf; pm2 ls'
+    recent_log
+    exit 1
+  }
 
   log "trocando o nginx para a porta $port"
   printf 'upstream ao_uerj_server {\n  server 127.0.0.1:%s;\n}\n' "$port" >"$UPSTREAM"
   if ! sudo -n nginx -t -q || ! sudo -n systemctl reload nginx; then
-    restore_upstream || true
-    abandon 'o nginx recusou a troca'
+    undo_switch 'o nginx recusou a troca'
   fi
 
   log 'conferindo pelo nginx (o caminho dos apps)'
+  # o reload só sinaliza o nginx; a configuração vale um instante depois
   sleep 1
-  if ! node "$RELEASE/deploy/server/smoke.mjs" https://pitrol.dev \
-    --via 127.0.0.1 --require-database --expect-commit "$SHA"; then
-    restore_upstream || true
-    abandon 'a versão nova falhou pelo nginx; o nginx voltou para a anterior'
-  fi
+  node "$RELEASE/deploy/server/smoke.mjs" https://pitrol.dev \
+    --via 127.0.0.1 --require-database --expect-commit "$SHA" ||
+    undo_switch 'a versão nova falhou pelo nginx'
 fi
+
+# A versão nova está no ar e conferida: o estado e o pm2 passam a dizer
+# isso antes de a anterior sair, para um reboot no meio subir a certa.
+write_state "$next.sha" "$SHA"
+write_state active "$next"
+printf '%s %s %s\n' "$(date -u +%FT%TZ)" "$SHA" "$next" >>"$STATE/history"
+pm2 save --force >/dev/null
 
 if [ "$active" != none ] && [ "$active" != "$next" ]; then
   log "encerrando ao-uerj-$active (as requisições em andamento terminam)"
   pm2 delete "ao-uerj-$active" >/dev/null 2>&1 || true
+  pm2 save --force >/dev/null
 fi
-pm2 save --force >/dev/null
-
-mkdir -p "$STATE"
-printf '%s\n' "$next" >"$STATE/active"
-printf '%s\n' "$SHA" >"$STATE/$next.sha"
-printf '%s %s %s\n' "$(date -u +%FT%TZ)" "$SHA" "$next" >>"$STATE/history"
 
 # guarda as últimas versões (a volta usa a anterior); apaga o resto. Os
 # nomes são shas, então o ls basta.

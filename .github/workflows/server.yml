@@ -20,6 +20,9 @@ on:
       - 'src/adapters/outbound/schedule-generator/**'
       - 'src/adapters/outbound/__tests__/server.contract.test.ts'
       - '.github/workflows/server.yml'
+      # só documentação não implanta (o Quality confere a formatação)
+      - '!server/**/*.md'
+      - '!deploy/**/*.md'
   workflow_dispatch:
     inputs:
       action:
@@ -36,11 +39,9 @@ defaults:
   run:
     shell: bash
 
-# uma implantação por vez, e nenhuma é cancelada no meio
-concurrency:
-  group: server-production
-  cancel-in-progress: false
-
+# Cada job no seu grupo: uma implantação nova substitui outra que só esperava
+# (vale a mais recente), mas não cancela um rollback, nem o contrário. A
+# trava na VM põe as duas em fila, e nenhuma é cancelada no meio.
 jobs:
   verify:
     if: github.event_name == 'push' || inputs.action == 'deploy'
@@ -70,6 +71,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    concurrency:
+      group: server-deploy
+      cancel-in-progress: false
     environment:
       name: production
       url: https://pitrol.dev/aouerj/health
@@ -109,6 +113,9 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.action == 'rollback' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    concurrency:
+      group: server-rollback
+      cancel-in-progress: false
     environment:
       name: production
       url: https://pitrol.dev/aouerj/health

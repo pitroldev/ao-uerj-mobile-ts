@@ -18,6 +18,7 @@
 #     (o cutover copia de novo o que chegar até a troca);
 #   - o upstream do nginx (conf.d), sem uso até o cutover;
 #   - o pm2 no boot (systemd), que hoje não existe: um reboot derrubava tudo;
+#   - o logrotate dos logs do pm2, que cresciam sem fim;
 #   - ~/ao-uerj-server/bin/remote e a chave do CI no authorized_keys, presa a ele.
 set -euo pipefail
 
@@ -108,6 +109,27 @@ if ! systemctl list-unit-files 2>/dev/null | grep -q "^pm2-$USER.service"; then
   sudo -n env PATH="$PATH:/usr/bin" "$(command -v pm2)" startup systemd \
     -u "$USER" --hp "$HOME" >/dev/null
   pm2 save --force >/dev/null
+fi
+
+# Os logs do pm2 crescem sem fim (uma linha por requisição). O logrotate do
+# sistema gira por dia, guarda 14 compactados e não custa um processo a mais
+# (o pm2-logrotate custaria uns 40 MB numa VM de 1 GB).
+ROTATE="/etc/logrotate.d/pm2-$USER"
+if [ ! -f "$ROTATE" ]; then
+  log 'girando os logs do pm2 (logrotate)'
+  printf '%s\n' \
+    "$HOME/.pm2/logs/*.log {" \
+    "  su $USER $USER" \
+    '  daily' \
+    '  rotate 14' \
+    '  missingok' \
+    '  notifempty' \
+    '  compress' \
+    '  delaycompress' \
+    '  copytruncate' \
+    '}' | sudo -n tee "$ROTATE" >/dev/null
+  sudo -n logrotate --debug "$ROTATE" >/dev/null 2>&1 ||
+    { sudo -n rm -f "$ROTATE"; echo 'o logrotate recusou a configuração'; exit 1; }
 fi
 
 install -m 755 "$HERE/remote.sh" "$ROOT/bin/remote"
