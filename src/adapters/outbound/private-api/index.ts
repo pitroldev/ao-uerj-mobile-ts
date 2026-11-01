@@ -9,6 +9,13 @@ import type {
 import type { ErrorReporterPort } from '@root/modules/support/application/ports';
 import type { SharedPortalStatusPort } from '@root/modules/connectivity/application/ports';
 import type { SharedPortalStatus } from '@root/modules/connectivity/domain/sharedStatus';
+// O contrato do servidor (server/): os corpos enviados conferem com o que ele
+// lê. Só tipos, apagados no bundle.
+import type {
+  ErrorReportRequest,
+  MessageThreadRequest,
+  PostMessageRequest,
+} from '../../../../server/src/adapters/inbound/http/contract';
 
 export interface PrivateApiHttpClient {
   get(url: string, options?: RequestOptions): Promise<{ data: unknown }>;
@@ -114,13 +121,22 @@ async function request<T>(execute: () => Promise<T>): Promise<T> {
   }
 }
 
-export function createPrivateApiAdapters(
-  client: PrivateApiHttpClient = axios.create({
-    baseURL: 'https://pitrol.dev/aouerj',
+const PRIVATE_API_URL = 'https://pitrol.dev/aouerj';
+
+/** O cliente HTTP do app; o teste de contrato o aponta para um servidor local. */
+export function createPrivateApiClient(
+  baseURL = PRIVATE_API_URL,
+): PrivateApiHttpClient {
+  return axios.create({
+    baseURL,
     timeout: 15000,
     withCredentials: false,
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
-  }),
+  });
+}
+
+export function createPrivateApiAdapters(
+  client: PrivateApiHttpClient = createPrivateApiClient(),
 ): {
   portalStatus: SharedPortalStatusPort;
   messageBoard: MessageBoardPort;
@@ -158,7 +174,7 @@ export function createPrivateApiAdapters(
               disciplina: thread.subjectId,
               turma: thread.classNumber,
               periodo: thread.period,
-            },
+            } satisfies MessageThreadRequest,
             options,
           );
           return list(data).map(message);
@@ -173,7 +189,7 @@ export function createPrivateApiAdapters(
               turma: input.classNumber,
               periodo: input.period,
               message: input.text,
-            },
+            } satisfies PostMessageRequest,
             options,
           );
           return message(data);
@@ -204,7 +220,7 @@ export function createPrivateApiAdapters(
             page: report.page,
             description: report.description,
             html: [JSON.stringify(report.diagnostic)],
-          });
+          } satisfies ErrorReportRequest);
         }),
     },
   };

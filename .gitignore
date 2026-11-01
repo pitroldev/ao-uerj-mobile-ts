@@ -89,5 +89,9 @@ buck-out/
 .env.*
 !.env.example
 
+# Backend (server/): error report attachments can hold portal pages with
+# personal data; they stay on the server.
+server/AOreports/
+
 # Claude Code worktrees (parallel sessions).
 .claude/worktrees/

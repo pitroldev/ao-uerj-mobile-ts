@@ -166,6 +166,107 @@
       }
     },
     {
+      // Clean architecture in the backend: domain, use cases and shared code
+      // know no framework, database, logger or file system; the adapters do.
+      "files": ["server/src/modules/**", "server/src/shared/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(express|express-rate-limit|helmet|cors|mongoose|pino|pino-http|zod)(/|$)",
+                "message": "Domínio e casos de uso não conhecem framework, banco nem log: use uma porta (interface) e implemente-a em server/src/adapters."
+              },
+              {
+                "regex": "^node:(fs|http|https|net|child_process|worker_threads)(/|$)",
+                "message": "Arquivos, rede e threads ficam nos adaptadores (server/src/adapters)."
+              },
+              {
+                "regex": "/adapters/",
+                "message": "O domínio não depende dos adaptadores; a dependência é o contrário."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // The domain is the core of the hexagon: besides the rules above, it
+      // does not know the ports or the use cases built on it. (A later
+      // override replaces the rule, so the patterns above are repeated.)
+      "files": [
+        "server/src/modules/*/domain.ts",
+        "server/src/modules/*/domain/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(express|express-rate-limit|helmet|cors|mongoose|pino|pino-http|zod)(/|$)",
+                "message": "Domínio e casos de uso não conhecem framework, banco nem log: use uma porta (interface) e implemente-a em server/src/adapters."
+              },
+              {
+                "regex": "^node:(fs|http|https|net|child_process|worker_threads)(/|$)",
+                "message": "Arquivos, rede e threads ficam nos adaptadores (server/src/adapters)."
+              },
+              {
+                "regex": "/adapters/",
+                "message": "O domínio não depende dos adaptadores; a dependência é o contrário."
+              },
+              {
+                "regex": "(^|/)(ports|application)\\.ts$",
+                "message": "O domínio é o centro: as portas e os casos de uso dependem dele, não o contrário."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // Hexagonal: the driving side (HTTP, scheduler) and the driven side
+      // (MongoDB, files, portal, threads) only meet in composition.ts.
+      "files": ["server/src/adapters/inbound/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "/outbound/",
+                "message": "Adaptadores de entrada falam com as portas dos módulos; quem liga os de saída é o composition.ts."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["server/src/adapters/outbound/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "/inbound/",
+                "message": "Adaptadores de saída implementam portas; não conhecem o HTTP nem o agendador."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["server/test/**"],
+      "rules": {
+        // node:test tracks the promise of each top-level test() itself.
+        "typescript/no-floating-promises": "off"
+      }
+    },
+    {
       "files": ["src/**"],
       "rules": {
         "no-restricted-imports": [

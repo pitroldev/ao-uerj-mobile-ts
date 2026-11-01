@@ -12,12 +12,21 @@ export interface GeneratorTransport {
   ): Promise<{ data: unknown }>;
 }
 
-export function createScheduleGeneratorAdapter(
-  transport: GeneratorTransport = axios.create({
-    baseURL: 'https://pitrol.dev/schedules',
+const GENERATOR_URL = 'https://pitrol.dev/schedules';
+
+/** O cliente HTTP do app; o teste de contrato o aponta para um servidor local. */
+export function createGeneratorTransport(
+  baseURL = GENERATOR_URL,
+): GeneratorTransport {
+  return axios.create({
+    baseURL,
     timeout: 60000,
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
-  }),
+  });
+}
+
+export function createScheduleGeneratorAdapter(
+  transport: GeneratorTransport = createGeneratorTransport(),
 ): ScheduleGeneratorPort {
   return {
     async generate(request, options) {

@@ -1,0 +1,759 @@
+import assert from 'node:assert/strict';
+import { after, before, test } from 'node:test';
+
+import { createServer, type Server } from '../src/composition.ts';
+import { createPortalWatch } from '../src/modules/portal/application.ts';
+import { UnavailableError } from '../src/shared/errors.ts';
+import {
+  memoryAttachments,
+  memoryRepositories,
+  silentLogger,
+  switchableDatabase,
+  testConfig,
+} from './support.ts';
+
+const ADMIN_TOKEN = 'token-de-administracao';
+
+type Answer = { status: number; headers: Headers; body: any };
+
+/** Sobe um servidor com dublês em memória e devolve como chamá-lo. */
+async function serve(env: Record<string, string> = {}) {
+  const memory = memoryRepositories();
+  const attachments = memoryAttachments();
+  const db = switchableDatabase();
+  const portal = createPortalWatch({
+    probe: async () => 503,
+    now: () => Date.UTC(2026, 9, 22, 12),
+  });
+  await portal.check();
+  const server = createServer(testConfig(env), silentLogger, {
+    database: db.database,
+    repositories: memory.repositories,
+    attachments: attachments.store,
+    portal,
+  });
+  const { port } = await server.start(0);
+  const base = `http://127.0.0.1:${port}`;
+
+  async function call(
+    path: string,
+    {
+      method = 'GET',
+      body,
+      headers = {},
+    }: {
+      method?: string;
+      body?: unknown;
+      headers?: Record<string, string>;
+    } = {},
+  ): Promise<Answer> {
+    const response = await fetch(`${base}${path}`, {
+      method,
+      headers: {
+        ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+        ...headers,
+      },
+      body:
+        body === undefined || typeof body === 'string'
+          ? body
+          : JSON.stringify(body),
+      redirect: 'manual',
+    });
+    const text = await response.text();
+    const json = response.headers.get('content-type')?.includes('json');
+    return {
+      status: response.status,
+      headers: response.headers,
+      body: json && text ? JSON.parse(text) : text || null,
+    };
+  }
+
+  return { server, call, memory, attachments, db };
+}
+
+let app: Awaited<ReturnType<typeof serve>>;
+const opened: Server[] = [];
+
+before(async () => {
+  // os testes do gerador dividem este servidor; o do limite tem o próprio
+  app = await serve({ GENERATOR_RATE_LIMIT_PER_MINUTE: '1000' });
+  opened.push(app.server);
+});
+
+after(async () => {
+  await Promise.all(opened.map(server => server.stop()));
+});
+
+const thread = { disciplina: 'IME02-10892', periodo: '2026.2', turma: '1' };
+
+test('the health route answers with the request id, security headers and no x-powered-by', async () => {
+  const response = await app.call('/aouerj/health');
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.online, true);
+  assert.equal(response.body.database, 'connected');
+  assert.ok(!Number.isNaN(Date.parse(response.body.timestamp)));
+  assert.match(response.headers.get('x-request-id') ?? '', /^[\w-]{36}$/);
+  assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+  assert.equal(response.headers.get('x-powered-by'), null);
+  // o HSTS é do nginx do domínio: daqui valeria para todos os subdomínios
+  assert.equal(response.headers.get('strict-transport-security'), null);
+
+  const traced = await app.call('/aouerj/health', {
+    headers: { 'x-request-id': 'nginx-123' },
+  });
+  assert.equal(traced.headers.get('x-request-id'), 'nginx-123');
+});
+
+test('the status shows the release and the parts, and is a 503 without the database', async () => {
+  const commit = 'a1b2c3d'.padEnd(40, '0');
+  const released = await serve({
+    RELEASE_COMMIT: commit,
+    RELEASE_COLOR: 'green',
+  });
+  opened.push(released.server);
+
+  const ok = await released.call('/aouerj/status');
+  assert.equal(ok.status, 200);
+  assert.equal(ok.headers.get('cache-control'), 'no-store');
+  assert.equal(ok.body.status, 'ok');
+  assert.equal(ok.body.release.commit, commit);
+  assert.equal(ok.body.release.color, 'green');
+  assert.equal(ok.body.release.node, process.version);
+  assert.ok(ok.body.release.uptimeSeconds >= 0);
+  assert.ok(Date.parse(ok.body.release.startedAt) <= Date.now());
+  assert.equal(ok.body.database, 'connected');
+  assert.equal(ok.body.portal.state, 'down');
+  assert.deepEqual(ok.body.generator, { running: 0, queued: 0 });
+
+  released.db.state.ready = false;
+  const degraded = await released.call('/aouerj/status');
+  assert.equal(degraded.status, 503);
+  assert.equal(degraded.body.status, 'degraded');
+  assert.equal(degraded.body.database, 'disconnected');
+
+  // fora da implantação automática, sem commit
+  const local = await app.call('/aouerj/status');
+  assert.deepEqual(
+    { commit: local.body.release.commit, color: local.body.release.color },
+    { commit: null, color: null },
+  );
+});
+
+test('the portal status is cached for a minute and needs no database', async () => {
+  app.db.state.ready = false;
+  try {
+    const response = await app.call('/aouerj/portal-status');
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('cache-control'), 'public, max-age=60');
+    assert.deepEqual(response.body, {
+      state: 'down',
+      since: '2026-10-22T12:00:00.000Z',
+      checkedAt: '2026-10-22T12:00:00.000Z',
+    });
+  } finally {
+    app.db.state.ready = true;
+  }
+});
+
+test('the mural answers what the published apps read: 200, the old fields, oldest first', async () => {
+  const first = await app.call('/aouerj/messages/post', {
+    method: 'POST',
+    body: { fullName: '  Ada Lovelace ', ...thread, message: ' Olá ' },
+  });
+  assert.equal(first.status, 200);
+  assert.deepEqual(Object.keys(first.body), [
+    '_id',
+    'fullName',
+    'disciplina',
+    'periodo',
+    'turma',
+    'message',
+    'createdAt',
+    'updatedAt',
+  ]);
+  assert.equal(first.body.fullName, 'Ada Lovelace');
+  assert.equal(first.body.message, 'Olá');
+
+  // apps antigos mandavam a turma como número
+  await app.call('/aouerj/messages/post', {
+    method: 'POST',
+    body: { fullName: 'Bea', ...thread, turma: 1, message: 'Segunda' },
+  });
+
+  const listed = await app.call('/aouerj/messages/get', {
+    method: 'POST',
+    body: { ...thread, turma: 1 },
+  });
+  assert.equal(listed.status, 200);
+  assert.deepEqual(
+    listed.body.map((message: { message: string }) => message.message),
+    ['Olá', 'Segunda'],
+  );
+});
+
+test('a mural message with a missing or long field is refused with the old messages', async () => {
+  const missing = await app.call('/aouerj/messages/post', {
+    method: 'POST',
+    body: { ...thread, message: 'Oi' },
+  });
+  assert.equal(missing.status, 400);
+  assert.deepEqual(missing.body, {
+    error: 'invalid_request',
+    message: 'fullName is required',
+  });
+
+  // o que o servidor antigo aceitava passa: nome longo do portal e o texto
+  // sem corte dos apps 1.x
+  const generous = await app.call('/aouerj/messages/post', {
+    method: 'POST',
+    body: {
+      fullName: 'N'.repeat(150),
+      ...thread,
+      message: 'x'.repeat(5000),
+    },
+  });
+  assert.equal(generous.status, 200);
+
+  const long = await app.call('/aouerj/messages/post', {
+    method: 'POST',
+    body: { fullName: 'Ada', ...thread, message: 'x'.repeat(10001) },
+  });
+  assert.equal(long.body.message, 'message must be at most 10000 characters');
+
+  const wrongType = await app.call('/aouerj/messages/get', {
+    method: 'POST',
+    body: { ...thread, periodo: ['2026.2'] },
+  });
+  assert.equal(wrongType.body.message, 'periodo must be a string');
+
+  const noBody = await app.call('/aouerj/messages/get', { method: 'POST' });
+  assert.equal(noBody.body.message, 'disciplina is required');
+});
+
+test('the teacher list is sorted and the search returns the stored shape', async () => {
+  app.memory.data.teachers.push(
+    {
+      id: 't1',
+      name: 'Zélia Souza',
+      subjects: { '10892': { disciplina: 'Sistemas', turmas: [{ turma: 1 }] } },
+      createdAt: new Date(Date.UTC(2024, 0, 1)),
+    },
+    { id: 't2', name: 'Álvaro Lima', subjects: {} },
+  );
+
+  const list = await app.call('/aouerj/docentes');
+  assert.deepEqual(list.body, { docentes: ['Álvaro Lima', 'Zélia Souza'] });
+
+  const search = await app.call('/aouerj/docentes/z%C3%A9lia');
+  assert.deepEqual(search.body, {
+    docentes: [
+      {
+        _id: 't1',
+        docente: 'Zélia Souza',
+        disciplinas: {
+          '10892': { disciplina: 'Sistemas', turmas: [{ turma: 1 }] },
+        },
+        createdAt: '2024-01-01T00:00:00.000Z',
+      },
+    ],
+  });
+
+  const short = await app.call('/aouerj/docentes/Z');
+  assert.deepEqual(short.body, {
+    error: 'invalid_request',
+    message: 'name is required',
+  });
+});
+
+test('an error report keeps the attachments and answers only ok', async () => {
+  const response = await app.call('/aouerj/reportError', {
+    method: 'POST',
+    body: {
+      page: 'Notas do Período',
+      description: '  Some a P2 ',
+      email: 'NAO-E-EMAIL',
+      html: ['{"parser":"3"}'],
+    },
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body, { status: 'ok' });
+
+  const [report] = app.memory.data.reports.slice(-1);
+  assert.equal(report.description, 'Some a P2');
+  // um e-mail inválido sai em vez de derrubar o relato
+  assert.equal(report.email, undefined);
+  assert.equal(
+    app.attachments.files.get(`Notas do Período/${report.attachmentIds[0]}`),
+    '{"parser":"3"}',
+  );
+
+  for (const [html, message] of [
+    ['<main/>', 'html must be an array'],
+    [[1], 'each html document must be a string (html[0])'],
+    [
+      Array.from({ length: 11 }, () => '{}'),
+      'html must contain at most 10 documents',
+    ],
+  ] as const) {
+    const refused = await app.call('/aouerj/reportError', {
+      method: 'POST',
+      body: { page: 'p', html },
+    });
+    assert.equal(refused.status, 400);
+    assert.equal(refused.body.message, message);
+  }
+});
+
+test('a suggestion from an old app is saved with a valid e-mail in lower case', async () => {
+  const response = await app.call('/aouerj/suggestions', {
+    method: 'POST',
+    body: { name: ' Ada ', content: 'Modo escuro', email: ' ADA@EXAMPLE.COM ' },
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body, { status: 'ok' });
+  assert.deepEqual(app.memory.data.suggestions.at(-1), {
+    ...app.memory.data.suggestions.at(-1),
+    name: 'Ada',
+    content: 'Modo escuro',
+    email: 'ada@example.com',
+  });
+});
+
+test('the listings with e-mail do not exist without the admin token', async () => {
+  for (const path of ['/aouerj/reportError', '/aouerj/suggestions']) {
+    const response = await app.call(path);
+    assert.equal(response.status, 404);
+  }
+});
+
+test('with the admin token configured, the listings need it', async () => {
+  const admin = await serve({ ADMIN_TOKEN });
+  opened.push(admin.server);
+  await admin.call('/aouerj/suggestions', {
+    method: 'POST',
+    body: { name: 'Ada', content: 'Oi', email: 'ada@example.com' },
+  });
+
+  for (const token of ['token-de-administracaX', 'outro']) {
+    const refused = await admin.call('/aouerj/suggestions', {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    assert.equal(refused.status, 401);
+  }
+  assert.equal((await admin.call('/aouerj/suggestions')).status, 401);
+
+  const allowed = await admin.call('/aouerj/suggestions', {
+    headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+  });
+  assert.equal(allowed.status, 200);
+  assert.deepEqual(Object.keys(allowed.body[0]), [
+    '_id',
+    'name',
+    'content',
+    'email',
+    'createdAt',
+    'updatedAt',
+  ]);
+
+  const reports = await admin.call('/aouerj/reportError', {
+    headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+  });
+  assert.deepEqual(reports.body, { reports: [] });
+});
+
+test('without the database, its routes answer 503 at once and the others keep working', async () => {
+  app.db.state.ready = false;
+  try {
+    const startedAt = Date.now();
+    const docentes = await app.call('/aouerj/docentes');
+    assert.equal(docentes.status, 503);
+    assert.equal(docentes.body.error, 'database_unavailable');
+    assert.ok(Date.now() - startedAt < 500);
+
+    assert.equal(
+      (await app.call('/aouerj/health')).body.database,
+      'disconnected',
+    );
+    assert.equal((await app.call('/aouerj/nada')).status, 404);
+  } finally {
+    app.db.state.ready = true;
+  }
+});
+
+test('a database that drops during the request is a 503; any other failure, a 500', async () => {
+  const broken = await serve();
+  opened.push(broken.server);
+  broken.memory.repositories.teachers.listNames = async () => {
+    throw new UnavailableError(
+      'database_unavailable',
+      'The database is temporarily unavailable',
+    );
+  };
+  broken.memory.repositories.messages.listThread = async () => {
+    throw new Error('bug');
+  };
+
+  assert.equal((await broken.call('/aouerj/docentes')).status, 503);
+  const failed = await broken.call('/aouerj/messages/get', {
+    method: 'POST',
+    body: thread,
+  });
+  assert.equal(failed.status, 500);
+  assert.deepEqual(failed.body, {
+    error: 'internal_server_error',
+    message: 'Unexpected server error',
+  });
+});
+
+test('broken and oversized JSON get their own answers', async () => {
+  const broken = await app.call('/aouerj/messages/get', {
+    method: 'POST',
+    body: '{"disciplina":',
+    headers: { 'content-type': 'application/json' },
+  });
+  assert.equal(broken.status, 400);
+  assert.equal(broken.body.error, 'invalid_json');
+
+  const large = await app.call('/aouerj/messages/post', {
+    method: 'POST',
+    body: JSON.stringify({ message: 'x'.repeat(1024 * 1024 + 1) }),
+    headers: { 'content-type': 'application/json' },
+  });
+  assert.equal(large.status, 413);
+  assert.equal(large.body.error, 'payload_too_large');
+});
+
+test('the writes are limited per minute', async () => {
+  const limited = await serve({ RATE_LIMIT_PER_MINUTE: '2' });
+  opened.push(limited.server);
+  const post = () =>
+    limited.call('/aouerj/suggestions', {
+      method: 'POST',
+      body: { name: 'Ada', content: 'Oi' },
+    });
+
+  assert.equal((await post()).status, 200);
+  assert.equal((await post()).status, 200);
+  const third = await post();
+  assert.equal(third.status, 429);
+  assert.equal(third.body.error, 'rate_limited');
+  // a leitura não entra na conta
+  assert.equal((await limited.call('/aouerj/docentes')).status, 200);
+});
+
+test('HTTPS redirects keep the public origin even for protocol-relative paths', async () => {
+  const secure = await serve({
+    FORCE_HTTPS: 'true',
+    PUBLIC_URL: 'https://pitrol.dev',
+  });
+  opened.push(secure.server);
+
+  const response = await secure.call('//attacker.example/aouerj/health?x=1');
+  assert.equal(response.status, 308);
+  // "//attacker.example" lido como origem só cede o caminho e a query
+  assert.equal(
+    response.headers.get('location'),
+    'https://pitrol.dev/aouerj/health?x=1',
+  );
+});
+
+/*
+ * O gerador de grades. Os casos "the old generator" são os testes que
+ * acompanham a produção (tests/reported-bugs.test.cjs na VM), com as mesmas
+ * entradas e respostas.
+ */
+
+const interval = (day: number, start: number, end: number) => ({
+  week_day: day,
+  start_time_in_minutes: start,
+  end_time_in_minutes: end,
+});
+const subject = (id: string, credits = 4) => ({
+  id,
+  name: `Synthetic ${id}`,
+  type: 'MANDATORY',
+  credits,
+  total_workload: credits * 15,
+  prerequisites: [],
+  allow_conflict: false,
+});
+const group = (
+  id: string,
+  schedules: ReturnType<typeof interval>[],
+  classId = '1',
+) => ({
+  id: classId,
+  name: `Synthetic ${id}`,
+  type: 'REGULAR',
+  teachers: [],
+  vacancies_amount: 10,
+  subject_id: id,
+  schedules,
+});
+type Group = ReturnType<typeof group>;
+const generation = (
+  classes: Group[],
+  preferences: Record<string, unknown> = {},
+  subjects: object[] = [...new Set(classes.map(c => c.subject_id))].map(id =>
+    subject(id),
+  ),
+) => ({
+  preferences: {
+    min_subject_amount: 1,
+    max_subject_amount: 3,
+    priority: ['MAX_CREDITS'],
+    ...preferences,
+  },
+  classes,
+  subjects,
+});
+type Generated = {
+  schedule: { subject_id: string; subject: { credits: number } }[];
+  total_credits: number;
+};
+const generate = async (body: unknown) => {
+  const response = await app.call('/schedules/generate', {
+    method: 'POST',
+    body,
+  });
+  assert.equal(response.status, 200, JSON.stringify(response.body));
+  assert.equal(response.body.exhaustive, true);
+  return response.body.data as Generated[];
+};
+const subjectsOf = (schedule: Generated) =>
+  schedule.schedule
+    .map(c => c.subject_id)
+    .sort()
+    .join(',');
+const assertRange = (schedules: Generated[], min: number, max: number) => {
+  for (const schedule of schedules) {
+    assert.ok(
+      schedule.schedule.length >= min && schedule.schedule.length <= max,
+    );
+    assert.equal(
+      new Set(schedule.schedule.map(c => c.subject_id)).size,
+      schedule.schedule.length,
+    );
+    assert.equal(
+      schedule.total_credits,
+      schedule.schedule.reduce((n, c) => n + c.subject.credits, 0),
+    );
+  }
+};
+const conflictingThree = () => [
+  group('IME01-12345', [interval(0, 420, 520)]),
+  group('IME01-12346', [interval(0, 420, 520)]),
+  group('IME01-12347', [interval(1, 420, 520)]),
+];
+
+test('the old generator: numeric strings and no busy hours still give the pairs', async () => {
+  const results = await generate(
+    generation(conflictingThree(), {
+      min_subject_amount: '2',
+      max_subject_amount: '3',
+    }),
+  );
+  assert.deepEqual(results.map(subjectsOf).sort(), [
+    'IME01-12345,IME01-12347',
+    'IME01-12346,IME01-12347',
+  ]);
+  assertRange(results, 2, 3);
+});
+
+test('the old generator: one- and two-subject schedules, more subjects first', async () => {
+  const results = await generate(
+    generation(conflictingThree(), { busy_schedules: [] }),
+  );
+  assert.deepEqual(
+    results.map(s => s.schedule.length),
+    [2, 2, 1, 1, 1],
+  );
+  assert.deepEqual(results.map(subjectsOf).sort(), [
+    'IME01-12345',
+    'IME01-12345,IME01-12347',
+    'IME01-12346',
+    'IME01-12346,IME01-12347',
+    'IME01-12347',
+  ]);
+});
+
+test('the old generator: single subjects when every pair conflicts and the maximum is twelve', async () => {
+  const classes = ['A', 'B', 'C'].map(id => group(id, [interval(0, 420, 520)]));
+  const results = await generate(
+    generation(classes, { max_subject_amount: 12 }),
+  );
+  assert.deepEqual(results.map(subjectsOf).sort(), ['A', 'B', 'C']);
+  assertRange(results, 1, 12);
+});
+
+test('the old generator: exact minimums and maximums', async () => {
+  assert.deepEqual(
+    await generate(
+      generation(conflictingThree(), {
+        min_subject_amount: 3,
+        max_subject_amount: 3,
+      }),
+    ),
+    [],
+  );
+  const pairs = await generate(
+    generation(conflictingThree(), {
+      min_subject_amount: 2,
+      max_subject_amount: 2,
+    }),
+  );
+  assert.deepEqual(pairs.map(subjectsOf).sort(), [
+    'IME01-12345,IME01-12347',
+    'IME01-12346,IME01-12347',
+  ]);
+});
+
+test('the old generator: busy hours exclude overlaps but not adjacent hours or other days', async () => {
+  const classes = [
+    group('A', [interval(0, 100, 200)]),
+    group('B', [interval(0, 200, 300)]),
+    group('C', [interval(0, 0, 100)]),
+    group('D', [interval(6, 100, 200)]),
+  ];
+  const results = await generate(
+    generation(classes, { busy_schedules: [interval(0, 100, 200)] }),
+  );
+  assert.equal(subjectsOf(results[0]), 'B,C,D');
+  assert.ok(results.every(s => s.schedule.every(c => c.subject_id !== 'A')));
+
+  const sunday = [
+    group('A', [interval(6, 0, 50)]),
+    group('B', [interval(6, 1390, 1440)]),
+    group('C', [interval(0, 0, 50)]),
+  ];
+  const free = await generate(
+    generation(sunday, { busy_schedules: [interval(6, 0, 1440)] }),
+  );
+  assert.deepEqual(free.map(subjectsOf), ['C']);
+});
+
+test('the old generator: nothing compatible is an empty answer', async () => {
+  const classes = [group('A', [interval(0, 100, 200)])];
+  assert.deepEqual(
+    await generate(
+      generation(classes, { busy_schedules: [interval(0, 150, 250)] }),
+    ),
+    [],
+  );
+  assert.deepEqual(await generate(generation([], { busy_schedules: [] })), []);
+});
+
+test('the old generator: five schedules at most, ranked by credits among equals', async () => {
+  const subjects = Array.from({ length: 7 }, (_, i) => subject(`A${i}`, i + 1));
+  const classes = subjects.map(s => group(s.id, [interval(0, 100, 200)]));
+  const results = await generate(
+    generation(classes, { max_subject_amount: 1 }, subjects),
+  );
+  assert.deepEqual(
+    results.map(s => s.total_credits),
+    [7, 6, 5, 4, 3],
+  );
+});
+
+test('the old generator: two classes of a subject never count as two subjects', async () => {
+  const classes = [
+    group('A', [interval(0, 100, 200)], '1'),
+    group('A', [interval(1, 100, 200)], '2'),
+    group('B', [interval(2, 100, 200)], '1'),
+  ];
+  const results = await generate(
+    generation(classes, { min_subject_amount: 2, max_subject_amount: 3 }),
+  );
+  assert.equal(results.length, 2);
+  assert.ok(results.every(s => subjectsOf(s) === 'A,B'));
+});
+
+test('the old generator: the permission to conflict works in either order, busy hours still win', async () => {
+  const classes = [
+    group('A', [interval(0, 100, 200)]),
+    group('B', [interval(0, 150, 250)]),
+  ];
+  const allowed = [subject('A'), { ...subject('B'), allow_conflict: true }];
+  const pair = { min_subject_amount: 2, max_subject_amount: 2 };
+  for (const ordered of [classes, [...classes].reverse()]) {
+    assert.deepEqual(
+      (await generate(generation(ordered, pair, allowed))).map(subjectsOf),
+      ['A,B'],
+    );
+    assert.deepEqual(await generate(generation(ordered, pair)), []);
+  }
+  const busy = await generate(
+    generation(classes, { busy_schedules: [interval(0, 200, 300)] }, allowed),
+  );
+  assert.deepEqual(busy.map(subjectsOf), ['A']);
+});
+
+test('a generated class is the one sent, extra fields included, plus its subject', async () => {
+  const sent = { ...group('A', [interval(0, 100, 200)]), turno: 'M' };
+  const response = await app.call('/schedules/generate', {
+    method: 'POST',
+    body: generation([sent], { priority: ['MIN_GAPS', 'SOMETHING_NEW'] }),
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body, {
+    data: [
+      {
+        hash: 'AxD0-100-200',
+        schedule: [{ ...sent, subject: subject('A') }],
+        total_week_days: 1,
+        total_credits: 4,
+        total_workload: 60,
+        fails: { subject_amount: false },
+        total_gaps_in_minutes: 0,
+      },
+    ],
+    exhaustive: true,
+  });
+});
+
+test('a malformed generation request is a 400 that says where', async () => {
+  const classes = [group('A', [interval(0, 100, 200)])];
+  const cases: [unknown, string][] = [
+    [{ classes, subjects: [] }, 'preferences is required'],
+    [
+      generation(classes, { max_subject_amount: 'três' }),
+      'max_subject_amount must be an integer (preferences.max_subject_amount)',
+    ],
+    [
+      generation([group('A', [interval(7, 100, 200)])]),
+      'week_day must be an integer from 0 to 6 (classes[0].schedules[0].week_day)',
+    ],
+    [
+      generation([group('A', [interval(0, 300, 200)])]),
+      'a schedule must end after it starts (classes[0].schedules[0])',
+    ],
+    [{ ...generation(classes), classes: 'A' }, 'classes must be an array'],
+  ];
+  for (const [body, message] of cases) {
+    const refused = await app.call('/schedules/generate', {
+      method: 'POST',
+      body,
+    });
+    assert.equal(refused.status, 400);
+    assert.deepEqual(refused.body, { error: 'invalid_request', message });
+  }
+});
+
+test('the generator health shows its load, and generations are limited per minute', async () => {
+  const health = await app.call('/schedules/health');
+  assert.equal(health.status, 200);
+  assert.deepEqual(health.body, { online: true, running: 0, queued: 0 });
+
+  const limited = await serve({ GENERATOR_RATE_LIMIT_PER_MINUTE: '1' });
+  opened.push(limited.server);
+  const post = () =>
+    limited.call('/schedules/generate', {
+      method: 'POST',
+      body: generation(conflictingThree()),
+    });
+  assert.equal((await post()).status, 200);
+  const second = await post();
+  assert.equal(second.status, 429);
+  assert.equal(second.body.error, 'rate_limited');
+});

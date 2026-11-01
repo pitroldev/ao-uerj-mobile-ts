@@ -4,6 +4,8 @@
   "exclude": [
     "node_modules",
     "artifacts",
+    "server",
+    "src/adapters/outbound/__tests__/server.contract.test.ts",
     "babel.config.js",
     "metro.config.js",
     "jest.config.js",

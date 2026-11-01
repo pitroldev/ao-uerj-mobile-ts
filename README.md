@@ -43,7 +43,7 @@ pnpm test:tooling
 
 Os scripts Gradle funcionam no Windows, Linux e macOS. Debug não exige assinatura de publicação. `pnpm build` e `pnpm bundle` exigem `android/keystore.properties` com `keyAlias`, `keyPassword`, `storeFile` e `storePassword`; `storeFile` é relativo a `android/app` ou um caminho absoluto. As variáveis `ANDROID_KEYSTORE_FILE`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` e `ANDROID_KEY_PASSWORD`, quando definidas, têm prioridade sobre o arquivo. Esses segredos ficam fora do Git.
 
-`pnpm type-check` usa o TypeScript 7 nativo (`@typescript/native`). O pacote `typescript` é o alias `@typescript/typescript6`, que mantém a API JS do TypeScript 6 para o editor (o `@styled/typescript-styled-plugin` roda no tsserver). `pnpm lint` roda o Oxlint (`.oxlintrc.json`), com as regras que usam tipos (`oxlint-tsgolint`, sobre o TypeScript 7), e falha com qualquer aviso. A formatação fica só com o Prettier: `pnpm format:check` confere o repositório e `pnpm format` corrige. O CI (`quality.yml`) executa instalação congelada, lint, formatação, TypeScript, Knip (dependências, arquivos e exports sem uso), testes, build debug e AAB release (R8) com uma keystore descartável. Esse AAB serve apenas à validação. O workflow iOS (`ios.yml`) é acionado manualmente em macOS: empacota o JS para iOS em modo release e compila o app para o simulador, sem assinatura.
+`pnpm type-check` usa o TypeScript 7 nativo (`@typescript/native`). O pacote `typescript` é o alias `@typescript/typescript6`, que mantém a API JS do TypeScript 6 para o editor (o `@styled/typescript-styled-plugin` roda no tsserver). `pnpm lint` roda o Oxlint (`.oxlintrc.json`), com as regras que usam tipos (`oxlint-tsgolint`, sobre o TypeScript 7), e falha com qualquer aviso. A formatação fica só com o Prettier: `pnpm format:check` confere o repositório e `pnpm format` corrige. O CI (`quality.yml`) executa instalação congelada, lint, formatação, TypeScript, Knip (dependências, arquivos e exports sem uso), testes, build debug e AAB release (R8) com uma keystore descartável. Esse AAB serve apenas à validação. O workflow iOS (`ios.yml`) é acionado manualmente em macOS: empacota o JS para iOS em modo release e compila o app para o simulador, sem assinatura. O `server.yml` confere o servidor e o contrato dele com o app e o implanta na VM, azul/verde, a cada push na `main` que mexe nele (ver [a implantação](server/README.md#implantação)).
 
 ### iOS
 
@@ -102,6 +102,7 @@ src/adapters/outbound/           AO, APIs privadas, aviso remoto, armazenamento 
 src/specs/                       specs do codegen para TurboModules locais (In-App Updates, avisos, widget)
 src/pages/ e src/features/       telas e componentes de apresentação
 src/shared/                      erros compartilhados
+server/                          o backend próprio (mural, docentes, relatos, situação do portal, gerador de grades)
 ```
 
 O Oxlint impede imports de React, SDKs, adaptadores e estado global em domínio/aplicação. As queries acadêmicas usam conta e contexto do portal na chave. Cookies e tokens não participam das chaves. Os componentes não copiam respostas para outro armazenamento de estado.
@@ -109,6 +110,14 @@ O Oxlint impede imports de React, SDKs, adaptadores e estado global em domínio/
 O coordenador AO centraliza login, token, códigos de requisição e renovação concorrente. Uma consulta expirada permite um único replay; erros transitórios têm repetição limitada nas queries. Parsers diferenciam página vazia reconhecida de estrutura inesperada.
 
 O gerador exige uma ação explícita para enviar a solicitação. Seus detalhes são carregados com concorrência limitada e cancelamento. Mensagens, suporte e geração usam APIs próprias, distintas do portal UERJ.
+
+### Servidor próprio (`server/`)
+
+O backend de `https://pitrol.dev` fica em [`server/`](server/README.md): em `/aouerj`, mural, docentes, relatos de erro, sugestões dos apps antigos e a situação do Aluno Online; em `/schedules`, o gerador de grades. É TypeScript rodado direto pelo Node 22.18+, em arquitetura hexagonal com os nomes do app: cada módulo tem domínio, portas e casos de uso sem framework; os adaptadores de entrada (HTTP, agendador) e de saída (MongoDB, arquivos, portal, threads) ficam nas bordas e só se encontram na raiz de composição. O gerador busca em uma thread à parte, com fila e limite de tempo, e dá as mesmas grades que o serviço antigo.
+
+- **Contrato:** os corpos e respostas da API são tipos em `server/src/adapters/inbound/http/contract.ts`, que os adaptadores do app (`src/adapters/outbound/private-api` e `schedule-generator`) importam: um campo trocado de um lado não passa no `pnpm type-check`.
+- **Pacote à parte:** o servidor tem dependências e lockfile próprios, fora do workspace do app (nada dele entra no `node_modules` do React Native). O `postinstall` da raiz o instala; `pnpm server dev` sobe e `pnpm test:server` testa, sem MongoDB.
+- Lint, formatação e tipos da raiz cobrem o servidor, e o CI roda os testes dele no mesmo job do app.
 
 ## Persistência e privacidade
 
@@ -123,7 +132,8 @@ O gerador exige uma ação explícita para enviar a solicitação. Seus detalhes
 - O logout invalida resultados tardios, aguarda operações nativas, limpa cookies, credenciais e cache da conta.
 - A migração do antigo Redux persistido transfere credenciais para armazenamento seguro e remove a cópia em texto simples. Se a transferência falhar, um novo login pode ser necessário.
 - Relatórios de suporte enviam diagnóstico estruturado e descrição sanitizada. Não coletam HTML bruto, senha, cookies ou tokens do portal. Com o Sentry ativo, o diagnóstico leva também o id do evento de feedback correspondente.
-- Mensagens enviam nome do autor, turma, disciplina, período escolhido e texto. O gerador envia dados necessários ao cálculo. Este repositório cliente não comprova políticas de retenção dos servidores.
+- Mensagens enviam nome do autor, turma, disciplina, período escolhido e texto. O gerador envia dados necessários ao cálculo.
+- O que o servidor próprio guarda está em [server/README.md](server/README.md#segurança-e-privacidade): as mensagens, os relatos e as sugestões ficam no MongoDB sem prazo de remoção, e o log não registra IP nem User-Agent. O gerador de grades não guarda nada: calcula e responde.
 - O aviso remoto (ver [Aviso remoto](#aviso-remoto)) está sempre ligado. O app baixa `config/app-status.json` deste repositório em `raw.githubusercontent.com` na abertura, ao voltar ao primeiro plano e, em segundo plano, quando a verificação de avisos vai de fato consultar o portal (antes disso, vale a cópia salva). Faz isso no máximo a cada 15 minutos, inclusive antes do login. A requisição não leva dados do aluno, mas o GitHub (Microsoft, nos EUA) vê o IP do aparelho, o horário e o User-Agent. Os links "Saiba mais" dos avisos só abrem hosts permitidos.
 - Atualização e avaliação usam as APIs da própria loja (In-App Updates e In-App Review da Play), que passam pelo app da loja no aparelho; o app não envia dados próprios nesses fluxos.
 - Tema, última cópia do aviso remoto, avisos dispensados, data do último pedido de atualização e o histórico de uso que decide o pedido de avaliação ficam no AsyncStorage. Valem para o app inteiro e não são apagados no logout.
@@ -349,6 +359,7 @@ O código do projeto é distribuído sob a [GPLv3](LICENSE). Fontes, ícones, da
 - [Contexto de produto e design](PRODUCT.md)
 - [Design system “Agenda limpa”: tokens e componentes](src/components/ui/README.md)
 - [Ferramentas de desenvolvimento: conta real, deep links, capturas e E2E](scripts/dev/README.md)
+- [Servidor próprio: API, arquitetura e implantação](server/README.md)
 - [Direção do redesenho visual](docs/design-brief.md)
 
 Alterações no portal podem exigir atualização dos parsers. O app preserva dados já carregados e informa falhas de atualização; use o relatório em “Sobre” para descrever problemas persistentes.

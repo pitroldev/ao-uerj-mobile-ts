@@ -1,6 +1,7 @@
 import { Prereq } from '@root/modules/academics/domain/models';
 import { ScheduleGenerationRequest } from '@root/modules/planning/application/ports';
 import { scheduleIntervals } from '@root/modules/planning/domain/rules';
+import type { GenerateSchedulesRequest } from '../../../../server/src/adapters/inbound/http/contract';
 
 /** The deployed legacy request is flat. Keep OR groups in the domain, flatten only at this boundary. */
 export function legacyPrerequisiteIds(
@@ -49,5 +50,5 @@ export function toGeneratorPayload(request: ScheduleGenerationRequest) {
     },
     classes,
     subjects,
-  };
+  } satisfies GenerateSchedulesRequest;
 }

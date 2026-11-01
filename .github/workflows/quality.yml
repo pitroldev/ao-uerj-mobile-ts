@@ -35,6 +35,10 @@ jobs:
         with:
           node-version-file: .node-version
           cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            server/pnpm-lock.yaml
+      # o postinstall instala também o servidor (server/), com o lockfile dele
       - run: pnpm install --frozen-lockfile
       - name: Conferir atlas offline
         if: hashFiles('src/adapters/outbound/campus-map/atlas.json') != ''
@@ -44,6 +48,7 @@ jobs:
       - run: pnpm type-check
       - run: pnpm knip
       - run: pnpm test:tooling
+      - run: pnpm test:server
       - run: pnpm test:ci
 
   android-debug:

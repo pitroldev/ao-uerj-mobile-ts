@@ -1,0 +1,12 @@
+{
+  // O teste de contrato com o servidor sobe um processo Node: só ele vê os
+  // tipos do Node, que no app (React Native) esconderiam um `process` ou um
+  // `Buffer` que não existem lá.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["jest", "node"]
+  },
+  "include": ["src/adapters/outbound/__tests__/server.contract.test.ts"],
+  // o tsconfig.json exclui este arquivo; aqui ele é o único incluído
+  "exclude": ["node_modules", "server"]
+}

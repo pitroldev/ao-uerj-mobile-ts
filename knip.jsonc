@@ -16,6 +16,10 @@
   ],
   // Maestro CLI (pnpm e2e) is installed apart, outside npm: scripts/dev/README.md.
   "ignoreBinaries": ["maestro"],
+  // The backend (server/) is a separate package with its own dependencies and
+  // lockfile, outside the pnpm workspace; its tests and `tsc -p server` cover
+  // it. The app only imports types from server/src/contract.ts.
+  "ignore": ["server/**"],
   "ignoreIssues": {
     // The design system's types (ButtonProps, NoticeKind, TabItem, ...) are its
     // public API: each primitive exports its props so screens can type

@@ -1,0 +1,21 @@
+{
+  // O Node (22.18+) roda os .ts direto, tirando os tipos: só sintaxe que se
+  // apaga (sem enum, namespace ou parâmetro de construtor com modificador) e
+  // imports com a extensão .ts. Este arquivo só confere os tipos.
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["es2023"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src", "test"]
+}
