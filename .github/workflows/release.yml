@@ -13,9 +13,55 @@ on:
 permissions: {}
 
 jobs:
+  # Um bump feito à mão ("chore: release X.Y.Z" direto na main) não cria a tag, e sem
+  # ela o release-please não acha a versão do manifest: volta ao bootstrap-sha e
+  # propõe uma 2.0.0 com o histórico inteiro. Esta etapa põe a tag vX.Y.Z no commit
+  # do bump antes dele. Só a tag: nada de GitHub Release nem Play, e uma tag criada
+  # com o GITHUB_TOKEN não dispara outros workflows. O merge do PR do release-please
+  # fica com ele, que cria a tag e o GitHub Release.
+  version-tag:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: plan
+        name: Conferir a tag da versão do package.json
+        run: node scripts/ci/version-tag.cjs
+      - name: Criar a tag do bump feito à mão
+        if: steps.plan.outputs.create == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.plan.outputs.tag }}
+          SHA: ${{ steps.plan.outputs.sha }}
+        run: |
+          from_release_please=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/pulls" \
+            --jq '[.[] | select(.head.ref | startswith("release-please--"))] | length')
+          if [ "$from_release_please" != 0 ]; then
+            echo "O bump $SHA veio do PR do release-please, que cria a tag $TAG."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # a data da tag é a do commit do bump, como nas tags anteriores
+          GIT_COMMITTER_DATE=$(git show -s --format=%cI "$SHA") \
+            git tag -a "$TAG" -m "Release $TAG" "$SHA"
+          if ! git push origin "refs/tags/$TAG"; then
+            # outro push pode ter criado a mesma tag no meio tempo: vale se for no bump
+            git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+            [ "$(git rev-parse "refs/tags/$TAG^{commit}")" = "$SHA" ] || exit 1
+          fi
+          echo "Tag $TAG criada em $SHA."
+
   # Mantém o PR de release (versão no package.json + CHANGELOG.md). O merge desse PR
   # cria a tag vX.Y.Z e o GitHub Release.
   release-please:
+    needs: version-tag
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
