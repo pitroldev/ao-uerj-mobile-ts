@@ -17,12 +17,15 @@ import type {
   PostMessageRequest,
 } from '../../../../server/src/adapters/inbound/http/contract';
 
+/** O `signal` das telas e, nas rotas de aluno da v2, o `Authorization`. */
+export type HttpOptions = RequestOptions & { headers?: Record<string, string> };
+
 export interface PrivateApiHttpClient {
-  get(url: string, options?: RequestOptions): Promise<{ data: unknown }>;
+  get(url: string, options?: HttpOptions): Promise<{ data: unknown }>;
   post(
     url: string,
     body: unknown,
-    options?: RequestOptions,
+    options?: HttpOptions,
   ): Promise<{ data: unknown }>;
 }
 

@@ -37,6 +37,13 @@ export type AppStatus = {
   notices: RemoteNotice[];
   /** Identificadores de `FeatureId` (até 32); os desconhecidos são ignorados. */
   disabledFeatures: string[];
+  /**
+   * Os ids (SHA-256 do SPKI, em hex) das chaves do emissor dos tokens
+   * anônimos de aluno, até 8. O arquivo é o mesmo para todos, então o app
+   * recusa uma chave fora da lista: o servidor não marca um aluno com uma
+   * chave só dele. Sem a lista, o app não pede tokens.
+   */
+  tokenKeys?: string[];
 };
 
 /**
@@ -65,6 +72,8 @@ const MAX_MESSAGE = 400;
 const MAX_NOTICES = 10;
 const MAX_FEATURES = 32;
 const MAX_URL = 300;
+const TOKEN_KEY = /^[0-9a-f]{64}$/;
+const MAX_TOKEN_KEYS = 8;
 
 type LinkDestination = {
   host: string;
@@ -188,12 +197,20 @@ export function parseAppStatus(raw: unknown): AppStatus | null {
     (feature): feature is string =>
       typeof feature === 'string' && ID.test(feature),
   );
-  return {
+  const status: AppStatus = {
     schemaVersion: APP_STATUS_SCHEMA_VERSION,
     minSupportedVersion,
     notices: parsed,
     disabledFeatures: [...new Set(features)].slice(0, MAX_FEATURES),
   };
+  // campo opcional: uma entrada malformada sai sozinha
+  if (Array.isArray(raw.tokenKeys)) {
+    const keys = raw.tokenKeys.filter(
+      (key): key is string => typeof key === 'string' && TOKEN_KEY.test(key),
+    );
+    status.tokenKeys = [...new Set(keys)].slice(0, MAX_TOKEN_KEYS);
+  }
+  return status;
 }
 
 /** Compara `MAJOR.MINOR.PATCH` (sufixos como `-rc.1` são ignorados). */

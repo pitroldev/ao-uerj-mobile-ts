@@ -3,5 +3,8 @@
   "schemaVersion": 1,
   "minSupportedVersion": "1.0.0",
   "notices": [],
-  "disabledFeatures": []
+  "disabledFeatures": [],
+  "tokenKeys": [
+    "4b2831643fea4c212ef87f672f1d5a95c1c851935c2fa61d13941ffdd1cdbf6d"
+  ]
 }

@@ -84,6 +84,13 @@
           "documents"
         ]
       }
+    },
+    "tokenKeys": {
+      "description": "Ids das chaves do emissor dos tokens anônimos de aluno (/aouerj/v2): o SHA-256, em hex minúsculo, do SPKI que o servidor manda em tokenKey. O app só pede tokens a uma chave desta lista; sem ela, não pede nenhum. Na troca de chave, publique a nova aqui antes de o servidor emitir com ela, e tire a antiga depois que ela vencer.",
+      "type": "array",
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
     }
   }
 }

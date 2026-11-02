@@ -36,6 +36,23 @@ describe('parseAppStatus', () => {
     // texto, id inválido) quebra o CI em vez de sumir em silêncio
     expect(status?.notices).toHaveLength(committed.notices.length);
     expect(status?.disabledFeatures).toEqual(committed.disabledFeatures);
+    // uma chave mal copiada deixaria o app sem tokens
+    expect(status?.tokenKeys).toEqual(committed.tokenKeys);
+  });
+
+  it('keeps the token key ids, without malformed or repeated ones, up to eight', () => {
+    const key = 'ab'.repeat(32);
+    const others = Array.from({ length: 10 }, (_, i) =>
+      i.toString(16).padStart(64, '0'),
+    );
+    expect(
+      parseAppStatus(
+        doc({ tokenKeys: [key, key, 'AB'.repeat(32), 'ab', 7, ...others] }),
+      )?.tokenKeys,
+    ).toEqual([key, ...others.slice(0, 7)]);
+    // sem a lista (apps e documentos antigos), nenhuma chave
+    expect(parseAppStatus(doc())?.tokenKeys).toBeUndefined();
+    expect(parseAppStatus(doc({ tokenKeys: 'x' }))?.tokenKeys).toBeUndefined();
   });
 
   it('keeps a valid document with optional notice fields', () => {
@@ -206,6 +223,8 @@ describe('config/app-status.schema.json', () => {
       doc({ disabledFeatures: ['Com Espaço'] }),
       doc({ notices: [{ ...notice, id: 'ID Inválido' }] }),
       doc({ notices: [{ ...notice, level: 'urgent' }] }),
+      doc({ tokenKeys: ['AB'.repeat(32)] }),
+      doc({ tokenKeys: ['ab'.repeat(32), 'ab'.repeat(32)] }),
     ])
       expect(validate(schema, invalid)).not.toEqual([]);
   });

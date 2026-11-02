@@ -24,7 +24,10 @@ import { NativeDocumentSharing } from '@root/adapters/outbound/native/NativeDocu
 import { createLaunches } from '@root/adapters/outbound/native/NativeLaunches';
 import { nativeAppearance } from '@root/adapters/outbound/native/NativeAppearance';
 import { createAppKeyValueStore } from '@root/adapters/outbound/delivery/appStore';
-import { createPrivateApiAdapters } from '@root/adapters/outbound/private-api';
+import {
+  createPrivateApiAdapters,
+  createPrivateApiClient,
+} from '@root/adapters/outbound/private-api';
 import { createScheduleGeneratorAdapter } from '@root/adapters/outbound/schedule-generator';
 import { IdentityController } from '@root/modules/identity/application/IdentityController';
 import { Community } from '@root/modules/community/application/Community';
@@ -64,6 +67,7 @@ import { createDelivery } from './createDelivery';
 import { createNotifications } from './createNotifications';
 import { createPortalMonitor } from './createPortalMonitor';
 import { forgetPreviousInstall } from './previousInstall';
+import { createTrust } from './createTrust';
 import { createWidget } from './createWidget';
 
 /** Preferências da conta que o logout apaga junto com o cache. */
@@ -104,7 +108,8 @@ export function createAppServices() {
     },
     vault ? { maxAge: longLivedCacheAge } : {},
   );
-  const privateApi = createPrivateApiAdapters();
+  const privateClient = createPrivateApiClient();
+  const privateApi = createPrivateApiAdapters(privateClient);
   const transport = createNativePortalTransport();
   // a página inicial do portal: leve e o primeiro passo do próprio login
   const probePortal = async () =>
@@ -175,6 +180,13 @@ export function createAppServices() {
     savedDocuments,
     delivery,
     notifications,
+    // tokens anônimos de aluno (/aouerj/v2), no cofre; o logout os apaga
+    trust: createTrust({
+      identity,
+      remoteStatus: delivery.status,
+      vault,
+      client: privateClient,
+    }),
     // faltas marcadas pelo aluno, só no aparelho (o logout apaga)
     attendance: new AttendanceRecords(preferences),
     // datas de provas e trabalhos anotadas, também só no aparelho

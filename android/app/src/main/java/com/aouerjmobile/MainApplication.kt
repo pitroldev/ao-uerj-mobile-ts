@@ -2,6 +2,7 @@ package com.aouerjmobile
 
 import android.app.Application
 import com.aouerjmobile.notifications.AppNotificationsPackage
+import com.aouerjmobile.trust.DeviceTrustPackage
 import com.aouerjmobile.updates.InAppUpdatesPackage
 import com.aouerjmobile.vault.SecureVaultPackage
 import com.aouerjmobile.widget.HomeWidgetPackage
@@ -24,6 +25,7 @@ class MainApplication : Application(), ReactApplication {
           add(AppNotificationsPackage())
           add(HomeWidgetPackage())
           add(SecureVaultPackage())
+          add(DeviceTrustPackage())
         },
     )
   }

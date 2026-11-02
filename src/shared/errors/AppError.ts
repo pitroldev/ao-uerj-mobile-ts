@@ -15,7 +15,8 @@ export type ErrorCode =
   | 'DOCUMENT_CHANGED'
   | 'DOCUMENT_NOT_REMOVED'
   | 'PAGE_UNAVAILABLE'
-  | 'INVALID_INPUT';
+  | 'INVALID_INPUT'
+  | 'STUDENT_PROOF_UNAVAILABLE';
 
 export class AppError extends Error {
   constructor(
@@ -63,6 +64,8 @@ export function errorMessage(error: unknown): string {
     PAGE_UNAVAILABLE:
       'Esta página não está disponível para sua conta no Aluno Online agora.',
     INVALID_INPUT: 'Confira os dados informados.',
+    STUDENT_PROOF_UNAVAILABLE:
+      'Não foi possível confirmar agora que você é aluno da UERJ. Abra o app com a internet ligada e tente de novo mais tarde.',
   };
   return messages[error.code];
 }

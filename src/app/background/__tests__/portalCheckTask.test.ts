@@ -84,6 +84,12 @@ function setup({
     }),
     flushCache: step('flush'),
     identity: { getSnapshot: () => identity },
+    trust: {
+      refill: jest.fn(async () => {
+        calls.push('tokens');
+        return 'refilled';
+      }),
+    },
     delivery: { status },
     notifications: {
       portalCheck: supported ? check : null,
@@ -108,6 +114,8 @@ it('decides with what is on the device before using the network', async () => {
     'can-run',
     'initialize',
     'run',
+    // com o login confirmado na rodada, longe de qualquer ação do aluno
+    'tokens',
     'flush',
   ]);
   expect(check.run).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
@@ -128,7 +136,7 @@ it('does not sign in when the remote switch turned the alerts off', async () => 
 });
 
 it('records a failed restore instead of signing in again for the pages', async () => {
-  const { task, check } = setup({
+  const { task, check, calls } = setup({
     restored: {
       ...SIGNED_IN,
       error: 'Aguarde um pouco antes de tentar novamente.',
@@ -138,6 +146,7 @@ it('records a failed restore instead of signing in again for the pages', async (
   await task();
   expect(check.signInFailed).toHaveBeenCalledWith('RATE_LIMITED');
   expect(check.run).not.toHaveBeenCalled();
+  expect(calls).not.toContain('tokens');
 });
 
 it('checks normally when the error is from an earlier restore', async () => {
@@ -147,10 +156,12 @@ it('checks normally when the error is from an earlier restore', async () => {
     error: 'Verifique sua conexão e tente novamente.',
     errorCode: 'NETWORK',
   };
-  const { task, check } = setup({ before: stale, restored: stale });
+  const { task, check, calls } = setup({ before: stale, restored: stale });
   await task();
   expect(check.signInFailed).not.toHaveBeenCalled();
   expect(check.run).toHaveBeenCalled();
+  // sem o login confirmado, nada de tokens
+  expect(calls).not.toContain('tokens');
 });
 
 it('ends quietly when the check fails', async () => {

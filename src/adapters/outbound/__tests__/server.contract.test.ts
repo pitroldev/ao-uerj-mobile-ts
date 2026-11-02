@@ -16,12 +16,18 @@ import {
   form,
 } from '@root/modules/planning/application/testFixtures';
 import type { ScheduleCreationParams } from '@root/modules/planning/domain/models';
+import { testCrypto } from '@root/modules/trust/__tests__/testCrypto';
+import { PrivateTokens } from '@root/modules/trust/application/PrivateTokens';
+import { toHex } from '@root/modules/trust/domain/bytes';
 import { AppError } from '@root/shared/errors/AppError';
 
+import { createTokenStore } from '../persistence/token-store';
 import {
   createPrivateApiAdapters,
   createPrivateApiClient,
 } from '../private-api';
+import { createStudentClient } from '../private-api/studentClient';
+import { createTokenIssuer } from '../private-api/tokens';
 import {
   createGeneratorTransport,
   createScheduleGeneratorAdapter,
@@ -239,4 +245,70 @@ it('puts the subject that locks more pending subjects first with CRITICAL_FIRST'
     'IME01-10002',
     'IME01-10003',
   ]);
+});
+
+describe('anonymous student tokens (/aouerj/v2)', () => {
+  /** O app inteiro menos a Play: o crypto do Node e a atestação de desenvolvimento. */
+  async function studentTokens() {
+    const client = createPrivateApiClient(`${base}/aouerj`);
+    const issuer = createTokenIssuer(client);
+    // a chave publicada no aviso remoto é a que o servidor usa
+    const { tokenKey } = (await issuer.challenge())!;
+    // o estoque do app, num cofre em memória
+    const items = new Map<string, string>();
+    const store = createTokenStore({
+      read: async name => items.get(name) ?? null,
+      write: async (name, value) => {
+        items.set(name, value);
+      },
+      remove: async name => {
+        items.delete(name);
+      },
+      removePrefix: async () => undefined,
+    });
+    const tokens = new PrivateTokens({
+      issuer,
+      device: {
+        crypto: testCrypto,
+        attest: async () => ({ token: 'atestação de desenvolvimento' }),
+      },
+      store,
+      allowedKeys: () => [toHex(testCrypto.sha256(tokenKey))],
+      now: () => Date.now(),
+    });
+    return { client, tokens };
+  }
+
+  it('gets a batch the server signed blindly and spends one token per request', async () => {
+    const { client, tokens } = await studentTokens();
+    await expect(tokens.refill()).resolves.toBe('refilled');
+    await expect(tokens.count()).resolves.toBe(32);
+
+    const student = createStudentClient(client, tokens);
+    await expect(student.get('/v2/auth')).resolves.toMatchObject({
+      data: { authenticated: true },
+    });
+    await expect(tokens.count()).resolves.toBe(31);
+  });
+
+  it('swaps a token the server already saw for a fresh one', async () => {
+    const { client, tokens } = await studentTokens();
+    await tokens.refill();
+    const spent = (await tokens.take())!;
+    const fresh = (await tokens.take())!;
+    const once = createStudentClient(client, {
+      take: jest.fn().mockResolvedValueOnce(spent),
+    });
+    await once.get('/v2/auth');
+
+    // o mesmo token de novo é gasto duplo: 401, e o app troca uma vez
+    const take = jest
+      .fn()
+      .mockResolvedValueOnce(spent)
+      .mockResolvedValueOnce(fresh);
+    await expect(
+      createStudentClient(client, { take }).get('/v2/auth'),
+    ).resolves.toMatchObject({ data: { authenticated: true } });
+    expect(take).toHaveBeenCalledTimes(2);
+  });
 });

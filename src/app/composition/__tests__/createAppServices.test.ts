@@ -20,6 +20,7 @@ jest.mock('@root/adapters/outbound/persistence/credential-store', () => ({
 }));
 jest.mock('@root/adapters/outbound/private-api', () => ({
   createPrivateApiAdapters: jest.fn(),
+  createPrivateApiClient: jest.fn(() => ({})),
 }));
 jest.mock('@root/adapters/outbound/schedule-generator', () => ({
   createScheduleGeneratorAdapter: jest.fn(),
@@ -58,6 +59,9 @@ jest.mock('@root/adapters/outbound/native/NativeSecureVault', () => ({
 }));
 jest.mock('../createWidget', () => ({
   createWidget: jest.fn(() => ({ sync: {} })),
+}));
+jest.mock('../createTrust', () => ({
+  createTrust: jest.fn(() => ({})),
 }));
 jest.mock('@root/adapters/outbound/native/NativeLaunches', () => ({
   createLaunches: jest.fn(() => null),
