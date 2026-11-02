@@ -1,5 +1,66 @@
 # Changelog
 
+## [2.0.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.11.1...v2.0.0) (2026-11-02)
+
+
+### Novidades
+
+* **About:** enhance About page layout and add social links with icons ([0ae659f](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/0ae659f300fe1c49499d10c57ca36fef1aa43eae))
+* add document management features to the portal ([a2e8dcc](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/a2e8dcc8b2493afe3bb3c697a5ed290563605faf))
+* add parser tests for PartialRID and improve parsing logic ([f6bca41](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/f6bca4164ac824d5d59d52e49ee68e6a1f89ab87))
+* **android:** add the Material You themed icon ([ca3a9f1](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/ca3a9f14cb78e9e080eea8939e0d7a098e93f987))
+* **android:** harden the native layer and add splash, updates and edge-to-edge ([e6d35a9](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/e6d35a910d33bbb1799852b7388ee32dbb02290d))
+* **CampusMap:** implement MapLayer component and associated camera functionality ([3af3181](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/3af31816a7fcc12505c31aa7a0f775cba676b70a))
+* **evaluations:** write down exams and assignments with reminders ([820780c](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/820780c9b3f8e035d3f900a37b38e55de0b2a248))
+* **grades:** final exam needs, PF and CR simulation and absence tracking ([2d36022](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/2d36022118acaa8645ced2ad7fdb37e4a2105f7b))
+* **graduation:** choose when to graduate instead of a fixed pace ([28221bc](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/28221bcfafc8b26a5fb3480f33b75ddae4848ac1))
+* **graduation:** plan until graduation, period by period ([7b7441d](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/7b7441d9d093560163ea1d6600f649bb44eae4f3))
+* implement history page and related functionality, enhance curriculum progress calculations, and improve UI components for better user experience ([581e046](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/581e04671fdf081abef1b67b30f8d92932e1c17c))
+* implement the "Agenda limpa" design system (light mode) ([fa66c80](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/fa66c80cbc41a2455bfc8f642805b6903a801b65))
+* implement the dependency plan (dark theme, sheets, Sentry, delivery) ([b897183](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/b8971834cdd8d54592366c58d3f00d17b1165f93))
+* integrate elective credits from Síntese da Formação into progress tracking ([9334289](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/9334289a8f6bc708dd4025f25f3464c96b6d7034))
+* **ios:** bring the Android features to the iPhone ([cde8245](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/cde8245f8f5287c612178321cb9fbc3fb85d74c6))
+* **notifications:** class reminders and Aluno Online alerts on Android ([9983698](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/9983698c96c652048a737cc6716524ba49f66feb))
+* **offline:** keep working without the internet or the Aluno Online ([60d23cb](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/60d23cbf5e4b0c9f6b6b22b00a3570f4b4673e71))
+* **planning:** rank schedules by the subjects that lock others ([3ff1bb8](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/3ff1bb8b36802f98247d6390d280bcd472e50214))
+* **progress:** show the complementary activity hours ([8eb3609](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/8eb3609e4b2789c38fe896026fc6d18e1e3d33c4))
+* **schedule:** redesign the shared week image, with the teachers ([d260d36](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/d260d365ac23001d448e3a4a42fc2b13ad16701c))
+* **server:** anonymous student tokens in API v2, issued to the Play app and redeemed once ([42d1a4d](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/42d1a4d2ff10d5abf6574c1514701efb7b4daa45))
+* **server:** bring the UERJ backend and the schedule generator into server/ ([83912f2](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/83912f2b59de0244857c32ccdb31eac96f43f4e3))
+* **server:** triage the error reports in the browser at /aouerj/admin ([9148ac6](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/9148ac69f8559e5295a78adc32668a87c908cfe3))
+* **theme:** update color palette for dark and light themes, add onBrandSelected property ([f421ecb](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/f421ecb4d485414be9917bf172b2baa0ccaa1185))
+* **trust:** get anonymous student tokens on Android, attested by Play Integrity ([260afff](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/260afff2624f571d2238bd3b97fd3555b1a5db76))
+* **widget:** add the Today widget and the iOS App Intents ([2891424](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/289142476284a35d6261ea6dc0dd3ae85d7db76f))
+* **widget:** next class widget and app shortcuts on Android ([871cc04](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/871cc045a4568e0be53abcd8f532a3df06690b30))
+
+
+### Correções
+
+* **android:** stop restoring screen fragments when the activity is recreated ([fac85e6](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/fac85e69a48d6c4ea98e54a466073cd7e410de87))
+* **android:** stop the addViewAt crash by moving to React Native 0.88 ([06a0f52](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/06a0f52ba8daa2bb1dcbddbe40a5335d14470e3c))
+* **app:** update parser version in error reporting ([c854af8](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/c854af8107e6a43555095298302d7bbcff6f96dc))
+* **deploy:** install logrotate in the bootstrap and fix the pm2 unit check ([15ad77e](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/15ad77e34d0d2575d6793e0e8572b2473c04f75e))
+* **deploy:** skip the pm2 logrotate when the VM has no logrotate ([8867fe7](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/8867fe7f28c37b3c1a75f3c9359155dd145d3853))
+* **deploy:** stream the deploy output to the CI and fail without its outcome ([ee9a5a4](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/ee9a5a4018e331ec8bdb92f674722ec8ae128c5f))
+* **deploy:** survive a dropped SSH channel and a stale state file ([fcd480a](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/fcd480a46e88ce6afaea6dc2dff78091aaceba60))
+* **deps:** close the Dependabot alerts and update dependencies ([f5ac6ab](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/f5ac6abc0fd9b507cb05153132499e3ae464ea24))
+* **e2e:** keep animations on and hide the reduced-motion dev warning ([df1e297](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/df1e29739b11cb95e4c2b776cac0f44e1c94da37))
+* **history:** an old "Em Preparo" no longer marks the period in progress ([006da8f](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/006da8f95d696d825e3e3f28b035b45a2007e120))
+* **home:** keep subjects without a time and stop showing an old RID ([ac07019](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/ac07019c1054440e6a31e49dd141ce14497d6c1f))
+* **notifications:** one sign-in per check and steadier class reminders ([da87782](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/da87782858df8b23b096726003203e88a2803151))
+* **planning:** send one generator request and accept overbooked classes ([ebb8193](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/ebb81936a70337f271caa55b2aeb3163eeefcc0d))
+* **progress:** count the official complementary hours of the Síntese ([da7e094](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/da7e094a90b4f2def53172674fcd6509f5ea8daf))
+* **server:** close the MongoDB client even after the database went down ([d94cc18](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/d94cc18a1c298eda7441c1ce294bc02c9fa35068))
+* **server:** load the admin page with old screenless reports, and expose less ([1a5ae05](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/1a5ae05a3549cb9e7ffb87f24502a98768d08949))
+* **server:** reconnect to MongoDB, keep a warm generator thread, tighten edges ([929a4fd](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/929a4fde83b66dfe08e7a5a7df462eb1d9d7e63f))
+* **ui:** let long sheets scroll from any point of the body ([f0610ee](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/f0610eef8c44635c30b3b6e3a467f7abd2df994c))
+* **widget:** keep the open app on shortcuts and tell signed out from not loaded ([f9ae187](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/f9ae187a39efd0edf91b46b31f23953a36fd355c))
+
+
+### Manutenção
+
+* release 2.0.0 ([22a7207](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/22a720726080fc3c564ca7035f1129103892523f))
+
 ## 2.11.1 (2026-11-02)
 
 ### Novidades
