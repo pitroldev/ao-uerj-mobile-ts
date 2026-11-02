@@ -1,10 +1,16 @@
+import type {
+  IssuanceCounter,
+  SingleUse,
+} from '../../../modules/access/ports.ts';
 import type { MessageRepository } from '../../../modules/mural/ports.ts';
 import type { ErrorReportRepository } from '../../../modules/reports/ports.ts';
 import type { SuggestionRepository } from '../../../modules/suggestions/ports.ts';
 import type { TeacherRepository } from '../../../modules/teachers/ports.ts';
 import { createErrorReportRepository } from './errorReportRepository.ts';
+import { createIssuanceCounterRepository } from './issuanceCounterRepository.ts';
 import { createMessageRepository } from './messageRepository.ts';
 import type { Models } from './models.ts';
+import { createSingleUseRepository } from './singleUseRepository.ts';
 import { createSuggestionRepository } from './suggestionRepository.ts';
 import { createTeacherRepository } from './teacherRepository.ts';
 
@@ -14,6 +20,9 @@ export type Repositories = {
   teachers: TeacherRepository;
   reports: ErrorReportRepository;
   suggestions: SuggestionRepository;
+  spentTokens: SingleUse;
+  usedChallenges: SingleUse;
+  issuanceCounters: IssuanceCounter;
 };
 
 export function createMongoRepositories(models: Models): Repositories {
@@ -22,5 +31,8 @@ export function createMongoRepositories(models: Models): Repositories {
     teachers: createTeacherRepository(models.teachers),
     reports: createErrorReportRepository(models.errorReports),
     suggestions: createSuggestionRepository(models.suggestions),
+    spentTokens: createSingleUseRepository(models.spentTokens),
+    usedChallenges: createSingleUseRepository(models.usedChallenges),
+    issuanceCounters: createIssuanceCounterRepository(models.issuanceCounters),
   };
 }

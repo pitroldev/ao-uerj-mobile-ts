@@ -3,6 +3,12 @@ import { UnavailableError } from '../../../shared/errors.ts';
 /** O que todo documento traz do banco. */
 export type Stored = { _id: unknown; createdAt?: Date; updatedAt?: Date };
 
+/** O erro do índice único: o mesmo `_id` já está lá. */
+export const isDuplicateKey = (err: unknown) =>
+  typeof err === 'object' &&
+  err !== null &&
+  (err as { code?: unknown }).code === 11000;
+
 /** Documentos antigos sem data ficam com a de 1970. */
 export const storedDate = (value: Date | undefined) => value ?? new Date(0);
 

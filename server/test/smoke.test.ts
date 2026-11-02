@@ -89,8 +89,12 @@ test('the smoke passes against a healthy server, checks the commit and writes no
   ]);
   assert.equal(code, 0, output);
   assert.match(output, /tudo certo/);
-  // as dez conferências, com o banco
-  assert.equal(output.match(/^ {2}ok {2}/gm)?.length, 10, output);
+  // as doze conferências, com o banco
+  assert.equal(output.match(/^ {2}ok {2}/gm)?.length, 12, output);
+  assert.match(
+    output,
+    /ok {2}GET \/aouerj\/v2\/tokens\/challenge \(emissão desligada\)/,
+  );
   assert.match(output, /ok {2}GET \/aouerj\/status \(0123456 green\)/);
   // só lê: nada chegou ao mural, aos relatos nem às sugestões
   const { messages, reports, suggestions } = healthy.memory.data;

@@ -2,6 +2,10 @@ import { pino } from 'pino';
 
 import { loadConfig, type Config } from '../src/config.ts';
 import type { Overrides } from '../src/composition.ts';
+import type {
+  IssuanceCounter,
+  SingleUse,
+} from '../src/modules/access/ports.ts';
 import type { Message } from '../src/modules/mural/domain.ts';
 import type { MessageRepository } from '../src/modules/mural/ports.ts';
 import type {
@@ -147,13 +151,58 @@ export function memoryRepositories(clock = manualClock()) {
     },
   };
 
+  // os tokens de aluno gastos e os desafios usados: o hash e até quando
+  const spent = new Map<string, Date>();
+  const usedChallenges = new Map<string, Date>();
+  // os lotes por instalação e dia
+  const counters = new Map<string, { count: number; until: Date }>();
+
   return {
-    data: { messages, teachers, reports, suggestions },
+    data: {
+      messages,
+      teachers,
+      reports,
+      suggestions,
+      spent,
+      usedChallenges,
+      counters,
+    },
     repositories: {
       messages: messageRepository,
       teachers: teacherRepository,
       reports: reportRepository,
       suggestions: suggestionRepository,
+      spentTokens: memorySingleUse(spent),
+      usedChallenges: memorySingleUse(usedChallenges),
+      issuanceCounters: memoryCounter(counters),
+    },
+  };
+}
+
+/** O que só vale uma vez, como no MongoDB. */
+export function memorySingleUse(store = new Map<string, Date>()): SingleUse {
+  return {
+    async spend(id, until) {
+      if (store.has(id)) return false;
+      store.set(id, until);
+      return true;
+    },
+  };
+}
+
+/** Os lotes por instalação e dia, como no MongoDB. */
+export function memoryCounter(
+  store = new Map<string, { count: number; until: Date }>(),
+): IssuanceCounter {
+  return {
+    async count(id, limit, until) {
+      const current = store.get(id);
+      if (current && current.count >= limit) return false;
+      store.set(id, {
+        count: (current?.count ?? 0) + 1,
+        until: current?.until ?? until,
+      });
+      return true;
     },
   };
 }

@@ -1,6 +1,15 @@
+import { createPrivateKey, createPublicKey } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { z } from 'zod';
+
+import type { ServiceAccount } from './adapters/outbound/attestation/playIntegrity.ts';
+import {
+  issuerKey,
+  signingKey,
+  type IssuerKey,
+} from './modules/access/domain.ts';
 
 const flag = z
   .enum(['true', 'false'])
@@ -24,6 +33,142 @@ const trustProxy = z
     if (value === 'false') return false;
     return value;
   });
+
+/** Um nome de servidor como o Privacy Pass o usa: host e porta opcional. */
+const serverName = z
+  .string()
+  .regex(/^[a-z0-9.-]+(:\d+)?$/i, 'must be a server name, like pitrol.dev');
+
+const parses = (read: () => unknown) => {
+  try {
+    read();
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/** Uma chave privada (PKCS #8), que também assina, ou só a pública (SPKI). */
+function keyFromDer(der: Buffer, notAfter: Date): IssuerKey {
+  if (
+    parses(() => createPrivateKey({ key: der, format: 'der', type: 'pkcs8' }))
+  )
+    return signingKey(der, notAfter);
+  if (parses(() => createPublicKey({ key: der, format: 'der', type: 'spki' })))
+    return issuerKey(der, notAfter);
+  throw new Error('expected an SPKI public key or a PKCS #8 private key');
+}
+
+/**
+ * As chaves do emissor dos tokens de aluno, separadas por vírgula:
+ * `<DER em base64>@<AAAA-MM-DD>`, a data (00:00 UTC) em que a chave deixa de
+ * valer. A chave privada (PKCS #8, RSA comum) resgata e emite; a pública
+ * (SPKI) só resgata, para uma chave antiga cuja privada já foi descartada. Cada uma é conferida aqui: uma chave errada não deixa o
+ * servidor subir.
+ */
+const tokenKeys = z
+  .string()
+  .optional()
+  .transform((value, ctx): IssuerKey[] => {
+    const keys: IssuerKey[] = [];
+    const entries = (value ?? '')
+      .split(',')
+      .map(entry => entry.trim())
+      .filter(Boolean);
+    entries.forEach((entry, index) => {
+      const at = entry.lastIndexOf('@');
+      const der = entry.slice(0, at);
+      const date = entry.slice(at + 1);
+      const fail = (message: string) =>
+        ctx.addIssue({
+          code: 'custom',
+          message: `key ${index + 1}: ${message}`,
+        });
+      if (at === -1 || !/^[A-Za-z0-9+/_-]+={0,2}$/.test(der)) {
+        fail('expected <base64 DER key>@<YYYY-MM-DD>');
+        return;
+      }
+      const notAfter = new Date(`${date}T00:00:00Z`);
+      // o Date aceita 30 de fevereiro e passa para março: a volta confere
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+        Number.isNaN(notAfter.getTime()) ||
+        notAfter.toISOString().slice(0, 10) !== date
+      ) {
+        fail('the expiry must be a date, YYYY-MM-DD');
+        return;
+      }
+      try {
+        keys.push(keyFromDer(Buffer.from(der, 'base64'), notAfter));
+      } catch (err) {
+        fail(err instanceof Error ? err.message : 'invalid key');
+      }
+    });
+    return keys;
+  });
+
+/**
+ * O JSON da conta de serviço do Google (a chave baixada do Cloud Console),
+ * lido na partida: um arquivo ilegível não deixa o servidor subir.
+ */
+const serviceAccountFile = z
+  .string()
+  .optional()
+  .transform((file, ctx): ServiceAccount | undefined => {
+    if (!file) return undefined;
+    const fail = (message: string) => {
+      ctx.addIssue({ code: 'custom', message });
+      return z.NEVER;
+    };
+    let json: unknown;
+    try {
+      json = JSON.parse(readFileSync(file, 'utf8'));
+    } catch {
+      return fail(`cannot read the service account JSON at ${file}`);
+    }
+    const fields = z
+      .object({
+        type: z.literal('service_account'),
+        client_email: z.string().min(1),
+        private_key: z.string().min(1),
+      })
+      .safeParse(json);
+    if (!fields.success)
+      return fail(
+        'not a service account key (type, client_email and private_key)',
+      );
+    try {
+      return {
+        clientEmail: fields.data.client_email,
+        privateKey: createPrivateKey(fields.data.private_key),
+      };
+    } catch {
+      return fail('the private_key of the service account is not readable');
+    }
+  });
+
+/**
+ * As impressões SHA-256 dos certificados que assinam o app na Play, como o
+ * Play Console as mostra (`AB:CD:…`), separadas por vírgula.
+ */
+const certificateDigests = z
+  .string()
+  .optional()
+  .transform((value, ctx) =>
+    (value ?? '')
+      .split(',')
+      .map(entry => entry.trim())
+      .filter(Boolean)
+      .flatMap((entry, index) => {
+        const hex = entry.replace(/:/g, '');
+        if (/^[0-9a-f]{64}$/i.test(hex)) return [Buffer.from(hex, 'hex')];
+        ctx.addIssue({
+          code: 'custom',
+          message: `certificate ${index + 1}: expected a SHA-256 fingerprint in hex, like AB:CD:…`,
+        });
+        return [];
+      }),
+  );
 
 const EnvSchema = z
   .object({
@@ -81,7 +226,46 @@ const EnvSchema = z
       .int()
       .min(1)
       .default(120),
+
+    /** O acesso de aluno da API v2 (Privacy Pass); sem chave, a v2 dá 503. */
+    PRIVATE_TOKEN_KEYS: tokenKeys,
+    PRIVATE_TOKEN_ISSUER: serverName.default('pitrol.dev'),
+    PRIVATE_TOKEN_ORIGIN: serverName.default('pitrol.dev'),
+
+    /** Quem atesta o app na emissão; `development` aceita qualquer um. */
+    TOKEN_ATTESTATION: z
+      .enum(['play-integrity', 'development'])
+      .default('play-integrity'),
+    PLAY_INTEGRITY_SERVICE_ACCOUNT: serviceAccountFile,
+    PLAY_INTEGRITY_PACKAGE: z
+      .string()
+      .regex(/^[A-Za-z][\w]*(\.[A-Za-z][\w]*)+$/, 'must be an Android package')
+      .default('com.aouerjmobile'),
+    PLAY_INTEGRITY_CERT_SHA256: certificateDigests,
+    TOKEN_BATCH_SIZE: z.coerce.number().int().min(1).max(100).default(32),
+    TOKEN_BATCHES_PER_DAY: z.coerce.number().int().min(1).max(100).default(4),
+    TOKEN_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(60),
   })
+  // o emulador e o debug não passam na Play Integrity; a produção, sim
+  .refine(
+    env =>
+      env.TOKEN_ATTESTATION !== 'development' || env.NODE_ENV !== 'production',
+    {
+      message: 'TOKEN_ATTESTATION=development is not allowed in production',
+      path: ['TOKEN_ATTESTATION'],
+    },
+  )
+  // sem o certificado, um app reempacotado com outra assinatura passaria
+  .refine(
+    env =>
+      !env.PLAY_INTEGRITY_SERVICE_ACCOUNT ||
+      env.PLAY_INTEGRITY_CERT_SHA256.length > 0,
+    {
+      message:
+        'PLAY_INTEGRITY_CERT_SHA256 is required with PLAY_INTEGRITY_SERVICE_ACCOUNT',
+      path: ['PLAY_INTEGRITY_CERT_SHA256'],
+    },
+  )
   .refine(env => !env.FORCE_HTTPS || env.PUBLIC_URL, {
     message: 'PUBLIC_URL (https) is required when FORCE_HTTPS is true',
     path: ['PUBLIC_URL'],
@@ -139,7 +323,33 @@ export type Config = {
     /** Por IP, por minuto. */
     perMinute: number;
   };
+  /** O acesso de aluno da API v2: quem emite, onde vale e as chaves. */
+  studentAccess: {
+    issuer: string;
+    origin: string;
+    keys: IssuerKey[];
+    issuance: {
+      /** `null`: sem conta de serviço, não há emissão (o resgate continua). */
+      attestation: AttestationSettings | null;
+      /** Tokens por lote. */
+      batchSize: number;
+      /** Lotes por instalação por dia (UTC). */
+      batchesPerDay: number;
+      /** Por IP, por minuto: os desafios e os lotes juntos. */
+      perMinute: number;
+    };
+  };
 };
+
+/** Quem atesta o app na emissão dos tokens. */
+export type AttestationSettings =
+  | { mode: 'development' }
+  | {
+      mode: 'play-integrity';
+      account: ServiceAccount;
+      packageName: string;
+      certificateDigests: Buffer[];
+    };
 
 /** O diretório do pacote (server/), onde ficam os anexos por padrão. */
 const SERVER_ROOT = path.resolve(import.meta.dirname, '..');
@@ -193,5 +403,29 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       budgetMs: value.GENERATOR_BUDGET_MS,
       perMinute: value.GENERATOR_RATE_LIMIT_PER_MINUTE,
     },
+    studentAccess: {
+      issuer: value.PRIVATE_TOKEN_ISSUER,
+      origin: value.PRIVATE_TOKEN_ORIGIN,
+      keys: value.PRIVATE_TOKEN_KEYS,
+      issuance: {
+        attestation: attestationOf(value),
+        batchSize: value.TOKEN_BATCH_SIZE,
+        batchesPerDay: value.TOKEN_BATCHES_PER_DAY,
+        perMinute: value.TOKEN_RATE_LIMIT_PER_MINUTE,
+      },
+    },
+  };
+}
+
+function attestationOf(
+  value: z.infer<typeof EnvSchema>,
+): AttestationSettings | null {
+  if (value.TOKEN_ATTESTATION === 'development') return { mode: 'development' };
+  if (!value.PLAY_INTEGRITY_SERVICE_ACCOUNT) return null;
+  return {
+    mode: 'play-integrity',
+    account: value.PLAY_INTEGRITY_SERVICE_ACCOUNT,
+    packageName: value.PLAY_INTEGRITY_PACKAGE,
+    certificateDigests: value.PLAY_INTEGRITY_CERT_SHA256,
   };
 }

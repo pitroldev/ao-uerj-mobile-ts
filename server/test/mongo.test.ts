@@ -77,7 +77,15 @@ test('the connection opens on the old collections, with the indexes the queries 
     Object.values(models)
       .map(model => model.collection.collectionName)
       .sort(),
-    ['docentes', 'errorreports', 'muralmessages', 'suggestions'],
+    [
+      'docentes',
+      'errorreports',
+      'issuancecounters',
+      'muralmessages',
+      'spenttokens',
+      'suggestions',
+      'usedchallenges',
+    ],
   );
   assert.deepEqual(await indexesOf(models.teachers), [{ docente: 1 }]);
   assert.deepEqual(await indexesOf(models.errorReports), [{ createdAt: -1 }]);
@@ -282,6 +290,66 @@ test('the review counts by screen, filters by status and resolves by id, old rep
   assert.equal(await reports.findById('0123456789abcdef01234567'), null);
   assert.equal(await reports.setResolvedAt('nao-e-um-id', at), null);
   assert.equal((await reports.setResolvedAt(notes.id, null))?.resolvedAt, null);
+});
+
+/** O índice TTL de um modelo: `0` apaga cada documento no `expiresAt`. */
+async function ttlOf(model: {
+  collection: {
+    indexes(): Promise<{ key: object; expireAfterSeconds?: number }[]>;
+  };
+}) {
+  return (await model.collection.indexes()).find(
+    index => 'expiresAt' in index.key,
+  )?.expireAfterSeconds;
+}
+
+test('a student token and an issuance challenge are spent once, kept only as a hash until the date given', async () => {
+  const { db, models, repositories } = await open();
+  opened.push(db);
+  const until = new Date(Date.UTC(2026, 11, 1));
+  const id = 'a'.repeat(64);
+
+  for (const [store, model] of [
+    [repositories.spentTokens, models.spentTokens],
+    [repositories.usedChallenges, models.usedChallenges],
+  ] as const) {
+    assert.equal(await store.spend(id, until), true);
+    assert.equal(await store.spend(id, until), false);
+    assert.equal(await store.spend('b'.repeat(64), until), true);
+
+    // nada além do hash e do prazo: nem a hora do uso
+    const stored = await model.collection.findOne({ _id: id } as never);
+    assert.deepEqual(Object.keys(stored ?? {}).sort(), ['_id', 'expiresAt']);
+    // o MongoDB apaga cada um quando o prazo passa
+    assert.equal(await ttlOf(model), 0);
+  }
+  // as duas coleções não se misturam
+  assert.equal(await models.spentTokens.countDocuments(), 2);
+});
+
+test('the batches of an installation are counted atomically up to the limit, even when the first two race', async () => {
+  const { db, models, repositories } = await open();
+  opened.push(db);
+  const counter = repositories.issuanceCounters;
+  const until = new Date(Date.UTC(2026, 10, 3));
+
+  // dois pedidos ao mesmo tempo criam o mesmo contador: os dois contam
+  assert.deepEqual(
+    await Promise.all([
+      counter.count('c'.repeat(64), 3, until),
+      counter.count('c'.repeat(64), 3, until),
+    ]),
+    [true, true],
+  );
+  assert.equal(await counter.count('c'.repeat(64), 3, until), true);
+  assert.equal(await counter.count('c'.repeat(64), 3, until), false);
+  assert.equal(await counter.count('d'.repeat(64), 3, until), true);
+
+  const stored = await models.issuanceCounters.collection.findOne({
+    _id: 'c'.repeat(64),
+  } as never);
+  assert.deepEqual(stored, { _id: 'c'.repeat(64), count: 3, expiresAt: until });
+  assert.equal(await ttlOf(models.issuanceCounters), 0);
 });
 
 test('old reports without a screen join one "Sem tela" line that filters like any other', async () => {

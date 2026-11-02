@@ -10,6 +10,8 @@ import {
 } from './adapters/inbound/http/app.ts';
 import type { DatabaseHealth } from './adapters/inbound/http/aouerj/status.ts';
 import { repeatEvery } from './adapters/inbound/scheduling/repeat.ts';
+import { createDevelopmentAttester } from './adapters/outbound/attestation/development.ts';
+import { createPlayIntegrityAttester } from './adapters/outbound/attestation/playIntegrity.ts';
 import { createFileAttachmentStore } from './adapters/outbound/files/attachmentStore.ts';
 import { createDatabase } from './adapters/outbound/mongo/connection.ts';
 import { defineModels } from './adapters/outbound/mongo/models.ts';
@@ -19,7 +21,13 @@ import {
 } from './adapters/outbound/mongo/repositories.ts';
 import { createPortalProbe } from './adapters/outbound/portal/probe.ts';
 import { createThreadedSolver } from './adapters/outbound/scheduleSolver/threadedSolver.ts';
-import type { Config } from './config.ts';
+import type { AttestationSettings, Config } from './config.ts';
+import {
+  createStudentAccess,
+  createTokenIssuer,
+  ISSUANCE_CHALLENGE_TTL_MS,
+} from './modules/access/application.ts';
+import type { AppAttester } from './modules/access/ports.ts';
 import { createMural } from './modules/mural/application.ts';
 import { createPortalWatch } from './modules/portal/application.ts';
 import type { PortalWatch } from './modules/portal/ports.ts';
@@ -43,6 +51,8 @@ export type Overrides = {
   attachments?: AttachmentStore;
   portal?: PortalWatch;
   solver?: ScheduleSolver;
+  /** Quem atesta o app; `null` desliga a emissão. */
+  attester?: AppAttester | null;
 };
 
 /** O tempo que as conexões abertas têm para terminar no desligamento. */
@@ -73,8 +83,31 @@ function httpSettingsOf(config: Config): HttpSettings {
     adminToken: config.http.adminToken,
     writesPerMinute: config.http.rateLimitPerMinute,
     generationsPerMinute: config.generator.perMinute,
+    tokenRequestsPerMinute: config.studentAccess.issuance.perMinute,
+    tokenBatchSize: config.studentAccess.issuance.batchSize,
     release: config.release,
   };
+}
+
+/** Quem atesta o app na emissão: a Play Integrity, o modo de teste ou ninguém. */
+function attesterFor(
+  settings: AttestationSettings | null,
+  logger: Logger,
+): AppAttester | null {
+  if (!settings) return null;
+  if (settings.mode === 'development') {
+    logger.warn(
+      'token attestation in development mode: any client gets tokens',
+    );
+    return createDevelopmentAttester();
+  }
+  return createPlayIntegrityAttester({
+    account: settings.account,
+    packageName: settings.packageName,
+    certificateDigests: settings.certificateDigests,
+    // o token de integridade é pedido depois do desafio, que vale cinco minutos
+    maxAgeMs: ISSUANCE_CHALLENGE_TTL_MS + 60 * 1000,
+  });
 }
 
 /**
@@ -112,6 +145,23 @@ export function createServer(
     suggestions: createSuggestions(repositories.suggestions),
     portal,
     schedules: createScheduleGenerator(solver),
+    access: createStudentAccess({
+      keys: config.studentAccess.keys,
+      spentTokens: repositories.spentTokens,
+      issuer: config.studentAccess.issuer,
+      origin: config.studentAccess.origin,
+    }),
+    tokens: createTokenIssuer({
+      keys: config.studentAccess.keys,
+      attester:
+        overrides.attester === undefined
+          ? attesterFor(config.studentAccess.issuance.attestation, logger)
+          : overrides.attester,
+      usedChallenges: repositories.usedChallenges,
+      counter: repositories.issuanceCounters,
+      batchSize: config.studentAccess.issuance.batchSize,
+      batchesPerDay: config.studentAccess.issuance.batchesPerDay,
+    }),
   };
 
   const app = createHttpApp({

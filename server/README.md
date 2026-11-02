@@ -165,6 +165,81 @@ As páginas são HTML montado no servidor (`http/aouerj/admin/`), sem
 JavaScript, com as cores dos temas claro e escuro do app. Os relatos antigos
 que chegaram sem a tela aparecem como "Sem tela".
 
+### API v2 (aluno anônimo)
+
+As rotas de aluno da versão nova ficam em `/aouerj/v2`. As de `/aouerj`
+continuam iguais, sem token, para os apps publicados. A v2 segue o plano da
+prova de aluno anônima com o Privacy Pass:
+
+- **O token:** cada requisição leva `Authorization: PrivateToken token="…"`
+  (RFC 9577), um token Blind RSA de 2048 bits (RFC 9578, tipo `0x0002`).
+  Assinado às cegas, ele não se liga a quem o pediu, nem por nós.
+- **O desafio:** fixo, com emissor e origem `pitrol.dev` e sem
+  `redemption_context`, para o app buscar os tokens com antecedência e em
+  lote.
+- **Sem token válido:** 401 `unauthenticated`, sempre com a mesma resposta,
+  e o desafio e a chave no `WWW-Authenticate`. O motivo (ausente, malformado,
+  outra chave, chave vencida, assinatura falsa, já gasto) vai só para o log;
+  o token nunca vai.
+- **Uso único:** um token gasto fica na coleção `spenttokens` só como
+  `SHA-256(id da chave ‖ nonce)`, sem a hora do uso, e o MongoDB o apaga um
+  dia depois de a chave vencer (índice TTL; a folga cobre um relógio do banco
+  adiantado). Um segundo uso perde na inserção, sem corrida.
+- **As chaves:** `PRIVATE_TOKEN_KEYS`, com as chaves do emissor e a data em
+  que cada uma deixa de valer (veja o `.env.example`). A privada (RSA comum,
+  PKCS #8) resgata e emite; a pública (SPKI) só resgata, para uma chave
+  antiga cuja privada já foi descartada. O id de cada chave é o SHA-256 do
+  SPKI na forma da RFC; o servidor normaliza a que o OpenSSL exporta. Sem
+  chave, a v2 responde 503 `student_access_unavailable`; sem o banco, 503
+  `database_unavailable`, como as rotas de `/aouerj`.
+
+**A emissão** (a fase 1 do plano) troca a atestação do app por um lote de
+tokens assinados às cegas:
+
+1. **O desafio:** `GET /aouerj/v2/tokens/challenge` devolve 36 bytes de uso
+   único, válidos por 5 minutos, e a chave com que o app cega os pedidos. O
+   desafio leva um HMAC do servidor e não fica guardado.
+2. **O pedido:** o app cega até `TOKEN_BATCH_SIZE` tokens (32) e pede à Play
+   Integrity (pedido standard) um token sobre o `requestHash`, o SHA-256 do
+   desafio, da instalação (32 bytes ao acaso, criados uma vez) e dos pedidos.
+   Os formatos estão em `contract.ts`.
+3. **As checagens:** o desafio é nosso, vale e é gasto; cada pedido é para a
+   chave atual; o Google decifra o token de integridade, e o servidor confere o
+   pacote, o `requestHash`, a idade, `PLAY_RECOGNIZED`, o certificado de
+   assinatura da Play e `MEETS_DEVICE_INTEGRITY`; a instalação não passou de
+   `TOKEN_BATCHES_PER_DAY` lotes (4) no dia.
+4. **A resposta:** as assinaturas cegas (RSA crua, conferida com a pública).
+   O servidor não vê os tokens que saem delas, então o resgate não se liga à
+   emissão.
+
+O que fica no banco: o hash de cada desafio usado (`usedchallenges`, até
+vencer) e, por instalação e dia, um HMAC com a contagem (`issuancecounters`,
+um dia depois do fim do dia). O HMAC muda a cada dia, então os contadores de
+dias diferentes não se ligam, e o banco sozinho não leva à instalação. O log
+registra quantos tokens saíram e o motivo de uma recusa, nunca a instalação
+nem a atestação.
+
+O servidor não vê o login no Aluno Online: quem garante "aluno" é o app, que
+só pede tokens logado (o limite registrado no plano). Sem a conta de serviço
+da Play Integrity, a emissão responde 503 `token_issuance_unavailable` e o
+resgate continua. `TOKEN_ATTESTATION=development` aceita qualquer app, para o
+emulador e o debug, e a configuração o recusa em produção.
+
+- **Testes:** o vetor 1 do apêndice A.2 da RFC 9578 confere a assinatura
+  cega do servidor e o cliente de teste, que faz o papel do app (cegar,
+  tirar o fator cego, montar o token). Também: o gasto duplo, o desafio
+  forjado, vencido ou repetido, a atestação de outro pedido, o limite do dia,
+  a corrida no contador, a Play Integrity com um Google de mentira, as chaves
+  e o log.
+
+| Rota                              | O que faz                                                                           |
+| --------------------------------- | ----------------------------------------------------------------------------------- |
+| `GET /aouerj/v2/tokens/challenge` | O desafio de emissão e a chave; 503 sem chave privada ou atestação                  |
+| `POST /aouerj/v2/tokens`          | O lote: 403 `invalid_challenge` ou `attestation_failed`, 422, 429 com `Retry-After` |
+| `GET /aouerj/v2/auth`             | 200 `{ "authenticated": true }` com token válido (que fica gasto); 401 sem          |
+
+Desafios e lotes dividem um limite por IP (`TOKEN_RATE_LIMIT_PER_MINUTE`, 60).
+
 ### Consultar o que está no ar
 
 ```sh

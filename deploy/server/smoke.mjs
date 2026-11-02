@@ -224,6 +224,28 @@ await check('GET /aouerj/admin sem login não mostra relatos', async () => {
   expect(status === 404 || status === 401, `status ${status}`);
 });
 
+await check('GET /aouerj/v2/auth sem token não autentica', async () => {
+  const { status, json } = await call('GET', '/aouerj/v2/auth');
+  // 401 com o desafio, ou 503 sem chave configurada (ou sem o banco)
+  expect(status === 401 || status === 503, `status ${status}`);
+  expect(json?.authenticated !== true, 'autenticou sem token');
+});
+
+await check('GET /aouerj/v2/tokens/challenge', async () => {
+  const { status, json } = await call('GET', '/aouerj/v2/tokens/challenge');
+  // o desafio não grava nada; 503 enquanto não há chave privada ou atestação
+  if (status === 503) {
+    expect(json?.error === 'token_issuance_unavailable', `erro ${json?.error}`);
+    return 'emissão desligada';
+  }
+  expect(status === 200, `status ${status}`);
+  expect(
+    typeof json?.challenge === 'string' && typeof json.tokenKey === 'string',
+    'resposta sem o desafio e a chave',
+  );
+  return 'emissão ligada';
+});
+
 await check('GET /schedules/health', async () => {
   const { status, json } = await call('GET', '/schedules/health');
   expect(status === 200 && json?.online === true, `status ${status}`);

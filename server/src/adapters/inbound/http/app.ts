@@ -3,15 +3,26 @@ import express from 'express';
 import helmet from 'helmet';
 import type { Logger } from 'pino';
 
+import type {
+  StudentAccess,
+  TokenIssuer,
+} from '../../../modules/access/ports.ts';
 import type { ScheduleGenerator } from '../../../modules/schedules/ports.ts';
 import { createAoUerjRouter, type AoUerjServices } from './aouerj/router.ts';
 import type { DatabaseHealth, Release } from './aouerj/status.ts';
 import { handleError, notFound } from './errors.ts';
 import { forceHttps, requestLog } from './middleware.ts';
 import { createSchedulesRouter } from './schedules/router.ts';
+import { createV2Router } from './v2/router.ts';
 
 /** As portas de entrada que o HTTP usa. */
-export type Services = AoUerjServices & { schedules: ScheduleGenerator };
+export type Services = AoUerjServices & {
+  schedules: ScheduleGenerator;
+  /** O acesso de aluno da v2 (o resgate dos tokens anônimos). */
+  access: StudentAccess;
+  /** A emissão dos tokens anônimos, em lotes. */
+  tokens: TokenIssuer;
+};
 
 /** O que o HTTP precisa da configuração. */
 export type HttpSettings = {
@@ -30,6 +41,10 @@ export type HttpSettings = {
   writesPerMinute: number;
   /** Por IP, por minuto: as gerações de grade. */
   generationsPerMinute: number;
+  /** Por IP, por minuto: os desafios e os lotes de tokens, juntos. */
+  tokenRequestsPerMinute: number;
+  /** Quantos pedidos cabem num lote. */
+  tokenBatchSize: number;
   /** A versão no ar, para o `GET /aouerj/status`. */
   release: Release;
 };
@@ -61,7 +76,19 @@ export function createHttpApp({
   if (settings.forceHttps && settings.publicUrl)
     app.use(forceHttps(settings.publicUrl));
 
-  // cada parte com o próprio limite de corpo
+  // cada parte com o próprio limite de corpo; a v2 antes de /aouerj, que
+  // continua igual para os apps publicados
+  app.use(
+    '/aouerj/v2',
+    express.json({ limit: settings.jsonLimit }),
+    createV2Router({
+      access: services.access,
+      tokens: services.tokens,
+      database,
+      tokenRequestsPerMinute: settings.tokenRequestsPerMinute,
+      tokenBatchSize: settings.tokenBatchSize,
+    }),
+  );
   app.use(
     '/aouerj',
     express.json({ limit: settings.jsonLimit }),

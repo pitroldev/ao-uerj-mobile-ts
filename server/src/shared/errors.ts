@@ -5,8 +5,9 @@
 export class DomainError extends Error {
   readonly code: string;
 
-  constructor(code: string, message: string) {
-    super(message);
+  /** `cause` vai só para o log (a resposta leva a `message`). */
+  constructor(code: string, message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = new.target.name;
     this.code = code;
   }

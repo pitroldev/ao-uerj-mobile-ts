@@ -75,6 +75,37 @@ const suggestionSchema = new mongoose.Schema(
 );
 suggestionSchema.index({ createdAt: -1 });
 
+/**
+ * O que só vale uma vez (API v2): o hash e até quando guardar, nada mais.
+ * Sem `timestamps`: a hora do uso ajudaria a ligá-lo à emissão. O índice TTL
+ * apaga cada um quando o prazo passa.
+ */
+function singleUseSchema() {
+  const schema = new mongoose.Schema(
+    {
+      _id: { required: true, type: String },
+      expiresAt: { required: true, type: Date },
+    },
+    { versionKey: false, bufferCommands: false },
+  );
+  schema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+  return schema;
+}
+
+/**
+ * Os lotes de tokens que cada instalação recebeu no dia (API v2): o HMAC da
+ * instalação com o dia, a contagem e até quando guardar. Sem a hora.
+ */
+const issuanceCounterSchema = new mongoose.Schema(
+  {
+    _id: { required: true, type: String },
+    count: { required: true, type: Number },
+    expiresAt: { required: true, type: Date },
+  },
+  { versionKey: false, bufferCommands: false },
+);
+issuanceCounterSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
 /** Os modelos registrados numa conexão. */
 export function defineModels(connection: Connection) {
   return {
@@ -82,6 +113,14 @@ export function defineModels(connection: Connection) {
     errorReports: connection.model('ErrorReport', errorReportSchema),
     muralMessages: connection.model('MuralMessages', muralMessageSchema),
     suggestions: connection.model('Suggestions', suggestionSchema),
+    // os tokens de aluno gastos, até um dia depois de vencer a chave
+    spentTokens: connection.model('SpentTokens', singleUseSchema()),
+    // os desafios de emissão usados, até vencerem (cinco minutos)
+    usedChallenges: connection.model('UsedChallenges', singleUseSchema()),
+    issuanceCounters: connection.model(
+      'IssuanceCounters',
+      issuanceCounterSchema,
+    ),
   };
 }
 

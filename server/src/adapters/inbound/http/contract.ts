@@ -229,3 +229,58 @@ export type GeneratorHealthResponse = {
   running: number;
   queued: number;
 };
+
+/*
+ * API v2 (`/aouerj/v2`): as rotas de aluno exigem
+ * `Authorization: PrivateToken token="…"` (Privacy Pass, RFC 9577). Sem token
+ * válido: 401 `unauthenticated`, com o desafio em `WWW-Authenticate`; sem
+ * chave no servidor: 503 `student_access_unavailable`; sem o banco: 503
+ * `database_unavailable`.
+ */
+
+/** `GET /aouerj/v2/auth` com um token válido (que fica gasto). */
+export type StudentAuthResponse = { authenticated: true };
+
+/*
+ * A emissão (`/aouerj/v2/tokens`), sem token. Os bytes vão em base64url com
+ * o `=` do fim (a entrada aceita sem). Sem chave privada ou sem quem ateste:
+ * 503 `token_issuance_unavailable`; a Play Integrity fora do ar: 503
+ * `attestation_unavailable`.
+ */
+
+/**
+ * `GET /aouerj/v2/tokens/challenge`: o desafio (36 bytes, uso único, até
+ * `expiresAt`) e a chave com que o app cega os pedidos (o SPKI da RFC 9578).
+ */
+export type TokenChallengeResponse = {
+  challenge: string;
+  /** ISO 8601. */
+  expiresAt: string;
+  tokenKey: string;
+};
+
+/**
+ * `POST /aouerj/v2/tokens`. O app passa à Play Integrity (pedido standard) o
+ * `requestHash` = SHA-256, em hex minúsculo, de "AO UERJ token issuance v1"
+ * (ASCII), do desafio, da instalação e dos pedidos, nessa ordem.
+ */
+export type TokenIssuanceRequest = {
+  challenge: string;
+  /** 32 bytes ao acaso, criados uma vez por instalação. */
+  installation: string;
+  /** O token da Play Integrity sobre o `requestHash`. */
+  integrityToken: string;
+  /** Os TokenRequest da RFC 9578 (259 bytes cada), até o tamanho do lote. */
+  tokenRequests: string[];
+};
+
+/**
+ * A resposta do lote: as assinaturas cegas (256 bytes cada), na ordem dos
+ * pedidos. Recusas: 403 `invalid_challenge` (pedir outro desafio), 403
+ * `attestation_failed`, 422 `invalid_token_request` (cegar com a `tokenKey`
+ * do desafio) e 429 `issuance_limit_reached`, com `Retry-After`.
+ */
+export type TokenIssuanceResponse = {
+  tokenKey: string;
+  tokenResponses: string[];
+};
