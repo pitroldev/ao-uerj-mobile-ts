@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.11.1 (2026-11-02)
+
+### Novidades
+
+- Android: com o login confirmado no Aluno Online, o app passa a guardar tokens anônimos de aluno, pedidos em segundo plano ao servidor do app e atestados pela Play Integrity. Eles vão provar que uma requisição vem de um aluno com o app oficial da Play, sem dizer qual aluno; o servidor assina sem ver o que assina e não consegue ligar um token a quem o pediu. Nenhuma tela usa os tokens ainda, e o logout os apaga.
+- Servidor: a API v2 (`/aouerj/v2`) emite os tokens anônimos, com a Play Integrity e um limite diário por instalação, e aceita cada um uma vez só.
+
 ## [2.11.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.10.0...v2.11.0) (2026-11-01)
 
 
