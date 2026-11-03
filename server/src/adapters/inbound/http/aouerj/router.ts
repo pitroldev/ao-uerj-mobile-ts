@@ -1,5 +1,6 @@
 import express from 'express';
 
+import type { Companion } from '../../../../modules/companion/ports.ts';
 import type { Mural } from '../../../../modules/mural/ports.ts';
 import type { PortalWatch } from '../../../../modules/portal/ports.ts';
 import type { ErrorReports } from '../../../../modules/reports/ports.ts';
@@ -24,6 +25,8 @@ export type AoUerjServices = {
   portal: Pick<PortalWatch, 'snapshot'>;
   /** Só a carga, para o `GET /status`. */
   schedules: Pick<ScheduleGenerator, 'load'>;
+  /** Só as denúncias, para a administração. */
+  companion: Pick<Companion, 'reportsForReview'>;
 };
 
 /**
@@ -83,6 +86,7 @@ export function createAoUerjRouter({
       adminRoutes({
         reports: services.reports,
         suggestions: services.suggestions,
+        companion: services.companion,
         session,
         isDatabaseReady: () => database.isReady(),
       }),

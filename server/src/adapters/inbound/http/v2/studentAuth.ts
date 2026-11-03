@@ -18,7 +18,9 @@ const refuse = (res: Response, status: number, body: ApiError) => {
  * configurada, 503 `student_access_unavailable`; o banco que cai no meio do
  * gasto, 503 `database_unavailable`.
  */
-export function requireStudent(access: StudentAccess): RequestHandler {
+export function requireStudent(
+  access: Pick<StudentAccess, 'redeem' | 'challenge'>,
+): RequestHandler {
   return (req, res, next) => {
     access
       .redeem(req.get('authorization'))

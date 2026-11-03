@@ -28,6 +28,7 @@ import {
   ISSUANCE_CHALLENGE_TTL_MS,
 } from './modules/access/application.ts';
 import type { AppAttester } from './modules/access/ports.ts';
+import { createCompanion } from './modules/companion/application.ts';
 import { createMural } from './modules/mural/application.ts';
 import { createPortalWatch } from './modules/portal/application.ts';
 import type { PortalWatch } from './modules/portal/ports.ts';
@@ -161,6 +162,10 @@ export function createServer(
       counter: repositories.issuanceCounters,
       batchSize: config.studentAccess.issuance.batchSize,
       batchesPerDay: config.studentAccess.issuance.batchesPerDay,
+    }),
+    companion: createCompanion({
+      calls: repositories.companionCalls,
+      reports: repositories.companionReports,
     }),
   };
 

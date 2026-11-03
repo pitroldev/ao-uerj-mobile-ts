@@ -22,3 +22,12 @@ export class InvalidInputError extends DomainError {
 
 /** Um recurso de fora (banco, disco) não está disponível agora (vira 503). */
 export class UnavailableError extends DomainError {}
+
+/** O que foi pedido não existe, ou já não existe (vira 404). */
+export class NotFoundError extends DomainError {}
+
+/** Quem pede não pode mexer nisso (vira 403). */
+export class ForbiddenError extends DomainError {}
+
+/** O pedido bate com o estado de agora: lotado, encerrado (vira 409). */
+export class ConflictError extends DomainError {}

@@ -6,6 +6,15 @@ import type {
   IssuanceCounter,
   SingleUse,
 } from '../src/modules/access/ports.ts';
+import {
+  isListed,
+  type Call,
+  type CallReport,
+} from '../src/modules/companion/domain.ts';
+import type {
+  CallReportRepository,
+  CallRepository,
+} from '../src/modules/companion/ports.ts';
 import type { Message } from '../src/modules/mural/domain.ts';
 import type { MessageRepository } from '../src/modules/mural/ports.ts';
 import type {
@@ -157,6 +166,8 @@ export function memoryRepositories(clock = manualClock()) {
   // os lotes por instalação e dia
   const counters = new Map<string, { count: number; until: Date }>();
 
+  const companion = memoryCompanion();
+
   return {
     data: {
       messages,
@@ -166,6 +177,8 @@ export function memoryRepositories(clock = manualClock()) {
       spent,
       usedChallenges,
       counters,
+      calls: companion.calls,
+      callReports: companion.reports,
     },
     repositories: {
       messages: messageRepository,
@@ -175,8 +188,85 @@ export function memoryRepositories(clock = manualClock()) {
       spentTokens: memorySingleUse(spent),
       usedChallenges: memorySingleUse(usedChallenges),
       issuanceCounters: memoryCounter(counters),
+      companionCalls: companion.callRepository,
+      companionReports: companion.reportRepository,
     },
   };
+}
+
+/** As chamadas e as denúncias da Companhia agora, como no MongoDB. */
+export function memoryCompanion() {
+  const calls = new Map<string, Call>();
+  const reports: CallReport[] = [];
+  const alive = (call: Call | undefined, now: Date): call is Call =>
+    Boolean(call && now < call.expiresAt && !call.hiddenAt);
+  // cópias, para o caso de uso não mexer no que está guardado
+  const copy = (call: Call): Call => structuredClone(call);
+
+  const callRepository: CallRepository = {
+    async create(call) {
+      calls.set(call.id, copy(call));
+    },
+    async listListed(now) {
+      return [...calls.values()]
+        .filter(call => alive(call, now) && isListed(call, now))
+        .map(copy);
+    },
+    async countAlive(now) {
+      return [...calls.values()].filter(call => alive(call, now)).length;
+    },
+    async find(callId, now) {
+      const call = calls.get(callId);
+      return alive(call, now) ? copy(call) : null;
+    },
+    async addMember(callId, member, now) {
+      const call = calls.get(callId);
+      if (!alive(call, now) || !isListed(call, now)) return null;
+      if (call.members.length >= call.capacity) return null;
+      call.members.push(structuredClone(member));
+      return copy(call);
+    },
+    async removeMember(callId, member) {
+      const call = calls.get(callId);
+      if (call)
+        call.members = call.members.filter(
+          item => item.host || item.id !== member,
+        );
+    },
+    async end(callId, now) {
+      const call = calls.get(callId);
+      if (call && !call.endedAt) call.endedAt = now;
+    },
+    async addFeed(callId, entry, keep, now) {
+      const call = calls.get(callId);
+      if (!alive(call, now) || call.endedAt) return null;
+      if (!call.members.some(member => member.id === entry.member)) return null;
+      call.feed = [...call.feed, structuredClone(entry)].slice(-keep);
+      return copy(call);
+    },
+    async addReporter(callId, reporter, now) {
+      const call = calls.get(callId);
+      if (!alive(call, now) || call.reporters.includes(reporter)) return null;
+      call.reporters.push(reporter);
+      return copy(call);
+    },
+    async hide(callId, now) {
+      const call = calls.get(callId);
+      if (call && !call.hiddenAt) call.hiddenAt = now;
+    },
+  };
+
+  let sequence = 0;
+  const reportRepository: CallReportRepository = {
+    async create(report) {
+      reports.push({ ...structuredClone(report), id: `report-${++sequence}` });
+    },
+    async listRecent(limit) {
+      return [...reports].reverse().slice(0, limit);
+    },
+  };
+
+  return { calls, reports, callRepository, reportRepository };
 }
 
 /** O que só vale uma vez, como no MongoDB. */

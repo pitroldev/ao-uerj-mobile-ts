@@ -2,10 +2,18 @@ import type {
   IssuanceCounter,
   SingleUse,
 } from '../../../modules/access/ports.ts';
+import type {
+  CallReportRepository,
+  CallRepository,
+} from '../../../modules/companion/ports.ts';
 import type { MessageRepository } from '../../../modules/mural/ports.ts';
 import type { ErrorReportRepository } from '../../../modules/reports/ports.ts';
 import type { SuggestionRepository } from '../../../modules/suggestions/ports.ts';
 import type { TeacherRepository } from '../../../modules/teachers/ports.ts';
+import {
+  createCallReportRepository,
+  createCallRepository,
+} from './companionRepository.ts';
 import { createErrorReportRepository } from './errorReportRepository.ts';
 import { createIssuanceCounterRepository } from './issuanceCounterRepository.ts';
 import { createMessageRepository } from './messageRepository.ts';
@@ -23,6 +31,8 @@ export type Repositories = {
   spentTokens: SingleUse;
   usedChallenges: SingleUse;
   issuanceCounters: IssuanceCounter;
+  companionCalls: CallRepository;
+  companionReports: CallReportRepository;
 };
 
 export function createMongoRepositories(models: Models): Repositories {
@@ -34,5 +44,7 @@ export function createMongoRepositories(models: Models): Repositories {
     spentTokens: createSingleUseRepository(models.spentTokens),
     usedChallenges: createSingleUseRepository(models.usedChallenges),
     issuanceCounters: createIssuanceCounterRepository(models.issuanceCounters),
+    companionCalls: createCallRepository(models.companionCalls),
+    companionReports: createCallReportRepository(models.companionReports),
   };
 }

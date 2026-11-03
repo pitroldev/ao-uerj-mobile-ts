@@ -6,6 +6,7 @@ import express, {
 } from 'express';
 import { rateLimit } from 'express-rate-limit';
 
+import type { Companion } from '../../../../../modules/companion/ports.ts';
 import type { ErrorReports } from '../../../../../modules/reports/ports.ts';
 import type { Suggestions } from '../../../../../modules/suggestions/ports.ts';
 import { UnavailableError } from '../../../../../shared/errors.ts';
@@ -13,6 +14,7 @@ import type { AdminSession } from '../../adminSession.ts';
 import { notFound } from '../../errors.ts';
 import type { Html } from './html.ts';
 import {
+  companionReportsPage,
   diagnosticPage,
   filterFromQuery,
   loginPage,
@@ -30,6 +32,9 @@ import {
 const SANDBOXED =
   "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:";
 
+/** As denúncias da Companhia agora que a página mostra (30 dias). */
+const COMPANION_REPORTS_PAGE = 300;
+
 /** Tentativas erradas de login por IP antes de esperar (o token tem 192 bits). */
 export const LOGIN_ATTEMPTS = 10;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -42,12 +47,15 @@ const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 export function adminRoutes({
   reports,
   suggestions,
+  companion,
   session,
   isDatabaseReady,
   now = () => new Date(),
 }: {
   reports: ErrorReports;
   suggestions: Suggestions;
+  /** As denúncias da Companhia agora. */
+  companion: Pick<Companion, 'reportsForReview'>;
   session: AdminSession | null;
   isDatabaseReady: () => boolean;
   now?: () => Date;
@@ -158,9 +166,10 @@ export function adminRoutes({
     withDatabase,
     page(async (req, res) => {
       const filter = filterFromQuery(req.query);
-      const [review, suggested] = await Promise.all([
+      const [review, suggested, flagged] = await Promise.all([
         reports.review(filter),
         suggestions.listRecent(),
+        companion.reportsForReview(COMPANION_REPORTS_PAGE),
       ]);
       send(
         res,
@@ -172,6 +181,7 @@ export function adminRoutes({
           csrf: session!.csrf,
           now: now(),
           suggestions: suggested.length,
+          companionReports: flagged.length,
         }),
       );
     }),
@@ -183,9 +193,10 @@ export function adminRoutes({
     signedIn,
     withDatabase,
     page(async (req, res) => {
-      const [suggested, review] = await Promise.all([
+      const [suggested, review, flagged] = await Promise.all([
         suggestions.listRecent(),
         reports.summarize(),
+        companion.reportsForReview(COMPANION_REPORTS_PAGE),
       ]);
       send(
         res,
@@ -196,6 +207,33 @@ export function adminRoutes({
           csrf: session!.csrf,
           now: now(),
           openReports: review.open,
+          companionReports: flagged.length,
+        }),
+      );
+    }),
+  );
+
+  routes.get(
+    '/admin/companhia',
+    configured,
+    signedIn,
+    withDatabase,
+    page(async (req, res) => {
+      const [flagged, review, suggested] = await Promise.all([
+        companion.reportsForReview(COMPANION_REPORTS_PAGE),
+        reports.summarize(),
+        suggestions.listRecent(),
+      ]);
+      send(
+        res,
+        200,
+        companionReportsPage({
+          base: req.baseUrl,
+          reports: flagged,
+          csrf: session!.csrf,
+          now: now(),
+          openReports: review.open,
+          suggestions: suggested.length,
         }),
       );
     }),

@@ -160,6 +160,9 @@ tem 10 tentativas erradas a cada 15 minutos (acertar não conta).
   origem própria e sem buscar nada na rede, então não lê o cookie nem as
   outras páginas. Só abre o anexo do próprio relato.
 - **Sugestões:** numa aba ao lado, das mais novas às mais antigas.
+- **Denúncias:** a terceira aba, com as denúncias da Companhia agora dos
+  últimos 30 dias: o motivo, a chamada como estava (sem as chaves) e se ela
+  saiu do ar.
 
 As páginas são HTML montado no servidor (`http/aouerj/admin/`), sem
 JavaScript, com as cores dos temas claro e escuro do app. Os relatos antigos
@@ -239,6 +242,57 @@ emulador e o debug, e a configuração o recusa em produção.
 | `GET /aouerj/v2/auth`             | 200 `{ "authenticated": true }` com token válido (que fica gasto); 401 sem          |
 
 Desafios e lotes dividem um limite por IP (`TOKEN_RATE_LIMIT_PER_MINUTE`, 60).
+
+### Companhia agora
+
+Encontros de minutos entre alunos que não se conhecem (o módulo
+`modules/companion`): uma mesa aberta no almoço (`lunch`) ou a volta em grupo
+depois da última aula da noite (`home`). O servidor não sabe quem é ninguém:
+
+- **Quem abre, entra ou denuncia de fora** gasta um token de aluno. Abrir e
+  entrar devolvem uma **chave de membro** (32 bytes ao acaso) que vale só
+  naquela chamada: o app a manda em `X-Member-Key` para ler a chamada, mandar
+  recado, sair e denunciar de dentro. O banco guarda só o SHA-256 dela, e
+  nada liga as chamadas de uma mesma pessoa.
+- **A lista** pede o **passe de aluno** (`X-Student-Pass`): 36 bytes que um
+  token compra em `POST /companion/pass` e que valem uma hora de leituras,
+  para o app atualizar a lista sem gastar um token a cada 20 segundos. O passe
+  leva um HMAC tirado da chave privada do emissor e não fica guardado; a
+  troca de chave não derruba os passes da hora.
+- **Os prazos:** a chamada aparece na lista 1 hora antes do horário e sai 30
+  minutos depois (a mesa) ou 10 minutos depois da saída (a volta); some de
+  vez, do banco também (índice TTL), 30 minutos depois na mesa e 2 horas
+  depois na volta, para dar tempo do "Cheguei em casa". Abre-se até 3 horas à
+  frente.
+- **As regras:** o ponto de encontro é um lugar do Mapa do app dentro do
+  campus (`ru`, `lago`, `concha` na mesa; `concha`, `portao-1`, `portao-5` na
+  volta), o destino é genérico (`metro`, `trem`, `onibus`), até 6 pessoas na
+  mesa e 8 na volta, o nome é um primeiro nome só, e o recado tem até 80
+  caracteres, sem telefone, @ ou link (422 `note_not_allowed`). A última vaga
+  se ocupa na mesma operação que confere a vaga: duas pessoas não ficam com
+  ela.
+- **Recados prontos**, sem conversa livre: `on_my_way`, `at_spot`, `late` e,
+  só na volta, `home_safe`. A chamada guarda os 60 mais recentes.
+- **Denúncias:** uma por membro (de fora, cada uma gasta um token); com três,
+  a chamada sai do ar. Cada denúncia guarda, por 30 dias, o que a chamada era
+  (tipo, horário, ponto, destino, recado e os primeiros nomes), sem as chaves,
+  para a aba "Denúncias" de `/aouerj/admin`.
+- **O teto:** 500 chamadas valendo ao mesmo tempo (503 `companion_full`). As
+  gravações dividem o limite por IP da v2 (`RATE_LIMIT_PER_MINUTE`).
+
+| Rota                                          | Com            | O que faz                                                         |
+| --------------------------------------------- | -------------- | ----------------------------------------------------------------- |
+| `POST /aouerj/v2/companion/pass`              | token          | O passe de uma hora                                               |
+| `GET /aouerj/v2/companion/calls`              | passe          | As chamadas na lista, a mais próxima primeiro; 401 `invalid_pass` |
+| `POST /aouerj/v2/companion/calls`             | token          | Abre (201): a chamada e a chave de membro                         |
+| `GET /aouerj/v2/companion/calls/:id`          | chave          | A chamada por dentro: os primeiros nomes e os recados             |
+| `POST /aouerj/v2/companion/calls/:id/members` | token          | Entra (201); 409 `call_full` ou `call_closed`                     |
+| `POST /aouerj/v2/companion/calls/:id/phrases` | chave          | Manda um recado pronto; 409 `call_ended`                          |
+| `POST /aouerj/v2/companion/calls/:id/leave`   | chave          | Sai; quem chamou encerra para todos                               |
+| `POST /aouerj/v2/companion/calls/:id/reports` | chave ou token | Denuncia, com o motivo                                            |
+
+Sem a chamada (acabou, saiu do ar, nunca existiu): 404 `call_not_found`; uma
+chave que não é dela: 403 `not_a_member`. Os tipos estão em `contract.ts`.
 
 ### Consultar o que está no ar
 
@@ -321,6 +375,10 @@ O que mudou de propósito:
   100 KB) e os apps 1.x não cortam o texto. Os limites daqui ficam bem acima
   do uso (nome 200, mensagem 10 000, descrição 20 000), para nada que passava
   antes ser recusado agora.
+- **O que fica guardado na Companhia agora:** cada chamada (tipo, horário,
+  ponto, destino, recado, os primeiros nomes, os recados prontos e os hashes
+  das chaves de membro) até pouco depois do horário, quando o índice TTL a
+  apaga; as denúncias, por 30 dias. Sem IP, sem conta, sem localização.
 - **O que fica guardado:** as mensagens do mural (com o nome que o aluno
   escolheu), os relatos (página, descrição, e-mail opcional e os anexos em
   `AOreports/`) e as sugestões (nome, texto e e-mail opcional), sem prazo de

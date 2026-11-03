@@ -4,10 +4,12 @@ import type {
   StudentAccess,
   TokenIssuer,
 } from '../../../../modules/access/ports.ts';
+import type { Companion } from '../../../../modules/companion/ports.ts';
 import type { DatabaseHealth } from '../aouerj/status.ts';
 import type { StudentAuthResponse } from '../contract.ts';
 import { notFound } from '../errors.ts';
 import { perMinuteLimit, requireDatabase } from '../middleware.ts';
+import { companionRoutes } from './companion.ts';
 import { requireStudent } from './studentAuth.ts';
 import { tokenRoutes } from './tokens.ts';
 
@@ -19,15 +21,20 @@ import { tokenRoutes } from './tokens.ts';
 export function createV2Router({
   access,
   tokens,
+  companion,
   database,
   tokenRequestsPerMinute,
   tokenBatchSize,
+  writesPerMinute,
 }: {
   access: StudentAccess;
   tokens: TokenIssuer;
+  companion: Companion;
   database: DatabaseHealth;
   tokenRequestsPerMinute: number;
   tokenBatchSize: number;
+  /** Por IP, por minuto: as gravações da v2, juntas. */
+  writesPerMinute: number;
 }) {
   const routes = express.Router();
   // toda rota de aluno leva os dois: o gasto do token grava no banco, e sem
@@ -51,6 +58,16 @@ export function createV2Router({
       .set('Cache-Control', 'no-store')
       .json({ authenticated: true } satisfies StudentAuthResponse);
   });
+
+  routes.use(
+    companionRoutes({
+      companion,
+      access,
+      withDatabase,
+      student,
+      writeLimit: perMinuteLimit(writesPerMinute),
+    }),
+  );
 
   // o que não existe na v2 termina aqui, sem passar pelas rotas de /aouerj
   routes.use(notFound);

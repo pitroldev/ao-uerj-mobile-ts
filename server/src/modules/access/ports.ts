@@ -20,6 +20,14 @@ export interface StudentAccess {
    * válido; `null` sem chave válida.
    */
   challenge(): { challenge: Buffer; tokenKey: Buffer } | null;
+  /**
+   * Um passe de aluno para quem acabou de gastar um token: 36 bytes que
+   * valem uma hora de leituras, com um HMAC do servidor e sem nada guardado.
+   * `null` sem chave privada valendo.
+   */
+  issuePass(): { pass: Buffer; expiresAt: Date } | null;
+  /** O passe (em base64url) é nosso e ainda vale. */
+  checkPass(pass: string | undefined): boolean;
 }
 
 /** O desafio de emissão e a chave com que o app cega os pedidos. */

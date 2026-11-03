@@ -2,8 +2,11 @@ import type { NextFunction, Request, Response } from 'express';
 
 import type { ApiError } from './contract.ts';
 import {
+  ConflictError,
   DomainError,
+  ForbiddenError,
   InvalidInputError,
+  NotFoundError,
   UnavailableError,
 } from '../../../shared/errors.ts';
 
@@ -36,6 +39,12 @@ function describe(err: unknown): { status: number; body: ApiError } {
     return { status: 400, body: { error: err.code, message: err.message } };
   if (err instanceof UnavailableError)
     return { status: 503, body: { error: err.code, message: err.message } };
+  if (err instanceof NotFoundError)
+    return { status: 404, body: { error: err.code, message: err.message } };
+  if (err instanceof ForbiddenError)
+    return { status: 403, body: { error: err.code, message: err.message } };
+  if (err instanceof ConflictError)
+    return { status: 409, body: { error: err.code, message: err.message } };
   if (err instanceof DomainError)
     return { status: 422, body: { error: err.code, message: err.message } };
 

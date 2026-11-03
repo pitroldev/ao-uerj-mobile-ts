@@ -78,6 +78,8 @@ test('the connection opens on the old collections, with the indexes the queries 
       .map(model => model.collection.collectionName)
       .sort(),
     [
+      'companioncalls',
+      'companionreports',
       'docentes',
       'errorreports',
       'issuancecounters',

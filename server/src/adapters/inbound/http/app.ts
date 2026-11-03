@@ -7,6 +7,7 @@ import type {
   StudentAccess,
   TokenIssuer,
 } from '../../../modules/access/ports.ts';
+import type { Companion } from '../../../modules/companion/ports.ts';
 import type { ScheduleGenerator } from '../../../modules/schedules/ports.ts';
 import { createAoUerjRouter, type AoUerjServices } from './aouerj/router.ts';
 import type { DatabaseHealth, Release } from './aouerj/status.ts';
@@ -22,6 +23,8 @@ export type Services = AoUerjServices & {
   access: StudentAccess;
   /** A emissão dos tokens anônimos, em lotes. */
   tokens: TokenIssuer;
+  /** A Companhia agora, na v2. */
+  companion: Companion;
 };
 
 /** O que o HTTP precisa da configuração. */
@@ -84,9 +87,11 @@ export function createHttpApp({
     createV2Router({
       access: services.access,
       tokens: services.tokens,
+      companion: services.companion,
       database,
       tokenRequestsPerMinute: settings.tokenRequestsPerMinute,
       tokenBatchSize: settings.tokenBatchSize,
+      writesPerMinute: settings.writesPerMinute,
     }),
   );
   app.use(

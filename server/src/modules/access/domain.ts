@@ -347,6 +347,8 @@ export type IssuanceSecrets = {
   challenge: Buffer;
   /** Esconde a instalação no contador de lotes. */
   installation: Buffer;
+  /** Autentica o passe de aluno, que também não fica guardado. */
+  pass: Buffer;
 };
 
 export function issuanceSecrets(key: SigningKey): IssuanceSecrets {
@@ -356,6 +358,7 @@ export function issuanceSecrets(key: SigningKey): IssuanceSecrets {
   return {
     challenge: derive('ao-uerj v2 issuance challenge'),
     installation: derive('ao-uerj v2 installation counter'),
+    pass: derive('ao-uerj v2 student pass'),
   };
 }
 

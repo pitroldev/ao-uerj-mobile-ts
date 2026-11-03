@@ -1,3 +1,7 @@
+import {
+  REPORTS_TO_HIDE,
+  type CallReport,
+} from '../../../../../modules/companion/domain.ts';
 import type {
   Diagnostic,
   ErrorReport,
@@ -236,7 +240,10 @@ h1{font-size:1.375rem}
 }
 `);
 
-type Tab = 'reports' | 'suggestions';
+type Tab = 'reports' | 'suggestions' | 'companion';
+
+/** As contagens das abas. */
+type Counts = { open: number; suggestions: number; companion: number };
 
 /** O molde: cabeçalho azul com o logo, as abas e o painel. */
 function layout({
@@ -251,7 +258,7 @@ function layout({
   title: string;
   tab: Tab | null;
   csrf: string | null;
-  counts?: { open: number; suggestions: number };
+  counts?: Counts;
   body: Html;
 }) {
   const tabLink = (id: Tab, href: string, label: string, n: number) =>
@@ -294,7 +301,7 @@ function layout({
           ${
             counts
               ? html`<nav class="tabs" aria-label="Seções">
-                  ${tabLink('reports', `${base}/admin`, 'Relatos', counts.open)}${tabLink('suggestions', `${base}/admin/sugestoes`, 'Sugestões', counts.suggestions)}
+                  ${tabLink('reports', `${base}/admin`, 'Relatos', counts.open)}${tabLink('suggestions', `${base}/admin/sugestoes`, 'Sugestões', counts.suggestions)}${tabLink('companion', `${base}/admin/companhia`, 'Denúncias', counts.companion)}
                 </nav>`
               : html`<div class="tabs" aria-hidden="true"></div>`
           }
@@ -520,6 +527,7 @@ export function reportsPage({
   csrf,
   now,
   suggestions,
+  companionReports,
 }: {
   base: string;
   review: Review;
@@ -527,6 +535,8 @@ export function reportsPage({
   csrf: string;
   now: Date;
   suggestions: number;
+  /** As denúncias da Companhia agora guardadas (30 dias). */
+  companionReports: number;
 }) {
   const { summary } = review;
   const totals: Record<ReviewStatus, number> = {
@@ -568,7 +578,7 @@ export function reportsPage({
     title: 'Relatos de erro',
     tab: 'reports',
     csrf,
-    counts: { open: summary.open, suggestions },
+    counts: { open: summary.open, suggestions, companion: companionReports },
     body: html`<h1>Relatos de erro</h1>
       <p class="lede">
         <b>${count(summary.open, 'aberto', 'abertos')}</b>${
@@ -635,12 +645,14 @@ export function suggestionsPage({
   csrf,
   now,
   openReports,
+  companionReports,
 }: {
   base: string;
   suggestions: Suggestion[];
   csrf: string;
   now: Date;
   openReports: number;
+  companionReports: number;
 }) {
   const groups = byDay(suggestions, suggestion => suggestion.createdAt);
   return layout({
@@ -648,7 +660,11 @@ export function suggestionsPage({
     title: 'Sugestões',
     tab: 'suggestions',
     csrf,
-    counts: { open: openReports, suggestions: suggestions.length },
+    counts: {
+      open: openReports,
+      suggestions: suggestions.length,
+      companion: companionReports,
+    },
     body: html`<h1>Sugestões</h1>
       <p class="lede">
         ${count(suggestions.length, 'sugestão', 'sugestões')} dos apps, das mais
@@ -699,6 +715,116 @@ export function suggestionsPage({
           : html`<div class="empty">
               ${icon('lightbulb')}
               <p>Nenhuma sugestão por enquanto.</p>
+            </div>`
+      }`,
+  });
+}
+
+/* ------------------------------------------- denúncias da Companhia agora */
+
+const REASON_LABEL: Record<CallReport['reason'], string> = {
+  harassment: 'Assédio ou ofensa',
+  strange: 'Comportamento estranho',
+  spam: 'Spam ou propaganda',
+  other: 'Outro motivo',
+};
+const SPOT_LABEL: Record<CallReport['spot'], string> = {
+  ru: 'RU',
+  lago: 'Lago dos Peixinhos',
+  concha: 'Concha Acústica',
+  'portao-1': 'Portão 1',
+  'portao-5': 'Portão 5',
+};
+const DESTINATION_LABEL: Record<
+  NonNullable<CallReport['destination']>,
+  string
+> = { metro: 'metrô', trem: 'trem', onibus: 'ponto de ônibus' };
+
+/** "Mesa no RU, 12:15" ou "Volta para o metrô, 22:15". */
+function callTitle(report: CallReport) {
+  const time = hourFormat.format(report.at);
+  return report.kind === 'home' && report.destination
+    ? `Volta para o ${DESTINATION_LABEL[report.destination]}, ${time}`
+    : `Mesa no ${SPOT_LABEL[report.spot]}, ${time}`;
+}
+
+export function companionReportsPage({
+  base,
+  reports,
+  csrf,
+  now,
+  openReports,
+  suggestions,
+}: {
+  base: string;
+  reports: CallReport[];
+  csrf: string;
+  now: Date;
+  openReports: number;
+  suggestions: number;
+}) {
+  const groups = byDay(reports, report => report.createdAt);
+  return layout({
+    base,
+    title: 'Denúncias',
+    tab: 'companion',
+    csrf,
+    counts: { open: openReports, suggestions, companion: reports.length },
+    body: html`<h1>Denúncias da Companhia agora</h1>
+      <p class="lede">
+        ${count(reports.length, 'denúncia', 'denúncias')} dos últimos 30 dias,
+        das mais novas às mais antigas. A chamada some do servidor pouco depois
+        do horário; aqui fica o que ela era quando foi denunciada, sem as chaves
+        de quem estava nela. Com ${REPORTS_TO_HIDE} denúncias, a chamada sai do
+        ar sozinha.
+      </p>
+      ${
+        groups.length
+          ? groups.map(group => {
+              const heading = dayHeading(group.date, now);
+              return html`<section aria-labelledby="dia-${group.key}">
+                <h2 class="day" id="dia-${group.key}">
+                  ${heading.title}${heading.detail ? html`<span>${heading.detail}</span>` : null}
+                </h2>
+                <ol class="list">
+                  ${group.items.map(
+                    report =>
+                      html`<li class="row">
+                        <time
+                          class="when"
+                          datetime="${report.createdAt.toISOString()}"
+                          >${hourFormat.format(report.createdAt)}</time
+                        >
+                        <div>
+                          <div class="top">
+                            <span class="tag"
+                              >${REASON_LABEL[report.reason]}</span
+                            >
+                            <span class="who">${callTitle(report)}</span>
+                          </div>
+                          ${
+                            report.note
+                              ? html`<p class="desc">"${report.note}"</p>`
+                              : null
+                          }
+                          <div class="foot">
+                            <span>${report.names.join(', ') || 'Ninguém'}</span>
+                            <span class="quiet"
+                              >${count(report.count, 'denúncia', 'denúncias')}
+                              nesta
+                              chamada${report.hidden ? ' · saiu do ar' : ''}</span
+                            >
+                          </div>
+                        </div>
+                        <span></span>
+                      </li>`,
+                  )}
+                </ol>
+              </section>`;
+            })
+          : html`<div class="empty">
+              ${icon('task_alt')}
+              <p>Nenhuma denúncia nos últimos 30 dias.</p>
             </div>`
       }`,
   });

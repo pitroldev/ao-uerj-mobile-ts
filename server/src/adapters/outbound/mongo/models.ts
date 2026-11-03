@@ -1,5 +1,6 @@
 import mongoose, { type Connection } from 'mongoose';
 
+import { COMPANION_LIMITS } from '../../../modules/companion/domain.ts';
 import { MESSAGE_LIMITS } from '../../../modules/mural/domain.ts';
 import { REPORT_LIMITS } from '../../../modules/reports/domain.ts';
 import { SUGGESTION_LIMITS } from '../../../modules/suggestions/domain.ts';
@@ -106,6 +107,73 @@ const issuanceCounterSchema = new mongoose.Schema(
 );
 issuanceCounterSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
+/**
+ * As chamadas da Companhia agora. Ficam só até `expiresAt` (o índice TTL
+ * apaga; as consultas também filtram, porque o MongoDB passa a cada minuto).
+ * Dos membros, só o hash da chave e o primeiro nome. Sem `timestamps`.
+ */
+const companionMemberSchema = new mongoose.Schema(
+  {
+    key: { required: true, type: String },
+    name: text(COMPANION_LIMITS.name),
+    host: { default: false, type: Boolean },
+    joinedAt: { required: true, type: Date },
+  },
+  { _id: false },
+);
+const companionFeedSchema = new mongoose.Schema(
+  {
+    key: { required: true, type: String },
+    name: text(COMPANION_LIMITS.name),
+    phrase: { required: true, type: String },
+    at: { required: true, type: Date },
+  },
+  { _id: false },
+);
+const companionCallSchema = new mongoose.Schema(
+  {
+    _id: { required: true, type: String },
+    kind: { required: true, type: String },
+    at: { required: true, type: Date },
+    spot: { required: true, type: String },
+    destination: { default: null, type: String },
+    note: { default: '', maxlength: COMPANION_LIMITS.note, type: String },
+    capacity: { required: true, type: Number },
+    members: { default: [], type: [companionMemberSchema] },
+    feed: { default: [], type: [companionFeedSchema] },
+    reporters: { default: [], type: [String] },
+    endedAt: { default: null, type: Date },
+    hiddenAt: { default: null, type: Date },
+    visibleFrom: { required: true, type: Date },
+    listedUntil: { required: true, type: Date },
+    expiresAt: { required: true, type: Date },
+  },
+  { versionKey: false, bufferCommands: false },
+);
+companionCallSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+companionCallSchema.index({ listedUntil: 1 });
+
+/** As denúncias da Companhia agora, para a moderação, por 30 dias. */
+const companionReportSchema = new mongoose.Schema(
+  {
+    callId: { required: true, type: String },
+    kind: { required: true, type: String },
+    at: { required: true, type: Date },
+    spot: { required: true, type: String },
+    destination: { default: null, type: String },
+    note: { default: '', type: String },
+    names: { default: [], type: [String] },
+    reason: { required: true, type: String },
+    count: { required: true, type: Number },
+    hidden: { default: false, type: Boolean },
+    createdAt: { required: true, type: Date },
+    expiresAt: { required: true, type: Date },
+  },
+  { versionKey: false, bufferCommands: false },
+);
+companionReportSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+companionReportSchema.index({ createdAt: -1 });
+
 /** Os modelos registrados numa conexão. */
 export function defineModels(connection: Connection) {
   return {
@@ -120,6 +188,11 @@ export function defineModels(connection: Connection) {
     issuanceCounters: connection.model(
       'IssuanceCounters',
       issuanceCounterSchema,
+    ),
+    companionCalls: connection.model('CompanionCalls', companionCallSchema),
+    companionReports: connection.model(
+      'CompanionReports',
+      companionReportSchema,
     ),
   };
 }

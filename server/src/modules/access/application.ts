@@ -52,6 +52,15 @@ function newest<Key extends IssuerKey>(
 }
 
 /**
+ * Quanto vale um passe de aluno: as leituras de uma hora de uso (a lista da
+ * Companhia agora), sem gastar um token a cada atualização.
+ */
+export const STUDENT_PASS_TTL_MS = 60 * 60 * 1000;
+
+/** O passe em base64url: 36 bytes, 48 caracteres. */
+const STUDENT_PASS = /^[A-Za-z0-9_-]{48}$/;
+
+/**
  * O resgate dos tokens de aluno. O desafio é fixo (emissor e origem, sem
  * `redemption_context`), para o app buscar os tokens com antecedência e em
  * lote, longe da hora do uso.
@@ -75,8 +84,43 @@ export function createStudentAccess({
     origins: [origin],
   });
   const digest = challengeDigest(challenge);
+  // o passe se autentica com um segredo tirado de cada chave privada
+  const signing = keys.filter(isSigningKey);
+  const passSecrets = new Map<SigningKey, Buffer>();
+  const passSecretOf = (key: SigningKey) => {
+    let found = passSecrets.get(key);
+    if (!found) {
+      found = issuanceSecrets(key).pass;
+      passSecrets.set(key, found);
+    }
+    return found;
+  };
 
   return {
+    issuePass() {
+      const key = newest(signing, now());
+      if (!key) return null;
+      const { challenge: pass, expiresAt } = issuanceChallenge(
+        passSecretOf(key),
+        new Date(now() + STUDENT_PASS_TTL_MS),
+      );
+      return { pass, expiresAt };
+    },
+
+    checkPass(pass) {
+      if (!pass || !STUDENT_PASS.test(pass)) return false;
+      const bytes = Buffer.from(pass, 'base64url');
+      const at = now();
+      // vale o de qualquer chave que ainda vale: a troca de chave não
+      // derruba os passes da hora
+      return signing.some(
+        key =>
+          key.notAfter.getTime() > at &&
+          openIssuanceChallenge(passSecretOf(key), bytes, new Date(at)) !==
+            null,
+      );
+    },
+
     challenge() {
       // a que vale por mais tempo é a que o app deve buscar
       const current = newest(keys, now());

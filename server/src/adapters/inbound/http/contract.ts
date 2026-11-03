@@ -284,3 +284,96 @@ export type TokenIssuanceResponse = {
   tokenKey: string;
   tokenResponses: string[];
 };
+
+/*
+ * A Companhia agora (`/aouerj/v2/companion`). O servidor não sabe quem é
+ * ninguém: abrir, entrar e denunciar de fora gastam um token de aluno; a
+ * lista pede o passe de aluno (`X-Student-Pass`, uma hora de leituras por
+ * token); dentro da chamada, a chave de membro (`X-Member-Key`) que a
+ * entrada devolveu, que vale só nela. Os horários vão em ISO 8601. Sair
+ * (`POST …/calls/:id/leave`, com a chave) responde `OkResponse`; quem
+ * chamou e sai encerra a chamada para todos.
+ *
+ * Erros: 404 `call_not_found` (acabou, saiu do ar ou nunca existiu), 403
+ * `not_a_member`, 409 `call_full`, `call_closed` ou `call_ended`, 422
+ * `note_not_allowed` (telefone, @ ou link no recado), 401 `invalid_pass`
+ * (passe vencido: pedir outro) e 503 `companion_full` (o teto do campus).
+ */
+
+export type CompanionKind = 'lunch' | 'home';
+export type CompanionSpot = 'ru' | 'lago' | 'concha' | 'portao-1' | 'portao-5';
+export type CompanionDestination = 'metro' | 'trem' | 'onibus';
+export type CompanionPhrase = 'on_my_way' | 'at_spot' | 'late' | 'home_safe';
+export type CompanionReportReason = 'harassment' | 'strange' | 'spam' | 'other';
+
+/** `POST /aouerj/v2/companion/pass`, com um token: o passe (36 bytes, base64url). */
+export type StudentPassResponse = { pass: string; expiresAt: string };
+
+/** Uma chamada como quem está fora a vê: o primeiro nome de quem chamou e quantos vão. */
+export type CompanionCall = {
+  id: string;
+  kind: CompanionKind;
+  at: string;
+  spot: CompanionSpot;
+  destination: CompanionDestination | null;
+  note: string;
+  host: string;
+  going: number;
+  capacity: number;
+  /** Depois disso, ninguém mais entra. */
+  listedUntil: string;
+  /** Quando some de vez. */
+  expiresAt: string;
+};
+
+/** `GET /aouerj/v2/companion/calls`, com o passe. */
+export type CompanionCallListResponse = { calls: CompanionCall[] };
+
+/** A chamada como quem está dentro a vê. */
+export type CompanionMemberCall = CompanionCall & {
+  endedAt: string | null;
+  members: { name: string; host: boolean; you: boolean }[];
+  feed: {
+    name: string;
+    phrase: CompanionPhrase;
+    at: string;
+    you: boolean;
+  }[];
+};
+
+/** `POST /aouerj/v2/companion/calls`, com um token. */
+export type OpenCompanionCallRequest = {
+  kind: CompanionKind;
+  at: string;
+  spot: CompanionSpot;
+  /** Só na volta (`home`). */
+  destination?: CompanionDestination | null;
+  note?: string;
+  capacity: number;
+  /** O primeiro nome, uma palavra só. */
+  name: string;
+};
+
+/** `POST /aouerj/v2/companion/calls/:id/members`, com um token. */
+export type JoinCompanionCallRequest = { name: string };
+
+/**
+ * A resposta de abrir e de entrar: a chamada e a chave de membro (32 bytes,
+ * base64url), que o app guarda e manda em `X-Member-Key`.
+ */
+export type CompanionMembershipResponse = {
+  call: CompanionMemberCall;
+  memberKey: string;
+};
+
+/** `GET /aouerj/v2/companion/calls/:id`, com a chave de membro. */
+export type CompanionCallResponse = { call: CompanionMemberCall };
+
+/** `POST /aouerj/v2/companion/calls/:id/phrases`, com a chave de membro. */
+export type CompanionPhraseRequest = { phrase: CompanionPhrase };
+
+/**
+ * `POST /aouerj/v2/companion/calls/:id/reports`: com a chave de membro (conta
+ * uma vez por membro) ou, de fora, com um token. Responde `OkResponse`.
+ */
+export type CompanionReportRequest = { reason: CompanionReportReason };
