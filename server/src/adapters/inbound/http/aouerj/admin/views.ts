@@ -758,17 +758,17 @@ const DESTINATION_LABEL: Record<
   string
 > = { metro: 'metrô', trem: 'trem', onibus: 'ponto de ônibus' };
 
-/** "Mesa no RU, 12:15" ou "Volta para o metrô, 22:15". */
+/** "Mesa no RU, 12:15" ou "Grupo para o metrô, 22:15" (as palavras do app). */
 function callTitle(report: CallReport) {
   const time = hourFormat.format(report.at);
   return report.kind === 'home' && report.destination
-    ? `Volta para o ${DESTINATION_LABEL[report.destination]}, ${time}`
+    ? `Grupo para o ${DESTINATION_LABEL[report.destination]}, ${time}`
     : `Mesa no ${SPOT_LABEL[report.spot]}, ${time}`;
 }
 
 const SOURCE_LABEL: Record<NonNullable<CallReport['source']>, string> = {
   member: 'De quem foi junto',
-  host: 'De quem chamou',
+  host: 'De quem abriu',
   outsider: 'De fora',
 };
 
@@ -824,7 +824,7 @@ function statsSection(stats: DayStats[]) {
             <th scope="col">Olharam</th>
             <th scope="col">Vazia</th>
             <th scope="col">Mesas</th>
-            <th scope="col">Voltas</th>
+            <th scope="col">Grupos</th>
             <th scope="col">Companhia</th>
             <th scope="col">No ponto</th>
             <th scope="col">Em casa</th>
@@ -938,33 +938,32 @@ export function companionPage({
       ${
         done === 'hidden'
           ? html`<p class="done-notice">
-              A chamada saiu do ar: some da lista, e quem estava nela vê que ela
-              não existe mais.
+              Saiu do ar: some da lista, e quem estava dentro vê que não existe
+              mais.
             </p>`
           : done === 'gone'
-            ? html`<p class="notice">
-                Essa chamada já tinha acabado ou saído do ar.
-              </p>`
+            ? html`<p class="notice">Já tinha acabado ou saído do ar.</p>`
             : null
       }
       <h2 class="sub">Últimos ${COMPANION_STATS_DAYS} dias</h2>
       <p class="sub-lede">
         "Olharam": alunos que chegaram à lista (uma vez a cada 15 minutos);
-        "Vazia": desses, os que não acharam nenhuma chamada. "Companhia":
-        chamadas que chegaram a duas pessoas, sobre as abertas. "No ponto":
-        delas, as que tiveram um "Cheguei no ponto". "Em casa": os "Cheguei em
-        casa" da volta. Denúncias: o total e, entre parênteses, as de fora.
+        "Vazia": desses, os que não acharam nenhuma mesa ou grupo. "Mesas" e
+        "Grupos": os abertos (o grupo é o de voltar junto). "Companhia": os que
+        chegaram a duas pessoas, sobre os abertos. "No ponto": deles, os que
+        tiveram um "Cheguei no ponto". "Em casa": os "Cheguei em casa" dos
+        grupos. Denúncias: o total e, entre parênteses, as de fora.
       </p>
       ${statsSection(stats)}
 
       <h2 class="sub">Denúncias</h2>
       <p class="sub-lede">
         ${count(reports.length, 'denúncia', 'denúncias')}, das mais novas às
-        mais antigas, com o que a chamada era quando foi denunciada (sem as
-        chaves de quem estava nela). Assédio denunciado por quem foi junto tira
-        a chamada do ar na hora; outro motivo, com ${MEMBER_REPORTS_TO_HIDE}
-        pessoas de dentro. A denúncia de fora não tira nada sozinha: quem decide
-        é você, aqui, enquanto a chamada valer.
+        mais antigas, com o que a mesa ou o grupo era quando foi denunciado (sem
+        as chaves de quem estava dentro). Assédio denunciado por quem foi junto
+        tira do ar na hora; outro motivo, com ${MEMBER_REPORTS_TO_HIDE} pessoas
+        de dentro. A denúncia de fora não tira nada sozinha: quem decide é você,
+        aqui, enquanto a mesa ou o grupo valer.
       </p>
       ${
         groups.length
@@ -1000,8 +999,7 @@ export function companionPage({
                             <span>${report.names.join(', ') || 'Ninguém'}</span>
                             <span class="quiet"
                               >${count(report.count, 'denúncia', 'denúncias')}
-                              nesta
-                              chamada${report.hidden ? ' · saiu do ar' : ''}</span
+                              aqui${report.hidden ? ' · saiu do ar' : ''}</span
                             >
                           </div>
                         </div>

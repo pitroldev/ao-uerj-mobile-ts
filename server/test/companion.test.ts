@@ -790,7 +790,7 @@ test('the routes: who is watching, the host removing someone, the limit per memb
   const reviewed = await (
     await fetch(`${admin}/companhia?feito=tirada`, { headers: bearer })
   ).text();
-  assert.match(reviewed, /A chamada saiu do ar/);
+  assert.match(reviewed, /Saiu do ar: some da lista/);
   assert.match(reviewed, /saiu do ar/);
   assert.doesNotMatch(reviewed, /Tirar do ar\s*<\/button>/);
   // os números do dia aparecem: uma mesa aberta, que teve companhia
