@@ -76,6 +76,10 @@
     <receiver
       android:name=".notifications.EvaluationReminderReceiver"
       android:exported="false" />
+    <!-- Avisos das chamadas da Companhia agora (CompanionReminders.kt). -->
+    <receiver
+      android:name=".notifications.CompanionReminderReceiver"
+      android:exported="false" />
     <receiver
       android:name=".notifications.RescheduleReceiver"
       android:exported="false">

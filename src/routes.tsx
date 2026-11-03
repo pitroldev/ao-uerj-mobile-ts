@@ -29,6 +29,7 @@ import { LoadingPage } from './pages/Loading';
 import { CampusMapPage } from './pages/CampusMap/CampusMap';
 import { DocumentsPage } from '@root/pages/Documents';
 import { NotificationsPage } from '@root/pages/Notifications';
+import { CompanionPage } from '@root/pages/Companion';
 import { showsAccount } from '@root/modules/identity/domain/identityState';
 
 export type RootDrawerParamList = {
@@ -36,7 +37,10 @@ export type RootDrawerParamList = {
 
   /** `focus`: o atalho "Notas" abre o Início no quadro de notas. */
   Início: { focus?: 'grades' } | undefined;
-  Mapa: { location?: string } | undefined;
+  /** `place`: um lugar do atlas (o ponto de encontro da Companhia agora). */
+  Mapa: { location?: string; place?: string } | undefined;
+  /** `callId`: abre a chamada (do Início ou de um aviso). */
+  'Companhia agora': { callId?: string } | undefined;
   'Mural de Mensagens': undefined;
   'Disciplinas Realizadas': undefined;
   'Disciplinas do Currículo': undefined;
@@ -80,8 +84,11 @@ export const MainRoutes = () => {
   const theme = useTheme();
   const { account, status } = useIdentity();
   // os avisos dependem do módulo nativo (Android e iOS; ausente no Jest)
+  const services = useAppServices();
   const notificationsSupported =
-    useAppServices().notifications.settings.getSnapshot().supported;
+    services.notifications.settings.getSnapshot().supported;
+  // a Companhia agora depende dos tokens anônimos (Android com a Play) e do cofre
+  const companionSupported = services.companion.supported;
   // a conta salva aparece antes do login da abertura terminar
   const showLoading = status === 'restoring' && !account;
   const isSignedIn = showsAccount({ status, account });
@@ -117,6 +124,9 @@ export const MainRoutes = () => {
             component={CampusMapPage}
             options={{ swipeEnabled: false }}
           />
+          {companionSupported ? (
+            <Drawer.Screen name="Companhia agora" component={CompanionPage} />
+          ) : null}
           <Drawer.Screen name="Meu Progresso" component={MyProgressPage} />
           <Drawer.Screen
             name="Plano até a formatura"

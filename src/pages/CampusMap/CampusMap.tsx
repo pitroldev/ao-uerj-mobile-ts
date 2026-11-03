@@ -82,13 +82,21 @@ export function CampusMapPage() {
   );
   return (
     <MapScreen
-      key={`${route.params?.location ?? 'campus'}-${visit}`}
+      key={`${route.params?.location ?? route.params?.place ?? 'campus'}-${visit}`}
       initialLocation={route.params?.location}
+      initialPlace={route.params?.place}
     />
   );
 }
 
-export function MapScreen({ initialLocation }: { initialLocation?: string }) {
+export function MapScreen({
+  initialLocation,
+  initialPlace,
+}: {
+  initialLocation?: string;
+  /** O id de um lugar do atlas, já escolhido (o ponto de encontro). */
+  initialPlace?: string;
+}) {
   const { campusMap } = useAppServices();
   const atlas = campusMap.atlas;
   const theme = useTheme(),
@@ -98,7 +106,9 @@ export function MapScreen({ initialLocation }: { initialLocation?: string }) {
   const [destination, setDestination] = useState<RoomLocation | undefined>(
     initial.kind === 'room' ? initial : undefined,
   );
-  const [place, setPlace] = useState<Place>();
+  const [place, setPlace] = useState<Place | undefined>(() =>
+    initialPlace ? atlas.places.find(p => p.id === initialPlace) : undefined,
+  );
   const [query, setQuery] = useState(
     initial.kind === 'room' ? '' : (initialLocation ?? ''),
   );

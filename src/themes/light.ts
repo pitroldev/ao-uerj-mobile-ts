@@ -97,6 +97,15 @@ const shift: Record<ShiftTone, ToneColors> = {
 export const lightTheme: AppTheme = {
   name: 'light',
   colors,
+  campusMap: {
+    land: '#EAF0E9',
+    building: '#DCE5EE',
+    outline: '#8C9FB1',
+    street: '#FFFFFF',
+    streetEdge: '#CDD5DC',
+    ground: '#F3F5F7',
+    water: '#D4EAF4',
+  },
   sheetColors: {},
   status,
   shift,

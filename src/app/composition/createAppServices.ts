@@ -62,11 +62,13 @@ import {
   PlanPreferencesStore,
 } from '@root/modules/graduation/application/PlanPreferencesStore';
 import { APP_INFO_VERSION_KEY } from '@features/AppInfoModal/info';
+import { COMPANION_NAME_KEY } from '@root/modules/companion/application/CompanionCalls';
 import { initializeIdentity } from './initializeIdentity';
 import { createDelivery } from './createDelivery';
 import { createNotifications } from './createNotifications';
 import { createPortalMonitor } from './createPortalMonitor';
 import { forgetPreviousInstall } from './previousInstall';
+import { createCompanion } from './createCompanion';
 import { createTrust } from './createTrust';
 import { createWidget } from './createWidget';
 
@@ -81,6 +83,7 @@ const ACCOUNT_PREFERENCES = [
   PLAN_PREFERENCES_KEY,
   APP_INFO_VERSION_KEY,
   PORTAL_RETURN_KEY,
+  COMPANION_NAME_KEY,
 ] as const;
 
 function createScope() {
@@ -141,6 +144,20 @@ export function createAppServices() {
     identity,
   });
   const evaluations = new EvaluationRecords(preferences);
+  // tokens anônimos de aluno (/aouerj/v2), no cofre; o logout os apaga
+  const trust = createTrust({
+    identity,
+    remoteStatus: delivery.status,
+    vault,
+    client: privateClient,
+  });
+  // encontros de minutos entre alunos, com as chaves de membro no cofre
+  const companion = createCompanion({
+    identity,
+    client: privateClient,
+    tokens: trust,
+    vault,
+  });
   const notifications = createNotifications({
     queryClient,
     identity,
@@ -152,6 +169,7 @@ export function createAppServices() {
     flushCache: cache.flush,
     savedScope: async () => (await credentials.read())?.account.scope ?? null,
     probePortal: async () => isPortalAnswer(await probePortal()),
+    companion,
   });
   return {
     campusMap: new CampusMap(bundledCampusMap),
@@ -180,13 +198,8 @@ export function createAppServices() {
     savedDocuments,
     delivery,
     notifications,
-    // tokens anônimos de aluno (/aouerj/v2), no cofre; o logout os apaga
-    trust: createTrust({
-      identity,
-      remoteStatus: delivery.status,
-      vault,
-      client: privateClient,
-    }),
+    trust,
+    companion,
     // faltas marcadas pelo aluno, só no aparelho (o logout apaga)
     attendance: new AttendanceRecords(preferences),
     // datas de provas e trabalhos anotadas, também só no aparelho

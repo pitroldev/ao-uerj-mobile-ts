@@ -17,6 +17,8 @@ jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useIdentity: () => mockIdentity,
   useAppServices: () => ({
     notifications: { settings: { getSnapshot: () => mockNotifications } },
+    // sem tokens anônimos no teste: a Companhia agora fica fora do menu
+    companion: { supported: false },
   }),
 }));
 jest.mock('@root/app/splash', () => ({ hideSplash: jest.fn() }));

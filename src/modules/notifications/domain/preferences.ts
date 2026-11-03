@@ -32,6 +32,11 @@ export type NotificationPreferences = {
   /** Lembretes das provas e trabalhos anotados (sem portal). */
   evaluationReminders: boolean;
   evaluationDefaults: EvaluationDefaults;
+  /**
+   * Avisos das chamadas da Companhia agora (10 min antes e "Chegou bem?"):
+   * o aluno os pede ao entrar numa chamada; a chave os desliga todos.
+   */
+  companionReminders: boolean;
   /** Nota nova ou alterada em Notas do Período. */
   grades: boolean;
   /** Mostrar o valor da nota no aviso (desligado: só disciplina e prova). */
@@ -55,6 +60,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   reminderLead: 15,
   evaluationReminders: true,
   evaluationDefaults: DEFAULT_EVALUATION_DEFAULTS,
+  companionReminders: true,
   grades: false,
   gradeValues: false,
   rid: false,
@@ -108,6 +114,7 @@ export function normalizeNotificationPreferences(
     reminderLead: lead,
     evaluationReminders: flag('evaluationReminders'),
     evaluationDefaults: normalizeEvaluationDefaults(value.evaluationDefaults),
+    companionReminders: flag('companionReminders'),
     grades: flag('grades'),
     gradeValues: flag('gradeValues'),
     rid: flag('rid'),

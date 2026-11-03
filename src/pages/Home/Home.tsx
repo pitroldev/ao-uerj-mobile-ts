@@ -55,6 +55,7 @@ import {
   hasClassTime,
 } from '@features/AttendedClassesSchedule/scheduleFormat';
 import { UntimedClasses } from '@features/AttendedClassesSchedule/UntimedClasses';
+import { CompanionNow } from '@features/Companion/CompanionNow';
 import {
   isCurrentPartialRid,
   isPastPartialRid,
@@ -389,6 +390,9 @@ export const HomePage = () => {
             />
             <ReminderPrompt style={styles.prompt} />
           </>
+        ) : null}
+        {isScheduleAvailable ? (
+          <CompanionNow schedule={currentSchedule} now={now} />
         ) : null}
         {isScheduleAvailable ? (
           <UpcomingEvaluations

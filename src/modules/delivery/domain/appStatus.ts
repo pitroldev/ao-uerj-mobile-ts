@@ -61,7 +61,8 @@ export type FeatureId =
   | 'curriculum-subjects'
   | 'universal-subjects'
   | 'subject-search'
-  | 'teacher-search';
+  | 'teacher-search'
+  | 'companion';
 
 const LEVELS: readonly NoticeLevel[] = ['info', 'warning', 'critical'];
 const PLATFORMS: readonly AppPlatform[] = ['android', 'ios'];

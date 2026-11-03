@@ -33,6 +33,7 @@ import type { UpdateResult } from '@root/modules/notifications/application/Notif
 import { checkStatusText } from '@root/modules/notifications/presentation/checkStatus';
 import { systemTexts } from '@root/modules/notifications/presentation/systemTexts';
 import { useNotificationSettings } from '@root/modules/notifications/presentation/useNotificationSettings';
+import { useAppServices } from '@root/app/providers/AppServicesProvider';
 
 type Toggle = Exclude<
   keyof NotificationPreferences,
@@ -85,6 +86,8 @@ const Half = styled.View`
  */
 export function NotificationsPage() {
   const { snapshot, settings } = useNotificationSettings();
+  // a Companhia agora existe só onde há tokens anônimos (Android da loja)
+  const companionSupported = useAppServices().companion.supported;
   const { preferences, permission, exactAlarms, check, ready } = snapshot;
   // a tela continua montada no menu: "hoje" e a pausa acompanham o relógio
   const now = useNow().getTime();
@@ -311,6 +314,18 @@ export function NotificationsPage() {
           </>
         ) : null}
       </Section>
+
+      {companionSupported ? (
+        <Section title="Companhia agora">
+          <List>
+            {row(
+              'companionReminders',
+              'Avisos das chamadas',
+              'Nas chamadas em que você está: 10 minutos antes do encontro e, na volta, o “Chegou bem?” 40 minutos depois da saída.',
+            )}
+          </List>
+        </Section>
+      ) : null}
 
       {snapshot.backgroundChecks ? (
         <Section

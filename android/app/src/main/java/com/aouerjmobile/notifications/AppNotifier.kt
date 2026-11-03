@@ -22,7 +22,7 @@ internal data class AppNotification(
     /** Shown on secure lock screens that hide sensitive content. */
     val publicTitle: String,
     val publicBody: String,
-    /** Screen opened by a tap: "home" or "documents". */
+    /** Screen opened by a tap: "home", "documents" or "companion". */
     val target: String,
     /** Dismissed by the system after this many milliseconds (0 keeps it). */
     val timeoutMillis: Long = 0,
@@ -37,6 +37,7 @@ internal data class NotificationAction(val label: String, val intent: PendingInt
 internal object AppNotifier {
   const val CHANNEL_CLASS_REMINDERS = "class-reminders"
   const val CHANNEL_EVALUATIONS = "evaluations"
+  const val CHANNEL_COMPANION = "companion"
   private const val CHANNEL_GRADES = "grades"
   private const val CHANNEL_ENROLLMENT = "enrollment"
   private const val CHANNEL_DOCUMENTS = "documents"
@@ -54,6 +55,12 @@ internal object AppNotifier {
               CHANNEL_EVALUATIONS,
               "Avaliações",
               "Lembretes das provas e trabalhos que você anota no app.",
+              NotificationManager.IMPORTANCE_HIGH,
+          ),
+          Channel(
+              CHANNEL_COMPANION,
+              "Companhia agora",
+              "Aviso 10 minutos antes da chamada em que você está e o \"Chegou bem?\" da volta.",
               NotificationManager.IMPORTANCE_HIGH,
           ),
           Channel(

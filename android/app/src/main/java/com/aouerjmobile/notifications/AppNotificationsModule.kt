@@ -90,6 +90,15 @@ class AppNotificationsModule(reactContext: ReactApplicationContext) :
     }
   }
 
+  override fun setCompanionReminders(plan: String, promise: Promise) {
+    try {
+      CompanionReminders.replace(reactApplicationContext, plan)
+      promise.resolve(null)
+    } catch (error: RuntimeException) {
+      promise.reject(E_COMPANION, error.message, error)
+    }
+  }
+
   override fun consumeDoneEvaluations(promise: Promise) {
     val ids = Arguments.createArray()
     EvaluationReminders.consumeDone(reactApplicationContext).forEach { ids.pushString(it) }
@@ -136,7 +145,7 @@ class AppNotificationsModule(reactContext: ReactApplicationContext) :
   }
 
   /**
-   * Sign out or account switch: the previous account's class and evaluation reminders (and its
+   * Sign out or account switch: the previous account's class, evaluation and Companhia agora reminders (and its
    * unread "Já fiz") are cancelled, then its notifications leave the shade. In this order no
    * reminder firing in between stays in the shade; JS sends the next account's plans afterwards.
    */
@@ -144,6 +153,7 @@ class AppNotificationsModule(reactContext: ReactApplicationContext) :
     try {
       ClassReminders.replace(reactApplicationContext, "")
       EvaluationReminders.clear(reactApplicationContext)
+      CompanionReminders.clear(reactApplicationContext)
     } catch (_: RuntimeException) {
       // the shade is cleared anyway, and JS cancels the plans again right after
     }
@@ -198,6 +208,7 @@ class AppNotificationsModule(reactContext: ReactApplicationContext) :
     private const val E_SETTINGS = "E_NOTIFICATION_SETTINGS"
     private const val E_REMINDERS = "E_CLASS_REMINDERS"
     private const val E_EVALUATIONS = "E_EVALUATION_REMINDERS"
+    private const val E_COMPANION = "E_COMPANION_REMINDERS"
     private const val E_PORTAL_CHECK = "E_PORTAL_CHECK"
     private const val MIN_INTERVAL_HOURS = 1L
     private const val MAX_INTERVAL_HOURS = 24L

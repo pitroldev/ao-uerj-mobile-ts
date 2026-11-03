@@ -81,7 +81,8 @@
           "universal-subjects",
           "subject-search",
           "teacher-search",
-          "documents"
+          "documents",
+          "companion"
         ]
       }
     },

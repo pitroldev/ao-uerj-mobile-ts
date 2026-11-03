@@ -15,6 +15,7 @@ class RescheduleReceiver : BroadcastReceiver() {
     if (intent.action !in ACTIONS) return
     ClassReminders.reschedule(context)
     EvaluationReminders.reschedule(context)
+    CompanionReminders.reschedule(context)
   }
 
   private companion object {

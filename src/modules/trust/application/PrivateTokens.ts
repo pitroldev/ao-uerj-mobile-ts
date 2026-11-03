@@ -55,6 +55,11 @@ export class PrivateTokens {
 
   constructor(private readonly dependencies: Dependencies) {}
 
+  /** O aparelho consegue tokens: tem quem ateste (Android) e onde guardar. */
+  get supported(): boolean {
+    return Boolean(this.dependencies.device && this.dependencies.store);
+  }
+
   /** Pede um lote se o estoque estiver baixo. Um por vez; não rejeita. */
   refill(): Promise<RefillResult> {
     this.refilling ??= this.runRefill()

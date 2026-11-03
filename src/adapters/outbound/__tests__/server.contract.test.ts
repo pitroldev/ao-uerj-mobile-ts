@@ -19,6 +19,11 @@ import type { ScheduleCreationParams } from '@root/modules/planning/domain/model
 import { testCrypto } from '@root/modules/trust/__tests__/testCrypto';
 import { PrivateTokens } from '@root/modules/trust/application/PrivateTokens';
 import { toHex } from '@root/modules/trust/domain/bytes';
+import { CompanionCalls } from '@root/modules/companion/application/CompanionCalls';
+import {
+  CompanionError,
+  type Membership,
+} from '@root/modules/companion/domain/companion';
 import { AppError } from '@root/shared/errors/AppError';
 
 import { createTokenStore } from '../persistence/token-store';
@@ -26,6 +31,7 @@ import {
   createPrivateApiAdapters,
   createPrivateApiClient,
 } from '../private-api';
+import { createCompanionServer } from '../private-api/companion';
 import { createStudentClient } from '../private-api/studentClient';
 import { createTokenIssuer } from '../private-api/tokens';
 import {
@@ -310,5 +316,82 @@ describe('anonymous student tokens (/aouerj/v2)', () => {
       createStudentClient(client, { take }).get('/v2/auth'),
     ).resolves.toMatchObject({ data: { authenticated: true } });
     expect(take).toHaveBeenCalledTimes(2);
+  });
+
+  it('runs a Companhia agora call end to end: the pass, open, join, phrases and leave', async () => {
+    const { client, tokens } = await studentTokens();
+    await tokens.refill();
+    const companion = createCompanionServer(
+      client,
+      createStudentClient(client, tokens),
+    );
+    const memory = () => {
+      let saved: Membership[] = [];
+      return {
+        read: async () => saved,
+        write: async (next: readonly Membership[]) => {
+          saved = [...next];
+        },
+      };
+    };
+    const host = new CompanionCalls({
+      server: companion,
+      store: memory(),
+      now: () => Date.now(),
+    });
+    const guest = new CompanionCalls({
+      server: companion,
+      store: memory(),
+      now: () => Date.now(),
+    });
+
+    const opened = await host.open({
+      kind: 'home',
+      at: Date.now() + 20 * 60_000,
+      spot: 'concha',
+      destination: 'trem',
+      note: 'A pé pelo Portão 1',
+      capacity: 2,
+      name: 'Renata',
+    });
+    expect(opened).toMatchObject({
+      kind: 'home',
+      destination: 'trem',
+      members: [{ name: 'Renata', host: true, you: true }],
+    });
+
+    const [listed] = await guest.list();
+    expect(listed).toMatchObject({ id: opened.id, host: 'Renata', going: 1 });
+    const joined = await guest.join(opened.id, 'Marina');
+    expect(joined.going).toBe(2);
+    // a última vaga já foi: um terceiro não entra
+    await expect(companion.join(opened.id, 'Bia')).rejects.toEqual(
+      new CompanionError('full'),
+    );
+    // o recado com contato o servidor também recusa
+    await expect(
+      companion.open({
+        kind: 'lunch',
+        at: Date.now() + 20 * 60_000,
+        spot: 'ru',
+        destination: null,
+        note: 'chama no zap',
+        capacity: 4,
+        name: 'Bia',
+      }),
+    ).rejects.toEqual(new CompanionError('contact'));
+
+    const said = await guest.say(opened.id, 'at_spot');
+    expect(said.feed).toEqual([
+      { name: 'Marina', phrase: 'at_spot', at: expect.any(Number), you: true },
+    ]);
+    const seen = await host.read(opened.id);
+    expect(seen.feed[0]).toMatchObject({ name: 'Marina', you: false });
+    await guest.report(opened.id, 'other');
+
+    // quem chamou encerra: quem foi vê encerrada
+    await host.leave(opened.id);
+    expect((await guest.read(opened.id)).endedAt).toEqual(expect.any(Number));
+    expect(await guest.list()).toEqual([]);
   });
 });

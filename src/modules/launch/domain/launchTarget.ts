@@ -3,7 +3,13 @@
  * ou toque no widget. O Android leva o destino no intent da abertura
  * (AppLaunch.kt), e o app o lê uma vez.
  */
-const LAUNCH_TARGETS = ['home', 'grades', 'map', 'documents'] as const;
+const LAUNCH_TARGETS = [
+  'home',
+  'grades',
+  'map',
+  'documents',
+  'companion',
+] as const;
 
 export type LaunchTarget = (typeof LAUNCH_TARGETS)[number];
 

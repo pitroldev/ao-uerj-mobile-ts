@@ -5,6 +5,14 @@ export const APP_INFO_VERSION_KEY = 'app-info-version';
 
 export const APP_INFO = [
   {
+    title: 'Companhia agora',
+    icon: 'groups',
+    isNew: true,
+    needsCompanion: true,
+    description:
+      'Uma mesa aberta no almoço ou a volta em grupo depois da última aula da noite, com a janela livre tirada da grade e o encontro dentro do campus. Só o primeiro nome aparece.',
+  },
+  {
     title: 'Plano até a formatura',
     icon: 'school',
     isNew: true,
@@ -69,6 +77,8 @@ export const APP_INFO = [
   needsNotifications?: boolean;
   /** Só onde o app abre por fora (widget e atalhos do ícone). */
   needsLaunches?: boolean;
+  /** Só onde há a Companhia agora (tokens anônimos de aluno). */
+  needsCompanion?: boolean;
   description: string;
   /** A descrição sem a verificação no portal (no iPhone, só os lembretes). */
   remindersOnly?: string;

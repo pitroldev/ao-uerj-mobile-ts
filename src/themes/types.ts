@@ -149,9 +149,21 @@ type ShadowStyle = {
 
 export type ColorSchemeName = 'light' | 'dark';
 
+/** O desenho do campus (Mapa e o ponto de encontro da Companhia agora). */
+type CampusMapColors = {
+  land: string;
+  building: string;
+  outline: string;
+  street: string;
+  streetEdge: string;
+  ground: string;
+  water: string;
+};
+
 export type AppTheme = {
   name: ColorSchemeName;
   colors: ThemeColors;
+  campusMap: CampusMapColors;
   /**
    * Cores trocadas dentro da folha inferior, que já é uma superfície
    * elevada: cada degrau sobe um nível (vazio no claro, onde tudo é branco).

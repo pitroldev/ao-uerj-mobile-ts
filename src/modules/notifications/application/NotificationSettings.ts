@@ -1,4 +1,5 @@
 import type { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
+import type { CompanionReminderPlan } from '@root/modules/companion/domain/reminders';
 import type { EvaluationReminderPlan } from '@root/modules/evaluations/domain/reminders';
 import {
   buildReminderPlan,
@@ -71,6 +72,11 @@ type Dependencies = {
   evaluationReminders?: (
     account: ActiveAccount,
   ) => Promise<EvaluationReminderPlan>;
+  /**
+   * Os avisos das chamadas da Companhia agora em que o aluno está (10 min
+   * antes e o "Chegou bem?"). Sem ela, ficam de fora.
+   */
+  companionReminders?: () => Promise<CompanionReminderPlan>;
 };
 
 /**
@@ -105,6 +111,7 @@ export class NotificationSettings {
   /** O que já está no aparelho neste runtime (`null`: ainda não enviado). */
   private appliedPlan: string | null = null;
   private appliedEvaluations: string | null = null;
+  private appliedCompanion: string | null = null;
   private appliedPortal: boolean | null = null;
   private applying: Promise<void> = Promise.resolve();
   /** As escolhas são salvas uma de cada vez: a segunda parte da primeira. */
@@ -192,6 +199,7 @@ export class NotificationSettings {
     if (!device) return;
     this.appliedPlan = null;
     this.appliedEvaluations = null;
+    this.appliedCompanion = null;
     void device.clearPosted().catch(() => undefined);
   }
 
@@ -338,6 +346,11 @@ export class NotificationSettings {
     return this.apply();
   }
 
+  /** Entrou, saiu ou abriu uma chamada da Companhia agora: refaz os avisos. */
+  companionChanged(): Promise<void> {
+    return this.apply();
+  }
+
   /** A verificação em segundo plano registrou um resultado. */
   checkRecorded(scope: string, check: CheckState) {
     if (scope === this.scope) this.publish({ check });
@@ -385,6 +398,23 @@ export class NotificationSettings {
     return build(account).catch(() => undefined);
   }
 
+  /** Os avisos da Companhia agora; `undefined` como nas avaliações. */
+  private async companionPlan(
+    account: ActiveAccount | null,
+  ): Promise<CompanionReminderPlan | null | undefined> {
+    const build = this.dependencies.companionReminders;
+    if (!build) return undefined;
+    const { permission, remoteDisabled, preferences } = this.snapshot;
+    if (
+      !account ||
+      permission !== 'granted' ||
+      remoteDisabled ||
+      !preferences.companionReminders
+    )
+      return null;
+    return build().catch(() => undefined);
+  }
+
   /**
    * Leva o estado desejado ao aparelho, em fila e só quando muda. Enquanto a
    * conta, as preferências ou a permissão não são conhecidas, mantém o que já
@@ -429,6 +459,16 @@ export class NotificationSettings {
           this.appliedEvaluations = plan;
           await device.setEvaluationReminders(evaluations).catch(() => {
             this.appliedEvaluations = null;
+          });
+        }
+      }
+      const companion = await this.companionPlan(account ?? null);
+      if (companion !== undefined && generation === this.generation) {
+        const plan = JSON.stringify(companion);
+        if (plan !== this.appliedCompanion) {
+          this.appliedCompanion = plan;
+          await device.setCompanionReminders(companion).catch(() => {
+            this.appliedCompanion = null;
           });
         }
       }

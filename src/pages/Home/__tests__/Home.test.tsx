@@ -113,6 +113,8 @@ const mockServices = {
   },
   // sem aberturas nativas (widget e atalhos)
   launches: null as object | null,
+  // sem tokens anônimos: o Início não mostra a Companhia agora
+  companion: { supported: false },
 };
 const mockNotifications = {
   supported: false,

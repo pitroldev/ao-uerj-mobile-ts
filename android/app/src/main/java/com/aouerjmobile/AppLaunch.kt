@@ -7,7 +7,7 @@ import android.content.Intent
 /**
  * Opening the app on a screen from outside it: a tapped notification, the widget or an app icon
  * shortcut (res/xml/shortcuts.xml, through [ShortcutActivity]). The intent carries the target
- * ("home", "grades", "map" or "documents"), read once by JS through
+ * ("home", "grades", "map", "documents" or "companion"), read once by JS through
  * AppNotificationsModule.consumeLaunchTarget.
  *
  * The values predate the shortcuts and the widget and must not change: notifications already shown

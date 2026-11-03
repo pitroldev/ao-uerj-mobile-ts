@@ -26,6 +26,9 @@ import type {
 } from '@root/modules/academics/domain/models';
 import type { EvaluationRecords } from '@root/modules/evaluations/application/EvaluationRecords';
 import { buildEvaluationReminderPlan } from '@root/modules/evaluations/domain/reminders';
+import type { CompanionCalls } from '@root/modules/companion/application/CompanionCalls';
+import { buildCompanionReminderPlan } from '@root/modules/companion/domain/reminders';
+import { companionReminderText } from '@root/modules/companion/presentation/companionText';
 import {
   evaluationReminderText,
   gradesBySubject,
@@ -51,6 +54,8 @@ type Dependencies = {
   savedScope: () => Promise<string | null>;
   /** Requisição leve ao portal, sem login: `true` se ele respondeu. */
   probePortal: () => Promise<boolean>;
+  /** As chamadas da Companhia agora em que o aluno está: os avisos delas. */
+  companion?: Pick<CompanionCalls, 'load' | 'getSnapshot' | 'subscribe'>;
   device?: NotificationDevicePort | null;
 };
 
@@ -71,6 +76,7 @@ export function createNotifications({
   flushCache,
   savedScope,
   probePortal,
+  companion,
   device = createNativeNotifications(),
 }: Dependencies) {
   const account = activeAccount(identity);
@@ -126,6 +132,15 @@ export function createNotifications({
         },
       );
     },
+    companionReminders: companion
+      ? async () => {
+          await companion.load();
+          return buildCompanionReminderPlan(companion.getSnapshot(), {
+            now: Date.now(),
+            text: companionReminderText,
+          });
+        }
+      : undefined,
   });
   /**
    * "Já fiz" tocado nos avisos: o aparelho já parou os lembretes; aqui a
@@ -198,6 +213,10 @@ export function createNotifications({
       if (state !== 'active') return;
       void settings.refreshDevice();
       void consumeDone();
+    });
+    // entrou, saiu ou abriu uma chamada: os avisos dela acompanham
+    companion?.subscribe(() => {
+      void settings.companionChanged();
     });
     // na abertura, assim que a conta é conhecida
     identity.subscribe(() => {

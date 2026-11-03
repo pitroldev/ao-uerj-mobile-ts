@@ -18,6 +18,7 @@ const ROUTE_FEATURES: Readonly<Record<string, FeatureId>> = {
   'Disciplinas Universais': 'universal-subjects',
   'Pesquisa de Disciplinas': 'subject-search',
   'Pesquisa de Professores': 'teacher-search',
+  'Companhia agora': 'companion',
 };
 
 export const UNAVAILABLE_TEXT =
@@ -25,6 +26,8 @@ export const UNAVAILABLE_TEXT =
 
 /** Recursos que param mais que a tela: o texto diz o que deixou de funcionar. */
 export const UNAVAILABLE_TEXTS: Readonly<Partial<Record<FeatureId, string>>> = {
+  companion:
+    'Pausamos a Companhia agora por um tempo enquanto corrigimos um problema. As chamadas em que você está continuam valendo no horário combinado.',
   notifications:
     'Pausamos os avisos por um tempo enquanto corrigimos um problema. Os lembretes de aula e as verificações no Aluno Online voltam quando você abrir o app depois da correção.',
 };

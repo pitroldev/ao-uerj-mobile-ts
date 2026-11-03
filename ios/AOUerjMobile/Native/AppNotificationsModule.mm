@@ -27,6 +27,12 @@ static NSString *const kReminderPrefix = @"class:";
  * aulas ficam com o resto, todos os 60 para quem não anotou nenhuma.
  */
 static const NSUInteger kMaxScheduled = 60;
+/**
+ * Avisos da Companhia agora: "companion:<lembrete>", nos 4 lugares que os
+ * lembretes deixam livres (no máximo dois por chamada, poucas de uma vez).
+ */
+static NSString *const kCompanionPrefix = @"companion:";
+static const NSUInteger kMaxCompanionReminders = 4;
 /** Lembretes das avaliações: "evaluation:<avaliação>:<lembrete>". */
 static NSString *const kEvaluationPrefix = @"evaluation:";
 static const NSUInteger kMaxEvaluationReminders = 20;
@@ -400,6 +406,82 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
              withCompletionHandler:nil];
   }
   return count;
+}
+
+#pragma mark - Avisos da Companhia agora
+
+/**
+ * Substitui os avisos da Companhia agora: cada um é um aviso de data única,
+ * os mais próximos primeiro. Os que já passaram ficam de fora (o iOS não
+ * guarda quais já apareceram, então um aviso atrasado não é mostrado).
+ */
+- (void)setCompanionReminders:(NSString *)plan
+                      resolve:(RCTPromiseResolveBlock)resolve
+                       reject:(RCTPromiseRejectBlock)reject
+{
+  NSArray *reminders = @[];
+  if (plan.length > 0) {
+    id json = [NSJSONSerialization JSONObjectWithData:[plan dataUsingEncoding:NSUTF8StringEncoding]
+                                              options:0
+                                                error:nil];
+    if (![json isKindOfClass:[NSDictionary class]] || ![json[@"reminders"] isKindOfClass:[NSArray class]]) {
+      reject(@"E_COMPANION", @"malformed companion reminder plan", nil);
+      return;
+    }
+    reminders = json[@"reminders"];
+  }
+  UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+  [center getPendingNotificationRequestsWithCompletionHandler:^(NSArray<UNNotificationRequest *> *requests) {
+    NSMutableArray<NSString *> *old = [NSMutableArray array];
+    for (UNNotificationRequest *request in requests) {
+      if ([request.identifier hasPrefix:kCompanionPrefix]) {
+        [old addObject:request.identifier];
+      }
+    }
+    [center removePendingNotificationRequestsWithIdentifiers:old];
+    NSCalendar *calendar = [NSCalendar currentCalendar];
+    NSTimeInterval now = [NSDate date].timeIntervalSince1970;
+    NSMutableArray<NSDictionary *> *upcoming = [NSMutableArray array];
+    for (id item in reminders) {
+      if (![item isKindOfClass:[NSDictionary class]] || ![item[@"id"] isKindOfClass:[NSString class]] ||
+          ![item[@"title"] isKindOfClass:[NSString class]]) {
+        continue;
+      }
+      NSTimeInterval at = [item[@"at"] doubleValue] / 1000.0;
+      NSTimeInterval until = [item[@"until"] doubleValue] / 1000.0;
+      if (at <= now || until <= at) {
+        continue;
+      }
+      [upcoming addObject:item];
+    }
+    [upcoming sortUsingComparator:^NSComparisonResult(NSDictionary *a, NSDictionary *b) {
+      return [a[@"at"] compare:b[@"at"]];
+    }];
+    NSUInteger count = MIN(upcoming.count, kMaxCompanionReminders);
+    for (NSUInteger index = 0; index < count; index++) {
+      NSDictionary *item = upcoming[index];
+      UNMutableNotificationContent *content = [UNMutableNotificationContent new];
+      content.title = item[@"title"];
+      content.body = [item[@"body"] isKindOfClass:[NSString class]] ? item[@"body"] : @"";
+      content.sound = [UNNotificationSound defaultSound];
+      content.threadIdentifier = @"companion";
+      content.categoryIdentifier = kPrivateCategory;
+      content.userInfo = @{@"target" : @"companion"};
+      NSDate *date = [NSDate dateWithTimeIntervalSince1970:[item[@"at"] doubleValue] / 1000.0];
+      NSDateComponents *components =
+          [calendar components:(NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour |
+                                NSCalendarUnitMinute)
+                      fromDate:date];
+      UNCalendarNotificationTrigger *trigger =
+          [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:components repeats:NO];
+      NSString *requestId = [NSString stringWithFormat:@"%@%@", kCompanionPrefix, item[@"id"]];
+      [center addNotificationRequest:[UNNotificationRequest requestWithIdentifier:requestId
+                                                                          content:content
+                                                                          trigger:trigger]
+               withCompletionHandler:nil];
+    }
+    resolve(nil);
+  }];
 }
 
 - (void)consumeDoneEvaluations:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject

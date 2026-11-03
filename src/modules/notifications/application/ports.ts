@@ -1,3 +1,4 @@
+import type { CompanionReminderPlan } from '@root/modules/companion/domain/reminders';
 import type { EvaluationReminderPlan } from '@root/modules/evaluations/domain/reminders';
 import type { ReminderPlan } from '../domain/classReminders';
 import type { NotificationContent } from '../domain/messages';
@@ -25,6 +26,8 @@ export interface NotificationDevicePort {
   setClassReminders(plan: ReminderPlan | null): Promise<void>;
   /** Substitui os lembretes das avaliações anotadas; `null` cancela todos. */
   setEvaluationReminders(plan: EvaluationReminderPlan | null): Promise<void>;
+  /** Substitui os avisos da Companhia agora; `null` cancela todos. */
+  setCompanionReminders(plan: CompanionReminderPlan | null): Promise<void>;
   /**
    * Avaliações marcadas com "Já fiz" no aviso desde a última leitura (o
    * aparelho já parou os lembretes delas); lidas uma vez.

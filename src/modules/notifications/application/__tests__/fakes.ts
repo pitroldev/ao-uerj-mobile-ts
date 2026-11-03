@@ -1,3 +1,4 @@
+import type { CompanionReminderPlan } from '@root/modules/companion/domain/reminders';
 import type { EvaluationReminderPlan } from '@root/modules/evaluations/domain/reminders';
 import type { ReminderPlan } from '../../domain/classReminders';
 import type { NotificationContent } from '../../domain/messages';
@@ -43,6 +44,7 @@ export function createDevice({
     permission: PermissionState;
     plan?: ReminderPlan | null;
     evaluations?: EvaluationReminderPlan | null;
+    companion?: CompanionReminderPlan | null;
     /** "Já fiz" tocado nos avisos, ainda não lido pelo app. */
     done: string[];
     portal?: boolean;
@@ -67,6 +69,11 @@ export function createDevice({
         state.evaluations = plan;
       },
     ),
+    setCompanionReminders: jest.fn(
+      async (plan: CompanionReminderPlan | null) => {
+        state.companion = plan;
+      },
+    ),
     consumeDoneEvaluations: jest.fn(async () => {
       const ids = state.done;
       state.done = [];
@@ -83,6 +90,7 @@ export function createDevice({
     clearPosted: jest.fn(async () => {
       state.plan = null;
       state.evaluations = null;
+      state.companion = null;
       state.done = [];
     }),
   };

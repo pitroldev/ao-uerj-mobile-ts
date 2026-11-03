@@ -66,6 +66,7 @@ const NAV: NavGroup[] = [
     label: 'Ferramentas',
     items: [
       ['Mapa', 'location_on'],
+      ['Companhia agora', 'groups'],
       ['Gerador de Grade', 'edit_calendar'],
       ['Mural de Mensagens', 'forum'],
       ['Pesquisa de Professores', 'person_search'],

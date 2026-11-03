@@ -5,6 +5,7 @@ it.each([
   ['grades', 'grades'],
   ['map', 'map'],
   ['documents', 'documents'],
+  ['companion', 'companion'],
   ['outra', null],
   [null, null],
   [undefined, null],
@@ -17,4 +18,5 @@ it('opens only the map without an account', () => {
   expect(needsAccount('home')).toBe(true);
   expect(needsAccount('grades')).toBe(true);
   expect(needsAccount('documents')).toBe(true);
+  expect(needsAccount('companion')).toBe(true);
 });

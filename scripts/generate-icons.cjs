@@ -156,6 +156,12 @@ const OUTLINED = [
   'warning',
   'wb_twilight',
   'wifi_off',
+  // Companhia agora (tipos de chamada e destinos da volta)
+  'directions_bus',
+  'directions_walk',
+  'restaurant',
+  'subway',
+  'train',
 ];
 
 /** Ícones que também precisam da variante preenchida (FILL 1). */
@@ -171,6 +177,7 @@ const FILLED = [
   'search',
   'task_alt',
   'person_search',
+  'groups',
   // estados e marcadores
   'cancel',
   'check_circle',

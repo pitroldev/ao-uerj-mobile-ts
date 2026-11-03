@@ -21,8 +21,13 @@ import type { CheckState } from '@root/modules/notifications/domain/checkState';
 import { NotificationsPage } from '../Notifications';
 
 let mockSettings: NotificationSettings;
+/** Há tokens anônimos neste aparelho (a Companhia agora existe). */
+let mockCompanion = false;
 jest.mock('@root/app/providers/AppServicesProvider', () => ({
-  useAppServices: () => ({ notifications: { settings: mockSettings } }),
+  useAppServices: () => ({
+    notifications: { settings: mockSettings },
+    companion: { supported: mockCompanion },
+  }),
 }));
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -263,4 +268,24 @@ it('asks for the permission the evaluation reminders need, without a banner on t
       'Sem a sua permissão, os lembretes das avaliações não chegam.',
     ),
   ).toBeNull();
+});
+
+it('turns the Companhia agora reminders off where the device has the feature', async () => {
+  mockCompanion = true;
+  try {
+    await mount();
+    expect(row('Avisos das chamadas')).toBeChecked();
+    await userEvent.press(row('Avisos das chamadas'));
+    await act(settle);
+    expect(mockSettings.getSnapshot().preferences.companionReminders).toBe(
+      false,
+    );
+  } finally {
+    mockCompanion = false;
+  }
+});
+
+it('leaves the Companhia agora reminders out without anonymous tokens', async () => {
+  await mount();
+  expect(screen.queryByText('Avisos das chamadas')).toBeNull();
 });

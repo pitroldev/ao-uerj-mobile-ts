@@ -98,16 +98,7 @@ const poiNames: Record<string, string[]> = {
 function CampusOverview({ atlas, place, block, orientation, onSelect }: Props) {
   const theme = useTheme(),
     c = theme.colors;
-  const dark = theme.name === 'dark';
-  const palette = {
-    land: dark ? '#25352F' : '#EAF0E9',
-    building: dark ? '#374C61' : '#DCE5EE',
-    outline: dark ? '#8298AC' : '#8C9FB1',
-    street: dark ? '#34414D' : '#FFFFFF',
-    streetEdge: dark ? '#4F5E6B' : '#CDD5DC',
-    ground: dark ? '#1C2833' : '#F3F5F7',
-    water: dark ? '#294F65' : '#D4EAF4',
-  };
+  const palette = theme.campusMap;
   const [size, setSize] = useState({ width: 390, height: 430 });
   // Retain the streets and stations when a room is selected.
   const initialCamera = useMemo(

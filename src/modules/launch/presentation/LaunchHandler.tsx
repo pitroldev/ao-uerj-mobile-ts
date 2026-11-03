@@ -21,6 +21,9 @@ function open(target: LaunchTarget) {
       return;
     case 'documents':
       navigate('Emissão de Documentos');
+      return;
+    case 'companion':
+      navigate('Companhia agora');
   }
 }
 

@@ -67,6 +67,8 @@ export function createNativeNotifications(
       module.setClassReminders(plan ? JSON.stringify(plan) : ''),
     setEvaluationReminders: plan =>
       module.setEvaluationReminders(plan ? JSON.stringify(plan) : ''),
+    setCompanionReminders: plan =>
+      module.setCompanionReminders(plan ? JSON.stringify(plan) : ''),
     async consumeDoneEvaluations() {
       const ids: unknown = await module.consumeDoneEvaluations();
       return Array.isArray(ids)

@@ -19,6 +19,7 @@ class ClassReminderWorker(context: Context, params: WorkerParameters) : Worker(c
   override fun doWork(): Result {
     ClassReminders.reschedule(applicationContext)
     EvaluationReminders.reschedule(applicationContext)
+    CompanionReminders.reschedule(applicationContext)
     return Result.success()
   }
 
@@ -29,7 +30,12 @@ class ClassReminderWorker(context: Context, params: WorkerParameters) : Worker(c
 
     /** Keeps the work while either plan has reminders to show (reads both, without their locks). */
     fun refresh(context: Context) {
-      schedule(context, ClassReminders.isActive(context) || EvaluationReminders.hasPending(context))
+      schedule(
+          context,
+          ClassReminders.isActive(context) ||
+              EvaluationReminders.hasPending(context) ||
+              CompanionReminders.hasPending(context),
+      )
     }
 
     /**

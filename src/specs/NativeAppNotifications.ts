@@ -12,7 +12,7 @@ type NativeNotification = {
   /** Versão da tela de bloqueio quando o aparelho oculta conteúdo sensível. */
   publicTitle: string;
   publicBody: string;
-  /** Tela aberta ao tocar: `home` ou `documents`. */
+  /** Tela aberta ao tocar: `home`, `documents` ou `companion`. */
   target: string;
 };
 
@@ -42,6 +42,13 @@ export interface Spec extends TurboModule {
    */
   setEvaluationReminders(plan: string): Promise<void>;
   /**
+   * Substitui os avisos da Companhia agora pelo JSON de um
+   * `CompanionReminderPlan`; texto vazio cancela todos. Cada um é um aviso de
+   * data única, no canal `companion`, mostrado uma vez só, que abre a tela
+   * da Companhia agora.
+   */
+  setCompanionReminders(plan: string): Promise<void>;
+  /**
    * Ids das avaliações com "Já fiz" tocado no aviso desde a última leitura
    * (os lembretes delas já pararam); lidos uma vez.
    */
@@ -55,7 +62,7 @@ export interface Spec extends TurboModule {
   setPortalReturnWatch(enabled: boolean): Promise<void>;
   notify(notification: NativeNotification): Promise<void>;
   /**
-   * Cancela os lembretes de aula e de avaliações, esquece os "Já fiz" não
+   * Cancela os lembretes de aula, de avaliações e da Companhia agora, esquece os "Já fiz" não
    * lidos e tira da barra todos os avisos do app (logout ou troca de conta).
    */
   clearNotifications(): Promise<void>;
