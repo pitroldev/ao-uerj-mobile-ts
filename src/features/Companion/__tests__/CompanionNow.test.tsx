@@ -125,7 +125,7 @@ it('shows the open tables in the free lunch window, the nearest first', async ()
     'Mesa no RU, 12:15',
     'Mesa no Lago dos Peixinhos, 12:30',
   ]);
-  expect(screen.getByText('Júlia chamou · 2 vão')).toBeOnTheScreen();
+  expect(screen.getByText('Júlia abriu · 2 vão')).toBeOnTheScreen();
   await user.press(screen.getByText('Mesa no RU, 12:15'));
   expect(mockNavigate).toHaveBeenCalledWith('Companhia agora', {
     callId: 'a1',
@@ -157,7 +157,9 @@ it('invites to open the first table when nobody called, or to ask for a heads-up
   expect(mockNavigate).toHaveBeenLastCalledWith('Companhia agora', {
     create: 'lunch',
   });
-  await user.press(screen.getByRole('button', { name: 'Me avise se abrirem' }));
+  await user.press(
+    screen.getByRole('button', { name: 'Me avise se tiver mesa' }),
+  );
   expect(mockWatch.request).toHaveBeenCalledWith('lunch', at(13, 40), []);
 });
 
@@ -215,6 +217,6 @@ it('keeps the call the student is in, even in class', async () => {
   ];
   await renderAt(new Date(2026, 10, 23, 15, 0));
   expect(screen.getByText('Companhia agora')).toBeOnTheScreen();
-  expect(screen.getByText('Volta para o metrô, 22:15')).toBeOnTheScreen();
-  expect(screen.getByText('Você vai junto')).toBeOnTheScreen();
+  expect(screen.getByText('Grupo para o metrô, 22:15')).toBeOnTheScreen();
+  expect(screen.getByText('Você está no grupo')).toBeOnTheScreen();
 });

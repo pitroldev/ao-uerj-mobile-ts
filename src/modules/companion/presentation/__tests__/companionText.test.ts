@@ -32,24 +32,24 @@ describe('quem está de olho', () => {
   });
 });
 
-describe('o "Me avise se abrirem"', () => {
+describe('o "Me avise se tiver mesa"', () => {
   it('diz até quando vigia', () => {
     expect(watchRequestText('lunch', at(13, 40))).toBe(
-      'Você vai ser avisado se abrirem mesa até as 13:40.',
+      'Se alguém abrir uma mesa até as 13:40, o app avisa.',
     );
     expect(watchRequestText('home', at(22, 50))).toBe(
-      'Você vai ser avisado se chamarem uma volta até as 22:50.',
+      'Se alguém abrir um grupo para voltar até as 22:50, o app avisa.',
     );
   });
 
-  it('avisa a primeira chamada, sem detalhe na tela de bloqueio', () => {
+  it('avisa a primeira mesa, sem detalhe na tela de bloqueio', () => {
     expect(companionWatchMessage(call({}), 1)).toEqual({
       id: 'companion:watch',
       channel: 'companion',
-      title: 'Abriram uma mesa na sua janela',
-      body: 'Mesa no RU, 12:45 · Lucas chamou · 2 vão.',
+      title: 'Abriram uma mesa no seu intervalo',
+      body: 'Mesa no RU, 12:45 · Lucas abriu · 2 vão.',
       publicTitle: 'Companhia agora',
-      publicBody: 'Uma chamada abriu na sua janela livre.',
+      publicBody: 'Tem companhia no seu horário livre.',
       target: 'companion',
     });
     expect(
@@ -63,18 +63,28 @@ describe('o "Me avise se abrirem"', () => {
         }),
         2,
       ).title,
-    ).toBe('Chamaram 2 voltas para hoje');
+    ).toBe('Abriram 2 grupos para voltar');
   });
 });
 
 it('explica as recusas de tirar alguém', () => {
+  expect(companionErrorMessage(new CompanionError('removed'), 'lunch')).toBe(
+    'Quem abriu tirou você desta mesa.',
+  );
+  expect(companionErrorMessage(new CompanionError('removed'), 'home')).toBe(
+    'Quem abriu tirou você deste grupo.',
+  );
+  // sem o tipo, a frase fica sem "mesa" ou "grupo"
   expect(companionErrorMessage(new CompanionError('removed'))).toBe(
-    'Quem chamou tirou você desta chamada.',
+    'Quem abriu tirou você daqui.',
   );
   expect(companionErrorMessage(new CompanionError('not_host'))).toBe(
-    'Só quem chamou tira alguém da chamada.',
+    'Só quem abriu pode tirar alguém.',
   );
   expect(companionErrorMessage(new CompanionError('member_gone'))).toBe(
-    'Essa pessoa já tinha saído da chamada.',
+    'Essa pessoa já tinha saído.',
+  );
+  expect(companionErrorMessage(new CompanionError('full'), 'home')).toBe(
+    'Esse grupo lotou. Veja outro ou abra o seu.',
   );
 });

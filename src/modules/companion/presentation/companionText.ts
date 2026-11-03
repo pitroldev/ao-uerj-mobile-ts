@@ -90,6 +90,11 @@ export const DESTINATION_TEXT: Readonly<
   },
 };
 
+/**
+ * As palavras de cada tipo, para quem acabou de entrar na faculdade: no
+ * almoço, uma "mesa"; na saída, um "grupo para voltar". Nunca "chamada", que
+ * na faculdade é a lista de presença. Quem cria é "quem abriu".
+ */
 export const KIND_TEXT: Readonly<
   Record<
     CallKind,
@@ -101,6 +106,32 @@ export const KIND_TEXT: Readonly<
       join: string;
       joined: string;
       sheetTitle: string;
+      /** O convite do Início com a lista vazia. */
+      first: string;
+      /** "mesa", "grupo". */
+      noun: string;
+      /** "a mesa", "o grupo". */
+      the: string;
+      /** "esta mesa", "este grupo". */
+      this: string;
+      /** "essa mesa", "esse grupo". */
+      that: string;
+      /** "desta mesa", "deste grupo". */
+      ofThis: string;
+      /** "da mesa", "do grupo". */
+      ofThe: string;
+      /** "nessa mesa", "nesse grupo". */
+      inThat: string;
+      /** "Sua mesa", "Seu grupo". */
+      yours: string;
+      /** "aberta", "aberto". */
+      opened: string;
+      /** "Lotada", "Lotado". */
+      full: string;
+      /** "Veja outra ou abra a sua", "Veja outro ou abra o seu". */
+      another: string;
+      /** "Mesa encerrada", "Grupo encerrado". */
+      ended: string;
     }
   >
 > = {
@@ -112,17 +143,47 @@ export const KIND_TEXT: Readonly<
     join: 'Sentar junto',
     joined: 'Você vai sentar junto',
     sheetTitle: 'Abrir uma mesa',
+    first: 'Abrir a primeira mesa',
+    noun: 'mesa',
+    the: 'a mesa',
+    this: 'esta mesa',
+    that: 'essa mesa',
+    ofThis: 'desta mesa',
+    ofThe: 'da mesa',
+    inThat: 'nessa mesa',
+    yours: 'Sua mesa',
+    opened: 'aberta',
+    full: 'Lotada',
+    another: 'Veja outra ou abra a sua',
+    ended: 'Mesa encerrada',
   },
   home: {
-    label: 'Volta junto',
+    label: 'Voltar junto',
     icon: 'directions_walk',
-    section: 'Saindo agora',
-    cta: 'Chamar',
-    join: 'Ir junto',
-    joined: 'Você vai junto',
-    sheetTitle: 'Chamar para voltar junto',
+    section: 'Grupos para voltar',
+    cta: 'Abrir grupo',
+    join: 'Entrar no grupo',
+    joined: 'Você está no grupo',
+    sheetTitle: 'Abrir um grupo para voltar',
+    first: 'Abrir um grupo para voltar',
+    noun: 'grupo',
+    the: 'o grupo',
+    this: 'este grupo',
+    that: 'esse grupo',
+    ofThis: 'deste grupo',
+    ofThe: 'do grupo',
+    inThat: 'nesse grupo',
+    yours: 'Seu grupo',
+    opened: 'aberto',
+    full: 'Lotado',
+    another: 'Veja outro ou abra o seu',
+    ended: 'Grupo encerrado',
   },
 };
+
+/** A primeira letra em maiúscula ("Essa mesa…"). */
+const capitalized = (text: string) =>
+  text.charAt(0).toLocaleUpperCase('pt-BR') + text.slice(1);
 
 export const PHRASE_TEXT: Readonly<Record<PhraseId, string>> = {
   on_my_way: 'Estou indo',
@@ -164,11 +225,11 @@ export function relativeText(at: number, now: number): string {
 
 type CallLike = Pick<CompanionCall, 'kind' | 'at' | 'spot' | 'destination'>;
 
-/** "Mesa no RU, 12:30" ou "Volta para o metrô, 22:15". */
+/** "Mesa no RU, 12:30" ou "Grupo para o metrô, 22:15". */
 export function callTitle(call: CallLike): string {
   const time = clockText(call.at);
   if (call.kind === 'home' && call.destination)
-    return `Volta para o ${DESTINATION_TEXT[call.destination].short}, ${time}`;
+    return `Grupo para o ${DESTINATION_TEXT[call.destination].short}, ${time}`;
   return `Mesa no ${SPOT_TEXT[call.spot].short}, ${time}`;
 }
 
@@ -183,35 +244,51 @@ export const seatsText = (seats: number) =>
 /** Por quanto tempo a chamada fica, dito ao abrir. */
 export const LIFETIME_TEXT: Readonly<Record<CallKind, string>> = {
   lunch: 'A mesa some 30 minutos depois do horário.',
-  home: 'A chamada some 2 horas depois da saída, depois do "Cheguei em casa".',
+  home: 'O grupo some 2 horas depois da saída.',
 };
 
-/** O que dizer quando um pedido não deu certo. */
-export function companionErrorMessage(error: unknown): string {
+/**
+ * O que dizer quando um pedido não deu certo; com o tipo, fala "mesa" ou
+ * "grupo" (sem ele, a frase fica sem o nome).
+ */
+export function companionErrorMessage(error: unknown, kind?: CallKind): string {
   if (error instanceof CompanionError) {
+    const words = kind ? KIND_TEXT[kind] : null;
     switch (error.refusal) {
       case 'gone':
-        return 'Essa chamada já acabou ou saiu do ar.';
+        return words
+          ? `${capitalized(words.that)} já acabou ou saiu do ar.`
+          : 'Já acabou ou saiu do ar.';
       case 'full':
-        return 'Essa chamada lotou. Veja outra ou abra a sua.';
+        return words
+          ? `${capitalized(words.that)} lotou. ${words.another}.`
+          : 'Lotou. Veja outra opção ou abra a sua.';
       case 'closed':
-        return 'Essa chamada já saiu. Veja outra ou abra a sua.';
+        return words
+          ? `${capitalized(words.that)} já saiu. ${words.another}.`
+          : 'Já saiu. Veja outra opção ou abra a sua.';
       case 'ended':
-        return 'Quem chamou encerrou a chamada.';
+        return words
+          ? `Quem abriu encerrou ${words.the}.`
+          : 'Quem abriu encerrou.';
       case 'contact':
         return 'Telefone, @ e links ficam fora: combine aqui só o encontro.';
       case 'not_member':
-        return 'Você não está mais nessa chamada.';
+        return words
+          ? `Você não está mais ${words.inThat}.`
+          : 'Você não está mais aqui.';
       case 'removed':
-        return 'Quem chamou tirou você desta chamada.';
+        return words
+          ? `Quem abriu tirou você ${words.ofThis}.`
+          : 'Quem abriu tirou você daqui.';
       case 'not_host':
-        return 'Só quem chamou tira alguém da chamada.';
+        return 'Só quem abriu pode tirar alguém.';
       case 'member_gone':
-        return 'Essa pessoa já tinha saído da chamada.';
+        return 'Essa pessoa já tinha saído.';
       case 'busy':
-        return 'Há chamadas demais abertas agora. Tente de novo em alguns minutos.';
+        return 'Tem muita gente abrindo agora. Tente de novo em alguns minutos.';
       default:
-        return 'Não foi possível concluir. Tente novamente.';
+        return 'Não deu certo. Tente de novo.';
     }
   }
   if (error instanceof AppError && error.code === 'STUDENT_PROOF_UNAVAILABLE')
@@ -229,36 +306,36 @@ export function watchingText(watching: number): string | null {
   return `${others} ${others === 1 ? 'aluno' : 'alunos'} de olho agora`;
 }
 
-/** O pedido de "Me avise se abrirem", em curso. */
+/** O pedido de "Me avise se tiver mesa", em curso. */
 export function watchRequestText(kind: CallKind, until: number): string {
   return kind === 'lunch'
-    ? `Você vai ser avisado se abrirem mesa até as ${clockText(until)}.`
-    : `Você vai ser avisado se chamarem uma volta até as ${clockText(until)}.`;
+    ? `Se alguém abrir uma mesa até as ${clockText(until)}, o app avisa.`
+    : `Se alguém abrir um grupo para voltar até as ${clockText(until)}, o app avisa.`;
 }
 
 /** O botão de pedir o aviso. */
 export const WATCH_CTA: Readonly<Record<CallKind, string>> = {
-  lunch: 'Me avise se abrirem',
-  home: 'Me avise se chamarem',
+  lunch: 'Me avise se tiver mesa',
+  home: 'Me avise se tiver grupo',
 };
 
-/** O aviso da tarefa sem tela: abriram uma chamada na janela pedida. */
+/** O aviso da tarefa sem tela: abriram uma mesa ou um grupo no horário pedido. */
 export function companionWatchMessage(call: CompanionCall, count: number) {
   const title =
     call.kind === 'lunch'
       ? count === 1
-        ? 'Abriram uma mesa na sua janela'
-        : `Abriram ${count} mesas na sua janela`
+        ? 'Abriram uma mesa no seu intervalo'
+        : `Abriram ${count} mesas no seu intervalo`
       : count === 1
-        ? 'Chamaram uma volta para hoje'
-        : `Chamaram ${count} voltas para hoje`;
+        ? 'Abriram um grupo para voltar'
+        : `Abriram ${count} grupos para voltar`;
   return {
     id: 'companion:watch',
     channel: 'companion' as const,
     title,
-    body: `${callTitle(call)} · ${call.host} chamou · ${goingText(call.going)}.`,
+    body: `${callTitle(call)} · ${call.host} abriu · ${goingText(call.going)}.`,
     publicTitle: 'Companhia agora',
-    publicBody: 'Uma chamada abriu na sua janela livre.',
+    publicBody: 'Tem companhia no seu horário livre.',
     target: 'companion' as const,
   };
 }
@@ -280,12 +357,12 @@ export function companionReminderText(
       ? ` · destino ${DESTINATION_TEXT[membership.destination].name}`
       : '';
     return {
-      title: 'A volta é em 10 min',
+      title: 'Seu grupo sai em 10 min',
       body: `${spot.name}, ${time}${destination}.`,
     };
   }
   return {
-    title: 'A mesa é em 10 min',
+    title: 'Sua mesa começa em 10 min',
     body: `${spot.name}, ${time} · ${spot.detail}.`,
   };
 }

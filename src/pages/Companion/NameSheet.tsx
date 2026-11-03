@@ -83,9 +83,11 @@ export function NameSheet({
       footer={footer}
     >
       <Lede tone="muted">
-        {required ? 'Escolha um primeiro nome para entrar nas chamadas. ' : ''}
-        Quem está na chamada vê só este nome: sem foto, curso ou matrícula. Use
-        o nome que preferir, uma palavra só.
+        {required
+          ? 'Escolha um primeiro nome para entrar nas mesas e nos grupos. '
+          : ''}
+        Quem está junto vê só este nome: sem foto, curso ou matrícula. Use o
+        nome que preferir, uma palavra só.
       </Lede>
       <TextField
         label="Primeiro nome"

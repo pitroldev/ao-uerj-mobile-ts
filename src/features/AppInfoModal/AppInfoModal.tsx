@@ -23,7 +23,7 @@ import { Description } from './AppInfoModal.styles';
  * o que o AO UERJ faz além do Aluno Online.
  */
 export const AppInfoModal = () => {
-  const { preferences, launches, companion } = useAppServices();
+  const { preferences, companion } = useAppServices();
   const { account } = useIdentity();
   // sem os avisos no aparelho (sem o módulo nativo) ou com eles desligados
   // pelo aviso remoto
@@ -32,7 +32,6 @@ export const AppInfoModal = () => {
   const items = APP_INFO.filter(
     info =>
       (!info.needsNotifications || (supported && !remoteDisabled)) &&
-      (!info.needsLaunches || launches != null) &&
       (!info.needsCompanion || companion.supported),
   ).map(info =>
     info.remindersOnly && !backgroundChecks

@@ -200,7 +200,7 @@ export function CreateCallSheet({
     } catch (error) {
       if (error instanceof CompanionError && error.refusal === 'contact')
         setTried(true);
-      else snackbar.error(companionErrorMessage(error));
+      else snackbar.error(companionErrorMessage(error, kind));
     } finally {
       setSaving(false);
     }
@@ -240,7 +240,7 @@ export function CreateCallSheet({
           <Notice
             tone="warn"
             icon="info"
-            text={`Você já chamou: ${callTitle(current)}. Abrir esta encerra a anterior, e quem ia recebe o aviso na chamada.`}
+            text={`Você já abriu: ${callTitle(current)}. Abrir outra encerra essa, e quem ia vê o aviso.`}
           />
         </Field>
       ) : null}
@@ -286,7 +286,7 @@ export function CreateCallSheet({
           <Help variant="meta" tone="bad">
             {picked.refused === 'past'
               ? 'Esse horário já passou. Escolha um a partir de agora.'
-              : `As chamadas abrem até 3 horas à frente e no mesmo dia: escolha até as ${minuteText(latestMinute(now))}.`}
+              : `Dá para abrir até 3 horas à frente, no mesmo dia: escolha até as ${minuteText(latestMinute(now))}.`}
           </Help>
         ) : busy ? (
           <Help variant="meta" tone="warn">
@@ -296,7 +296,7 @@ export function CreateCallSheet({
         ) : (
           <Help variant="meta" tone="muted">
             {custom
-              ? 'A chamada aparece na lista 1 hora antes do horário.'
+              ? 'Aparece na lista 1 hora antes do horário.'
               : timeHelp(kind, window)}
           </Help>
         )}
@@ -347,10 +347,10 @@ export function CreateCallSheet({
           <Notice
             tone="info"
             icon="groups"
-            text={`${callTitle(similar)} já está aberta: ${similar.host} chamou, ${goingText(similar.going)}. ${
+            text={`${callTitle(similar)} já está ${text.opened}: ${similar.host} abriu, ${goingText(similar.going)}. ${
               kind === 'lunch'
                 ? 'Sentar junto enche a mesma mesa, em vez de duas meio vazias.'
-                : 'Ir junto aumenta o grupo, em vez de dois pequenos.'
+                : 'Entrar nele deixa o grupo maior, em vez de dois pequenos.'
             }`}
             action={{ label: text.join, onPress: () => onJoin(similar) }}
           />

@@ -274,8 +274,8 @@ it('turns the Companhia agora reminders off where the device has the feature', a
   mockCompanion = true;
   try {
     await mount();
-    expect(row('Avisos das chamadas')).toBeChecked();
-    await userEvent.press(row('Avisos das chamadas'));
+    expect(row('Avisos das mesas e grupos')).toBeChecked();
+    await userEvent.press(row('Avisos das mesas e grupos'));
     await act(settle);
     expect(mockSettings.getSnapshot().preferences.companionReminders).toBe(
       false,
@@ -287,5 +287,5 @@ it('turns the Companhia agora reminders off where the device has the feature', a
 
 it('leaves the Companhia agora reminders out without anonymous tokens', async () => {
   await mount();
-  expect(screen.queryByText('Avisos das chamadas')).toBeNull();
+  expect(screen.queryByText('Avisos das mesas e grupos')).toBeNull();
 });

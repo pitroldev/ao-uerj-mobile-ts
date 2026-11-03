@@ -139,9 +139,10 @@ function namesText(call: MemberCall): string {
 }
 
 /**
- * A chamada: o que e quando, o ponto de encontro no desenho do Mapa e, na
- * volta, a saída e o destino; o recado de quem chamou; quem vai (os nomes só
- * para quem está dentro); os recados prontos; e sair, encerrar ou denunciar.
+ * A mesa ou o grupo por dentro: o que e quando, o ponto de encontro no
+ * desenho do Mapa e, no grupo para voltar, a saída e o destino; o recado de
+ * quem abriu; quem vai (os nomes só para quem está dentro); os recados
+ * prontos; e sair, encerrar ou denunciar.
  */
 export function CallScreen({
   callId,
@@ -195,7 +196,7 @@ export function CallScreen({
     });
     if (arrived.length)
       snackbar.info(
-        `${arrived.join(', ')} ${arrived.length === 1 ? 'vai' : 'vão'} junto`,
+        `${arrived.join(', ')} ${arrived.length === 1 ? 'entrou' : 'entraram'}`,
         `${callTitle(member)}: agora são ${member.going}.`,
       );
   }, [member]);
@@ -222,7 +223,7 @@ export function CallScreen({
       return (
         <ScreenPanel>
           <ErrorState
-            message={companionErrorMessage(query.error)}
+            message={companionErrorMessage(query.error, membership.kind)}
             onRetry={() => {
               void query.refetch();
             }}
@@ -233,15 +234,16 @@ export function CallScreen({
       <ScreenPanel>
         <EmptyState
           icon="groups"
-          title="Essa chamada não está mais aqui"
-          text="Ela passou do horário, foi encerrada por quem chamou ou saiu do ar."
-          action={{ label: 'Ver chamadas abertas', onPress: onBack }}
+          title="Isso não está mais aqui"
+          text="Passou do horário, quem abriu encerrou ou saiu do ar."
+          action={{ label: 'Voltar para a lista', onPress: onBack }}
         />
       </ScreenPanel>
     );
   }
 
-  const kind = KIND_TEXT[call.kind];
+  const callKind = call.kind;
+  const kind = KIND_TEXT[callKind];
   const spot = SPOT_TEXT[call.spot];
   const destination = call.destination
     ? DESTINATION_TEXT[call.destination]
@@ -270,7 +272,7 @@ export function CallScreen({
     try {
       await action();
     } catch (error) {
-      snackbar.error(companionErrorMessage(error));
+      snackbar.error(companionErrorMessage(error, callKind));
     } finally {
       setBusy(null);
     }
@@ -308,9 +310,9 @@ export function CallScreen({
       setConfirmLeave(false);
       refreshList();
       snackbar.success(
-        host ? 'Chamada encerrada' : 'Você saiu',
+        host ? kind.ended : 'Você saiu',
         host
-          ? 'Quem ia vê na chamada que ela foi encerrada.'
+          ? 'Quem ia vê que você encerrou.'
           : `${call.host} vê só a contagem diminuir.`,
       );
       onBack();
@@ -330,7 +332,7 @@ export function CallScreen({
       refreshList();
       setRemoving(null);
       snackbar.success(
-        `${person.name} saiu da chamada`,
+        `${person.name} saiu ${kind.ofThe}`,
         'Não vê mais os nomes nem os recados. Se foi algo grave, denuncie também.',
       );
     });
@@ -464,7 +466,7 @@ export function CallScreen({
             {title}
           </Text>
           <Text variant="meta" tone="muted">
-            {host ? 'Você chamou' : `${call.host} chamou`} · some às{' '}
+            {host ? 'Você abriu' : `${call.host} abriu`} · some às{' '}
             {clockText(call.expiresAt)} · {seatsText(left)}
           </Text>
         </Head>
@@ -474,7 +476,7 @@ export function CallScreen({
             <Notice
               tone="neutral"
               icon="info"
-              text="Quem chamou encerrou esta chamada. Ninguém mais entra, e ela some no horário."
+              text={`Quem abriu encerrou ${kind.this}. Ninguém mais entra, e ${call.kind === 'lunch' ? 'ela' : 'ele'} some no horário.`}
             />
           </Below>
         ) : null}
@@ -483,7 +485,7 @@ export function CallScreen({
             <Notice
               tone="neutral"
               icon="info"
-              text="Quem chamou tirou você desta chamada. Veja outra ou abra a sua."
+              text={`Quem abriu tirou você ${kind.ofThis}. ${kind.another}.`}
             />
           </Below>
         ) : null}
@@ -533,14 +535,14 @@ export function CallScreen({
                   }
                   title={item.you ? 'Você' : item.name}
                   titleWeight="regular"
-                  meta={item.host ? 'Chamou' : undefined}
+                  meta={item.host ? 'Abriu' : undefined}
                   trailing={
                     !item.host && item.ref ? (
                       <Button
                         variant="text"
                         size="xs"
                         label="Tirar"
-                        accessibilityLabel={`Tirar ${item.name} da chamada`}
+                        accessibilityLabel={`Tirar ${item.name} ${kind.ofThe}`}
                         disabled={busy !== null}
                         onPress={() => setRemoving(item)}
                       />
@@ -669,7 +671,7 @@ export function CallScreen({
             {reported ? (
               <Below>
                 <Text variant="meta" tone="muted">
-                  Você denunciou esta chamada. A moderação vai olhar.
+                  Você denunciou. A moderação vai olhar.
                 </Text>
               </Below>
             ) : (
@@ -677,7 +679,7 @@ export function CallScreen({
                 variant="text"
                 size="sm"
                 icon="report"
-                label="Denunciar a chamada"
+                label={`Denunciar ${kind.this}`}
                 color={theme.status.bad.ink}
                 onPress={() => setReporting(true)}
               />
@@ -702,7 +704,7 @@ export function CallScreen({
       <BottomSheet
         visible={removing !== null}
         onClose={() => setRemoving(null)}
-        title={removing ? `Tirar ${removing.name} da chamada?` : ''}
+        title={removing ? `Tirar ${removing.name} ${kind.ofThe}?` : ''}
         swipeToClose={busy === null}
         footer={[
           <Button
@@ -724,16 +726,16 @@ export function CallScreen({
         ]}
       >
         <Text tone="muted">
-          {removing?.name} sai da chamada e deixa de ver os nomes e os recados.
-          A vaga volta para a lista. Se foi algo grave, denuncie também: a
-          moderação vê.
+          {removing?.name} sai e deixa de ver os nomes e os recados. A vaga
+          volta para a lista. Se foi algo grave, denuncie também: a moderação
+          vê.
         </Text>
       </BottomSheet>
 
       <BottomSheet
         visible={confirmLeave}
         onClose={() => setConfirmLeave(false)}
-        title={host ? 'Encerrar a chamada?' : 'Sair da chamada?'}
+        title={host ? `Encerrar ${kind.the}?` : `Sair ${kind.ofThe}?`}
         swipeToClose={busy === null}
         footer={[
           <Button
@@ -754,8 +756,8 @@ export function CallScreen({
       >
         <Text tone="muted">
           {host
-            ? 'Ninguém mais entra, e quem ia vê que a chamada foi encerrada.'
-            : `Sua vaga volta para a chamada, e ${call.host} vê só a contagem diminuir. Se mudar de ideia, dá para entrar de novo enquanto houver vaga.`}
+            ? 'Ninguém mais entra, e quem ia vê que você encerrou.'
+            : `Sua vaga volta para a lista, e ${call.host} vê só a contagem diminuir. Se mudar de ideia, dá para entrar de novo enquanto houver vaga.`}
         </Text>
       </BottomSheet>
     </>

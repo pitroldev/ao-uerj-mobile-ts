@@ -65,7 +65,7 @@ const Watching = styled(Text)`
 
 /** No Início, a lista anda devagar: um minuto. */
 const HOME_POLL_MS = 60_000;
-/** Até quanto depois da última aula a volta aparece no Início. */
+/** Até quanto depois da última aula o grupo para voltar aparece no Início. */
 const AFTER_LAST_CLASS_MIN = 40;
 
 const pad = (value: number) => String(value).padStart(2, '0');
@@ -96,9 +96,9 @@ function momentOf(window: FreeWindow, now: Date): CallKind | null {
 type Props = { schedule: readonly AttendedClassesSchedule[]; now: Date };
 
 /**
- * "Companhia agora" no Início, logo abaixo da próxima aula: a chamada em que
- * o aluno está ou, na hora certa, as mesas abertas na janela livre e quem
- * está saindo depois da última aula. Com a lista vazia na hora certa, o
+ * "Companhia agora" no Início, logo abaixo da próxima aula: a mesa ou o grupo em que
+ * o aluno está ou, na hora certa, as mesas abertas no horário livre e os
+ * grupos para voltar depois da última aula. Com a lista vazia na hora certa, o
  * convite: abrir a primeira mesa ou pedir um aviso se alguém abrir ("Agora
  * não" esconde até o fim do dia). Fora da hora, não aparece.
  */
@@ -156,7 +156,11 @@ function CompanionSlot({ schedule, now }: Props) {
             leading={<IconTile icon={icon} tone="accent" />}
             title={callTitle(current)}
             subtitle={`${spot.short} · ${relativeText(current.at, nowMs)}`}
-            meta={current.host ? 'Sua chamada' : KIND_TEXT[current.kind].joined}
+            meta={
+              current.host
+                ? KIND_TEXT[current.kind].yours
+                : KIND_TEXT[current.kind].joined
+            }
             highlighted
             chevron
             onPress={() => open(current.callId)}
@@ -166,7 +170,7 @@ function CompanionSlot({ schedule, now }: Props) {
     );
   }
 
-  // a lista ainda não veio: nada de convite antes de saber se há chamada
+  // a lista ainda não veio: nada de convite antes de saber se há mesa ou grupo
   if (!moment || !query.data) return null;
   const watching = watchingText(query.data.watching);
   const free =
@@ -184,7 +188,7 @@ function CompanionSlot({ schedule, now }: Props) {
         summary={
           moment === 'lunch'
             ? `${free}nenhuma mesa aberta`
-            : 'Sua aula acabou · nenhuma volta saindo'
+            : 'Sua aula acabou · nenhum grupo para voltar ainda'
         }
         watching={watching}
         watched={watched}
@@ -223,7 +227,7 @@ function CompanionSlot({ schedule, now }: Props) {
   const summary =
     moment === 'lunch'
       ? `${free}${calls.length} ${calls.length === 1 ? 'mesa aberta' : 'mesas abertas'}`
-      : `Sua aula acabou · ${calls.length} ${calls.length === 1 ? 'volta saindo' : 'voltas saindo'}`;
+      : `Sua aula acabou · ${calls.length} ${calls.length === 1 ? 'grupo para voltar' : 'grupos para voltar'}`;
 
   return (
     <Section
@@ -260,7 +264,7 @@ function CompanionSlot({ schedule, now }: Props) {
               subtitle={
                 call.kind === 'home'
                   ? `${SPOT_TEXT[call.spot].short} · ${goingText(call.going)}`
-                  : `${call.host} chamou · ${goingText(call.going)}`
+                  : `${call.host} abriu · ${goingText(call.going)}`
               }
               aside={relativeText(call.at, nowMs)}
               chevron
@@ -289,9 +293,9 @@ type InviteProps = {
 };
 
 /**
- * A lista vazia na hora certa: o convite para abrir a primeira chamada (o
- * horário e o ponto que a folha já traz) ou, para quem não quer chamar,
- * o aviso se alguém abrir na janela.
+ * A lista vazia na hora certa: o convite para abrir a primeira mesa ou grupo (o
+ * horário e o ponto que a folha já traz) ou, para quem não quer abrir,
+ * o aviso se alguém abrir no horário livre.
  */
 function Invite({
   kind,
@@ -319,13 +323,11 @@ function Invite({
       <List>
         <ListRow
           leading={<IconTile icon={KIND_TEXT[kind].icon} tone="accent" />}
-          title={
-            kind === 'lunch' ? 'Abrir a primeira mesa' : 'Chamar uma volta'
-          }
+          title={KIND_TEXT[kind].first}
           subtitle={
             kind === 'lunch'
               ? `${when} no ${spot.short} · quem estiver livre vê na hora`
-              : `${when}, da ${spot.short} · metrô, trem ou ônibus`
+              : `${first ? `Saindo às ${clockText(first)}` : 'Escolha a hora'} da ${spot.short} · metrô, trem ou ônibus`
           }
           chevron
           onPress={onCreate}

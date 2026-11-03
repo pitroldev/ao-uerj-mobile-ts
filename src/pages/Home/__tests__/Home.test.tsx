@@ -796,7 +796,8 @@ it('presents what is new in a sheet once per version', async () => {
   expect(
     screen.getByLabelText(/^Controle de faltas, novo\. Marque as faltas/),
   ).toBeOnTheScreen();
-  // widget e atalhos dependem das aberturas nativas (sem módulo no Jest)
+  // personalizar o Início e o widget não são "além do Aluno Online"
+  expect(screen.queryByText('Início do seu jeito')).toBeNull();
   expect(screen.queryByText('Widget e atalhos')).toBeNull();
 });
 
@@ -818,7 +819,6 @@ it('lists the notifications as new where the device has them', async () => {
 
 it('lists only the class reminders where there is no portal check (iPhone)', async () => {
   mockNotifications.supported = true;
-  mockServices.launches = {};
   try {
     await renderHome();
     expect(
@@ -826,12 +826,8 @@ it('lists only the class reminders where there is no portal check (iPhone)', asy
         'Notificações, novo. Lembrete antes de cada aula, com o horário e a sala.',
       ),
     ).toBeOnTheScreen();
-    expect(
-      screen.getByLabelText(/^Widget e atalhos, novo\. A próxima aula/),
-    ).toBeOnTheScreen();
   } finally {
     mockNotifications.supported = false;
-    mockServices.launches = null;
   }
 });
 

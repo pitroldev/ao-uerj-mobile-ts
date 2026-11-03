@@ -60,7 +60,7 @@ internal object AppNotifier {
           Channel(
               CHANNEL_COMPANION,
               "Companhia agora",
-              "Aviso 10 minutos antes da chamada em que você está e o \"Chegou bem?\" da volta.",
+              "Aviso 10 minutos antes da mesa ou do grupo em que você está e o \"Chegou bem?\" depois da volta.",
               NotificationManager.IMPORTANCE_HIGH,
           ),
           Channel(

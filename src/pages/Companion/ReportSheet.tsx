@@ -41,12 +41,12 @@ function reportedText(
   member: boolean,
   host: boolean,
 ): string {
-  if (!member) return 'A moderação vai olhar e pode tirar a chamada do ar.';
+  if (!member) return 'A moderação vai olhar e pode tirar do ar.';
   if (host)
-    return 'A moderação vai olhar. Se quiser, tire a pessoa da chamada.';
+    return 'A moderação vai olhar. Se quiser, tire a pessoa em "Quem vai".';
   if (reason === 'harassment')
-    return 'A chamada saiu do ar para quem ainda não entrou. A moderação vai olhar.';
-  return 'Se mais alguém da chamada denunciar, ela sai do ar. A moderação vai olhar.';
+    return 'Saiu do ar para quem ainda não entrou. A moderação vai olhar.';
+  return 'Se mais alguém de dentro denunciar, sai do ar. A moderação vai olhar.';
 }
 
 /**
@@ -112,10 +112,10 @@ export function ReportSheet({
       <Lede tone="muted">
         A denúncia vai para a moderação do app, sem o seu nome.
         {host
-          ? ' Para tirar alguém da chamada, use "Tirar" em Quem vai.'
+          ? ' Para tirar alguém, use "Tirar" em Quem vai.'
           : member
-            ? ' Assédio tira a chamada do ar na hora; outro motivo, quando duas pessoas dela denunciam. Depois, se quiser, saia.'
-            : ' Você não precisa entrar na chamada: a moderação lê e decide.'}{' '}
+            ? ' Assédio tira do ar na hora; outro motivo, quando duas pessoas de dentro denunciam. Depois, se quiser, saia.'
+            : ' Você não precisa entrar: a moderação lê e decide.'}{' '}
         Se for urgente, procure a segurança do campus.
       </Lede>
       <OptionList

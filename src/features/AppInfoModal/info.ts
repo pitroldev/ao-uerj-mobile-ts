@@ -5,19 +5,12 @@ export const APP_INFO_VERSION_KEY = 'app-info-version';
 
 export const APP_INFO = [
   {
-    title: 'Início do seu jeito',
-    icon: 'tune',
-    isNew: true,
-    description:
-      'Em "Personalizar o Início", escolha as seções, a ordem, a saudação, a densidade e quantas avaliações aparecem.',
-  },
-  {
     title: 'Companhia agora',
     icon: 'groups',
     isNew: true,
     needsCompanion: true,
     description:
-      'Uma mesa aberta no almoço ou a volta em grupo depois da última aula da noite, com a janela livre tirada da grade e o encontro dentro do campus. Só o primeiro nome aparece.',
+      'Uma mesa para almoçar junto ou um grupo para voltar depois da última aula, nos horários livres da sua grade e com o encontro dentro do campus. Só o primeiro nome aparece.',
   },
   {
     title: 'Plano até a formatura',
@@ -39,14 +32,6 @@ export const APP_INFO = [
     isNew: true,
     description:
       'Marque as faltas na agenda e veja quantas ainda cabem em cada disciplina. As faltas ficam só no aparelho.',
-  },
-  {
-    title: 'Widget e atalhos',
-    icon: 'grid_view',
-    isNew: true,
-    needsLaunches: true,
-    description:
-      'A próxima aula na tela inicial do celular e atalhos no ícone do app para Próxima aula, Notas, Mapa e Documentos.',
   },
   {
     title: 'Notificações',
@@ -82,8 +67,6 @@ export const APP_INFO = [
   isNew?: boolean;
   /** Só onde o aparelho tem os avisos (módulo nativo). */
   needsNotifications?: boolean;
-  /** Só onde o app abre por fora (widget e atalhos do ícone). */
-  needsLaunches?: boolean;
   /** Só onde há a Companhia agora (tokens anônimos de aluno). */
   needsCompanion?: boolean;
   description: string;

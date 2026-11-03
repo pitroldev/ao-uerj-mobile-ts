@@ -16,7 +16,7 @@ export const SECTION_TEXT: Readonly<
   },
   companion: {
     title: 'Companhia agora',
-    description: 'Mesas e voltas, só na hora certa',
+    description: 'Mesas e grupos para voltar, só na hora certa',
     icon: 'groups',
   },
   evaluations: {
@@ -43,8 +43,8 @@ export const GREETING_TEXT: Readonly<Record<GreetingStyle, string>> = {
 };
 
 export const DENSITY_TEXT: Readonly<Record<HomeDensity, string>> = {
-  comfortable: 'Confortável',
-  compact: 'Compacta',
+  comfortable: 'Normal',
+  compact: 'Compacto',
 };
 
 /** "1 avaliação", "3 avaliações". */

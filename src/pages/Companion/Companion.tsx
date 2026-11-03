@@ -116,8 +116,8 @@ function emptyText(
         ? ` Hoje sua última aula acaba às ${minuteText(window.last.end)}.`
         : '';
     return {
-      title: 'Nenhuma volta aberta agora',
-      text: `As chamadas aparecem 1 hora antes da saída.${last}${lookers} Chame você: quem sai no mesmo horário vê na hora.`,
+      title: 'Nenhum grupo para voltar ainda',
+      text: `Os grupos aparecem 1 hora antes da saída.${last}${lookers} Abra você: quem sai no mesmo horário vê na hora.`,
     };
   }
   const invite = 'Abra você: quem estiver livre no mesmo horário vê na hora.';
@@ -129,9 +129,10 @@ function emptyText(
 
 /**
  * Companhia agora: encontros de minutos com outros alunos. A mesa aberta no
- * almoço ou a volta em grupo depois da última aula, com a janela tirada da
- * grade, o ponto de encontro dentro do campus e recados prontos. Tocar numa
- * chamada abre a chamada; a seta do cabeçalho e o voltar do Android fecham.
+ * almoço ou o grupo para voltar depois da última aula, com o horário livre
+ * tirado da grade, o ponto de encontro dentro do campus e recados prontos.
+ * Tocar numa mesa ou num grupo abre os detalhes; a seta do cabeçalho e o
+ * voltar do Android fecham.
  */
 export function CompanionPage() {
   const route = useRoute<RouteProp<RootDrawerParamList, 'Companhia agora'>>();
@@ -171,7 +172,7 @@ export function CompanionPage() {
 
   const close = () => setSelected(null);
   useBackHandler(close, Boolean(selected));
-  useHeaderBack(selected ? close : null, 'Voltar para as chamadas');
+  useHeaderBack(selected ? close : null, 'Voltar para a lista');
 
   return (
     <CompanionScreen
@@ -301,7 +302,7 @@ function CompanionScreen({
       return;
     }
     if (companion.wasRemoved(call.id)) {
-      snackbar.error('Quem chamou tirou você desta chamada.');
+      snackbar.error(`Quem abriu tirou você ${KIND_TEXT[call.kind].ofThis}.`);
       return;
     }
     setJoining(call.id);
@@ -317,7 +318,7 @@ function CompanionScreen({
       );
       onSelect(call.id);
     } catch (error) {
-      snackbar.error(companionErrorMessage(error));
+      snackbar.error(companionErrorMessage(error, call.kind));
       void query.refetch();
     } finally {
       setJoining(null);
@@ -331,8 +332,8 @@ function CompanionScreen({
       queryKey: companionKeys.calls(scope),
     });
     snackbar.success(
-      call.kind === 'lunch' ? 'Mesa aberta' : 'Chamada aberta',
-      'Quem estiver livre no mesmo horário já vê. Quem entra aparece na chamada.',
+      call.kind === 'lunch' ? 'Mesa aberta' : 'Grupo aberto',
+      'Quem estiver livre no mesmo horário já vê. Quem entrar aparece aqui.',
     );
     onSelect(call.id);
   };
@@ -344,7 +345,7 @@ function CompanionScreen({
   let content: React.ReactNode;
   if (query.isLoading && !query.data) {
     content = (
-      <SkeletonList count={3} accessibilityLabel="Carregando chamadas…" />
+      <SkeletonList count={3} accessibilityLabel="Carregando mesas e grupos…" />
     );
   } else if (proofMissing && !query.data) {
     content = (
@@ -536,7 +537,7 @@ function CompanionScreen({
                 )
               }
               title={name || 'Escolha um primeiro nome'}
-              subtitle="Só o primeiro nome, nas chamadas em que você entra"
+              subtitle="Só o primeiro nome, nas mesas e grupos em que você entra"
               chevron
               onPress={() => setNaming({ key: Date.now(), required: false })}
               accessibilityLabel={`Como você aparece: ${name || 'sem nome'}. Trocar`}
@@ -581,7 +582,7 @@ function CompanionScreen({
   );
 }
 
-/** Uma chamada em que o aluno está e que já saiu da lista. */
+/** Uma mesa ou um grupo em que o aluno está e que já saiu da lista. */
 function MembershipRow({
   membership,
   now,
@@ -600,7 +601,11 @@ function MembershipRow({
       leading={<IconTile icon={icon} tone="accent" />}
       title={callTitle(membership)}
       subtitle={`${spot.short} · ${relativeText(membership.at, now)}`}
-      meta={membership.host ? 'Sua chamada' : 'Você foi junto'}
+      meta={
+        membership.host
+          ? KIND_TEXT[membership.kind].yours
+          : KIND_TEXT[membership.kind].joined
+      }
       highlighted
       chevron
       onPress={onOpen}

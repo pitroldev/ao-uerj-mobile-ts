@@ -44,7 +44,7 @@ export function windowText(window: FreeWindow): { title: string; sub: string } {
     default:
       return {
         title: 'Sem aula hoje na sua grade',
-        sub: 'Abra uma chamada para a hora que quiser.',
+        sub: 'Abra uma mesa ou um grupo para a hora que quiser.',
       };
   }
 }

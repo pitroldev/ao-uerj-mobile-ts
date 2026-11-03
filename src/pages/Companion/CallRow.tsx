@@ -57,11 +57,13 @@ export function CallRow({ call, now, role, joining, onOpen, onJoin }: Props) {
   const host = role === 'host' ? 'Você' : call.host;
   const open = canJoin(call, now);
   let action: React.ReactNode;
-  if (role === 'host') action = <Tag tone="info" label="Sua chamada" />;
+  if (role === 'host') action = <Tag tone="info" label={kind.yours} />;
   else if (role === 'member')
     action = <Tag tone="good" icon="check" label="Você vai" />;
   else if (!open)
-    action = <Tag label={call.going >= call.capacity ? 'Lotada' : 'Já saiu'} />;
+    action = (
+      <Tag label={call.going >= call.capacity ? kind.full : 'Já saiu'} />
+    );
   else
     action = (
       <Button
@@ -90,8 +92,8 @@ export function CallRow({ call, now, role, joining, onOpen, onJoin }: Props) {
       meta={call.note ? `“${call.note}”` : undefined}
       highlighted={role !== null}
       onPress={() => onOpen(call)}
-      accessibilityLabel={`${title}, ${spot.name}, ${when}. ${host} chamou, ${goingText(call.going)}.${call.note ? ` Recado: ${call.note}.` : ''}`}
-      accessibilityHint="Abre a chamada"
+      accessibilityLabel={`${title}, ${spot.name}, ${when}. ${host} abriu, ${goingText(call.going)}.${call.note ? ` Recado: ${call.note}.` : ''}`}
+      accessibilityHint="Abre os detalhes"
     >
       <Acts>
         <Who>

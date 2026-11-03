@@ -201,10 +201,10 @@ export function HomeLayoutSheet({
 
       <Group>
         <Label variant="meta" weight="medium">
-          Densidade
+          Espaçamento
         </Label>
         <SegmentedControl
-          accessibilityLabel="Densidade"
+          accessibilityLabel="Espaçamento"
           options={(['comfortable', 'compact'] as const).map(value => ({
             value,
             label: DENSITY_TEXT[value],
@@ -213,7 +213,7 @@ export function HomeLayoutSheet({
           onChange={density => onChange(current => ({ ...current, density }))}
         />
         <Help variant="meta" tone="muted">
-          Compacta junta as seções e cabe mais coisa na tela.
+          Compacto deixa as seções mais juntas: cabe mais coisa na tela.
         </Help>
       </Group>
 

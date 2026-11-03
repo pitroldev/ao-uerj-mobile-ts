@@ -320,8 +320,8 @@ export function NotificationsPage() {
           <List>
             {row(
               'companionReminders',
-              'Avisos das chamadas',
-              'Nas chamadas em que você está: 10 minutos antes do encontro e, na volta, o “Chegou bem?” 40 minutos depois da saída.',
+              'Avisos das mesas e grupos',
+              'Nas mesas e grupos em que você está: 10 minutos antes do encontro e, no grupo para voltar, o “Chegou bem?” 40 minutos depois da saída.',
             )}
           </List>
         </Section>

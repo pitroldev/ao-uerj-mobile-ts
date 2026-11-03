@@ -249,7 +249,7 @@ it('lists the tables open in the free window from the schedule, with only the ho
   ).toBeOnTheScreen();
   expect(screen.getByText('Júlia · 2 vão')).toBeOnTheScreen();
   // a volta da noite fica na outra aba
-  expect(screen.queryByText('Volta para o metrô, 22:15')).not.toBeOnTheScreen();
+  expect(screen.queryByText('Grupo para o metrô, 22:15')).not.toBeOnTheScreen();
   // um passe para a lista, sem nome nem matrícula
   expect(mockServer.pass).toHaveBeenCalledTimes(1);
   expect(screen.getByText('Marina')).toBeOnTheScreen();
@@ -318,7 +318,7 @@ it('refuses a note with a contact before sending and opens the table', async () 
     name: 'Marina',
   });
   expect(
-    await screen.findByText('Você chamou', { exact: false }),
+    await screen.findByText('Você abriu', { exact: false }),
   ).toBeOnTheScreen();
   expect(mockStored[0]).toMatchObject({ callId: 'mine', host: true });
 });
@@ -328,10 +328,10 @@ it('starts on the way home after the last class, and says when nobody called yet
   mockServer.list.mockResolvedValue({ calls: [], watching: 1 });
   await renderPage();
   expect(
-    await screen.findByText('Nenhuma volta aberta agora'),
+    await screen.findByText('Nenhum grupo para voltar ainda'),
   ).toBeOnTheScreen();
   expect(screen.getByText('Sua última aula acabou às 22:10')).toBeOnTheScreen();
-  expect(screen.getByText('Saindo agora')).toBeOnTheScreen();
+  expect(screen.getByText('Grupos para voltar')).toBeOnTheScreen();
 });
 
 it('explains when the app cannot prove the student yet', async () => {
@@ -346,7 +346,7 @@ it('shows the way home in steps, and only the count to who is outside', async ()
   mockNow = new Date(2026, 10, 23, 22, 0);
   const user = userEvent.setup();
   await renderPage();
-  await user.press(await screen.findByText('Volta para o metrô, 22:15'));
+  await user.press(await screen.findByText('Grupo para o metrô, 22:15'));
   expect(await screen.findByText('Saída pelo Portão 1')).toBeOnTheScreen();
   expect(
     screen.getByText('Estação Maracanã · Metrô Linha 2'),
@@ -356,7 +356,9 @@ it('shows the way home in steps, and only the count to who is outside', async ()
       exact: false,
     }),
   ).toBeOnTheScreen();
-  expect(screen.getByRole('button', { name: 'Ir junto' })).toBeOnTheScreen();
+  expect(
+    screen.getByRole('button', { name: 'Entrar no grupo' }),
+  ).toBeOnTheScreen();
   expect(
     screen.getByRole('image', {
       name: 'Mapa: Concha Acústica, saída pelo Portão 1, Estação Maracanã · Metrô Linha 2',
@@ -379,7 +381,7 @@ it('lets the student type another time, within 3 hours, and warns about a class 
   await fireEvent.changeText(field, '1600');
   expect(
     await screen.findByText(
-      'As chamadas abrem até 3 horas à frente e no mesmo dia: escolha até as 15:04.',
+      'Dá para abrir até 3 horas à frente, no mesmo dia: escolha até as 15:04.',
     ),
   ).toBeOnTheScreen();
   expect(
@@ -438,12 +440,14 @@ it('with nobody open, says who is watching and asks for a heads-up in the free w
       '12 alunos de olho agora. Abra você: quem estiver livre no mesmo horário vê na hora.',
     ),
   ).toBeOnTheScreen();
-  await user.press(screen.getByRole('button', { name: 'Me avise se abrirem' }));
+  await user.press(
+    screen.getByRole('button', { name: 'Me avise se tiver mesa' }),
+  );
   expect(device.setCompanionWatch).toHaveBeenCalledWith(true);
   // até 40 minutos antes da aula das 14:20
   expect(
     await screen.findByText(
-      'Você vai ser avisado se abrirem mesa até as 13:40.',
+      'Se alguém abrir uma mesa até as 13:40, o app avisa.',
     ),
   ).toBeOnTheScreen();
   await user.press(screen.getByRole('button', { name: 'Cancelar o aviso' }));
@@ -458,7 +462,7 @@ it('offers to sit at the table already open at that time instead of opening anot
   // a primeira mesa da folha é às 12:15, no RU: a da Júlia
   expect(
     await screen.findByText(
-      'Mesa no RU, 12:15 já está aberta: Júlia chamou, 2 vão.',
+      'Mesa no RU, 12:15 já está aberta: Júlia abriu, 2 vão.',
       { exact: false },
     ),
   ).toBeOnTheScreen();
@@ -496,15 +500,15 @@ it('lets the host remove someone, after confirming', async () => {
   await renderPage();
   await user.press(await screen.findByText('Mesa no RU, 12:15'));
   await user.press(
-    await screen.findByRole('button', { name: 'Tirar Júlia da chamada' }),
+    await screen.findByRole('button', { name: 'Tirar Júlia da mesa' }),
   );
-  expect(await screen.findByText('Tirar Júlia da chamada?')).toBeOnTheScreen();
+  expect(await screen.findByText('Tirar Júlia da mesa?')).toBeOnTheScreen();
   await user.press(screen.getByRole('button', { name: 'Tirar' }));
   await waitFor(() =>
     expect(mockServer.remove).toHaveBeenCalledWith('a1', 'k-a1', 'ref-julia01'),
   );
-  // quem chamou não tem "Tirar"
+  // quem abriu não tem "Tirar"
   expect(
-    screen.queryByRole('button', { name: 'Tirar Marina da chamada' }),
+    screen.queryByRole('button', { name: 'Tirar Marina da mesa' }),
   ).not.toBeOnTheScreen();
 });
