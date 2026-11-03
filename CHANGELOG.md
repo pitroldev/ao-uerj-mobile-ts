@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.13.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.12.0...v2.13.0) (2026-11-03)
+
+
+### Novidades
+
+* **companion:** invite on the Início, heads-up when someone opens, and fewer half-empty tables ([822ba12](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/822ba12d8c670df383fe53e25c3a471b2478456e))
+* **home:** Personalizar o Início, with the sections, order, greeting, density and details ([44a839e](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/44a839e07722e74ec3f07f1a11b9558f276be7ab))
+* **server:** Companhia agora watchers, host removal, moderation and daily counts ([4c0d3a0](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/4c0d3a0c750470d6c1ff0e86ea3985a7646232ec))
+
 ## [2.12.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.11.1...v2.12.0) (2026-11-03)
 
 
