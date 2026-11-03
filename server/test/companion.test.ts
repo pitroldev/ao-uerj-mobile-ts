@@ -76,7 +76,7 @@ test('only a first name goes with the call', () => {
 
 test('a call shows up an hour before, leaves the list after the time and vanishes later', () => {
   const now = new Date(Date.UTC(2026, 10, 23, 15));
-  const host = { id: 'h', name: 'Júlia', host: true, joinedAt: now };
+  const host = { id: 'h', ref: 'r', name: 'Júlia', host: true, joinedAt: now };
   const at = new Date(now.getTime() + 30 * MINUTE);
   const call = planCall(lunch(at), { id: 'c', now, host });
   assert.equal(call.visibleFrom.getTime(), at.getTime() - 60 * MINUTE);
@@ -130,6 +130,9 @@ function companionAt(start = Date.UTC(2026, 10, 23, 14, 50)) {
   const companion = createCompanion({
     calls: repositories.companionCalls,
     reports: repositories.companionReports,
+    stats: repositories.companionStats,
+    watchers: repositories.companionWatchers,
+    watchingCacheMs: 0,
     now: clock.now,
   });
   return { clock, data, companion };
@@ -140,12 +143,16 @@ test('open, join until full, leave and the host ending it for everyone', async (
   const at = new Date(clock.now() + 25 * MINUTE);
   const opened = await companion.open(lunch(at));
   assert.equal(opened.memberKey.length, 32);
-  assert.deepEqual(opened.call.members, [
-    { name: 'Júlia', host: true, you: true },
-  ]);
+  assert.deepEqual(
+    opened.call.members.map(({ ref: _ref, ...member }) => member),
+    [{ name: 'Júlia', host: true, you: true }],
+  );
+  assert.match(opened.call.members[0].ref, /^[A-Za-z0-9_-]{11}$/);
 
   // quem está fora vê o primeiro nome de quem chamou e quantos vão
-  const [listed] = await companion.list();
+  const {
+    calls: [listed],
+  } = await companion.list();
   assert.equal(listed.host, 'Júlia');
   assert.equal(listed.going, 1);
   assert.equal('members' in listed, false);
@@ -175,7 +182,7 @@ test('open, join until full, leave and the host ending it for everyone', async (
 
   // quem chamou encerra: sai da lista, e quem estava vê encerrada
   await companion.leave(opened.call.id, opened.memberKey);
-  assert.deepEqual(await companion.list(), []);
+  assert.deepEqual((await companion.list()).calls, []);
   const ended = await companion.read(opened.call.id, renan.memberKey);
   assert.ok(ended.endedAt);
   await assert.rejects(
@@ -200,16 +207,16 @@ test('the list follows the time: an hour before, until the time passes, then gon
     capacity: 8,
     name: 'Igor',
   });
-  assert.deepEqual(await companion.list(), []);
+  assert.deepEqual((await companion.list()).calls, []);
   await assert.rejects(companion.join(home.call.id, 'Ana'), ConflictError);
 
   clock.advance(31 * MINUTE);
-  assert.equal((await companion.list()).length, 1);
+  assert.equal((await companion.list()).calls.length, 1);
   const ana = await companion.join(home.call.id, 'Ana');
 
   // dez minutos depois da saída, ninguém mais entra; quem foi ainda fala
   clock.advance(70 * MINUTE);
-  assert.deepEqual(await companion.list(), []);
+  assert.deepEqual((await companion.list()).calls, []);
   const said = await companion.say(home.call.id, ana.memberKey, 'home_safe');
   assert.deepEqual(
     said.feed.map(entry => [entry.name, entry.phrase, entry.you]),
@@ -236,10 +243,11 @@ test('the phrases are the ready ones, and "Cheguei em casa" only on the way home
   assert.equal(said.feed[0].you, true);
 });
 
-test('three reports take a call down, one per member, and the moderation keeps what it was', async () => {
+test('two people inside take a call down; reports from outside only reach the moderation', async () => {
   const { clock, companion, data } = companionAt();
   const opened = await companion.open(lunch(new Date(clock.now() + MINUTE)));
   const lucas = await companion.join(opened.call.id, 'Lucas');
+  const bia = await companion.join(opened.call.id, 'Bia');
 
   await companion.report(
     opened.call.id,
@@ -253,10 +261,19 @@ test('three reports take a call down, one per member, and the moderation keeps w
     'harassment',
   );
   assert.equal(data.callReports.length, 1);
-  await companion.report(opened.call.id, { outsider: true }, 'strange');
-  assert.equal((await companion.list()).length, 1);
-  await companion.report(opened.call.id, { outsider: true }, 'harassment');
-  assert.deepEqual(await companion.list(), []);
+  // de fora, nenhuma quantidade tira: uma pessoa com tokens derrubaria tudo
+  for (let i = 0; i < 5; i++)
+    await companion.report(opened.call.id, { outsider: true }, 'harassment');
+  // quem chamou também não conta
+  await companion.report(
+    opened.call.id,
+    { memberKey: opened.memberKey },
+    'strange',
+  );
+  assert.equal((await companion.list()).calls.length, 1);
+  // a segunda pessoa de dentro tira do ar
+  await companion.report(opened.call.id, { memberKey: bia.memberKey }, 'other');
+  assert.deepEqual((await companion.list()).calls, []);
   await assert.rejects(
     companion.read(opened.call.id, opened.memberKey),
     NotFoundError,
@@ -264,18 +281,168 @@ test('three reports take a call down, one per member, and the moderation keeps w
 
   const reviewed = await companion.reportsForReview(10);
   assert.deepEqual(
-    reviewed.map(report => [report.reason, report.count, report.hidden]),
+    reviewed.map(report => [report.source, report.count, report.hidden]),
     [
-      ['harassment', 3, true],
-      ['strange', 2, false],
-      ['spam', 1, false],
+      ['member', 8, true],
+      ['host', 7, false],
+      ['outsider', 6, false],
+      ['outsider', 5, false],
+      ['outsider', 4, false],
+      ['outsider', 3, false],
+      ['outsider', 2, false],
+      ['member', 1, false],
     ],
   );
-  assert.deepEqual(reviewed[0].names, ['Júlia', 'Lucas']);
+  assert.deepEqual(reviewed[0].names, ['Júlia', 'Lucas', 'Bia']);
   assert.equal(reviewed[0].note, 'Mesa perto da entrada');
+  assert.ok(reviewed[0].callExpiresAt);
   // sem as chaves dos membros
   const stored = JSON.stringify(data.callReports);
   assert.ok(!stored.includes(memberId(lucas.memberKey)));
+
+  const [today] = await companion.statsForReview(1);
+  assert.equal(today.counts.reports_member, 2);
+  assert.equal(today.counts.reports_host, 1);
+  assert.equal(today.counts.reports_outsider, 5);
+  assert.equal(today.counts.hidden_reports, 1);
+});
+
+test('harassment reported by someone who went along takes the call down at once', async () => {
+  const { clock, companion } = companionAt();
+  const opened = await companion.open(lunch(new Date(clock.now() + MINUTE)));
+  const lucas = await companion.join(opened.call.id, 'Lucas');
+  await companion.report(
+    opened.call.id,
+    { memberKey: lucas.memberKey },
+    'harassment',
+  );
+  assert.deepEqual((await companion.list()).calls, []);
+});
+
+test('the moderation takes a reported call down while it is alive', async () => {
+  const { clock, companion } = companionAt();
+  const opened = await companion.open(lunch(new Date(clock.now() + MINUTE)));
+  await companion.report(opened.call.id, { outsider: true }, 'spam');
+  assert.equal(await companion.hideByModerator(opened.call.id), 'hidden');
+  assert.deepEqual((await companion.list()).calls, []);
+  const [report] = await companion.reportsForReview(1);
+  assert.equal(report.hidden, true);
+  // de novo, ou depois do horário, não há mais o que tirar
+  assert.equal(await companion.hideByModerator(opened.call.id), 'gone');
+  assert.equal(await companion.hideByModerator('nada'), 'gone');
+  const [today] = await companion.statsForReview(1);
+  assert.equal(today.counts.hidden_moderation, 1);
+});
+
+test('the host removes someone by the ref only members see', async () => {
+  const { clock, companion } = companionAt();
+  const opened = await companion.open(lunch(new Date(clock.now() + MINUTE)));
+  const lucas = await companion.join(opened.call.id, 'Lucas');
+  const bia = await companion.join(opened.call.id, 'Bia');
+  const refs = Object.fromEntries(
+    bia.call.members.map(member => [member.name, member.ref]),
+  );
+  assert.equal(new Set(Object.values(refs)).size, 3);
+
+  // só quem chamou tira, e não tira a si mesmo
+  await assert.rejects(
+    companion.remove(opened.call.id, bia.memberKey, refs.Lucas),
+    (err: unknown) =>
+      err instanceof ForbiddenError && err.code === 'not_the_host',
+  );
+  await assert.rejects(
+    companion.remove(opened.call.id, opened.memberKey, refs.Júlia),
+    (err: unknown) =>
+      err instanceof ConflictError && err.code === 'cannot_remove_host',
+  );
+  await assert.rejects(
+    companion.remove(opened.call.id, opened.memberKey, 'ninguem-aqu'),
+    (err: unknown) =>
+      err instanceof NotFoundError && err.code === 'member_not_found',
+  );
+
+  const remaining = await companion.remove(
+    opened.call.id,
+    opened.memberKey,
+    refs.Lucas,
+  );
+  assert.deepEqual(
+    remaining.members.map(member => member.name),
+    ['Júlia', 'Bia'],
+  );
+  assert.equal(remaining.going, 2);
+  // quem saiu assim fica sabendo, e não lê nem fala mais
+  for (const action of [
+    () => companion.read(opened.call.id, lucas.memberKey),
+    () => companion.say(opened.call.id, lucas.memberKey, 'on_my_way'),
+  ])
+    await assert.rejects(
+      action(),
+      (err: unknown) =>
+        err instanceof ForbiddenError && err.code === 'removed_from_call',
+    );
+  const [today] = await companion.statsForReview(1);
+  assert.equal(today.counts.removed, 1);
+});
+
+test('the day counts: opened, with company, arrived, and who looked at an empty list', async () => {
+  const { clock, companion } = companionAt(Date.UTC(2026, 10, 23, 15, 2));
+  // 12:02 em São Paulo: a lista vazia para quem chega
+  assert.equal((await companion.list('ana')).watching, 1);
+  assert.equal((await companion.list('ana')).watching, 1);
+  assert.equal((await companion.list('bia')).watching, 2);
+  // sem passe (testes, ferramentas), ninguém conta
+  assert.equal((await companion.list()).watching, 0);
+
+  const opened = await companion.open(
+    lunch(new Date(clock.now() + 10 * MINUTE)),
+  );
+  assert.equal((await companion.list('caio')).watching, 3);
+  const lucas = await companion.join(opened.call.id, 'Lucas');
+  await companion.join(opened.call.id, 'Bia');
+  await companion.say(opened.call.id, lucas.memberKey, 'at_spot');
+  await companion.say(opened.call.id, opened.memberKey, 'at_spot');
+  await companion.leave(opened.call.id, lucas.memberKey);
+  await companion.leave(opened.call.id, opened.memberKey);
+
+  // 15 minutos depois, quem olhou deixa de contar
+  clock.advance(16 * MINUTE);
+  assert.equal((await companion.list('ana')).watching, 1);
+
+  const [today] = await companion.statsForReview(5);
+  assert.equal(today.day, '2026-11-23');
+  assert.deepEqual(today.counts, {
+    lookers_h12: 4,
+    empty_h12: 3,
+    opened_lunch: 1,
+    joined: 2,
+    full: 1,
+    filled_lunch: 1,
+    phrase_at_spot: 2,
+    arrived_lunch: 1,
+    left: 1,
+    ended: 1,
+  });
+});
+
+test('a failing count does not get in the way of the student', async () => {
+  const clock = manualClock(Date.UTC(2026, 10, 23, 15));
+  const { repositories } = memoryRepositories(clock);
+  const broken = async () => {
+    throw new Error('banco fora');
+  };
+  const companion = createCompanion({
+    calls: repositories.companionCalls,
+    reports: repositories.companionReports,
+    stats: { add: broken, listRecent: broken },
+    watchers: { see: broken, count: broken },
+    now: clock.now,
+  });
+  const opened = await companion.open(lunch(new Date(clock.now() + MINUTE)));
+  await companion.join(opened.call.id, 'Lucas');
+  const listed = await companion.list('ana');
+  assert.equal(listed.calls.length, 1);
+  assert.equal(listed.watching, 0);
 });
 
 /* ------------------------------------------------------------------- HTTP */
@@ -290,12 +457,13 @@ after(async () => {
   await Promise.all(opened.map(server => server.stop()));
 });
 
-async function serve() {
+async function serve(env: Record<string, string> = {}) {
   const memory = memoryRepositories();
   const server = createServer(
     testConfig({
       PRIVATE_TOKEN_KEYS: privateKeyEntry(key),
       ADMIN_TOKEN: ADMIN,
+      ...env,
     }),
     silentLogger,
     {
@@ -353,6 +521,7 @@ test('the routes: a token opens and joins, the pass reads the list, the member k
   const pass = { 'x-student-pass': issued.json.pass };
   assert.deepEqual((await call('GET', '/calls', { headers: pass })).json, {
     calls: [],
+    watching: 1,
   });
 
   // abrir sem token é 401, com token é 201 e devolve a chave
@@ -372,9 +541,12 @@ test('the routes: a token opens and joins, the pass reads the list, the member k
   assert.equal(open.status, 201);
   assert.match(open.json.memberKey, /^[A-Za-z0-9_-]{43}$/);
   assert.equal(open.json.call.destination, null);
-  assert.deepEqual(open.json.call.members, [
-    { name: 'Diego', host: true, you: true },
-  ]);
+  assert.deepEqual(
+    open.json.call.members.map(
+      ({ ref: _ref, ...member }: { ref: string }) => member,
+    ),
+    [{ name: 'Diego', host: true, you: true }],
+  );
   const id = open.json.call.id as string;
   const host = { 'x-member-key': open.json.memberKey as string };
 
@@ -474,7 +646,8 @@ test('the routes: a token opens and joins, the pass reads the list, the member k
   });
   assert.equal(admin.status, 200);
   const page = await admin.text();
-  assert.match(page, /Denúncias da Companhia agora/);
+  assert.ok(page.includes('<h1>Companhia agora</h1>'));
+  assert.match(page, /Últimos 14 dias/);
   assert.match(page, /Mesa no Lago dos Peixinhos/);
   assert.match(page, /Diego, Camila/);
   assert.ok(!page.includes(join.json.memberKey));
@@ -484,6 +657,7 @@ test('the routes: a token opens and joins, the pass reads the list, the member k
   assert.deepEqual(left.json, { status: 'ok' });
   assert.deepEqual((await call('GET', '/calls', { headers: pass })).json, {
     calls: [],
+    watching: 1,
   });
 });
 
@@ -495,4 +669,131 @@ test('a forged or malformed pass does not read the list', async () => {
     });
     assert.equal(response.status, 401, forged);
   }
+});
+
+test('the routes: who is watching, the host removing someone, the limit per member key and the moderation', async () => {
+  // quem chamou usa a chave duas vezes para tirar e duas para os recados
+  const { call, port } = await serve({
+    COMPANION_MEMBER_LIMIT_PER_MINUTE: '4',
+  });
+  const passOf = async () => ({
+    'x-student-pass': (
+      await call('POST', '/pass', { headers: { authorization: token() } })
+    ).json.pass as string,
+  });
+  const ana = await passOf();
+  const bia = await passOf();
+  assert.equal(
+    (await call('GET', '/calls', { headers: ana })).json.watching,
+    1,
+  );
+  assert.equal(
+    (await call('GET', '/calls', { headers: bia })).json.watching,
+    2,
+  );
+
+  const open = await call('POST', '/calls', {
+    headers: { authorization: token() },
+    body: {
+      kind: 'lunch',
+      at: new Date(Date.now() + 20 * MINUTE).toISOString(),
+      spot: 'ru',
+      capacity: 4,
+      name: 'Diego',
+    },
+  });
+  const id = open.json.call.id as string;
+  const host = { 'x-member-key': open.json.memberKey as string };
+  const join = await call('POST', `/calls/${id}/members`, {
+    headers: { authorization: token() },
+    body: { name: 'Camila' },
+  });
+  const camila = { 'x-member-key': join.json.memberKey as string };
+  const ref = (
+    join.json.call.members as Array<{ ref: string; you: boolean }>
+  ).find(member => member.you)!.ref;
+
+  // o apelido malformado e o membro que não é quem chamou
+  assert.equal(
+    (await call('POST', `/calls/${id}/members/curto/remove`, { headers: host }))
+      .json.error,
+    'member_not_found',
+  );
+  const notHost = await call('POST', `/calls/${id}/members/${ref}/remove`, {
+    headers: camila,
+  });
+  assert.deepEqual([notHost.status, notHost.json.error], [403, 'not_the_host']);
+  const removed = await call('POST', `/calls/${id}/members/${ref}/remove`, {
+    headers: host,
+  });
+  assert.equal(removed.status, 200);
+  assert.equal(removed.json.call.going, 1);
+  const gone = await call('GET', `/calls/${id}`, { headers: camila });
+  assert.deepEqual([gone.status, gone.json.error], [403, 'removed_from_call']);
+
+  // a chave de membro tem o limite dela; a outra chave não espera
+  for (let i = 0; i < 2; i++)
+    assert.equal(
+      (
+        await call('POST', `/calls/${id}/phrases`, {
+          headers: host,
+          body: { phrase: 'on_my_way' },
+        })
+      ).status,
+      200,
+    );
+  const limited = await call('POST', `/calls/${id}/phrases`, {
+    headers: host,
+    body: { phrase: 'late' },
+  });
+  assert.deepEqual([limited.status, limited.json.error], [429, 'rate_limited']);
+  const other = await call('POST', `/calls/${id}/reports`, {
+    headers: { authorization: token() },
+    body: { reason: 'spam' },
+  });
+  assert.equal(other.status, 200);
+
+  // a denúncia de fora não tira; a moderação tira pelo formulário da página
+  assert.equal(
+    (await call('GET', '/calls', { headers: ana })).json.calls.length,
+    1,
+  );
+  const admin = `http://127.0.0.1:${port}/aouerj/admin`;
+  const bearer = { authorization: `Bearer ${ADMIN}` };
+  const page = await (
+    await fetch(`${admin}/companhia`, { headers: bearer })
+  ).text();
+  assert.match(page, /De fora/);
+  assert.match(page, /Tirar do ar/);
+  const csrf = /name="csrf" value="([^"]+)"/.exec(page)?.[1] ?? '';
+  const form = (value: string) =>
+    fetch(`${admin}/companhia/${id}/tirar`, {
+      method: 'POST',
+      redirect: 'manual',
+      headers: {
+        ...bearer,
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ csrf: value }),
+    });
+  assert.equal((await form('forjado')).status, 403);
+  const hidden = await form(csrf);
+  assert.equal(hidden.status, 303);
+  assert.equal(
+    hidden.headers.get('location'),
+    '/aouerj/admin/companhia?feito=tirada',
+  );
+  assert.deepEqual(
+    (await call('GET', '/calls', { headers: ana })).json.calls,
+    [],
+  );
+  const reviewed = await (
+    await fetch(`${admin}/companhia?feito=tirada`, { headers: bearer })
+  ).text();
+  assert.match(reviewed, /A chamada saiu do ar/);
+  assert.match(reviewed, /saiu do ar/);
+  assert.doesNotMatch(reviewed, /Tirar do ar\s*<\/button>/);
+  // os números do dia aparecem: uma mesa aberta, que teve companhia
+  assert.match(reviewed, /<b>1<\/b\s*>/);
+  assert.match(reviewed, /100%/);
 });

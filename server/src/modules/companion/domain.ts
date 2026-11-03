@@ -86,21 +86,38 @@ export const CALL_TIMES = {
   lateMs: 5 * MINUTE,
 } as const;
 
-/** Com tantas denúncias de pessoas diferentes, a chamada sai do ar. */
-export const REPORTS_TO_HIDE = 3;
+/**
+ * Com tantas denúncias de pessoas diferentes de dentro da chamada (fora quem
+ * chamou), ela sai do ar. Assédio denunciado por quem está nela tira na hora.
+ * A denúncia de fora não tira nada sozinha: cada uma gasta um token, e uma
+ * pessoa só, com três tokens, derrubaria qualquer chamada. Ela vai para a
+ * moderação, que pode tirar a chamada do ar.
+ */
+export const MEMBER_REPORTS_TO_HIDE = 2;
 /** Teto de chamadas valendo ao mesmo tempo, no campus inteiro. */
 export const MAX_ALIVE_CALLS = 500;
 /** As denúncias ficam para a moderação por 30 dias; a chamada, não. */
 export const REPORT_RETENTION_MS = 30 * 24 * 60 * MINUTE;
 
+/** A marca de quem denunciou de fora (o resto é o id de um membro). */
+export const OUTSIDER_PREFIX = 'outsider:';
+
 /** Quem está na chamada: o hash da chave de membro e o primeiro nome. */
 export type Member = {
   /** SHA-256 (hex) da chave que só o aparelho dessa pessoa tem. */
   id: string;
+  /**
+   * Um apelido ao acaso que só os membros veem: quem chamou tira alguém
+   * da chamada por ele, sem o servidor mostrar o hash da chave.
+   */
+  ref: string;
   name: string;
   host: boolean;
   joinedAt: Date;
 };
+
+/** De onde veio a denúncia, para a moderação. */
+export type ReportSource = 'member' | 'host' | 'outsider';
 
 export type FeedEntry = {
   member: string;
@@ -123,10 +140,16 @@ export type Call = {
   feed: FeedEntry[];
   /** Quem denunciou: o membro, ou uma marca ao acaso para quem está fora. */
   reporters: string[];
+  /** Os ids de quem quem chamou tirou da chamada. */
+  removed: string[];
   /** Quem chamou encerrou. */
   endedAt: Date | null;
-  /** Saiu do ar pelas denúncias. */
+  /** Saiu do ar pelas denúncias ou pela moderação. */
   hiddenAt: Date | null;
+  /** Quando chegou a duas pessoas (para os números do dia). */
+  filledAt: Date | null;
+  /** O primeiro "Cheguei no ponto" (para os números do dia). */
+  arrivedAt: Date | null;
   visibleFrom: Date;
   listedUntil: Date;
   expiresAt: Date;
@@ -161,7 +184,7 @@ export type PublicCall = {
 /** O que quem está dentro vê: os primeiros nomes e os recados. */
 export type MemberCall = PublicCall & {
   endedAt: Date | null;
-  members: { name: string; host: boolean; you: boolean }[];
+  members: { ref: string; name: string; host: boolean; you: boolean }[];
   feed: { name: string; phrase: PhraseId; at: Date; you: boolean }[];
 };
 
@@ -176,9 +199,13 @@ export type CallReport = {
   note: string;
   names: string[];
   reason: ReportReason;
+  /** De dentro, de quem chamou ou de fora; `null` nas de antes do campo. */
+  source: ReportSource | null;
   /** As denúncias da chamada até aqui, esta inclusive. */
   count: number;
   hidden: boolean;
+  /** Quando a chamada some de vez: até lá, a moderação ainda a tira do ar. */
+  callExpiresAt: Date | null;
   createdAt: Date;
   expiresAt: Date;
 };
@@ -191,6 +218,102 @@ export const memberId = (key: Buffer) =>
 
 /** 16 caracteres ao acaso: o id não diz a ordem nem a hora da criação. */
 export const newCallId = () => randomBytes(12).toString('base64url');
+
+/** 11 caracteres ao acaso: o apelido do membro dentro da chamada. */
+export const newMemberRef = () => randomBytes(8).toString('base64url');
+
+/**
+ * Quem olha a lista, para a contagem de "de olho agora": o hash do passe
+ * de aluno, que vale uma hora e não se liga a ninguém.
+ */
+export const viewerId = (pass: string) =>
+  createHash('sha256').update(pass).digest('hex');
+
+/** Quanto tempo quem olhou a lista conta como "de olho agora". */
+export const WATCH_WINDOW_MS = 15 * MINUTE;
+
+/** A denúncia de dentro (fora quem chamou) que tira a chamada do ar. */
+export function hidesCall(
+  call: Call,
+  reason: ReportReason,
+  source: ReportSource,
+): boolean {
+  if (source !== 'member') return false;
+  if (reason === 'harassment') return true;
+  const host = call.members.find(member => member.host)?.id;
+  const fromMembers = call.reporters.filter(
+    reporter => !reporter.startsWith(OUTSIDER_PREFIX) && reporter !== host,
+  );
+  return fromMembers.length >= MEMBER_REPORTS_TO_HIDE;
+}
+
+/* -------------------------------------------------------- os números do dia */
+
+/**
+ * Os números anônimos da Companhia agora, por dia de São Paulo: só
+ * contagens, sem id, nome, recado ou hora exata. Servem para saber se a
+ * mesa enche, se as pessoas chegam e onde a lista fica vazia.
+ */
+export const STAT_KEYS = [
+  'opened_lunch',
+  'opened_home',
+  /** Chamadas que chegaram a duas pessoas. */
+  'filled_lunch',
+  'filled_home',
+  /** Chamadas que lotaram. */
+  'full',
+  'joined',
+  'left',
+  'ended',
+  'removed',
+  'phrase_on_my_way',
+  'phrase_at_spot',
+  'phrase_late',
+  'phrase_home_safe',
+  /** Chamadas com pelo menos um "Cheguei no ponto". */
+  'arrived_lunch',
+  'arrived_home',
+  'reports_member',
+  'reports_host',
+  'reports_outsider',
+  'hidden_reports',
+  'hidden_moderation',
+  /** Aberturas recusadas pelo teto do campus. */
+  'busy',
+] as const;
+export type StatKey = (typeof STAT_KEYS)[number];
+
+/** Por hora (0–23): quem chegou à lista e quem a achou vazia. */
+export type HourStatKey = `lookers_h${number}` | `empty_h${number}`;
+
+export type DayStats = {
+  /** O dia em São Paulo, AAAA-MM-DD. */
+  day: string;
+  counts: Partial<Record<StatKey | HourStatKey, number>>;
+};
+
+/** Os números ficam meio ano. */
+export const STATS_RETENTION_MS = 183 * 24 * 60 * MINUTE;
+
+const SAO_PAULO = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Sao_Paulo',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  hourCycle: 'h23',
+});
+
+/** O dia (AAAA-MM-DD) e a hora (0–23) de `date` em São Paulo. */
+export function statSlot(date: Date): { day: string; hour: number } {
+  const parts = Object.fromEntries(
+    SAO_PAULO.formatToParts(date).map(part => [part.type, part.value]),
+  );
+  return {
+    day: `${parts.year}-${parts.month}-${parts.day}`,
+    hour: Number(parts.hour) % 24,
+  };
+}
 
 const NAME = /^[\p{L}\p{M}][\p{L}\p{M}'’-]*$/u;
 
@@ -269,8 +392,11 @@ export function planCall(
     members: [host],
     feed: [],
     reporters: [],
+    removed: [],
     endedAt: null,
     hiddenAt: null,
+    filledAt: null,
+    arrivedAt: null,
     visibleFrom: new Date(time - CALL_TIMES.visibleBeforeMs),
     listedUntil: new Date(time + CALL_TIMES.listedAfterMs[kind]),
     expiresAt: new Date(time + CALL_TIMES.lifetimeMs[kind]),
@@ -312,6 +438,7 @@ export function memberView(call: Call, member: string): MemberCall {
     ...publicView(call),
     endedAt: call.endedAt,
     members: call.members.map(item => ({
+      ref: item.ref,
       name: item.name,
       host: item.host,
       you: item.id === member,

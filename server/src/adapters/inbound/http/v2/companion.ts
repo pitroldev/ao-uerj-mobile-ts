@@ -14,11 +14,12 @@ import {
   PHRASE_IDS,
   REPORT_REASONS,
   SPOT_IDS,
+  viewerId,
   type MemberCall,
   type PublicCall,
 } from '../../../../modules/companion/domain.ts';
 import type { Companion } from '../../../../modules/companion/ports.ts';
-import { ForbiddenError } from '../../../../shared/errors.ts';
+import { ForbiddenError, NotFoundError } from '../../../../shared/errors.ts';
 import type {
   ApiError,
   CompanionCall,
@@ -119,24 +120,33 @@ function memberKeyOf(req: Request): Buffer {
 
 const callIdOf = (req: Request) => String(req.params.id ?? '');
 
+/** O apelido do membro: 11 caracteres base64url. */
+const MEMBER_REF = /^[A-Za-z0-9_-]{11}$/;
+
 /**
  * A Companhia agora em `/aouerj/v2/companion`. As leituras da lista levam o
  * passe de aluno; abrir, entrar e denunciar de fora gastam um token (o
  * `student` que vem do roteador); o resto, a chave de membro. Nada fica em
  * cache: as vagas mudam a cada minuto.
+ *
+ * Limites: o token já é o limite de quem abre, entra e pede o passe, então
+ * o IP só tem um teto folgado (`campusLimit`); o que usa a chave de membro
+ * conta por chave (`memberLimit`).
  */
 export function companionRoutes({
   companion,
   access,
   withDatabase,
   student,
-  writeLimit,
+  campusLimit,
+  memberLimit,
 }: {
   companion: Companion;
   access: StudentAccess;
   withDatabase: RequestHandler;
   student: RequestHandler;
-  writeLimit: RequestHandler;
+  campusLimit: RequestHandler;
+  memberLimit: RequestHandler;
 }) {
   const routes = express.Router();
 
@@ -156,7 +166,7 @@ export function companionRoutes({
   // gasta um token e devolve o passe de uma hora de leituras
   routes.post(
     '/companion/pass',
-    writeLimit,
+    campusLimit,
     withDatabase,
     student,
     (req, res) => {
@@ -178,15 +188,19 @@ export function companionRoutes({
   );
 
   routes.get('/companion/calls', withPass, withDatabase, async (req, res) => {
-    const calls = await companion.list();
+    // quem olha conta em "de olho agora" pelo hash do passe, nada mais
+    const { calls, watching } = await companion.list(
+      viewerId(req.get('x-student-pass') ?? ''),
+    );
     noStore(res).json({
       calls: calls.map(toCompanionCall),
+      watching,
     } satisfies CompanionCallListResponse);
   });
 
   routes.post(
     '/companion/calls',
-    writeLimit,
+    campusLimit,
     withDatabase,
     student,
     async (req, res) => {
@@ -211,7 +225,7 @@ export function companionRoutes({
 
   routes.post(
     '/companion/calls/:id/members',
-    writeLimit,
+    campusLimit,
     withDatabase,
     student,
     async (req, res) => {
@@ -228,7 +242,8 @@ export function companionRoutes({
 
   routes.post(
     '/companion/calls/:id/leave',
-    writeLimit,
+    campusLimit,
+    memberLimit,
     withDatabase,
     async (req, res) => {
       await companion.leave(callIdOf(req), memberKeyOf(req));
@@ -236,9 +251,30 @@ export function companionRoutes({
     },
   );
 
+  // quem chamou tira alguém pelo apelido (só os membros o veem)
+  routes.post(
+    '/companion/calls/:id/members/:ref/remove',
+    campusLimit,
+    memberLimit,
+    withDatabase,
+    async (req, res) => {
+      const ref = String(req.params.ref ?? '');
+      if (!MEMBER_REF.test(ref))
+        throw new NotFoundError(
+          'member_not_found',
+          'Nobody in this call has that ref',
+        );
+      const call = await companion.remove(callIdOf(req), memberKeyOf(req), ref);
+      noStore(res).json({
+        call: toMemberCall(call),
+      } satisfies CompanionCallResponse);
+    },
+  );
+
   routes.post(
     '/companion/calls/:id/phrases',
-    writeLimit,
+    campusLimit,
+    memberLimit,
     withDatabase,
     async (req, res) => {
       const { phrase } = parse(phraseSchema, req.body);
@@ -259,7 +295,8 @@ export function companionRoutes({
   };
   routes.post(
     '/companion/calls/:id/reports',
-    writeLimit,
+    campusLimit,
+    memberLimit,
     withDatabase,
     reporter,
     async (req, res) => {

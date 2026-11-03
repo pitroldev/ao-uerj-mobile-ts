@@ -1,6 +1,7 @@
 import {
-  REPORTS_TO_HIDE,
+  MEMBER_REPORTS_TO_HIDE,
   type CallReport,
+  type DayStats,
 } from '../../../../../modules/companion/domain.ts';
 import type {
   Diagnostic,
@@ -222,6 +223,23 @@ a.tag:hover{text-decoration:underline}
 .sheet dt{color:var(--ink-muted)}
 .sheet dd{margin:0;font-weight:600;overflow-wrap:anywhere}
 .raw{margin:1.5rem 0 0;padding:1rem;max-width:48rem;overflow:auto;border:1px solid var(--rule);border-radius:10px;border-top-right-radius:0;background:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.8125rem;line-height:1.6}
+h2.sub{margin:2.5rem 0 .25rem;font-size:1.0625rem;font-weight:600;letter-spacing:-.01em}
+.sub-lede{margin:0;color:var(--ink-muted);font-size:.875rem;max-width:70ch}
+.scroll{margin-top:1rem;overflow-x:auto;border:1px solid var(--rule);border-radius:12px;border-top-right-radius:0}
+.nums{width:100%;border-collapse:collapse;font-size:.875rem;font-variant-numeric:tabular-nums}
+.nums th,.nums td{padding:.625rem .5rem;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap}
+.nums th{color:var(--ink-muted);font-weight:500;font-size:.8125rem;background:var(--muted)}
+.nums th:first-child,.nums td:first-child{text-align:left}
+.nums tbody tr:last-child td{border-bottom:0}
+.nums td b{font-weight:600}
+.nums td span{margin-left:.375rem;color:var(--ink-subtle);font-size:.8125rem}
+.hours{display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0 0;padding:0;list-style:none}
+.hours li{display:flex;align-items:baseline;gap:.375rem;min-height:2.25rem;padding:.375rem .75rem;border:1px solid var(--rule-strong);border-radius:8px;font-size:.875rem;font-variant-numeric:tabular-nums}
+.hours b{font-weight:600}
+.hours span{color:var(--ink-muted)}
+.hours .bad{color:var(--bad)}
+.source{display:inline-flex;align-items:center;min-height:1.75rem;padding:0 .5rem;border:1px solid var(--rule-strong);border-radius:6px;color:var(--ink-muted);font-size:.8125rem;font-weight:500}
+.done-notice{margin:1.25rem 0 0;padding:.75rem .875rem;border:1px solid var(--good-line);border-radius:10px;border-top-right-radius:0;background:var(--good-wash);color:var(--ink)}
 @keyframes found{from{background:var(--accent-soft)}to{background:transparent}}
 .row:target{animation:found 1.6s cubic-bezier(.16,1,.3,1)}
 @media (prefers-reduced-motion:reduce){.row:target{animation:none}}
@@ -301,7 +319,7 @@ function layout({
           ${
             counts
               ? html`<nav class="tabs" aria-label="Seções">
-                  ${tabLink('reports', `${base}/admin`, 'Relatos', counts.open)}${tabLink('suggestions', `${base}/admin/sugestoes`, 'Sugestões', counts.suggestions)}${tabLink('companion', `${base}/admin/companhia`, 'Denúncias', counts.companion)}
+                  ${tabLink('reports', `${base}/admin`, 'Relatos', counts.open)}${tabLink('suggestions', `${base}/admin/sugestoes`, 'Sugestões', counts.suggestions)}${tabLink('companion', `${base}/admin/companhia`, 'Companhia', counts.companion)}
                 </nav>`
               : html`<div class="tabs" aria-hidden="true"></div>`
           }
@@ -748,35 +766,205 @@ function callTitle(report: CallReport) {
     : `Mesa no ${SPOT_LABEL[report.spot]}, ${time}`;
 }
 
-export function companionReportsPage({
+const SOURCE_LABEL: Record<NonNullable<CallReport['source']>, string> = {
+  member: 'De quem foi junto',
+  host: 'De quem chamou',
+  outsider: 'De fora',
+};
+
+/** Quantos dias de números a página mostra. */
+export const COMPANION_STATS_DAYS = 14;
+
+const statDayFormat = new Intl.DateTimeFormat('pt-BR', {
+  timeZone: ZONE,
+  weekday: 'short',
+  day: '2-digit',
+  month: '2-digit',
+});
+
+type StatCounts = DayStats['counts'];
+const n = (counts: StatCounts, key: keyof StatCounts) => counts[key] ?? 0;
+const sumOf = (counts: StatCounts, prefix: string) =>
+  Object.entries(counts)
+    .filter(([key]) => key.startsWith(prefix))
+    .reduce((total, [, value]) => total + (value ?? 0), 0);
+const percent = (part: number, total: number) =>
+  total ? `${Math.round((part * 100) / total)}%` : '';
+
+/** "seg., 23/11" a partir de "2026-11-23", no meio do dia de São Paulo. */
+const statDay = (day: string) =>
+  statDayFormat.format(new Date(`${day}T12:00:00-03:00`));
+
+/** Um número e, ao lado, quanto ele é do total. */
+const cell = (value: number, total?: number) =>
+  html`<td>
+    <b>${value.toLocaleString('pt-BR')}</b
+    >${total !== undefined && percent(value, total) ? html`<span>${percent(value, total)}</span>` : null}
+  </td>`;
+
+/** Os números de cada dia: quem olhou, se havia o que achar e se deu certo. */
+function statsSection(stats: DayStats[]) {
+  if (!stats.length)
+    return html`<div class="empty">
+      ${icon('task_alt')}
+      <p>Ainda não há números: eles começam no primeiro uso.</p>
+    </div>`;
+  const busy = stats.reduce((total, day) => total + n(day.counts, 'busy'), 0);
+  const latest = stats[0];
+  const hours = Array.from({ length: 24 }, (_, hour) => ({
+    hour,
+    lookers: n(latest.counts, `lookers_h${hour}`),
+    empty: n(latest.counts, `empty_h${hour}`),
+  })).filter(item => item.lookers > 0);
+  return html`<div class="scroll">
+      <table class="nums">
+        <thead>
+          <tr>
+            <th scope="col">Dia</th>
+            <th scope="col">Olharam</th>
+            <th scope="col">Vazia</th>
+            <th scope="col">Mesas</th>
+            <th scope="col">Voltas</th>
+            <th scope="col">Companhia</th>
+            <th scope="col">No ponto</th>
+            <th scope="col">Em casa</th>
+            <th scope="col">Tirados</th>
+            <th scope="col">Denúncias</th>
+            <th scope="col">Fora do ar</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${stats.map(({ day, counts }) => {
+            const lookers = sumOf(counts, 'lookers_h');
+            const opened = n(counts, 'opened_lunch') + n(counts, 'opened_home');
+            const filled = n(counts, 'filled_lunch') + n(counts, 'filled_home');
+            const arrived =
+              n(counts, 'arrived_lunch') + n(counts, 'arrived_home');
+            const reports =
+              n(counts, 'reports_member') +
+              n(counts, 'reports_host') +
+              n(counts, 'reports_outsider');
+            return html`<tr>
+              <td>${statDay(day)}</td>
+              ${cell(lookers)}${cell(sumOf(counts, 'empty_h'), lookers)}
+              ${cell(n(counts, 'opened_lunch'))}${cell(n(counts, 'opened_home'))}
+              ${cell(filled, opened)}${cell(arrived, filled)}
+              ${cell(n(counts, 'phrase_home_safe'))}${cell(n(counts, 'removed'))}
+              <td>
+                <b>${reports.toLocaleString('pt-BR')}</b
+                ><span
+                  >(${n(counts, 'reports_outsider').toLocaleString('pt-BR')})</span
+                >
+              </td>
+              ${cell(n(counts, 'hidden_reports') + n(counts, 'hidden_moderation'))}
+            </tr>`;
+          })}
+        </tbody>
+      </table>
+    </div>
+    ${
+      hours.length
+        ? html`<h2 class="sub">Por hora, ${statDay(latest.day)}</h2>
+            <p class="sub-lede">
+              Quem chegou à lista em cada hora e quanto dela estava vazia: as
+              horas em que muita gente olha e nada acha são as que pedem um
+              convite.
+            </p>
+            <ul class="hours">
+              ${hours.map(
+                item =>
+                  html`<li>
+                    <b>${item.hour}h</b>
+                    <span>${count(item.lookers, 'olhou', 'olharam')}</span>
+                    ${item.empty ? html`<span class="bad">${percent(item.empty, item.lookers)} vazia</span>` : null}
+                  </li>`,
+              )}
+            </ul>`
+        : null
+    }
+    ${
+      busy
+        ? html`<p class="notice">
+            O teto do campus recusou ${count(busy, 'abertura', 'aberturas')}
+            nestes dias.
+          </p>`
+        : null
+    }`;
+}
+
+export function companionPage({
   base,
   reports,
+  stats,
   csrf,
   now,
   openReports,
   suggestions,
+  done,
 }: {
   base: string;
   reports: CallReport[];
+  stats: DayStats[];
   csrf: string;
   now: Date;
   openReports: number;
   suggestions: number;
+  /** O resultado do "Tirar do ar" que acabou de voltar para cá. */
+  done: 'hidden' | 'gone' | null;
 }) {
   const groups = byDay(reports, report => report.createdAt);
+  // o botão vai só na denúncia mais nova de cada chamada que ainda vale
+  const offered = new Set<string>();
+  const canHide = (report: CallReport) => {
+    if (offered.has(report.callId)) return false;
+    offered.add(report.callId);
+    return (
+      !report.hidden &&
+      report.callExpiresAt !== null &&
+      report.callExpiresAt > now
+    );
+  };
   return layout({
     base,
-    title: 'Denúncias',
+    title: 'Companhia agora',
     tab: 'companion',
     csrf,
     counts: { open: openReports, suggestions, companion: reports.length },
-    body: html`<h1>Denúncias da Companhia agora</h1>
+    body: html`<h1>Companhia agora</h1>
       <p class="lede">
-        ${count(reports.length, 'denúncia', 'denúncias')} dos últimos 30 dias,
-        das mais novas às mais antigas. A chamada some do servidor pouco depois
-        do horário; aqui fica o que ela era quando foi denunciada, sem as chaves
-        de quem estava nela. Com ${REPORTS_TO_HIDE} denúncias, a chamada sai do
-        ar sozinha.
+        Os números de cada dia, só contagens (sem quem, sem recado nem hora
+        exata), e as denúncias dos últimos 30 dias.
+      </p>
+      ${
+        done === 'hidden'
+          ? html`<p class="done-notice">
+              A chamada saiu do ar: some da lista, e quem estava nela vê que ela
+              não existe mais.
+            </p>`
+          : done === 'gone'
+            ? html`<p class="notice">
+                Essa chamada já tinha acabado ou saído do ar.
+              </p>`
+            : null
+      }
+      <h2 class="sub">Últimos ${COMPANION_STATS_DAYS} dias</h2>
+      <p class="sub-lede">
+        "Olharam": alunos que chegaram à lista (uma vez a cada 15 minutos);
+        "Vazia": desses, os que não acharam nenhuma chamada. "Companhia":
+        chamadas que chegaram a duas pessoas, sobre as abertas. "No ponto":
+        delas, as que tiveram um "Cheguei no ponto". "Em casa": os "Cheguei em
+        casa" da volta. Denúncias: o total e, entre parênteses, as de fora.
+      </p>
+      ${statsSection(stats)}
+
+      <h2 class="sub">Denúncias</h2>
+      <p class="sub-lede">
+        ${count(reports.length, 'denúncia', 'denúncias')}, das mais novas às
+        mais antigas, com o que a chamada era quando foi denunciada (sem as
+        chaves de quem estava nela). Assédio denunciado por quem foi junto tira
+        a chamada do ar na hora; outro motivo, com ${MEMBER_REPORTS_TO_HIDE}
+        pessoas de dentro. A denúncia de fora não tira nada sozinha: quem decide
+        é você, aqui, enquanto a chamada valer.
       </p>
       ${
         groups.length
@@ -789,7 +977,7 @@ export function companionReportsPage({
                 <ol class="list">
                   ${group.items.map(
                     report =>
-                      html`<li class="row">
+                      html`<li class="row" id="denuncia-${report.id}">
                         <time
                           class="when"
                           datetime="${report.createdAt.toISOString()}"
@@ -800,6 +988,7 @@ export function companionReportsPage({
                             <span class="tag"
                               >${REASON_LABEL[report.reason]}</span
                             >
+                            ${report.source ? html`<span class="source">${SOURCE_LABEL[report.source]}</span>` : null}
                             <span class="who">${callTitle(report)}</span>
                           </div>
                           ${
@@ -816,7 +1005,24 @@ export function companionReportsPage({
                             >
                           </div>
                         </div>
-                        <span></span>
+                        ${
+                          canHide(report)
+                            ? html`<form
+                                class="act"
+                                method="post"
+                                action="${base}/admin/companhia/${encodeURIComponent(report.callId)}/tirar"
+                              >
+                                <input
+                                  type="hidden"
+                                  name="csrf"
+                                  value="${csrf}"
+                                />
+                                <button class="btn tonal" type="submit">
+                                  ${icon('visibility_off')}Tirar do ar
+                                </button>
+                              </form>`
+                            : html`<span></span>`
+                        }
                       </li>`,
                   )}
                 </ol>

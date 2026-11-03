@@ -116,3 +116,29 @@ export function perMinuteLimit(perMinute: number): RequestHandler {
     },
   });
 }
+
+/**
+ * Limite por minuto contado pela chave que `keyOf` tira da requisição (a
+ * chave de membro da Companhia agora), e não pelo IP: o Wi-Fi do campus põe
+ * todo mundo atrás do mesmo. Sem a chave, a requisição passa por aqui sem
+ * contar (o teto por IP cuida dela).
+ */
+export function perKeyLimit(
+  perMinute: number,
+  keyOf: (req: Request) => string | undefined,
+): RequestHandler {
+  return rateLimit({
+    windowMs: 60 * 1000,
+    limit: perMinute,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    skip: req => !keyOf(req),
+    keyGenerator: req => `key:${keyOf(req)}`,
+    handler(req, res) {
+      send(res, 429, {
+        error: 'rate_limited',
+        message: 'Too many requests; try again in a minute',
+      });
+    },
+  });
+}

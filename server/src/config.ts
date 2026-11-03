@@ -196,6 +196,15 @@ const EnvSchema = z
     GENERATOR_JSON_LIMIT: z.string().min(1).default('1mb'),
     CACHE_TTL_MS: milliseconds(5 * 60 * 1000, 1000),
     RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(120),
+    // a Companhia agora: o token (ou a chave de membro) é o limite de cada
+    // aluno; o do IP é só um teto contra ataque, folgado porque o Wi-Fi da
+    // UERJ e o CGNAT das operadoras põem centenas de alunos num IP só
+    COMPANION_IP_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(1200),
+    COMPANION_MEMBER_LIMIT_PER_MINUTE: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .default(30),
     REPORTS_DIR: z.string().min(1).optional(),
     ADMIN_TOKEN: z
       .string()
@@ -302,6 +311,8 @@ export type Config = {
     generatorJsonLimit: string;
     /** Por IP, por minuto: as gravações juntas. */
     rateLimitPerMinute: number;
+    /** A Companhia agora, por minuto: o teto por IP e o por chave de membro. */
+    companion: { perIp: number; perMember: number };
     forceHttps: boolean;
     publicUrl: string | undefined;
     trustProxy: number | boolean | string | undefined;
@@ -382,6 +393,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       jsonLimit: value.JSON_LIMIT,
       generatorJsonLimit: value.GENERATOR_JSON_LIMIT,
       rateLimitPerMinute: value.RATE_LIMIT_PER_MINUTE,
+      companion: {
+        perIp: value.COMPANION_IP_LIMIT_PER_MINUTE,
+        perMember: value.COMPANION_MEMBER_LIMIT_PER_MINUTE,
+      },
       forceHttps: value.FORCE_HTTPS,
       publicUrl: value.PUBLIC_URL,
       trustProxy: value.TRUST_PROXY,

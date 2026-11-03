@@ -115,6 +115,8 @@ issuanceCounterSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 const companionMemberSchema = new mongoose.Schema(
   {
     key: { required: true, type: String },
+    // o apelido que os membros veem (as chamadas de antes ficam sem)
+    ref: { default: '', type: String },
     name: text(COMPANION_LIMITS.name),
     host: { default: false, type: Boolean },
     joinedAt: { required: true, type: Date },
@@ -142,8 +144,11 @@ const companionCallSchema = new mongoose.Schema(
     members: { default: [], type: [companionMemberSchema] },
     feed: { default: [], type: [companionFeedSchema] },
     reporters: { default: [], type: [String] },
+    removed: { default: [], type: [String] },
     endedAt: { default: null, type: Date },
     hiddenAt: { default: null, type: Date },
+    filledAt: { default: null, type: Date },
+    arrivedAt: { default: null, type: Date },
     visibleFrom: { required: true, type: Date },
     listedUntil: { required: true, type: Date },
     expiresAt: { required: true, type: Date },
@@ -164,8 +169,10 @@ const companionReportSchema = new mongoose.Schema(
     note: { default: '', type: String },
     names: { default: [], type: [String] },
     reason: { required: true, type: String },
+    source: { default: null, type: String },
     count: { required: true, type: Number },
     hidden: { default: false, type: Boolean },
+    callExpiresAt: { default: null, type: Date },
     createdAt: { required: true, type: Date },
     expiresAt: { required: true, type: Date },
   },
@@ -173,6 +180,34 @@ const companionReportSchema = new mongoose.Schema(
 );
 companionReportSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 companionReportSchema.index({ createdAt: -1 });
+companionReportSchema.index({ callId: 1 });
+
+/**
+ * Os números do dia da Companhia agora: o dia de São Paulo e as contagens,
+ * nada mais. Ficam meio ano (o índice TTL apaga).
+ */
+const companionStatsSchema = new mongoose.Schema(
+  {
+    _id: { required: true, type: String },
+    counts: { default: {}, type: mongoose.Schema.Types.Mixed },
+    expiresAt: { required: true, type: Date },
+  },
+  { versionKey: false, bufferCommands: false, minimize: false },
+);
+companionStatsSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+/**
+ * Quem olhou a lista nos últimos 15 minutos: o hash do passe (que vale uma
+ * hora e não se liga a ninguém) e até quando conta. O índice TTL apaga.
+ */
+const companionWatcherSchema = new mongoose.Schema(
+  {
+    _id: { required: true, type: String },
+    expiresAt: { required: true, type: Date },
+  },
+  { versionKey: false, bufferCommands: false },
+);
+companionWatcherSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 /** Os modelos registrados numa conexão. */
 export function defineModels(connection: Connection) {
@@ -193,6 +228,11 @@ export function defineModels(connection: Connection) {
     companionReports: connection.model(
       'CompanionReports',
       companionReportSchema,
+    ),
+    companionStats: connection.model('CompanionStats', companionStatsSchema),
+    companionWatchers: connection.model(
+      'CompanionWatchers',
+      companionWatcherSchema,
     ),
   };
 }

@@ -42,6 +42,11 @@ export type HttpSettings = {
   adminToken: string | undefined;
   /** Por IP, por minuto: as gravações de `/aouerj`, juntas. */
   writesPerMinute: number;
+  /**
+   * A Companhia agora, por minuto: um teto folgado por IP e o limite de cada
+   * chave de membro (o token já limita quem abre e quem entra).
+   */
+  companionLimits: { perIp: number; perMember: number };
   /** Por IP, por minuto: as gerações de grade. */
   generationsPerMinute: number;
   /** Por IP, por minuto: os desafios e os lotes de tokens, juntos. */
@@ -91,7 +96,7 @@ export function createHttpApp({
       database,
       tokenRequestsPerMinute: settings.tokenRequestsPerMinute,
       tokenBatchSize: settings.tokenBatchSize,
-      writesPerMinute: settings.writesPerMinute,
+      companionLimits: settings.companionLimits,
     }),
   );
   app.use(

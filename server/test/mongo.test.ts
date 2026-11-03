@@ -80,6 +80,8 @@ test('the connection opens on the old collections, with the indexes the queries 
     [
       'companioncalls',
       'companionreports',
+      'companionstats',
+      'companionwatchers',
       'docentes',
       'errorreports',
       'issuancecounters',

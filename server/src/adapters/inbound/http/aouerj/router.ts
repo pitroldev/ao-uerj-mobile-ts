@@ -26,7 +26,10 @@ export type AoUerjServices = {
   /** Só a carga, para o `GET /status`. */
   schedules: Pick<ScheduleGenerator, 'load'>;
   /** Só as denúncias, para a administração. */
-  companion: Pick<Companion, 'reportsForReview'>;
+  companion: Pick<
+    Companion,
+    'reportsForReview' | 'statsForReview' | 'hideByModerator'
+  >;
 };
 
 /**

@@ -40,6 +40,9 @@ async function open() {
   const companion = createCompanion({
     calls: repositories.companionCalls,
     reports: repositories.companionReports,
+    stats: repositories.companionStats,
+    watchers: repositories.companionWatchers,
+    watchingCacheMs: 0,
     now: clock.now,
   });
   return { models, repositories, clock, companion };
@@ -72,8 +75,17 @@ test('the calls and the reports vanish by TTL, and the list has its index', asyn
     [
       [{ expiresAt: 1 }, 0],
       [{ createdAt: -1 }, null],
+      [{ callId: 1 }, null],
     ],
   );
+  // os números e quem olhou também somem sozinhos
+  for (const model of [models.companionStats, models.companionWatchers])
+    assert.deepEqual(
+      (await model.collection.indexes())
+        .filter(index => !('_id' in index.key))
+        .map(index => [index.key, index.expireAfterSeconds ?? null]),
+      [[{ expiresAt: 1 }, 0]],
+    );
 });
 
 test('the last seat goes to one person only, even at the same time', async () => {
@@ -95,8 +107,78 @@ test('the last seat goes to one person only, even at the same time', async () =>
       result.reason instanceof ConflictError &&
         result.reason.code === 'call_full',
     );
-  const [listed] = await companion.list();
+  const {
+    calls: [listed],
+  } = await companion.list();
   assert.equal(listed.going, 4);
+  // a chamada chegou a duas pessoas uma vez só, mesmo com três entrando juntos
+  const [today] = await companion.statsForReview(1);
+  assert.equal(today.counts.filled_lunch, 1);
+  assert.equal(today.counts.joined, 3);
+  assert.equal(today.counts.full, 1);
+});
+
+test('the host removes someone for good, and the counts and the watchers live in Mongo', async () => {
+  const { companion, clock, models } = await open();
+  const host = await companion.open(
+    request(new Date(clock.now() + 5 * MINUTE)),
+  );
+  const ana = await companion.join(host.call.id, 'Ana');
+  const ref = ana.call.members.find(member => member.you)!.ref;
+  assert.match(ref, /^[A-Za-z0-9_-]{11}$/);
+
+  const remaining = await companion.remove(host.call.id, host.memberKey, ref);
+  assert.deepEqual(
+    remaining.members.map(member => member.name),
+    ['Júlia'],
+  );
+  await assert.rejects(
+    companion.read(host.call.id, ana.memberKey),
+    (err: unknown) =>
+      err instanceof Error && 'code' in err && err.code === 'removed_from_call',
+  );
+  const stored = await models.companionCalls
+    .findById(host.call.id)
+    .lean<{ removed: string[]; filledAt: Date | null }>();
+  assert.equal(stored?.removed.length, 1);
+  assert.ok(stored?.filledAt);
+
+  // "Cheguei no ponto" conta a chamada uma vez, e só com companhia: aqui,
+  // quem chamou ficou sozinho
+  await companion.say(host.call.id, host.memberKey, 'at_spot');
+  await companion.say(host.call.id, host.memberKey, 'at_spot');
+  const bia = await companion.join(host.call.id, 'Bia');
+  await companion.say(host.call.id, bia.memberKey, 'at_spot');
+
+  // quem olha conta uma vez nos 15 minutos
+  await companion.list('viewer-a');
+  await companion.list('viewer-a');
+  assert.equal((await companion.list('viewer-b')).watching, 2);
+  clock.advance(16 * MINUTE);
+  assert.equal((await companion.list('viewer-c')).watching, 1);
+
+  // a moderação tira do ar, e as denúncias passam a dizer isso
+  const late = await companion.open(
+    request(new Date(clock.now() + 5 * MINUTE)),
+  );
+  await companion.report(late.call.id, { outsider: true }, 'spam');
+  assert.equal(await companion.hideByModerator(late.call.id), 'hidden');
+  assert.equal(await companion.hideByModerator(late.call.id), 'gone');
+  const [report] = await companion.reportsForReview(1);
+  assert.equal(report.hidden, true);
+  assert.equal(report.source, 'outsider');
+
+  const [today] = await companion.statsForReview(1);
+  assert.equal(today.counts.opened_lunch, 2);
+  assert.equal(today.counts.removed, 1);
+  assert.equal(today.counts.phrase_at_spot, 3);
+  assert.equal(today.counts.arrived_lunch, 1);
+  assert.equal(today.counts.reports_outsider, 1);
+  assert.equal(today.counts.hidden_moderation, 1);
+  const lookers = Object.entries(today.counts)
+    .filter(([key]) => key.startsWith('lookers_h'))
+    .reduce((total, [, value]) => total + (value ?? 0), 0);
+  assert.equal(lookers, 3);
 });
 
 test('the stored call keeps only hashes of the keys, the recent phrases and one report per member', async () => {
@@ -126,7 +208,7 @@ test('the stored call keeps only hashes of the keys, the recent phrases and one 
   await companion.leave(host.call.id, ana.memberKey);
   assert.equal((await companion.read(host.call.id, host.memberKey)).going, 1);
   await companion.leave(host.call.id, host.memberKey);
-  assert.deepEqual(await companion.list(), []);
+  assert.deepEqual((await companion.list()).calls, []);
 
   // depois do prazo, a consulta já não acha (o TTL passa a cada minuto)
   clock.advance(40 * MINUTE);

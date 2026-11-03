@@ -14,7 +14,8 @@ import type { AdminSession } from '../../adminSession.ts';
 import { notFound } from '../../errors.ts';
 import type { Html } from './html.ts';
 import {
-  companionReportsPage,
+  COMPANION_STATS_DAYS,
+  companionPage,
   diagnosticPage,
   filterFromQuery,
   loginPage,
@@ -54,8 +55,11 @@ export function adminRoutes({
 }: {
   reports: ErrorReports;
   suggestions: Suggestions;
-  /** As denúncias da Companhia agora. */
-  companion: Pick<Companion, 'reportsForReview'>;
+  /** As denúncias e os números da Companhia agora, e tirar uma chamada do ar. */
+  companion: Pick<
+    Companion,
+    'reportsForReview' | 'statsForReview' | 'hideByModerator'
+  >;
   session: AdminSession | null;
   isDatabaseReady: () => boolean;
   now?: () => Date;
@@ -219,22 +223,44 @@ export function adminRoutes({
     signedIn,
     withDatabase,
     page(async (req, res) => {
-      const [flagged, review, suggested] = await Promise.all([
+      const [flagged, stats, review, suggested] = await Promise.all([
         companion.reportsForReview(COMPANION_REPORTS_PAGE),
+        companion.statsForReview(COMPANION_STATS_DAYS),
         reports.summarize(),
         suggestions.listRecent(),
       ]);
+      const done = req.query.feito;
       send(
         res,
         200,
-        companionReportsPage({
+        companionPage({
           base: req.baseUrl,
           reports: flagged,
+          stats,
           csrf: session!.csrf,
           now: now(),
           openReports: review.open,
           suggestions: suggested.length,
+          done:
+            done === 'tirada' ? 'hidden' : done === 'acabou' ? 'gone' : null,
         }),
+      );
+    }),
+  );
+
+  // a moderação tira do ar uma chamada denunciada (a de fora não tira sozinha)
+  routes.post(
+    '/admin/companhia/:callId/tirar',
+    configured,
+    signedIn,
+    form,
+    fromThePage,
+    withDatabase,
+    page(async (req, res) => {
+      const result = await companion.hideByModerator(String(req.params.callId));
+      res.redirect(
+        303,
+        `${req.baseUrl}/admin/companhia?feito=${result === 'hidden' ? 'tirada' : 'acabou'}`,
       );
     }),
   );

@@ -294,10 +294,16 @@ export type TokenIssuanceResponse = {
  * (`POST …/calls/:id/leave`, com a chave) responde `OkResponse`; quem
  * chamou e sai encerra a chamada para todos.
  *
+ * Quem chamou tira alguém com `POST …/calls/:id/members/:ref/remove` (com a
+ * chave de quem chamou), que responde `CompanionCallResponse`; o `ref` é o
+ * apelido que só os membros veem.
+ *
  * Erros: 404 `call_not_found` (acabou, saiu do ar ou nunca existiu), 403
- * `not_a_member`, 409 `call_full`, `call_closed` ou `call_ended`, 422
- * `note_not_allowed` (telefone, @ ou link no recado), 401 `invalid_pass`
- * (passe vencido: pedir outro) e 503 `companion_full` (o teto do campus).
+ * `not_a_member`, 403 `removed_from_call` (quem chamou tirou esta pessoa),
+ * 403 `not_the_host`, 404 `member_not_found`, 409 `cannot_remove_host`, 409
+ * `call_full`, `call_closed` ou `call_ended`, 422 `note_not_allowed`
+ * (telefone, @ ou link no recado), 401 `invalid_pass` (passe vencido: pedir
+ * outro), 429 `rate_limited` e 503 `companion_full` (o teto do campus).
  */
 
 export type CompanionKind = 'lunch' | 'home';
@@ -326,13 +332,20 @@ export type CompanionCall = {
   expiresAt: string;
 };
 
-/** `GET /aouerj/v2/companion/calls`, com o passe. */
-export type CompanionCallListResponse = { calls: CompanionCall[] };
+/**
+ * `GET /aouerj/v2/companion/calls`, com o passe. `watching`: quantos alunos
+ * olharam a lista nos últimos 15 minutos, contando quem pergunta.
+ */
+export type CompanionCallListResponse = {
+  calls: CompanionCall[];
+  watching: number;
+};
 
 /** A chamada como quem está dentro a vê. */
 export type CompanionMemberCall = CompanionCall & {
   endedAt: string | null;
-  members: { name: string; host: boolean; you: boolean }[];
+  /** `ref`: o apelido do membro na chamada, para quem chamou tirá-lo. */
+  members: { ref: string; name: string; host: boolean; you: boolean }[];
   feed: {
     name: string;
     phrase: CompanionPhrase;
@@ -375,5 +388,7 @@ export type CompanionPhraseRequest = { phrase: CompanionPhrase };
 /**
  * `POST /aouerj/v2/companion/calls/:id/reports`: com a chave de membro (conta
  * uma vez por membro) ou, de fora, com um token. Responde `OkResponse`.
+ * Assédio denunciado de dentro tira a chamada do ar na hora; outro motivo,
+ * com duas pessoas de dentro. A denúncia de fora vai só para a moderação.
  */
 export type CompanionReportRequest = { reason: CompanionReportReason };

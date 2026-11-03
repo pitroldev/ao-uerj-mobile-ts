@@ -10,10 +10,13 @@ import {
   isListed,
   type Call,
   type CallReport,
+  type DayStats,
 } from '../src/modules/companion/domain.ts';
 import type {
   CallReportRepository,
   CallRepository,
+  CompanionStatsRepository,
+  WatcherRepository,
 } from '../src/modules/companion/ports.ts';
 import type { Message } from '../src/modules/mural/domain.ts';
 import type { MessageRepository } from '../src/modules/mural/ports.ts';
@@ -179,6 +182,8 @@ export function memoryRepositories(clock = manualClock()) {
       counters,
       calls: companion.calls,
       callReports: companion.reports,
+      companionStats: companion.stats,
+      watched: companion.watched,
     },
     repositories: {
       messages: messageRepository,
@@ -190,6 +195,8 @@ export function memoryRepositories(clock = manualClock()) {
       issuanceCounters: memoryCounter(counters),
       companionCalls: companion.callRepository,
       companionReports: companion.reportRepository,
+      companionStats: companion.statsRepository,
+      companionWatchers: companion.watcherRepository,
     },
   };
 }
@@ -254,6 +261,20 @@ export function memoryCompanion() {
       const call = calls.get(callId);
       if (call && !call.hiddenAt) call.hiddenAt = now;
     },
+    async expel(callId, member) {
+      const call = calls.get(callId);
+      if (!call) return;
+      call.members = call.members.filter(
+        item => item.host || item.id !== member,
+      );
+      if (!call.removed.includes(member)) call.removed.push(member);
+    },
+    async mark(callId, field, now) {
+      const call = calls.get(callId);
+      if (!call || call[field]) return false;
+      call[field] = now;
+      return true;
+    },
   };
 
   let sequence = 0;
@@ -264,9 +285,51 @@ export function memoryCompanion() {
     async listRecent(limit) {
       return [...reports].reverse().slice(0, limit);
     },
+    async markHidden(callId) {
+      for (const report of reports)
+        if (report.callId === callId) report.hidden = true;
+    },
   };
 
-  return { calls, reports, callRepository, reportRepository };
+  // os números do dia e quem olhou a lista, como no MongoDB
+  const stats = new Map<string, DayStats['counts']>();
+  const statsRepository: CompanionStatsRepository = {
+    async add(day, counts) {
+      const current = stats.get(day) ?? {};
+      for (const [key, value] of Object.entries(counts))
+        current[key as keyof typeof current] =
+          (current[key as keyof typeof current] ?? 0) + (value ?? 0);
+      stats.set(day, current);
+    },
+    async listRecent(days) {
+      return [...stats.entries()]
+        .sort(([a], [b]) => b.localeCompare(a))
+        .slice(0, days)
+        .map(([day, counts]) => ({ day, counts: { ...counts } }));
+    },
+  };
+  const watched = new Map<string, Date>();
+  const watcherRepository: WatcherRepository = {
+    async see(viewer, now, until) {
+      const before = watched.get(viewer);
+      watched.set(viewer, until);
+      return !before || before <= now;
+    },
+    async count(now) {
+      return [...watched.values()].filter(until => until > now).length;
+    },
+  };
+
+  return {
+    calls,
+    reports,
+    stats,
+    watched,
+    callRepository,
+    reportRepository,
+    statsRepository,
+    watcherRepository,
+  };
 }
 
 /** O que só vale uma vez, como no MongoDB. */

@@ -5,6 +5,8 @@ import type {
 import type {
   CallReportRepository,
   CallRepository,
+  CompanionStatsRepository,
+  WatcherRepository,
 } from '../../../modules/companion/ports.ts';
 import type { MessageRepository } from '../../../modules/mural/ports.ts';
 import type { ErrorReportRepository } from '../../../modules/reports/ports.ts';
@@ -13,6 +15,8 @@ import type { TeacherRepository } from '../../../modules/teachers/ports.ts';
 import {
   createCallReportRepository,
   createCallRepository,
+  createCompanionStatsRepository,
+  createWatcherRepository,
 } from './companionRepository.ts';
 import { createErrorReportRepository } from './errorReportRepository.ts';
 import { createIssuanceCounterRepository } from './issuanceCounterRepository.ts';
@@ -33,6 +37,8 @@ export type Repositories = {
   issuanceCounters: IssuanceCounter;
   companionCalls: CallRepository;
   companionReports: CallReportRepository;
+  companionStats: CompanionStatsRepository;
+  companionWatchers: WatcherRepository;
 };
 
 export function createMongoRepositories(models: Models): Repositories {
@@ -46,5 +52,7 @@ export function createMongoRepositories(models: Models): Repositories {
     issuanceCounters: createIssuanceCounterRepository(models.issuanceCounters),
     companionCalls: createCallRepository(models.companionCalls),
     companionReports: createCallReportRepository(models.companionReports),
+    companionStats: createCompanionStatsRepository(models.companionStats),
+    companionWatchers: createWatcherRepository(models.companionWatchers),
   };
 }

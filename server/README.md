@@ -160,9 +160,14 @@ tem 10 tentativas erradas a cada 15 minutos (acertar não conta).
   origem própria e sem buscar nada na rede, então não lê o cookie nem as
   outras páginas. Só abre o anexo do próprio relato.
 - **Sugestões:** numa aba ao lado, das mais novas às mais antigas.
-- **Denúncias:** a terceira aba, com as denúncias da Companhia agora dos
-  últimos 30 dias: o motivo, a chamada como estava (sem as chaves) e se ela
-  saiu do ar.
+- **Companhia:** a terceira aba. Em cima, os números dos últimos 14 dias
+  (quem olhou a lista e quantos a acharam vazia, mesas e voltas abertas,
+  quantas tiveram companhia, chegaram ao ponto e "Cheguei em casa", quem foi
+  tirado, denúncias e chamadas fora do ar) e, no dia mais recente, quem olhou
+  em cada hora. Embaixo, as denúncias dos últimos 30 dias: o motivo, de onde
+  veio (de quem foi junto, de quem chamou ou de fora), a chamada como estava
+  (sem as chaves) e se ela saiu do ar, com o botão "Tirar do ar" enquanto a
+  chamada valer.
 
 As páginas são HTML montado no servidor (`http/aouerj/admin/`), sem
 JavaScript, com as cores dos temas claro e escuro do app. Os relatos antigos
@@ -259,6 +264,11 @@ depois da última aula da noite (`home`). O servidor não sabe quem é ninguém:
   para o app atualizar a lista sem gastar um token a cada 20 segundos. O passe
   leva um HMAC tirado da chave privada do emissor e não fica guardado; a
   troca de chave não derruba os passes da hora.
+- **"De olho agora":** a lista diz em `watching` quantos alunos a olharam nos
+  últimos 15 minutos, contando quem pergunta. Conta pelo SHA-256 do passe,
+  guardado só por esses 15 minutos (coleção `companionwatchers`, índice TTL):
+  o passe não se liga a ninguém, e o número serve para quem pensa em abrir
+  uma mesa saber que há gente olhando.
 - **Os prazos:** a chamada aparece na lista 1 hora antes do horário e sai 30
   minutos depois (a mesa) ou 10 minutos depois da saída (a volta); some de
   vez, do banco também (índice TTL), 30 minutos depois na mesa e 2 horas
@@ -273,26 +283,47 @@ depois da última aula da noite (`home`). O servidor não sabe quem é ninguém:
   ela.
 - **Recados prontos**, sem conversa livre: `on_my_way`, `at_spot`, `late` e,
   só na volta, `home_safe`. A chamada guarda os 60 mais recentes.
-- **Denúncias:** uma por membro (de fora, cada uma gasta um token); com três,
-  a chamada sai do ar. Cada denúncia guarda, por 30 dias, o que a chamada era
-  (tipo, horário, ponto, destino, recado e os primeiros nomes), sem as chaves,
-  para a aba "Denúncias" de `/aouerj/admin`.
-- **O teto:** 500 chamadas valendo ao mesmo tempo (503 `companion_full`). As
-  gravações dividem o limite por IP da v2 (`RATE_LIMIT_PER_MINUTE`).
+- **Denúncias:** uma por membro (de fora, cada uma gasta um token). Assédio
+  denunciado por quem foi junto tira a chamada do ar na hora; outro motivo,
+  com duas pessoas de dentro (quem chamou não conta). A denúncia de fora não
+  tira nada sozinha, porque uma pessoa só, com três tokens, derrubaria
+  qualquer chamada: ela vai para a moderação, que tira a chamada do ar pela
+  aba "Companhia" de `/aouerj/admin`. Cada denúncia guarda, por 30 dias, o que
+  a chamada era (tipo, horário, ponto, destino, recado e os primeiros nomes) e
+  de onde veio, sem as chaves.
+- **Tirar alguém:** cada membro tem um apelido ao acaso (`ref`, 11
+  caracteres) que só quem está na chamada vê. Quem chamou tira alguém por ele
+  (`POST …/members/:ref/remove`); o id de quem saiu fica em `removed`, e a
+  chave dele passa a receber 403 `removed_from_call`.
+- **Os números do dia** (coleção `companionstats`, um documento por dia de
+  São Paulo, meio ano): só contagens, sem id, nome, recado ou hora exata.
+  Abertas por tipo, chamadas que chegaram a duas pessoas e que lotaram,
+  entradas, saídas, encerradas, tirados, cada recado pronto, chamadas com um
+  "Cheguei no ponto", denúncias por origem, fora do ar por denúncia ou pela
+  moderação, aberturas recusadas pelo teto e, por hora, quem chegou à lista e
+  quem a achou vazia. Uma falha ao gravá-los não atrapalha o pedido.
+- **O teto:** 500 chamadas valendo ao mesmo tempo (503 `companion_full`).
+- **Os limites:** o token já é o limite de quem pede o passe, abre e entra,
+  então o IP tem só um teto folgado (`COMPANION_IP_LIMIT_PER_MINUTE`, 1200),
+  porque o Wi-Fi da UERJ e o CGNAT das operadoras põem centenas de alunos num
+  IP só. O que usa a chave de membro (recados, sair, tirar, denunciar de
+  dentro) conta por chave (`COMPANION_MEMBER_LIMIT_PER_MINUTE`, 30).
 
-| Rota                                          | Com            | O que faz                                                         |
-| --------------------------------------------- | -------------- | ----------------------------------------------------------------- |
-| `POST /aouerj/v2/companion/pass`              | token          | O passe de uma hora                                               |
-| `GET /aouerj/v2/companion/calls`              | passe          | As chamadas na lista, a mais próxima primeiro; 401 `invalid_pass` |
-| `POST /aouerj/v2/companion/calls`             | token          | Abre (201): a chamada e a chave de membro                         |
-| `GET /aouerj/v2/companion/calls/:id`          | chave          | A chamada por dentro: os primeiros nomes e os recados             |
-| `POST /aouerj/v2/companion/calls/:id/members` | token          | Entra (201); 409 `call_full` ou `call_closed`                     |
-| `POST /aouerj/v2/companion/calls/:id/phrases` | chave          | Manda um recado pronto; 409 `call_ended`                          |
-| `POST /aouerj/v2/companion/calls/:id/leave`   | chave          | Sai; quem chamou encerra para todos                               |
-| `POST /aouerj/v2/companion/calls/:id/reports` | chave ou token | Denuncia, com o motivo                                            |
+| Rota                                                      | Com                  | O que faz                                                         |
+| --------------------------------------------------------- | -------------------- | ----------------------------------------------------------------- |
+| `POST /aouerj/v2/companion/pass`                          | token                | O passe de uma hora                                               |
+| `GET /aouerj/v2/companion/calls`                          | passe                | As chamadas na lista, a mais próxima primeiro; 401 `invalid_pass` |
+| `POST /aouerj/v2/companion/calls`                         | token                | Abre (201): a chamada e a chave de membro                         |
+| `GET /aouerj/v2/companion/calls/:id`                      | chave                | A chamada por dentro: os primeiros nomes e os recados             |
+| `POST /aouerj/v2/companion/calls/:id/members`             | token                | Entra (201); 409 `call_full` ou `call_closed`                     |
+| `POST /aouerj/v2/companion/calls/:id/phrases`             | chave                | Manda um recado pronto; 409 `call_ended`                          |
+| `POST /aouerj/v2/companion/calls/:id/leave`               | chave                | Sai; quem chamou encerra para todos                               |
+| `POST /aouerj/v2/companion/calls/:id/members/:ref/remove` | chave de quem chamou | Tira alguém; 403 `not_the_host`, 409 `cannot_remove_host`         |
+| `POST /aouerj/v2/companion/calls/:id/reports`             | chave ou token       | Denuncia, com o motivo                                            |
 
 Sem a chamada (acabou, saiu do ar, nunca existiu): 404 `call_not_found`; uma
-chave que não é dela: 403 `not_a_member`. Os tipos estão em `contract.ts`.
+chave que não é dela: 403 `not_a_member`; uma chave tirada por quem chamou:
+403 `removed_from_call`. Os tipos estão em `contract.ts`.
 
 ### Consultar o que está no ar
 
@@ -376,9 +407,11 @@ O que mudou de propósito:
   do uso (nome 200, mensagem 10 000, descrição 20 000), para nada que passava
   antes ser recusado agora.
 - **O que fica guardado na Companhia agora:** cada chamada (tipo, horário,
-  ponto, destino, recado, os primeiros nomes, os recados prontos e os hashes
-  das chaves de membro) até pouco depois do horário, quando o índice TTL a
-  apaga; as denúncias, por 30 dias. Sem IP, sem conta, sem localização.
+  ponto, destino, recado, os primeiros nomes, os apelidos, os recados prontos
+  e os hashes das chaves de membro) até pouco depois do horário, quando o
+  índice TTL a apaga; as denúncias, por 30 dias; o hash do passe de quem olhou
+  a lista, por 15 minutos; e as contagens de cada dia, por meio ano. Sem IP,
+  sem conta, sem localização.
 - **O que fica guardado:** as mensagens do mural (com o nome que o aluno
   escolheu), os relatos (página, descrição, e-mail opcional e os anexos em
   `AOreports/`) e as sugestões (nome, texto e e-mail opcional), sem prazo de

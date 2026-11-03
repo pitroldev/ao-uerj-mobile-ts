@@ -83,6 +83,7 @@ function httpSettingsOf(config: Config): HttpSettings {
     publicUrl: config.http.publicUrl,
     adminToken: config.http.adminToken,
     writesPerMinute: config.http.rateLimitPerMinute,
+    companionLimits: config.http.companion,
     generationsPerMinute: config.generator.perMinute,
     tokenRequestsPerMinute: config.studentAccess.issuance.perMinute,
     tokenBatchSize: config.studentAccess.issuance.batchSize,
@@ -166,6 +167,8 @@ export function createServer(
     companion: createCompanion({
       calls: repositories.companionCalls,
       reports: repositories.companionReports,
+      stats: repositories.companionStats,
+      watchers: repositories.companionWatchers,
     }),
   };
 

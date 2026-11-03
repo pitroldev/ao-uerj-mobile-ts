@@ -8,7 +8,7 @@ import type { Companion } from '../../../../modules/companion/ports.ts';
 import type { DatabaseHealth } from '../aouerj/status.ts';
 import type { StudentAuthResponse } from '../contract.ts';
 import { notFound } from '../errors.ts';
-import { perMinuteLimit, requireDatabase } from '../middleware.ts';
+import { perKeyLimit, perMinuteLimit, requireDatabase } from '../middleware.ts';
 import { companionRoutes } from './companion.ts';
 import { requireStudent } from './studentAuth.ts';
 import { tokenRoutes } from './tokens.ts';
@@ -25,7 +25,7 @@ export function createV2Router({
   database,
   tokenRequestsPerMinute,
   tokenBatchSize,
-  writesPerMinute,
+  companionLimits,
 }: {
   access: StudentAccess;
   tokens: TokenIssuer;
@@ -33,8 +33,11 @@ export function createV2Router({
   database: DatabaseHealth;
   tokenRequestsPerMinute: number;
   tokenBatchSize: number;
-  /** Por IP, por minuto: as gravações da v2, juntas. */
-  writesPerMinute: number;
+  /**
+   * A Companhia agora, por minuto: um teto folgado por IP e o limite de cada
+   * chave de membro.
+   */
+  companionLimits: { perIp: number; perMember: number };
 }) {
   const routes = express.Router();
   // toda rota de aluno leva os dois: o gasto do token grava no banco, e sem
@@ -65,7 +68,10 @@ export function createV2Router({
       access,
       withDatabase,
       student,
-      writeLimit: perMinuteLimit(writesPerMinute),
+      campusLimit: perMinuteLimit(companionLimits.perIp),
+      memberLimit: perKeyLimit(companionLimits.perMember, req =>
+        req.get('x-member-key'),
+      ),
     }),
   );
 
