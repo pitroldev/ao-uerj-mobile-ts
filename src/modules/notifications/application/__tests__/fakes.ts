@@ -49,6 +49,7 @@ export function createDevice({
     done: string[];
     portal?: boolean;
     returnWatch?: boolean;
+    companionWatch?: boolean;
   } = { permission, done: [] };
   const device = {
     state,
@@ -84,6 +85,9 @@ export function createDevice({
     }),
     setPortalReturnWatch: jest.fn(async (enabled: boolean) => {
       state.returnWatch = enabled;
+    }),
+    setCompanionWatch: jest.fn(async (enabled: boolean) => {
+      state.companionWatch = enabled;
     }),
     notify: jest.fn(async (_content: NotificationContent) => undefined),
     // como o módulo nativo: limpar a barra também cancela os lembretes

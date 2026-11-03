@@ -3,7 +3,10 @@ import type { AppServices } from '../composition/createAppServices';
 /** Nome da tarefa sem tela (o PortalCheckWorker do Android usa o mesmo). */
 export const PORTAL_CHECK_TASK = 'AoUerjPortalCheck';
 
-/** Dados do PortalCheckWorker: `mode: 'return'` no teste de "Avisar quando voltar". */
+/**
+ * Dados do PortalCheckWorker: `mode: 'return'` no teste de "Avisar quando
+ * voltar"; `mode: 'companion'` no "Me avise se abrirem" da Companhia agora.
+ */
 type TaskData = { mode?: string } | null;
 
 /** Prazo da verificação inteira; o Android encerra a tarefa logo depois. */
@@ -23,6 +26,14 @@ export function createPortalCheckTask(services: () => AppServices) {
     // "Avisar quando voltar": só o teste leve do portal, sem login
     if (data?.mode === 'return') {
       await current.notifications.portalReturn
+        ?.checkInBackground()
+        .catch(() => undefined);
+      return;
+    }
+    // "Me avise se abrirem": só a lista da Companhia agora, sem o portal
+    if (data?.mode === 'companion') {
+      await current.delivery.status.load().catch(() => undefined);
+      await current.notifications.companionWatch
         ?.checkInBackground()
         .catch(() => undefined);
       return;

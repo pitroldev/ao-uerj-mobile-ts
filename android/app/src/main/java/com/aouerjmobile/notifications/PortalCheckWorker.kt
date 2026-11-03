@@ -40,8 +40,11 @@ class PortalCheckWorker(context: Context, params: WorkerParameters) :
     // (inexact if needed), without waiting for the app to open.
     ClassReminders.reschedule(applicationContext)
     // JS keeps the rules (quiet hours, pause, permission, remote switch): this only spares starting
-    // React Native when the check would stop right away.
-    if (isQuietTime() || !AppNotifier.areEnabled(applicationContext)) return Result.success()
+    // React Native when the check would stop right away. The Companhia agora watch runs at night
+    // too: the way home together happens after the last class, often past 22h.
+    val companion = inputData.getString(KEY_MODE) == MODE_COMPANION
+    if ((!companion && isQuietTime()) || !AppNotifier.areEnabled(applicationContext))
+        return Result.success()
     val host = (applicationContext as? ReactApplication)?.reactHost ?: return Result.success()
     // A failed check waits for the next period; retrying sooner would add load to the portal.
     withTimeoutOrNull(TASK_TIMEOUT + START_TIMEOUT) {
@@ -111,9 +114,11 @@ class PortalCheckWorker(context: Context, params: WorkerParameters) :
     private const val START_TIMEOUT = 60 * 1000L
     private const val WORK_NAME = "ao-portal-check"
     private const val RETURN_WORK_NAME = "ao-portal-return"
-    /** Same key and value as the task data read in src/app/background/portalCheckTask.ts. */
+    private const val COMPANION_WORK_NAME = "ao-companion-watch"
+    /** Same key and values as the task data read in src/app/background/portalCheckTask.ts. */
     private const val KEY_MODE = "mode"
     private const val MODE_RETURN = "return"
+    private const val MODE_COMPANION = "companion"
     /** No portal check from 22h to 7h. */
     private const val QUIET_START_HOUR = 22
     private const val QUIET_END_HOUR = 7
@@ -161,6 +166,29 @@ class PortalCheckWorker(context: Context, params: WorkerParameters) :
               .setInitialDelay(15, TimeUnit.MINUTES)
               .build()
       work.enqueueUniquePeriodicWork(RETURN_WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
+    }
+
+    /**
+     * Companhia agora "Me avise se abrirem": the same task in `companion` mode, every 15 minutes on
+     * a network, also at night. JS reads the list, notifies once and cancels this work; the request
+     * also ends with the student's free window.
+     */
+    fun scheduleCompanionWatch(context: Context, enabled: Boolean) {
+      val work = WorkManager.getInstance(context)
+      if (!enabled) {
+        work.cancelUniqueWork(COMPANION_WORK_NAME)
+        return
+      }
+      val request =
+          PeriodicWorkRequestBuilder<PortalCheckWorker>(15, TimeUnit.MINUTES)
+              .setConstraints(
+                  Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+              )
+              .setInputData(workDataOf(KEY_MODE to MODE_COMPANION))
+              .setInitialDelay(15, TimeUnit.MINUTES)
+              .build()
+      work.enqueueUniquePeriodicWork(
+          COMPANION_WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
     }
   }
 }

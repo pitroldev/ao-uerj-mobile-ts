@@ -10,7 +10,7 @@ import {
   CompanionError,
   firstNameOf,
   isValidName,
-  type CompanionCall,
+  type CallList,
   type MemberCall,
   type Membership,
 } from '../domain/companion';
@@ -40,8 +40,9 @@ export function useMemberships(): readonly Membership[] {
 }
 
 /**
- * As chamadas abertas agora. Atualiza a cada 20 s enquanto `poll` (a tela
- * na frente); o passe de leitura gasta um token por hora de uso.
+ * As chamadas abertas agora e quantos estão de olho. Atualiza a cada 20 s
+ * enquanto `poll` (a tela na frente); o passe de leitura gasta um token por
+ * hora de uso.
  */
 export function useCompanionCalls({
   enabled = true,
@@ -51,7 +52,7 @@ export function useCompanionCalls({
   const { companion } = useAppServices();
   const { account } = useIdentity();
   const scope = account?.scope ?? 'signed-out';
-  return useQuery<CompanionCall[]>({
+  return useQuery<CallList>({
     queryKey: companionKeys.calls(scope),
     queryFn: ({ signal }) => companion.list({ signal }),
     enabled: enabled && companion.supported && Boolean(account),

@@ -76,6 +76,12 @@ function setup({
       return 'waiting';
     }),
   };
+  const companionWatch = {
+    checkInBackground: jest.fn(async () => {
+      calls.push('companion-check');
+      return 'waiting';
+    }),
+  };
   const current = {
     initialize: jest.fn(async () => {
       calls.push('initialize');
@@ -94,6 +100,7 @@ function setup({
     notifications: {
       portalCheck: supported ? check : null,
       portalReturn: supported ? portalReturn : null,
+      companionWatch: supported ? companionWatch : null,
     },
   } as unknown as AppServices;
   return {
@@ -102,6 +109,7 @@ function setup({
     check,
     source,
     portalReturn,
+    companionWatch,
   };
 }
 
@@ -126,6 +134,14 @@ it('does not touch the network at night, during a pause or with alerts off', asy
   await task();
   expect(calls).toEqual(['can-run', 'flush']);
   expect(source.fetch).not.toHaveBeenCalled();
+});
+
+it('only reads the Companhia agora list in the companion mode, without signing in or the portal', async () => {
+  const { task, calls, companionWatch, check } = setup();
+  await task({ mode: 'companion' });
+  expect(companionWatch.checkInBackground).toHaveBeenCalledTimes(1);
+  expect(calls).toEqual(['companion-check']);
+  expect(check.run).not.toHaveBeenCalled();
 });
 
 it('does not sign in when the remote switch turned the alerts off', async () => {

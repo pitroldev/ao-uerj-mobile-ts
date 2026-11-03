@@ -23,7 +23,7 @@ function memberCall(id: string, extra: Partial<MemberCall> = {}): MemberCall {
     listedUntil: NOW + 50 * MINUTE,
     expiresAt: NOW + 50 * MINUTE,
     endedAt: null,
-    members: [{ name: 'Júlia', host: true, you: true }],
+    members: [{ ref: 'ref-julia01', name: 'Júlia', host: true, you: true }],
     feed: [],
     ...extra,
   };
@@ -44,7 +44,7 @@ function setup(saved: Membership[] = []) {
       pass: `pass-${++passes}`,
       expiresAt: now + 60 * MINUTE,
     })),
-    list: jest.fn(async () => []),
+    list: jest.fn(async () => ({ calls: [], watching: 1 })),
     open: jest.fn(async () => ({
       call: memberCall('mine'),
       memberKey: 'k-mine',
@@ -56,6 +56,7 @@ function setup(saved: Membership[] = []) {
     read: jest.fn(async (callId: string) => memberCall(callId)),
     leave: jest.fn(async () => undefined),
     say: jest.fn(async (callId: string) => memberCall(callId)),
+    remove: jest.fn(async (callId: string) => memberCall(callId)),
     report: jest.fn(async () => undefined),
   } satisfies CompanionServerPort;
   const calls = new CompanionCalls({ server, store, now: () => now });
@@ -187,10 +188,12 @@ it('leaves even when the call already ended, and the logout leaves every call', 
   expect(calls.getSnapshot()).toEqual([]);
 });
 
-it('reports from inside with the member key and from outside with a token', async () => {
+it('reports from inside with the member key and from outside with a token, once from outside', async () => {
   const { calls, server } = setup();
+  expect(calls.hasReported('stranger')).toBe(false);
   await calls.report('stranger', 'spam');
   expect(server.report).toHaveBeenLastCalledWith('stranger', 'spam', null);
+  expect(calls.hasReported('stranger')).toBe(true);
   await calls.join('inside', 'Marina');
   await calls.report('inside', 'harassment');
   expect(server.report).toHaveBeenLastCalledWith(
@@ -198,6 +201,40 @@ it('reports from inside with the member key and from outside with a token', asyn
     'harassment',
     'k-inside',
   );
+  // de dentro, o servidor já conta uma vez por membro
+  expect(calls.hasReported('inside')).toBe(false);
+});
+
+it('the host removes someone with the own key; a removed member forgets the call', async () => {
+  const { calls, server, stored } = setup();
+  await expect(calls.remove('mine', 'ref-lucas01')).rejects.toEqual(
+    new CompanionError('not_host'),
+  );
+  await calls.open({
+    kind: 'lunch',
+    at: NOW + 20 * MINUTE,
+    spot: 'ru',
+    destination: null,
+    note: '',
+    capacity: 6,
+    name: 'Júlia',
+  });
+  await calls.remove('mine', 'ref-lucas01');
+  expect(server.remove).toHaveBeenLastCalledWith(
+    'mine',
+    'k-mine',
+    'ref-lucas01',
+  );
+
+  // quem foi tirado: a leitura recusa, a participação some e a tela sabe
+  await calls.join('other', 'Marina');
+  server.read.mockRejectedValueOnce(new CompanionError('removed'));
+  await expect(calls.read('other')).rejects.toEqual(
+    new CompanionError('removed'),
+  );
+  expect(stored.value.map(item => item.callId)).toEqual(['mine']);
+  expect(calls.wasRemoved('other')).toBe(true);
+  expect(calls.wasRemoved('mine')).toBe(false);
 });
 
 it('tells the listeners when the memberships change', async () => {

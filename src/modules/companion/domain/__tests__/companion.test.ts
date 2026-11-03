@@ -4,11 +4,19 @@ import {
   firstNameOf,
   hasContact,
   isValidName,
+  similarCall,
   type CompanionCall,
   type Membership,
 } from '../companion';
 import { buildCompanionReminderPlan } from '../reminders';
-import { freeWindow, timeOptions } from '../window';
+import {
+  classAt,
+  customTime,
+  freeWindow,
+  latestMinute,
+  timeOptions,
+  watchUntil,
+} from '../window';
 
 const MINUTE = 60_000;
 
@@ -92,6 +100,7 @@ function lesson(
 
 // segunda, 23 de novembro de 2026
 const monday = (h: number, m: number) => new Date(2026, 10, 23, h, m);
+const at = (h: number, m: number) => monday(h, m).getTime();
 const SCHEDULE = [
   lesson('Cálculo II', 1, '14:20', '16:00'),
   lesson('Álgebra Linear', 1, '16:10', '17:50', 'Sala 6031 B'),
@@ -143,17 +152,22 @@ const clock = (ms: number) => {
 };
 
 describe('os horários que a folha oferece', () => {
-  it('a mesa termina 40 minutos antes da próxima aula', () => {
+  it('a mesa vai nos quartos de hora e termina 40 minutos antes da próxima aula', () => {
     const now = monday(12, 5);
     const options = timeOptions('lunch', freeWindow(SCHEDULE, now), now);
     expect(options.map(clock)).toEqual([
       '12:15',
-      '12:25',
-      '12:35',
-      '12:50',
-      '13:05',
-      '13:35',
+      '12:30',
+      '12:45',
+      '13:00',
+      '13:15',
+      '13:30',
     ]);
+    // quem abre às 12:08 vê os mesmos horários de quem abriu às 12:02
+    const other = monday(12, 2);
+    expect(
+      timeOptions('lunch', freeWindow(SCHEDULE, other), other).map(clock),
+    ).toEqual(['12:15', '12:30', '12:45', '13:00', '13:15', '13:30']);
     // às 13:30, só o que termina antes das 13:40
     const later = monday(13, 30);
     expect(
@@ -185,9 +199,9 @@ describe('os horários que a folha oferece', () => {
     expect(options.map(clock)).toEqual(['23:45', '23:50', '23:55']);
     const morning = monday(9, 0);
     const lunch = timeOptions('home', freeWindow(SCHEDULE, morning), morning);
-    expect(lunch.every(at => at <= morning.getTime() + 3 * 60 * MINUTE)).toBe(
-      true,
-    );
+    expect(
+      lunch.every(option => option <= morning.getTime() + 3 * 60 * MINUTE),
+    ).toBe(true);
   });
 });
 
@@ -247,5 +261,124 @@ describe('os avisos da chamada', () => {
         text,
       }).reminders,
     ).toEqual([]);
+  });
+});
+
+describe('o horário digitado ("Outro horário")', () => {
+  it('vale de agora até 3 horas daqui, no mesmo dia', () => {
+    const now = monday(10, 0);
+    expect(customTime(now, 12 * 60 + 30)).toEqual({ at: at(12, 30) });
+    expect(customTime(now, 9 * 60 + 30)).toEqual({ refused: 'past' });
+    expect(customTime(now, 10 * 60)).toEqual({ refused: 'past' });
+    expect(customTime(now, 13 * 60 + 30)).toEqual({ refused: 'late' });
+    expect(latestMinute(now)).toBe(12 * 60 + 59);
+    // perto da meia-noite, o limite é o fim do dia
+    expect(latestMinute(monday(22, 30))).toBe(23 * 60 + 59);
+  });
+
+  it('diz quando o horário cai numa aula da grade', () => {
+    const now = monday(12, 5);
+    expect(classAt(SCHEDULE, now, 15 * 60)).toMatchObject({
+      name: 'Cálculo II',
+      end: 16 * 60,
+    });
+    expect(classAt(SCHEDULE, now, 13 * 60)).toBeNull();
+    // a aula acaba às 16:00: nesse minuto já não está em aula
+    expect(classAt(SCHEDULE, now, 16 * 60)).toBeNull();
+  });
+});
+
+describe('a chamada parecida, para entrar em vez de abrir outra', () => {
+  const listed = (extra: Partial<CompanionCall>): CompanionCall => ({
+    id: 'a',
+    kind: 'lunch',
+    at: at(12, 15),
+    spot: 'ru',
+    destination: null,
+    note: '',
+    host: 'Júlia',
+    going: 2,
+    capacity: 6,
+    listedUntil: at(12, 45),
+    expiresAt: at(12, 45),
+    ...extra,
+  });
+  const now = at(12, 5);
+
+  it('o mesmo ponto até 15 minutos de diferença, com vaga; a mais perto primeiro', () => {
+    const calls = [
+      listed({ id: 'longe', at: at(12, 30) }),
+      listed({ id: 'perto', at: at(12, 20), going: 1 }),
+      listed({ id: 'cheia', at: at(12, 15), going: 6 }),
+      listed({ id: 'lago', at: at(12, 15), spot: 'lago' }),
+    ];
+    const choice = {
+      kind: 'lunch' as const,
+      spot: 'ru' as const,
+      at: at(12, 15),
+      destination: null,
+    };
+    expect(similarCall(calls, choice, now)?.id).toBe('perto');
+    // no empate de horário, a que tem mais gente
+    expect(
+      similarCall(
+        [listed({ id: 'um', going: 1 }), listed({ id: 'tres', going: 3 })],
+        choice,
+        now,
+      )?.id,
+    ).toBe('tres');
+    // meia hora depois já é outra mesa
+    expect(similarCall(calls, { ...choice, at: at(12, 50) }, now)).toBeNull();
+  });
+
+  it('na volta, só com o mesmo destino', () => {
+    const home = listed({
+      id: 'v',
+      kind: 'home',
+      spot: 'concha',
+      destination: 'metro',
+      at: at(22, 15),
+      listedUntil: at(22, 25),
+    });
+    const choice = {
+      kind: 'home' as const,
+      spot: 'concha' as const,
+      at: at(22, 15),
+    };
+    expect(
+      similarCall([home], { ...choice, destination: 'metro' }, at(22, 0))?.id,
+    ).toBe('v');
+    expect(
+      similarCall([home], { ...choice, destination: 'trem' }, at(22, 0)),
+    ).toBeNull();
+  });
+});
+
+describe('até quando o "Me avise" vigia a lista', () => {
+  it('a mesa, até 40 minutos antes da próxima aula; a volta, 40 minutos depois da última', () => {
+    const lunch = monday(12, 5);
+    expect(
+      clock(watchUntil('lunch', freeWindow(SCHEDULE, lunch), lunch)!),
+    ).toBe('13:40');
+    const night = monday(21, 40);
+    expect(clock(watchUntil('home', freeWindow(SCHEDULE, night), night)!)).toBe(
+      '22:50',
+    );
+    // perto do limite, não vale pedir
+    const late = monday(13, 30);
+    expect(watchUntil('lunch', freeWindow(SCHEDULE, late), late)).toBeNull();
+    // sem aula no dia: a mesa nas próximas 2 horas, a volta na próxima hora
+    const free = new Date(2026, 10, 25, 11, 0);
+    expect(clock(watchUntil('lunch', freeWindow(SCHEDULE, free), free)!)).toBe(
+      '13:00',
+    );
+    expect(clock(watchUntil('home', freeWindow(SCHEDULE, free), free)!)).toBe(
+      '12:00',
+    );
+    // nunca passa da meia-noite
+    const midnight = monday(23, 30);
+    expect(
+      clock(watchUntil('home', freeWindow(SCHEDULE, midnight), midnight)!),
+    ).toBe('23:59');
   });
 });

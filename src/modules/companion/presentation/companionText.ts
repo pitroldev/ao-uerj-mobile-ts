@@ -202,6 +202,12 @@ export function companionErrorMessage(error: unknown): string {
         return 'Telefone, @ e links ficam fora: combine aqui só o encontro.';
       case 'not_member':
         return 'Você não está mais nessa chamada.';
+      case 'removed':
+        return 'Quem chamou tirou você desta chamada.';
+      case 'not_host':
+        return 'Só quem chamou tira alguém da chamada.';
+      case 'member_gone':
+        return 'Essa pessoa já tinha saído da chamada.';
       case 'busy':
         return 'Há chamadas demais abertas agora. Tente de novo em alguns minutos.';
       default:
@@ -211,6 +217,50 @@ export function companionErrorMessage(error: unknown): string {
   if (error instanceof AppError && error.code === 'STUDENT_PROOF_UNAVAILABLE')
     return 'Não foi possível confirmar agora que você é aluno da UERJ, sem dizer quem é. Abra o app com a internet ligada e tente de novo em alguns minutos.';
   return errorMessage(error);
+}
+
+/**
+ * Os outros alunos de olho na lista agora (o número do servidor conta quem
+ * pergunta): "12 alunos de olho agora", ou nada se só há você.
+ */
+export function watchingText(watching: number): string | null {
+  const others = watching - 1;
+  if (others < 1) return null;
+  return `${others} ${others === 1 ? 'aluno' : 'alunos'} de olho agora`;
+}
+
+/** O pedido de "Me avise se abrirem", em curso. */
+export function watchRequestText(kind: CallKind, until: number): string {
+  return kind === 'lunch'
+    ? `Você vai ser avisado se abrirem mesa até as ${clockText(until)}.`
+    : `Você vai ser avisado se chamarem uma volta até as ${clockText(until)}.`;
+}
+
+/** O botão de pedir o aviso. */
+export const WATCH_CTA: Readonly<Record<CallKind, string>> = {
+  lunch: 'Me avise se abrirem',
+  home: 'Me avise se chamarem',
+};
+
+/** O aviso da tarefa sem tela: abriram uma chamada na janela pedida. */
+export function companionWatchMessage(call: CompanionCall, count: number) {
+  const title =
+    call.kind === 'lunch'
+      ? count === 1
+        ? 'Abriram uma mesa na sua janela'
+        : `Abriram ${count} mesas na sua janela`
+      : count === 1
+        ? 'Chamaram uma volta para hoje'
+        : `Chamaram ${count} voltas para hoje`;
+  return {
+    id: 'companion:watch',
+    channel: 'companion' as const,
+    title,
+    body: `${callTitle(call)} · ${call.host} chamou · ${goingText(call.going)}.`,
+    publicTitle: 'Companhia agora',
+    publicBody: 'Uma chamada abriu na sua janela livre.',
+    target: 'companion' as const,
+  };
 }
 
 /** Os textos dos lembretes agendados no aparelho. */

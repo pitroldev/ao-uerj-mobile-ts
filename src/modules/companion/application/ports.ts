@@ -1,5 +1,5 @@
 import type {
-  CompanionCall,
+  CallList,
   MemberCall,
   Membership,
   OpenCallRequest,
@@ -20,8 +20,11 @@ export type JoinedCall = { call: MemberCall; memberKey: string };
 export interface CompanionServerPort {
   /** Gasta um token: o passe que lê a lista por uma hora. */
   pass(): Promise<{ pass: string; expiresAt: number }>;
-  /** `CompanionError('pass_expired')` com o passe vencido. */
-  list(pass: string, options?: RequestOptions): Promise<CompanionCall[]>;
+  /**
+   * As chamadas e quantos estão de olho; `CompanionError('pass_expired')`
+   * com o passe vencido.
+   */
+  list(pass: string, options?: RequestOptions): Promise<CallList>;
   open(request: OpenCallRequest): Promise<JoinedCall>;
   join(callId: string, name: string): Promise<JoinedCall>;
   read(
@@ -31,6 +34,8 @@ export interface CompanionServerPort {
   ): Promise<MemberCall>;
   leave(callId: string, memberKey: string): Promise<void>;
   say(callId: string, memberKey: string, phrase: PhraseId): Promise<MemberCall>;
+  /** Quem chamou (pela chave dele) tira alguém pelo apelido. */
+  remove(callId: string, memberKey: string, ref: string): Promise<MemberCall>;
   /** Com a chave, conta uma vez por membro; sem ela, gasta um token. */
   report(
     callId: string,

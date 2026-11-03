@@ -49,11 +49,33 @@ const call = (extra: Partial<CompanionCall>): CompanionCall => ({
 });
 
 let mockMemberships: Membership[] = [];
-const mockList = jest.fn(async () => [
-  call({}),
-  call({ id: 'a2', at: at(12, 30), spot: 'lago', going: 4 }),
-  call({ id: 'a3', at: at(13, 0), going: 1 }),
-]);
+const defaultList = async () => ({
+  watching: 5,
+  calls: [
+    call({}),
+    call({ id: 'a2', at: at(12, 30), spot: 'lago', going: 4 }),
+    call({ id: 'a3', at: at(13, 0), going: 1 }),
+  ],
+});
+const mockList = jest.fn(defaultList);
+const mockSaved = new Map<string, unknown>();
+const mockPreferences = {
+  read: jest.fn(
+    async (_scope: string, key: string) => mockSaved.get(key) ?? null,
+  ),
+  write: jest.fn(async (_scope: string, key: string, value: unknown) => {
+    mockSaved.set(key, value);
+  }),
+};
+const mockWatchSnapshot = { scope: 'account-1', request: null };
+const mockWatch = {
+  load: jest.fn(async () => undefined),
+  subscribe: () => () => undefined,
+  getSnapshot: () => mockWatchSnapshot,
+  request: jest.fn(async () => 'requested' as const),
+  cancel: jest.fn(async () => undefined),
+  satisfied: jest.fn(async () => undefined),
+};
 let mockSupported = true;
 jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useAppServices: () => ({
@@ -64,6 +86,8 @@ jest.mock('@root/app/providers/AppServicesProvider', () => ({
       getSnapshot: () => mockMemberships,
       list: mockList,
     },
+    preferences: mockPreferences,
+    notifications: { companionWatch: mockWatch },
   }),
   useIdentity: () => ({ account: { scope: 'account-1' } }),
 }));
@@ -84,13 +108,17 @@ const renderAt = (now: Date) =>
 beforeEach(() => {
   mockMemberships = [];
   mockSupported = true;
+  mockSaved.clear();
+  mockList.mockImplementation(defaultList);
 });
 
 it('shows the open tables in the free lunch window, the nearest first', async () => {
   const user = userEvent.setup();
   await renderAt(new Date(2026, 10, 23, 12, 5));
   expect(
-    await screen.findByText('Livre até 14:20 · 3 mesas abertas'),
+    await screen.findByText(
+      'Livre até 14:20 · 3 mesas abertas · 4 alunos de olho agora',
+    ),
   ).toBeOnTheScreen();
   const rows = screen.getAllByText(/^Mesa no/);
   expect(rows.map(row => row.props.children)).toEqual([
@@ -110,11 +138,59 @@ it('stays out of the way in class', async () => {
   expect(mockList).not.toHaveBeenCalled();
 });
 
-it('says nothing when nobody called', async () => {
-  mockList.mockResolvedValueOnce([]);
+it('invites to open the first table when nobody called, or to ask for a heads-up', async () => {
+  const user = userEvent.setup();
+  mockList.mockResolvedValueOnce({ calls: [], watching: 9 });
   await renderAt(new Date(2026, 10, 23, 12, 5));
+  expect(
+    await screen.findByText('Livre até 14:20 · nenhuma mesa aberta'),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText('Às 12:15 no RU · quem estiver livre vê na hora'),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText(
+      '8 alunos de olho agora: quem abrir primeiro junta a turma.',
+    ),
+  ).toBeOnTheScreen();
+  await user.press(screen.getByText('Abrir a primeira mesa'));
+  expect(mockNavigate).toHaveBeenLastCalledWith('Companhia agora', {
+    create: 'lunch',
+  });
+  await user.press(screen.getByRole('button', { name: 'Me avise se abrirem' }));
+  expect(mockWatch.request).toHaveBeenCalledWith('lunch', at(13, 40), []);
+});
+
+it('"Agora não" hides the invite until the end of the day', async () => {
+  const user = userEvent.setup();
+  mockList.mockResolvedValue({ calls: [], watching: 1 });
+  await renderAt(new Date(2026, 10, 23, 12, 5));
+  await user.press(await screen.findByRole('button', { name: 'Agora não' }));
+  expect(mockPreferences.write).toHaveBeenCalledWith(
+    'account-1',
+    'companion-invite',
+    '2026-11-23',
+  );
+  await waitFor(() =>
+    expect(screen.queryByText('Companhia agora')).not.toBeOnTheScreen(),
+  );
+});
+
+it('stays hidden the rest of the day after "Agora não", and comes back the next day', async () => {
+  mockSaved.set('companion-invite', '2026-11-22');
+  mockList.mockResolvedValue({ calls: [], watching: 1 });
+  await renderAt(new Date(2026, 10, 23, 12, 40));
+  // o "Agora não" foi ontem: o convite volta
+  expect(await screen.findByText('Abrir a primeira mesa')).toBeOnTheScreen();
+});
+
+it('does not show the invite on the day the student said "Agora não"', async () => {
+  mockSaved.set('companion-invite', '2026-11-23');
+  mockList.mockResolvedValue({ calls: [], watching: 1 });
+  await renderAt(new Date(2026, 10, 23, 12, 40));
+  await waitFor(() => expect(mockPreferences.read).toHaveBeenCalled());
   await waitFor(() => expect(mockList).toHaveBeenCalled());
-  expect(screen.queryByText('Companhia agora')).not.toBeOnTheScreen();
+  expect(screen.queryByText('Abrir a primeira mesa')).not.toBeOnTheScreen();
 });
 
 it('does not exist where the app has no anonymous tokens', async () => {

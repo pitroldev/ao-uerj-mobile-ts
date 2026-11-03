@@ -2,7 +2,7 @@ import {
   CompanionError,
   isCurrent,
   membershipOf,
-  type CompanionCall,
+  type CallList,
   type MemberCall,
   type Membership,
   type OpenCallRequest,
@@ -25,15 +25,23 @@ type Dependencies = {
 /** Preferência da conta: o primeiro nome que o aluno escolheu mostrar. */
 export const COMPANION_NAME_KEY = 'companion-name';
 
+/** Preferência da conta: o dia em que o aluno tocou "Agora não" no convite do Início. */
+export const COMPANION_INVITE_KEY = 'companion-invite';
+
 /** O passe é trocado um minuto antes de vencer. */
 const PASS_MARGIN_MS = 60 * 1000;
 
 const NONE: readonly Membership[] = [];
 
-/** A chamada já não existe para esta chave: a participação se apaga. */
+/**
+ * A chamada já não existe para esta chave (acabou, outra instalação, quem
+ * chamou tirou a pessoa): a participação se apaga.
+ */
 const isGone = (error: unknown) =>
   error instanceof CompanionError &&
-  (error.refusal === 'gone' || error.refusal === 'not_member');
+  (error.refusal === 'gone' ||
+    error.refusal === 'not_member' ||
+    error.refusal === 'removed');
 
 /**
  * A Companhia agora no app: a lista (com o passe de uma hora, um token por
@@ -51,6 +59,13 @@ export class CompanionCalls {
   private hydrated = false;
   private queue: Promise<unknown> = Promise.resolve();
   private listeners = new Set<() => void>();
+  /**
+   * As chamadas denunciadas de fora nesta sessão: a mesma pessoa não
+   * denuncia de novo (cada denúncia de fora gasta um token).
+   */
+  private reported = new Set<string>();
+  /** As chamadas de que quem chamou tirou o aluno: o botão de entrar some. */
+  private removedFrom = new Set<string>();
 
   constructor(private readonly dependencies: Dependencies) {}
 
@@ -78,7 +93,7 @@ export class CompanionCalls {
     return this.memberships.find(item => item.callId === callId);
   }
 
-  async list(options?: RequestOptions): Promise<CompanionCall[]> {
+  async list(options?: RequestOptions): Promise<CallList> {
     const { server } = this.dependencies;
     for (let attempt = 1; ; attempt++) {
       const pass = await this.currentPass();
@@ -134,7 +149,7 @@ export class CompanionCalls {
         options,
       );
     } catch (error) {
-      if (isGone(error)) await this.forget(callId);
+      await this.lost(callId, error);
       throw error;
     }
   }
@@ -164,7 +179,24 @@ export class CompanionCalls {
         phrase,
       );
     } catch (error) {
-      if (isGone(error)) await this.forget(callId);
+      await this.lost(callId, error);
+      throw error;
+    }
+  }
+
+  /** Quem chamou tira alguém da chamada pelo apelido (`ref`). */
+  async remove(callId: string, ref: string): Promise<MemberCall> {
+    await this.load();
+    const membership = this.membership(callId);
+    if (!membership?.host) throw new CompanionError('not_host');
+    try {
+      return await this.dependencies.server.remove(
+        callId,
+        membership.memberKey,
+        ref,
+      );
+    } catch (error) {
+      await this.lost(callId, error);
       throw error;
     }
   }
@@ -178,6 +210,25 @@ export class CompanionCalls {
       reason,
       membership?.memberKey ?? null,
     );
+    if (!membership) this.reported.add(callId);
+  }
+
+  /** Já denunciou esta chamada de fora, nesta sessão do app. */
+  hasReported(callId: string): boolean {
+    return this.reported.has(callId);
+  }
+
+  /** Quem chamou tirou o aluno desta chamada (vale nesta sessão do app). */
+  wasRemoved(callId: string): boolean {
+    return this.removedFrom.has(callId);
+  }
+
+  /** A chamada não vale mais para esta chave: a participação se apaga. */
+  private async lost(callId: string, error: unknown): Promise<void> {
+    if (!isGone(error)) return;
+    if (error instanceof CompanionError && error.refusal === 'removed')
+      this.removedFrom.add(callId);
+    await this.forget(callId);
   }
 
   /** Esquece a participação, sem falar com o servidor (encerrada, vencida). */

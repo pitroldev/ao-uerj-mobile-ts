@@ -40,7 +40,8 @@ export type RootDrawerParamList = {
   /** `place`: um lugar do atlas (o ponto de encontro da Companhia agora). */
   Mapa: { location?: string; place?: string } | undefined;
   /** `callId`: abre a chamada (do Início ou de um aviso). */
-  'Companhia agora': { callId?: string } | undefined;
+  /** `create`: abre a folha de abrir (o convite do Início). */
+  'Companhia agora': { callId?: string; create?: 'lunch' | 'home' } | undefined;
   'Mural de Mensagens': undefined;
   'Disciplinas Realizadas': undefined;
   'Disciplinas do Currículo': undefined;

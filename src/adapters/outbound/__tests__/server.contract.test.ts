@@ -360,8 +360,13 @@ describe('anonymous student tokens (/aouerj/v2)', () => {
       members: [{ name: 'Renata', host: true, you: true }],
     });
 
-    const [listed] = await guest.list();
+    const {
+      calls: [listed],
+      watching,
+    } = await guest.list();
     expect(listed).toMatchObject({ id: opened.id, host: 'Renata', going: 1 });
+    // quem olha conta em "de olho agora"
+    expect(watching).toBeGreaterThanOrEqual(1);
     const joined = await guest.join(opened.id, 'Marina');
     expect(joined.going).toBe(2);
     // a última vaga já foi: um terceiro não entra
@@ -389,9 +394,18 @@ describe('anonymous student tokens (/aouerj/v2)', () => {
     expect(seen.feed[0]).toMatchObject({ name: 'Marina', you: false });
     await guest.report(opened.id, 'other');
 
-    // quem chamou encerra: quem foi vê encerrada
+    // quem chamou tira alguém pelo apelido; quem saiu assim fica sabendo
+    const marina = seen.members.find(member => member.name === 'Marina');
+    expect(marina?.ref).toMatch(/^[A-Za-z0-9_-]{11}$/);
+    const after = await host.remove(opened.id, marina!.ref);
+    expect(after.going).toBe(1);
+    await expect(guest.read(opened.id)).rejects.toEqual(
+      new CompanionError('removed'),
+    );
+    expect(guest.wasRemoved(opened.id)).toBe(true);
+
+    // quem chamou encerra: some da lista
     await host.leave(opened.id);
-    expect((await guest.read(opened.id)).endedAt).toEqual(expect.any(Number));
-    expect(await guest.list()).toEqual([]);
+    expect((await guest.list()).calls).toEqual([]);
   });
 });

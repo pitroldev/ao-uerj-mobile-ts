@@ -81,13 +81,27 @@ const atMinute = (now: Date, minute: number) =>
 /** O primeiro múltiplo de 5 minutos depois de `minute`. */
 const nextFive = (minute: number) => Math.floor(minute / 5) * 5 + 5;
 
+/** O primeiro quarto de hora (:00, :15, :30, :45) a partir de `minute`. */
+const quarterFrom = (minute: number) => Math.ceil(minute / 15) * 15;
+
+/** Até `count` quartos de hora, de `first` até `until`. */
+const quarters = (first: number, until: number, count: number) =>
+  Array.from({ length: count }, (_, index) => first + index * 15).filter(
+    option => option <= until,
+  );
+
 /** A mesa termina 40 minutos antes da próxima aula. */
 const LUNCH_BEFORE_CLASS_MIN = 40;
+/** Tempo para chegar ao ponto antes da primeira mesa oferecida. */
+const LUNCH_LEAD_MIN = 10;
 
 /**
- * Os horários que a folha de abrir oferece, em ms. A mesa: de 10 minutos a
- * 1h30 daqui, terminando 40 minutos antes da próxima aula. A volta: a partir
- * do fim da última aula do dia (ou de agora, se ela já acabou), de 5 em 5.
+ * Os horários que a folha de abrir oferece, em ms. A mesa: nos quartos de
+ * hora (:00, :15, :30, :45), de 10 minutos a 2 horas daqui, terminando 40
+ * minutos antes da próxima aula. Horários fixos fazem quem abre na mesma
+ * hora cair na mesma mesa, em vez de 12:10 e 12:15. A volta: a partir do fim
+ * da última aula do dia (ou de agora, se ela já acabou), de 5 em 5; quem sai
+ * do mesmo bloco de aulas já sai na mesma hora.
  */
 export function timeOptions(
   kind: CallKind,
@@ -99,26 +113,22 @@ export function timeOptions(
   const lastOfDay = 24 * 60 - 5;
   let options: number[];
   if (kind === 'lunch') {
-    const limit =
-      window.kind === 'free'
-        ? window.next.start - LUNCH_BEFORE_CLASS_MIN
-        : window.kind === 'class'
-          ? -1
-          : minute + 120;
-    options = [5, 15, 25, 40, 55, 85]
-      .map(lead => base + lead)
-      .filter(option => option <= limit);
-    if (!options.length && window.kind !== 'class') options = [base + 5];
     if (window.kind === 'class') {
       // em aula: a primeira mesa possível é depois dela
-      const after = nextFive(window.current.end - 1);
+      const first = quarterFrom(window.current.end);
       const until =
         window.next !== null
           ? window.next.start - LUNCH_BEFORE_CLASS_MIN
-          : after + 90;
-      options = [0, 15, 30]
-        .map(lead => after + lead)
-        .filter(option => option <= Math.max(until, after));
+          : first + 90;
+      options = quarters(first, Math.max(until, first), 3);
+    } else {
+      const until =
+        window.kind === 'free'
+          ? window.next.start - LUNCH_BEFORE_CLASS_MIN
+          : minute + 120;
+      options = quarters(quarterFrom(minute + LUNCH_LEAD_MIN), until, 6);
+      // a janela é curta para um quarto de hora: a mesa mais cedo possível
+      if (!options.length) options = [base + 5];
     }
   } else {
     const anchor =
@@ -132,4 +142,75 @@ export function timeOptions(
     .filter(option => option <= lastOfDay)
     .map(option => atMinute(now, option))
     .filter(at => at > now.getTime() && at <= latest);
+}
+
+/** O "Me avise" vale ao menos isso; menos que isso, não vale pedir. */
+const WATCH_MIN_MIN = 15;
+/** A volta ainda interessa até 40 minutos depois da última aula. */
+const HOME_AFTER_CLASS_MIN = 40;
+
+/**
+ * Até quando o "Me avise se abrirem" vigia a lista, em ms, ou `null` se a
+ * janela é curta demais. A mesa: até 40 minutos antes da próxima aula (ou 2
+ * horas daqui, sem aula depois). A volta: até 40 minutos depois da última
+ * aula do dia (ou 1 hora daqui, sem aula). Nunca passa da meia-noite.
+ */
+export function watchUntil(
+  kind: CallKind,
+  window: FreeWindow,
+  now: Date,
+): number | null {
+  const minute = now.getHours() * 60 + now.getMinutes();
+  let until: number;
+  if (kind === 'lunch') {
+    if (window.kind === 'free')
+      until = window.next.start - LUNCH_BEFORE_CLASS_MIN;
+    else if (window.kind === 'class')
+      until =
+        window.next !== null
+          ? window.next.start - LUNCH_BEFORE_CLASS_MIN
+          : window.current.end + 90;
+    else until = minute + 120;
+  } else if (window.kind === 'none') until = minute + 60;
+  else
+    until = Math.max(
+      window.last.end + HOME_AFTER_CLASS_MIN,
+      window.kind === 'done' ? minute + 60 : 0,
+    );
+  until = Math.min(until, 24 * 60 - 1);
+  return until - minute >= WATCH_MIN_MIN ? atMinute(now, until) : null;
+}
+
+/**
+ * Um horário digitado pelo aluno ("Outro horário"), em ms, ou por que não
+ * vale: `past` (já passou ou é agora), `late` (passa de 3 horas daqui, o
+ * limite do servidor, ou cai depois da meia-noite).
+ */
+export function customTime(
+  now: Date,
+  minute: number,
+): { at: number } | { refused: 'past' | 'late' } {
+  const at = atMinute(now, minute);
+  if (at <= now.getTime()) return { refused: 'past' };
+  if (at > now.getTime() + LEAD_MS - MINUTE) return { refused: 'late' };
+  return { at };
+}
+
+/** O horário mais tarde que se pode digitar hoje, em minutos do dia. */
+export function latestMinute(now: Date): number {
+  const minute = now.getHours() * 60 + now.getMinutes();
+  return Math.min(24 * 60 - 1, minute + LEAD_MS / MINUTE - 1);
+}
+
+/** A aula da grade que está acontecendo nesse horário de hoje, se houver. */
+export function classAt(
+  schedule: readonly AttendedClassesSchedule[],
+  now: Date,
+  minute: number,
+): DayClass | null {
+  return (
+    classesOn(schedule, now).find(
+      item => item.start <= minute && minute < item.end,
+    ) ?? null
+  );
 }

@@ -30,8 +30,8 @@ const MEMBER = {
   ...CALL,
   endedAt: null,
   members: [
-    { name: 'Renata', host: true, you: false },
-    { name: 'Marina', host: false, you: true },
+    { ref: 'ref-renata1', name: 'Renata', host: true, you: false },
+    { ref: 'ref-marina1', name: 'Marina', host: false, you: true },
   ],
   feed: [
     {
@@ -55,17 +55,21 @@ function setup() {
   return { client, student, server: createCompanionServer(client, student) };
 }
 
-it('spends a token for the pass and reads the list with it', async () => {
+it('spends a token for the pass and reads the list, with who is watching', async () => {
   const { client, student, server } = setup();
   student.post.mockResolvedValueOnce({
     data: { pass: 'p'.repeat(48), expiresAt: '2026-11-24T02:00:00.000Z' },
   });
-  client.get.mockResolvedValueOnce({ data: { calls: [CALL] } });
+  client.get.mockResolvedValueOnce({ data: { calls: [CALL], watching: 7 } });
 
   const { pass, expiresAt } = await server.pass();
   expect(student.post).toHaveBeenCalledWith('/v2/companion/pass', {});
   expect(expiresAt).toBe(Date.parse('2026-11-24T02:00:00.000Z'));
-  const [call] = await server.list(pass);
+  const {
+    calls: [call],
+    watching,
+  } = await server.list(pass);
+  expect(watching).toBe(7);
   expect(client.get).toHaveBeenCalledWith('/v2/companion/calls', {
     headers: { 'X-Student-Pass': pass },
   });
@@ -132,6 +136,13 @@ it('opens and joins with a token, and the rest goes with the member key', async 
     {},
     headers,
   );
+  const after = await server.remove('abc', 'key', 'ref-marina1');
+  expect(client.post).toHaveBeenLastCalledWith(
+    '/v2/companion/calls/abc/members/ref-marina1/remove',
+    {},
+    headers,
+  );
+  expect(after.members[1].ref).toBe('ref-marina1');
   await server.report('abc', 'spam', 'key');
   expect(client.post).toHaveBeenLastCalledWith(
     '/v2/companion/calls/abc/reports',
@@ -155,6 +166,10 @@ it('turns the refusals the server documents into reasons the screens explain', a
     [409, 'call_ended', 'ended'],
     [422, 'note_not_allowed', 'contact'],
     [403, 'not_a_member', 'not_member'],
+    [403, 'removed_from_call', 'removed'],
+    [403, 'not_the_host', 'not_host'],
+    [404, 'member_not_found', 'member_gone'],
+    [409, 'cannot_remove_host', 'not_host'],
     [503, 'companion_full', 'busy'],
     [401, 'invalid_pass', 'pass_expired'],
   ];
@@ -177,6 +192,12 @@ it('turns the refusals the server documents into reasons the screens explain', a
   await expect(server.pass()).rejects.toEqual(
     new AppError('STUDENT_PROOF_UNAVAILABLE'),
   );
+});
+
+it('reads a list from a server before the watching count as nobody watching', async () => {
+  const { client, server } = setup();
+  client.get.mockResolvedValueOnce({ data: { calls: [] } });
+  expect(await server.list('pass')).toEqual({ calls: [], watching: 0 });
 });
 
 it('refuses a response the app does not read', async () => {

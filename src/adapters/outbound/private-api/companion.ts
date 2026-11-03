@@ -5,6 +5,7 @@ import {
   CompanionError,
   DESTINATION_IDS,
   type CallKind,
+  type CallList,
   type CallMember,
   type CallPhrase,
   type CompanionCall,
@@ -103,7 +104,12 @@ function call(value: unknown): CompanionCall {
 
 function member(value: unknown): CallMember {
   const data = object(value);
-  return { name: text(data.name), host: flag(data.host), you: flag(data.you) };
+  return {
+    ref: text(data.ref),
+    name: text(data.name),
+    host: flag(data.host),
+    you: flag(data.you),
+  };
 }
 
 function phrase(value: unknown): CallPhrase {
@@ -139,6 +145,10 @@ const REFUSALS: Record<string, CompanionRefusal> = {
   call_ended: 'ended',
   note_not_allowed: 'contact',
   not_a_member: 'not_member',
+  removed_from_call: 'removed',
+  not_the_host: 'not_host',
+  member_not_found: 'member_gone',
+  cannot_remove_host: 'not_host',
   companion_full: 'busy',
   invalid_pass: 'pass_expired',
 };
@@ -189,7 +199,12 @@ export function createCompanionServer(
           headers: { 'X-Student-Pass': pass },
         });
         const body = object(data) as Partial<CompanionCallListResponse>;
-        return list(body.calls).map(call);
+        // um servidor de antes do campo manda só a lista
+        const watching = body.watching === undefined ? 0 : count(body.watching);
+        return {
+          calls: list(body.calls).map(call),
+          watching,
+        } satisfies CallList;
       }),
     open: input =>
       request(async () => {
@@ -237,6 +252,17 @@ export function createCompanionServer(
         const { data } = await client.post(
           `${BASE}/calls/${encodeURIComponent(callId)}/phrases`,
           { phrase: said } satisfies CompanionPhraseRequest,
+          { headers: memberHeaders(memberKey) },
+        );
+        return memberCall(
+          (object(data) as Partial<CompanionCallResponse>).call,
+        );
+      }),
+    remove: (callId, memberKey, ref) =>
+      request(async () => {
+        const { data } = await client.post(
+          `${BASE}/calls/${encodeURIComponent(callId)}/members/${encodeURIComponent(ref)}/remove`,
+          {},
           { headers: memberHeaders(memberKey) },
         );
         return memberCall(

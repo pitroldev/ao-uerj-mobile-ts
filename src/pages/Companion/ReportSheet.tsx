@@ -29,19 +29,38 @@ type Props = {
   title: string;
   /** Quem está dentro denuncia pela chave; de fora, gasta um token. */
   member: boolean;
+  /** Quem chamou: a denúncia dele não tira a chamada do ar. */
+  host?: boolean;
   onClose: () => void;
   onReported: () => void;
 };
 
+/** O que acontece depois da denúncia, dito a quem denunciou. */
+function reportedText(
+  reason: ReportReason,
+  member: boolean,
+  host: boolean,
+): string {
+  if (!member) return 'A moderação vai olhar e pode tirar a chamada do ar.';
+  if (host)
+    return 'A moderação vai olhar. Se quiser, tire a pessoa da chamada.';
+  if (reason === 'harassment')
+    return 'A chamada saiu do ar para quem ainda não entrou. A moderação vai olhar.';
+  return 'Se mais alguém da chamada denunciar, ela sai do ar. A moderação vai olhar.';
+}
+
 /**
  * Denunciar a chamada: vai para a moderação do app, sem o nome de quem
- * denuncia. Três denúncias tiram a chamada do ar.
+ * denuncia. Assédio denunciado por quem foi junto tira a chamada do ar na
+ * hora; outro motivo, com duas pessoas de dentro. De fora, só a moderação
+ * tira (uma pessoa com tokens derrubaria qualquer mesa).
  */
 export function ReportSheet({
   visible,
   callId,
   title,
   member,
+  host = false,
   onClose,
   onReported,
 }: Props) {
@@ -54,10 +73,7 @@ export function ReportSheet({
     setSending(true);
     try {
       await companion.report(callId, reason);
-      snackbar.success(
-        'Denúncia enviada',
-        'Três denúncias tiram a chamada do ar até a moderação olhar.',
-      );
+      snackbar.success('Denúncia enviada', reportedText(reason, member, host));
       onReported();
     } catch (error) {
       snackbar.error(companionErrorMessage(error));
@@ -95,9 +111,11 @@ export function ReportSheet({
     >
       <Lede tone="muted">
         A denúncia vai para a moderação do app, sem o seu nome.
-        {member
-          ? ' Depois, se quiser, saia da chamada.'
-          : ' Você não precisa entrar na chamada.'}{' '}
+        {host
+          ? ' Para tirar alguém da chamada, use "Tirar" em Quem vai.'
+          : member
+            ? ' Assédio tira a chamada do ar na hora; outro motivo, quando duas pessoas dela denunciam. Depois, se quiser, saia.'
+            : ' Você não precisa entrar na chamada: a moderação lê e decide.'}{' '}
         Se for urgente, procure a segurança do campus.
       </Lede>
       <OptionList

@@ -27,8 +27,12 @@ import type {
 import type { EvaluationRecords } from '@root/modules/evaluations/application/EvaluationRecords';
 import { buildEvaluationReminderPlan } from '@root/modules/evaluations/domain/reminders';
 import type { CompanionCalls } from '@root/modules/companion/application/CompanionCalls';
+import { CompanionWatch } from '@root/modules/companion/application/CompanionWatch';
 import { buildCompanionReminderPlan } from '@root/modules/companion/domain/reminders';
-import { companionReminderText } from '@root/modules/companion/presentation/companionText';
+import {
+  companionReminderText,
+  companionWatchMessage,
+} from '@root/modules/companion/presentation/companionText';
 import {
   evaluationReminderText,
   gradesBySubject,
@@ -54,8 +58,14 @@ type Dependencies = {
   savedScope: () => Promise<string | null>;
   /** Requisição leve ao portal, sem login: `true` se ele respondeu. */
   probePortal: () => Promise<boolean>;
-  /** As chamadas da Companhia agora em que o aluno está: os avisos delas. */
-  companion?: Pick<CompanionCalls, 'load' | 'getSnapshot' | 'subscribe'>;
+  /**
+   * As chamadas da Companhia agora em que o aluno está (os avisos delas) e a
+   * lista, para o "Me avise se abrirem".
+   */
+  companion?: Pick<
+    CompanionCalls,
+    'load' | 'getSnapshot' | 'subscribe' | 'list'
+  >;
   device?: NotificationDevicePort | null;
 };
 
@@ -197,6 +207,25 @@ export function createNotifications({
         now: () => Date.now(),
       })
     : null;
+  // "Me avise se abrirem": a mesma tarefa sem tela, lendo a lista
+  const companionWatch =
+    background && companion
+      ? new CompanionWatch({
+          device: background,
+          store: preferences,
+          account,
+          savedScope,
+          disabled: () =>
+            isFeatureDisabled(remoteStatus.getSnapshot().status, 'companion'),
+          list: () => companion.list(),
+          memberships: async () => {
+            await companion.load();
+            return companion.getSnapshot();
+          },
+          message: companionWatchMessage,
+          now: () => Date.now(),
+        })
+      : null;
 
   if (device) {
     // A grade salva mudou (tela, cache restaurado ou verificação): os
@@ -225,5 +254,5 @@ export function createNotifications({
     void consumeDone();
   }
   settings.start();
-  return { settings, portalCheck, portalReturn, consumeDone };
+  return { settings, portalCheck, portalReturn, companionWatch, consumeDone };
 }

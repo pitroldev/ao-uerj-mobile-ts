@@ -31,6 +31,7 @@ import {
   CompanionError,
   PHRASES_BY_KIND,
   seatsLeft,
+  type CallMember,
   type CompanionCall,
   type MemberCall,
   type PhraseId,
@@ -163,6 +164,11 @@ export function CallScreen({
   const [busy, setBusy] = useState<string | null>(null);
   const [reporting, setReporting] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  // quem chamou tira alguém: a confirmação, com o nome
+  const [removing, setRemoving] = useState<CallMember | null>(null);
+  // de fora, uma denúncia por chamada (cada uma gasta um token)
+  const [reported, setReported] = useState(() => companion.hasReported(callId));
+  const removed = !membership && companion.wasRemoved(callId);
   // o relógio da agenda: anda a cada minuto e na volta do app
   const now = useNow().getTime();
 
@@ -318,6 +324,18 @@ export function CallScreen({
     });
   };
 
+  const remove = (person: CallMember) => {
+    void run('remove', async () => {
+      refresh(await companion.remove(callId, person.ref));
+      refreshList();
+      setRemoving(null);
+      snackbar.success(
+        `${person.name} saiu da chamada`,
+        'Não vê mais os nomes nem os recados. Se foi algo grave, denuncie também.',
+      );
+    });
+  };
+
   const steps = destination ? (
     <>
       <Step>
@@ -411,7 +429,7 @@ export function CallScreen({
           />
         ),
       ]
-    : canJoin(call, now)
+    : canJoin(call, now) && !removed
       ? [
           <Button
             key="join"
@@ -460,6 +478,15 @@ export function CallScreen({
             />
           </Below>
         ) : null}
+        {removed ? (
+          <Below>
+            <Notice
+              tone="neutral"
+              icon="info"
+              text="Quem chamou tirou você desta chamada. Veja outra ou abra a sua."
+            />
+          </Below>
+        ) : null}
 
         <Section title="Onde" dense>
           <MeetingMap
@@ -494,7 +521,35 @@ export function CallScreen({
         ) : null}
 
         <Section title="Quem vai" note={goingText(call.going)}>
-          {member ? (
+          {member && host && !ended ? (
+            // quem chamou vê cada pessoa e pode tirar quem incomodar
+            <List>
+              {member.members.map((item, index) => (
+                <ListRow
+                  key={item.ref || `${item.name}-${index}`}
+                  dense
+                  leading={
+                    <Avatar name={item.name} tone="accent" size={FACE} />
+                  }
+                  title={item.you ? 'Você' : item.name}
+                  titleWeight="regular"
+                  meta={item.host ? 'Chamou' : undefined}
+                  trailing={
+                    !item.host && item.ref ? (
+                      <Button
+                        variant="text"
+                        size="xs"
+                        label="Tirar"
+                        accessibilityLabel={`Tirar ${item.name} da chamada`}
+                        disabled={busy !== null}
+                        onPress={() => setRemoving(item)}
+                      />
+                    ) : undefined
+                  }
+                />
+              ))}
+            </List>
+          ) : member ? (
             <People>
               <Faces>
                 {member.members.slice(0, 5).map((item, index) => (
@@ -605,18 +660,28 @@ export function CallScreen({
 
         {!membership ? (
           <Below>
-            <Text variant="meta" tone="muted">
-              Quem vai passa a ver o seu primeiro nome ({name || 'escolha um'}).
-              O encontro é num lugar movimentado do campus.
-            </Text>
-            <Button
-              variant="text"
-              size="sm"
-              icon="report"
-              label="Denunciar a chamada"
-              color={theme.status.bad.ink}
-              onPress={() => setReporting(true)}
-            />
+            {removed ? null : (
+              <Text variant="meta" tone="muted">
+                Quem vai passa a ver o seu primeiro nome ({name || 'escolha um'}
+                ). O encontro é num lugar movimentado do campus.
+              </Text>
+            )}
+            {reported ? (
+              <Below>
+                <Text variant="meta" tone="muted">
+                  Você denunciou esta chamada. A moderação vai olhar.
+                </Text>
+              </Below>
+            ) : (
+              <Button
+                variant="text"
+                size="sm"
+                icon="report"
+                label="Denunciar a chamada"
+                color={theme.status.bad.ink}
+                onPress={() => setReporting(true)}
+              />
+            )}
           </Below>
         ) : null}
       </ScreenPanel>
@@ -626,9 +691,44 @@ export function CallScreen({
         callId={callId}
         title={title}
         member={Boolean(membership)}
+        host={host}
         onClose={() => setReporting(false)}
-        onReported={() => setReporting(false)}
+        onReported={() => {
+          if (!membership) setReported(true);
+          setReporting(false);
+        }}
       />
+
+      <BottomSheet
+        visible={removing !== null}
+        onClose={() => setRemoving(null)}
+        title={removing ? `Tirar ${removing.name} da chamada?` : ''}
+        swipeToClose={busy === null}
+        footer={[
+          <Button
+            key="back"
+            variant="outline"
+            label="Voltar"
+            disabled={busy !== null}
+            onPress={() => setRemoving(null)}
+          />,
+          <Button
+            key="remove"
+            label="Tirar"
+            loading={busy === 'remove'}
+            loadingLabel="Tirando…"
+            onPress={() => {
+              if (removing) remove(removing);
+            }}
+          />,
+        ]}
+      >
+        <Text tone="muted">
+          {removing?.name} sai da chamada e deixa de ver os nomes e os recados.
+          A vaga volta para a lista. Se foi algo grave, denuncie também: a
+          moderação vê.
+        </Text>
+      </BottomSheet>
 
       <BottomSheet
         visible={confirmLeave}

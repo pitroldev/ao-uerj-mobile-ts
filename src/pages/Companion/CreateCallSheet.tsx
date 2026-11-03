@@ -12,8 +12,10 @@ import {
   OptionList,
   Text,
   TextField,
+  TimeField,
   snackbar,
 } from '@components/ui';
+import type { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
 import { useAppServices } from '@root/app/providers/AppServicesProvider';
 import {
   CAPACITY,
@@ -21,14 +23,19 @@ import {
   DESTINATION_IDS,
   hasContact,
   NOTE_MAX,
+  similarCall,
   SPOTS_BY_KIND,
   type CallKind,
+  type CompanionCall,
   type DestinationId,
   type MemberCall,
   type Membership,
   type SpotId,
 } from '@root/modules/companion/domain/companion';
 import {
+  classAt,
+  customTime,
+  latestMinute,
   timeOptions,
   type FreeWindow,
 } from '@root/modules/companion/domain/window';
@@ -37,6 +44,7 @@ import {
   clockText,
   companionErrorMessage,
   DESTINATION_TEXT,
+  goingText,
   KIND_TEXT,
   LIFETIME_TEXT,
   SPOT_TEXT,
@@ -59,6 +67,21 @@ const Help = styled(Text)`
   margin-top: ${({ theme }) => theme.spacing.sm}px;
 `;
 
+const Below = styled.View`
+  margin-top: ${({ theme }) => theme.spacing.md}px;
+`;
+
+/** O horário digitado ocupa metade da largura, como na folha de avaliação. */
+const TimeSlot = styled.View`
+  width: 50%;
+  padding-right: ${({ theme }) => theme.spacing.sm - 2}px;
+`;
+
+const minuteOf = (ms: number) => {
+  const date = new Date(ms);
+  return date.getHours() * 60 + date.getMinutes();
+};
+
 const CONTACT_ERROR =
   'Telefone, @ e links ficam fora: combine aqui só o encontro.';
 
@@ -66,11 +89,17 @@ type Props = {
   visible: boolean;
   kind: CallKind;
   window: FreeWindow;
+  /** A grade salva: avisa quando o horário digitado cai numa aula. */
+  schedule: readonly AttendedClassesSchedule[];
   now: Date;
   /** O primeiro nome que vai na chamada. */
   name: string;
   /** A chamada aberta agora, que abrir outra encerra. */
   current: Membership | null;
+  /** As chamadas da lista em que o aluno não está: a parecida vira convite. */
+  calls: readonly CompanionCall[];
+  /** Entrar na chamada parecida em vez de abrir outra. */
+  onJoin: (call: CompanionCall) => void;
   onClose: () => void;
   onOpened: (call: MemberCall) => void;
 };
@@ -100,16 +129,32 @@ export function CreateCallSheet({
   visible,
   kind,
   window,
+  schedule,
   now,
   name,
   current,
+  calls,
+  onJoin,
   onClose,
   onOpened,
 }: Props) {
   const { companion } = useAppServices();
   const text = KIND_TEXT[kind];
   const [times] = useState(() => timeOptions(kind, window, now));
-  const [at, setAt] = useState<number | null>(times[0] ?? null);
+  const [chosen, setChosen] = useState<number | null>(times[0] ?? null);
+  // "Outro horário": sem sugestão da grade, o campo já vem aberto
+  const [custom, setCustom] = useState(times.length === 0);
+  const [minute, setMinute] = useState(() =>
+    times.length
+      ? minuteOf(times[0])
+      : Math.min(
+          latestMinute(now),
+          Math.floor((now.getHours() * 60 + now.getMinutes()) / 5) * 5 + 15,
+        ),
+  );
+  const picked = custom ? customTime(now, minute) : null;
+  const at = picked ? ('at' in picked ? picked.at : null) : chosen;
+  const busy = custom ? classAt(schedule, now, minute) : null;
   const [spot, setSpot] = useState<SpotId>(SPOTS_BY_KIND[kind][0]);
   const [destination, setDestination] = useState<DestinationId>('metro');
   const [note, setNote] = useState('');
@@ -123,6 +168,15 @@ export function CreateCallSheet({
     Number.isInteger(seats) && seats >= limits.min && seats <= limits.max;
   const contact = hasContact(note);
   const valid = at !== null && seatsValid && !contact;
+  // a mesma mesa já aberta: entrar junta gente em vez de duas meio vazias
+  const similar =
+    at === null
+      ? null
+      : similarCall(
+          calls,
+          { kind, spot, at, destination: kind === 'home' ? destination : null },
+          now.getTime(),
+        );
 
   async function submit() {
     if (!valid || at === null) {
@@ -195,30 +249,57 @@ export function CreateCallSheet({
         <Label variant="meta" weight="medium">
           {kind === 'lunch' ? 'Horário' : 'Saída'}
         </Label>
-        {times.length ? (
-          <ChipGroup
-            layout="wrap"
-            accessibilityLabel={kind === 'lunch' ? 'Horário' : 'Saída'}
-          >
-            {times.map(option => (
-              <FilterChip
-                key={option}
-                label={clockText(option)}
-                selected={option === at}
-                onPress={() => setAt(option)}
-              />
-            ))}
-          </ChipGroup>
-        ) : (
-          <Notice
-            tone="neutral"
+        <ChipGroup
+          layout="wrap"
+          accessibilityLabel={kind === 'lunch' ? 'Horário' : 'Saída'}
+        >
+          {times.map(option => (
+            <FilterChip
+              key={option}
+              label={clockText(option)}
+              selected={!custom && option === chosen}
+              onPress={() => {
+                setCustom(false);
+                setChosen(option);
+              }}
+            />
+          ))}
+          <FilterChip
+            label="Outro horário"
             icon="schedule"
-            text="Não há um horário para abrir agora: as chamadas valem até 3 horas à frente e no mesmo dia."
+            selected={custom}
+            onPress={() => setCustom(true)}
           />
+        </ChipGroup>
+        {custom ? (
+          <Below>
+            <TimeSlot>
+              <TimeField
+                label={kind === 'lunch' ? 'Começa às' : 'Sai às'}
+                value={minute}
+                onChange={setMinute}
+              />
+            </TimeSlot>
+          </Below>
+        ) : null}
+        {picked && 'refused' in picked ? (
+          <Help variant="meta" tone="bad">
+            {picked.refused === 'past'
+              ? 'Esse horário já passou. Escolha um a partir de agora.'
+              : `As chamadas abrem até 3 horas à frente e no mesmo dia: escolha até as ${minuteText(latestMinute(now))}.`}
+          </Help>
+        ) : busy ? (
+          <Help variant="meta" tone="warn">
+            Nesse horário você está em aula: {busy.name}, até{' '}
+            {minuteText(busy.end)}.
+          </Help>
+        ) : (
+          <Help variant="meta" tone="muted">
+            {custom
+              ? 'A chamada aparece na lista 1 hora antes do horário.'
+              : timeHelp(kind, window)}
+          </Help>
         )}
-        <Help variant="meta" tone="muted">
-          {timeHelp(kind, window)}
-        </Help>
       </Field>
 
       <Field>
@@ -258,6 +339,21 @@ export function CreateCallSheet({
           <Help variant="meta" tone="muted">
             Nunca o bairro nem o endereço: cada um segue o seu caminho dali.
           </Help>
+        </Field>
+      ) : null}
+
+      {similar ? (
+        <Field>
+          <Notice
+            tone="info"
+            icon="groups"
+            text={`${callTitle(similar)} já está aberta: ${similar.host} chamou, ${goingText(similar.going)}. ${
+              kind === 'lunch'
+                ? 'Sentar junto enche a mesma mesa, em vez de duas meio vazias.'
+                : 'Ir junto aumenta o grupo, em vez de dois pequenos.'
+            }`}
+            action={{ label: text.join, onPress: () => onJoin(similar) }}
+          />
         </Field>
       ) : null}
 

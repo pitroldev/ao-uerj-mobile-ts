@@ -11,10 +11,18 @@ import type {
 
 /** Canais do Android (o aluno pode ajustar som e importância de cada um). */
 type NotificationChannel =
-  'class-reminders' | 'grades' | 'enrollment' | 'documents' | 'portal-status';
+  | 'class-reminders'
+  | 'grades'
+  | 'enrollment'
+  | 'documents'
+  | 'portal-status'
+  | 'companion';
 
 /** Tela aberta ao tocar no aviso. */
-type NotificationTarget = Extract<LaunchTarget, 'home' | 'documents'>;
+type NotificationTarget = Extract<
+  LaunchTarget,
+  'home' | 'documents' | 'companion'
+>;
 
 export type NotificationContent = {
   /** Um aviso com o mesmo id substitui o anterior (por disciplina, por via). */

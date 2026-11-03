@@ -73,7 +73,22 @@ export type CompanionCall = {
   expiresAt: number;
 };
 
-export type CallMember = { name: string; host: boolean; you: boolean };
+/**
+ * Quem está na chamada, como quem está dentro vê. `ref`: o apelido ao acaso
+ * com que quem chamou tira a pessoa da chamada.
+ */
+export type CallMember = {
+  ref: string;
+  name: string;
+  host: boolean;
+  you: boolean;
+};
+
+/**
+ * A lista e quantos alunos a olharam nos últimos 15 minutos, contando quem
+ * pergunta (o servidor conta pelo passe, sem saber quem).
+ */
+export type CallList = { calls: CompanionCall[]; watching: number };
 export type CallPhrase = {
   name: string;
   phrase: PhraseId;
@@ -126,6 +141,12 @@ export type CompanionRefusal =
   | 'contact'
   /** A chave não é desta chamada (outra instalação, dados apagados). */
   | 'not_member'
+  /** Quem chamou tirou esta pessoa da chamada. */
+  | 'removed'
+  /** Só quem chamou tira alguém. */
+  | 'not_host'
+  /** A pessoa já tinha saído (ou nunca esteve). */
+  | 'member_gone'
   /** O teto de chamadas do campus. */
   | 'busy'
   /** O passe de leitura venceu: pedir outro (o app faz sozinho). */
@@ -183,6 +204,36 @@ export const canJoin = (call: CompanionCall, now: number) =>
 
 export const seatsLeft = (call: CompanionCall) =>
   Math.max(0, call.capacity - call.going);
+
+/** Quanto de diferença ainda é "a mesma mesa" para quem vai abrir outra. */
+const SIMILAR_WINDOW_MS = 15 * MINUTE;
+
+/**
+ * Já há uma chamada parecida aberta: o mesmo tipo e ponto (e destino, na
+ * volta), até 15 minutos de diferença e com vaga. Entrar nela junta gente na
+ * mesma mesa em vez de duas meio vazias. A mais perto do horário primeiro;
+ * no empate, a que tem mais gente.
+ */
+export function similarCall(
+  calls: readonly CompanionCall[],
+  choice: Pick<OpenCallRequest, 'kind' | 'spot' | 'at' | 'destination'>,
+  now: number,
+): CompanionCall | null {
+  const distance = (call: CompanionCall) => Math.abs(call.at - choice.at);
+  return (
+    calls
+      .filter(
+        call =>
+          call.kind === choice.kind &&
+          call.spot === choice.spot &&
+          (choice.kind === 'lunch' ||
+            call.destination === choice.destination) &&
+          distance(call) <= SIMILAR_WINDOW_MS &&
+          canJoin(call, now),
+      )
+      .sort((a, b) => distance(a) - distance(b) || b.going - a.going)[0] ?? null
+  );
+}
 
 /** A participação ainda vale no aparelho. */
 export const isCurrent = (membership: Membership, now: number) =>

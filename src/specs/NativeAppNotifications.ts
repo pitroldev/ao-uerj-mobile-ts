@@ -5,7 +5,7 @@ import { TurboModuleRegistry } from 'react-native';
 type NativeNotification = {
   /** O mesmo id substitui o aviso anterior. */
   id: string;
-  /** `class-reminders`, `grades`, `enrollment` ou `documents`. */
+  /** `class-reminders`, `grades`, `enrollment`, `documents` ou `companion`. */
   channel: string;
   title: string;
   body: string;
@@ -60,6 +60,12 @@ export interface Spec extends TurboModule {
    * "Avisar quando voltar" (a mesma tarefa sem tela, no modo `return`).
    */
   setPortalReturnWatch(enabled: boolean): Promise<void>;
+  /**
+   * Liga ou desliga a leitura da lista da Companhia agora a cada 15 min, com
+   * rede, para o "Me avise se abrirem" (a mesma tarefa sem tela, no modo
+   * `companion`).
+   */
+  setCompanionWatch(enabled: boolean): Promise<void>;
   notify(notification: NativeNotification): Promise<void>;
   /**
    * Cancela os lembretes de aula, de avaliações e da Companhia agora, esquece os "Já fiz" não

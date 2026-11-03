@@ -36,6 +36,7 @@ function nativeModule({ enabled = false, answer = 'granted' } = {}) {
     ]),
     setPortalCheck: jest.fn(async (_on: boolean, _hours: number) => undefined),
     setPortalReturnWatch: jest.fn(async (_on: boolean) => undefined),
+    setCompanionWatch: jest.fn(async (_on: boolean) => undefined),
     notify: jest.fn(async () => undefined),
     clearNotifications: jest.fn(async () => undefined),
     consumeLaunchTarget: jest.fn(

@@ -20,6 +20,7 @@ import {
   Section,
   SegmentedControl,
   SkeletonList,
+  Text,
   snackbar,
 } from '@components/ui';
 import { ScreenPanel } from '@templates/ScreenPanel';
@@ -42,6 +43,7 @@ import {
 } from '@root/modules/companion/domain/companion';
 import {
   freeWindow,
+  watchUntil,
   type FreeWindow,
 } from '@root/modules/companion/domain/window';
 import {
@@ -53,7 +55,11 @@ import {
   LIFETIME_TEXT,
   relativeText,
   SPOT_TEXT,
+  WATCH_CTA,
+  watchingText,
+  watchRequestText,
 } from '@root/modules/companion/presentation/companionText';
+import { useCompanionWatch } from '@root/modules/companion/presentation/useCompanionWatch';
 import {
   companionKeys,
   useCompanionCalls,
@@ -76,6 +82,12 @@ const Notes = styled.View`
   gap: ${({ theme }) => theme.spacing.sm}px;
 `;
 
+const WatchBox = styled.View`
+  margin-top: ${({ theme }) => theme.spacing.md}px;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.xs}px;
+`;
+
 const NAME_AVATAR = 32;
 
 /** A volta é o padrão à noite e depois da última aula do fim da tarde. */
@@ -85,14 +97,19 @@ function defaultKind(window: FreeWindow, now: Date): CallKind {
   return 'lunch';
 }
 
-/** O texto de quando a lista está vazia, conforme a hora e a grade. */
+/**
+ * O texto de quando a lista está vazia, conforme a hora e a grade, com
+ * quantos outros alunos estão de olho (quem abrir primeiro junta a turma).
+ */
 function emptyText(
   kind: CallKind,
   window: FreeWindow,
+  watching: string | null,
 ): {
   title: string;
   text: string;
 } {
+  const lookers = watching ? ` ${watching}.` : '';
   if (kind === 'home') {
     const last =
       window.kind === 'class' || window.kind === 'free'
@@ -100,12 +117,13 @@ function emptyText(
         : '';
     return {
       title: 'Nenhuma volta aberta agora',
-      text: `As chamadas aparecem 1 hora antes da saída.${last} Chame você: quem sai no mesmo horário vê na hora.`,
+      text: `As chamadas aparecem 1 hora antes da saída.${last}${lookers} Chame você: quem sai no mesmo horário vê na hora.`,
     };
   }
+  const invite = 'Abra você: quem estiver livre no mesmo horário vê na hora.';
   return {
     title: 'Ninguém abriu mesa ainda',
-    text: 'Abra você: quem estiver livre no mesmo horário vê na hora.',
+    text: watching ? `${watching}. ${invite}` : invite,
   };
 }
 
@@ -130,20 +148,49 @@ export function CompanionPage() {
   useEffect(() => {
     if (requested) navigation.setParams({ callId: undefined });
   }, [navigation, requested]);
+  // o convite do Início: abre a folha de abrir uma vez, do tipo pedido
+  const create = route.params?.create;
+  const [createRequest, setCreateRequest] = useState<{
+    kind: CallKind;
+    key: number;
+  } | null>(() => (create ? { kind: create, key: 1 } : null));
+  const [handledCreate, setHandledCreate] = useState(create);
+  if (create !== handledCreate) {
+    setHandledCreate(create);
+    if (create) {
+      setSelected(null);
+      setCreateRequest(previous => ({
+        kind: create,
+        key: (previous?.key ?? 0) + 1,
+      }));
+    }
+  }
+  useEffect(() => {
+    if (create) navigation.setParams({ create: undefined });
+  }, [navigation, create]);
 
   const close = () => setSelected(null);
   useBackHandler(close, Boolean(selected));
   useHeaderBack(selected ? close : null, 'Voltar para as chamadas');
 
-  return <CompanionScreen selected={selected} onSelect={setSelected} />;
+  return (
+    <CompanionScreen
+      selected={selected}
+      onSelect={setSelected}
+      createRequest={createRequest}
+    />
+  );
 }
 
 function CompanionScreen({
   selected,
   onSelect,
+  createRequest,
 }: {
   selected: string | null;
   onSelect: (callId: string | null) => void;
+  /** O pedido do Início para abrir a folha (uma vez por `key`). */
+  createRequest: { kind: CallKind; key: number } | null;
 }) {
   const { companion } = useAppServices();
   const { account } = useIdentity();
@@ -166,11 +213,31 @@ function CompanionScreen({
     required: boolean;
   } | null>(null);
   const [joining, setJoining] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
   // com a chamada aberta, a lista segue: quem está fora vê as vagas mudarem
   const query = useCompanionCalls({ poll: focused });
+  const watch = useCompanionWatch(now.getTime());
   const scope = account?.scope ?? 'signed-out';
-  const calls = query.data ?? [];
+  const calls = query.data?.calls ?? [];
+  const watching = watchingText(query.data?.watching ?? 0);
   const nowMs = now.getTime();
+
+  // o convite do Início pediu para abrir: a aba certa e a folha (ou o nome antes)
+  const [servedCreate, setServedCreate] = useState<number | null>(null);
+  if (createRequest && createRequest.key !== servedCreate) {
+    setServedCreate(createRequest.key);
+    setTab(createRequest.kind);
+    if (name) setCreating({ key: createRequest.key });
+    else setNaming({ key: createRequest.key, required: true });
+  }
+
+  // a lista mostrou uma chamada do tipo pedido: o "Me avise" terminou
+  const watchedHere = watch.request?.kind === tab ? watch.request : null;
+  const listedOfTab = calls.filter(call => call.kind === tab).length;
+  const { satisfied } = watch;
+  useEffect(() => {
+    if (focused && watchedHere && listedOfTab) void satisfied();
+  }, [focused, watchedHere, listedOfTab, satisfied]);
 
   const roleOf = (callId: string) => {
     const membership = memberships.find(item => item.callId === callId);
@@ -231,6 +298,10 @@ function CompanionScreen({
   const join = async (call: CompanionCall) => {
     if (!name) {
       setNaming({ key: Date.now(), required: true });
+      return;
+    }
+    if (companion.wasRemoved(call.id)) {
+      snackbar.error('Quem chamou tirou você desta chamada.');
       return;
     }
     setJoining(call.id);
@@ -300,7 +371,57 @@ function CompanionScreen({
       />
     );
   } else {
-    const empty = emptyText(tab, window);
+    const empty = emptyText(tab, window, watching);
+    const until = watchUntil(tab, window, now);
+    const askWatch = async () => {
+      if (until === null) return;
+      setAsking(true);
+      try {
+        const result = await watch.ask(tab, until, []);
+        if (result === 'requested')
+          snackbar.success('Combinado', watchRequestText(tab, until));
+        else
+          snackbar.info(
+            'Avisos desligados',
+            'Sem os avisos do app ligados, não dá para avisar quando alguém abrir.',
+          );
+      } finally {
+        setAsking(false);
+      }
+    };
+    // quem não quer chamar pede um aviso: a lista vazia deixa de ser o fim
+    const watchBox =
+      watch.supported && (watchedHere || until !== null) ? (
+        <WatchBox>
+          {watchedHere ? (
+            <>
+              <Text variant="meta" tone="muted" align="center">
+                {watchRequestText(tab, watchedHere.until)}
+              </Text>
+              <Button
+                variant="text"
+                size="sm"
+                label="Cancelar o aviso"
+                onPress={() => {
+                  void watch.cancel();
+                }}
+              />
+            </>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              icon="notifications"
+              label={WATCH_CTA[tab]}
+              loading={asking}
+              loadingLabel="Pedindo…"
+              onPress={() => {
+                void askWatch();
+              }}
+            />
+          )}
+        </WatchBox>
+      ) : null;
     content =
       shown.length || outside.length ? (
         <List>
@@ -327,12 +448,15 @@ function CompanionScreen({
           ))}
         </List>
       ) : (
-        <EmptyState
-          icon={text.icon}
-          title={empty.title}
-          text={empty.text}
-          action={{ label: text.cta, icon: 'add', onPress: openCreate }}
-        />
+        <>
+          <EmptyState
+            icon={text.icon}
+            title={empty.title}
+            text={empty.text}
+            action={{ label: text.cta, icon: 'add', onPress: openCreate }}
+          />
+          {watchBox}
+        </>
       );
   }
 
@@ -387,6 +511,9 @@ function CompanionScreen({
         >
           {content}
           <Notes>
+            {watching && (shown.length || outside.length) ? (
+              <FootNote icon="groups" text={`${watching} na Companhia.`} />
+            ) : null}
             <FootNote
               icon="schedule"
               text={`${LIFETIME_TEXT[tab]} Só aparece o primeiro nome.`}
@@ -424,9 +551,17 @@ function CompanionScreen({
           visible
           kind={tab}
           window={window}
+          schedule={schedule ?? []}
           now={now}
           name={name}
           current={host ?? null}
+          calls={calls.filter(
+            call => roleOf(call.id) === null && !companion.wasRemoved(call.id),
+          )}
+          onJoin={call => {
+            setCreating(null);
+            void join(call);
+          }}
           onClose={() => setCreating(null)}
           onOpened={opened}
         />
