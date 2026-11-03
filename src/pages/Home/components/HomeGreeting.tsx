@@ -8,6 +8,8 @@ type Props = {
   firstName: string;
   /** "Terça, 13 de outubro". */
   date: string;
+  /** `full`: "Olá" e a data; `date`: só a data (Personalizar o Início). */
+  style?: 'full' | 'date';
 };
 
 const DateText = styled(Text)`
@@ -15,11 +17,16 @@ const DateText = styled(Text)`
 `;
 
 /** ".greet": "Olá, Marina" (24/30) e a data de hoje. */
-export const HomeGreeting = ({ firstName, date }: Props) => (
-  <>
-    <Text variant="titleXL" accessibilityRole="header">
-      {firstName ? `Olá, ${firstName}` : 'Olá'}
+export const HomeGreeting = ({ firstName, date, style = 'full' }: Props) =>
+  style === 'date' ? (
+    <Text variant="headline" accessibilityRole="header">
+      {date}
     </Text>
-    <DateText tone="muted">{date}</DateText>
-  </>
-);
+  ) : (
+    <>
+      <Text variant="titleXL" accessibilityRole="header">
+        {firstName ? `Olá, ${firstName}` : 'Olá'}
+      </Text>
+      <DateText tone="muted">{date}</DateText>
+    </>
+  );

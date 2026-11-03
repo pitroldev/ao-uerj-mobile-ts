@@ -63,6 +63,7 @@ import {
 } from '@root/modules/graduation/application/PlanPreferencesStore';
 import { APP_INFO_VERSION_KEY } from '@features/AppInfoModal/info';
 import { COMPANION_NAME_KEY } from '@root/modules/companion/application/CompanionCalls';
+import { HOME_LAYOUT_KEY } from '@root/modules/home/domain/homeLayout';
 import { initializeIdentity } from './initializeIdentity';
 import { createDelivery } from './createDelivery';
 import { createNotifications } from './createNotifications';
@@ -84,6 +85,7 @@ const ACCOUNT_PREFERENCES = [
   APP_INFO_VERSION_KEY,
   PORTAL_RETURN_KEY,
   COMPANION_NAME_KEY,
+  HOME_LAYOUT_KEY,
 ] as const;
 
 function createScope() {

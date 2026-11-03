@@ -42,9 +42,11 @@ type Props = {
   now: Date;
   onAdd: () => void;
   onPress: (evaluation: Evaluation) => void;
+  /** Quantas aparecem antes de "Ver todas" (Personalizar o Início). */
+  limit?: number;
 };
 
-/** Quantas aparecem antes de "Ver todas". */
+/** Quantas aparecem antes de "Ver todas", no padrão. */
 const SHOWN = 3;
 
 /** O dia da avaliação, como a data de uma agenda: hoje preenchido. */
@@ -99,6 +101,7 @@ export function UpcomingEvaluations({
   now,
   onAdd,
   onPress,
+  limit = SHOWN,
 }: Props) {
   const theme = useTheme();
   const [all, setAll] = useState(false);
@@ -106,7 +109,7 @@ export function UpcomingEvaluations({
     () => upcomingEvaluations(evaluations, now, gradesBySubject(grades)),
     [evaluations, now, grades],
   );
-  const shown = all ? list : list.slice(0, SHOWN);
+  const shown = all ? list : list.slice(0, limit);
 
   return (
     <Section

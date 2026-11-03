@@ -213,6 +213,17 @@ O aluno anota as datas de P1, P2, PF, trabalhos, seminários e outras avaliaçõ
 - **A nota manda:** quando a P1, a P2 ou a PF sai no portal, a data some da célula e a avaliação deixa o Início, a semana e os lembretes. A PF anotada sai também quando as notas a dispensam (média 7 ou mais), tiram o direito a ela (abaixo de 4) ou a média final é publicada.
 - **"Já fiz":** os avisos de trabalhos, seminários e outras trazem o botão. Ele para os lembretes que faltam sem abrir o app, e a avaliação sai das próximas na volta ao app. Na folha, "Desfazer" traz de volta.
 
+### Início do seu jeito
+
+No fim do Início, "Personalizar o Início" abre uma folha em que o aluno arruma a tela, e cada toque vale na hora:
+
+- **Seções:** mostrar ou esconder e mudar a ordem da Próxima aula, Companhia agora (onde existe), Próximas avaliações, Notas e Semana. As setas sobem e descem; o leitor de tela anuncia a nova posição. Com tudo escondido, o Início oferece voltar à folha.
+- **Saudação:** "Olá" e a data, só a data ou nenhuma.
+- **Densidade:** confortável (o espaço do app) ou compacta, com as seções mais juntas.
+- **Detalhes:** o botão "Ver no mapa" da próxima aula e quantas avaliações aparecem antes de "Ver todas" (1, 3 ou 5).
+- **Restaurar** volta ao Início de sempre. O atalho "Notas" do ícone mostra as notas mesmo escondidas.
+- **Onde fica:** só no aparelho, por conta (`home-layout` nas preferências; o logout apaga). Uma seção nova de uma versão futura entra no lugar dela, visível. O código está em `src/modules/home` e na folha `src/features/HomeLayout`.
+
 ### Companhia agora
 
 Encontros de minutos com outros alunos: uma mesa aberta no almoço ou a volta em grupo depois da última aula da noite. Quem chama diz onde e quando; quem quiser vai junto. Nada vira grupo: a chamada some sozinha pouco depois do horário. Fica no menu, perto do Mapa, e só existe onde o app consegue tokens anônimos de aluno (Android da loja).

@@ -48,6 +48,8 @@ type Props = {
   onPress: (item: AttendedClassesSchedule) => void;
   /** Provas e trabalhos anotados: a aula avisa quando tem prova nela. */
   evaluations?: readonly Evaluation[];
+  /** O botão "Ver no mapa" abaixo do card (Personalizar o Início). */
+  showMap?: boolean;
 };
 
 const NO_EVALUATIONS: readonly Evaluation[] = [];
@@ -81,6 +83,7 @@ export const NextClassCard = React.memo(function NextClassCard({
   now,
   onPress,
   evaluations = NO_EVALUATIONS,
+  showMap = true,
 }: Props) {
   const theme = useTheme();
   const navigation = useNavigation();
@@ -148,7 +151,7 @@ export const NextClassCard = React.memo(function NextClassCard({
           </Chevron>
         </Row>
       </Card>
-      {parseLocation(item.class.uerjLocation).kind === 'room' ? (
+      {showMap && parseLocation(item.class.uerjLocation).kind === 'room' ? (
         <Button
           label="Ver no mapa"
           icon="location_on"

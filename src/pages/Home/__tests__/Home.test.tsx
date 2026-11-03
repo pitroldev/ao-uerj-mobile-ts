@@ -16,7 +16,10 @@ import type {
 } from '@root/modules/academics/domain/models';
 import { snackbar, type IconName } from '@components/ui';
 import { OUTLINED_GLYPHS } from '@components/ui/Icon/glyphs';
-import { renderWithProviders } from '@root/test-utils/render';
+import {
+  createTestQueryClient,
+  renderWithProviders,
+} from '@root/test-utils/render';
 import type { Evaluation } from '@root/modules/evaluations/domain/evaluations';
 import { DEFAULT_NOTIFICATION_PREFERENCES } from '@root/modules/notifications/domain/preferences';
 import { HomePage } from '../Home';
@@ -263,7 +266,8 @@ const rid: PartialRidResult = {
   ],
 };
 
-const renderHome = () => renderWithProviders(<HomePage />);
+const renderHome = () =>
+  renderWithProviders(<HomePage />, { queryClient: createTestQueryClient() });
 /**
  * Folha aberta com este título. A folha é um `Modal`, que só fica na árvore
  * enquanto está aberto (o mock do preset devolve `null` com `visible` falso,
@@ -957,5 +961,93 @@ describe('provas e trabalhos', () => {
         time: 860,
       }),
     );
+  });
+});
+
+describe('Personalizar o Início', () => {
+  const headers = () =>
+    screen
+      .getAllByRole('header')
+      .map(node => String(node.props.children))
+      .filter(text =>
+        ['Próxima aula', 'Próximas avaliações', 'Notas', 'Semana'].includes(
+          text,
+        ),
+      );
+
+  it('hides, reorders and restyles the sections, live and saved on the device', async () => {
+    const write = jest.spyOn(mockServices.preferences, 'write');
+    const user = userEvent.setup();
+    await renderHome();
+    expect(headers()).toEqual([
+      'Próxima aula',
+      'Próximas avaliações',
+      'Notas',
+      'Semana',
+    ]);
+
+    await user.press(
+      screen.getByRole('button', { name: 'Personalizar o Início' }),
+    );
+    expect(
+      await screen.findByText('Seções · 4 de 4 no Início'),
+    ).toBeOnTheScreen();
+
+    // esconde as notas e sobe a semana para logo depois da próxima aula
+    await user.press(
+      screen.getByRole('switch', { name: 'Notas, posição 3 de 4' }),
+    );
+    await user.press(screen.getByRole('button', { name: 'Subir Semana' }));
+    await user.press(screen.getByRole('button', { name: 'Subir Semana' }));
+    expect(screen.getByText('Seções · 3 de 4 no Início')).toBeOnTheScreen();
+    await user.press(screen.getByRole('tab', { name: 'Só a data' }));
+    await user.press(screen.getByRole('button', { name: 'Pronto' }));
+    await waitFor(() =>
+      expect(screen.queryByText('Seções · 3 de 4 no Início')).toBeNull(),
+    );
+
+    expect(headers()).toEqual([
+      'Próxima aula',
+      'Semana',
+      'Próximas avaliações',
+    ]);
+    expect(screen.queryByText('Olá, Marina')).toBeNull();
+    expect(write).toHaveBeenLastCalledWith(
+      's',
+      'home-layout',
+      expect.objectContaining({
+        order: ['next-class', 'companion', 'week', 'evaluations', 'grades'],
+        hidden: ['grades'],
+        greeting: 'date',
+      }),
+    );
+  });
+
+  it('restores the usual Home and asks again when every section is hidden', async () => {
+    const user = userEvent.setup();
+    await renderHome();
+    await user.press(
+      screen.getByRole('button', { name: 'Personalizar o Início' }),
+    );
+    for (const name of [
+      'Próxima aula, posição 1 de 4',
+      'Próximas avaliações, posição 2 de 4',
+      'Notas, posição 3 de 4',
+      'Semana, posição 4 de 4',
+    ])
+      await user.press(await screen.findByRole('switch', { name }));
+    await user.press(screen.getByRole('button', { name: 'Pronto' }));
+    expect(await screen.findByText('Seu Início está vazio')).toBeOnTheScreen();
+
+    await user.press(
+      screen.getByRole('button', { name: 'Personalizar o Início' }),
+    );
+    await user.press(
+      await screen.findByRole('button', {
+        name: 'Restaurar o Início de sempre',
+      }),
+    );
+    await user.press(screen.getByRole('button', { name: 'Pronto' }));
+    await waitFor(() => expect(headers()).toHaveLength(4));
   });
 });

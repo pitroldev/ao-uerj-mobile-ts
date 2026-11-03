@@ -6,6 +6,11 @@ import React, {
   useState,
 } from 'react';
 import { View } from 'react-native';
+import styled, {
+  ThemeProvider,
+  useTheme,
+  type DefaultTheme,
+} from 'styled-components/native';
 import { parseName } from '@services/parser';
 import {
   useAppServices,
@@ -36,7 +41,13 @@ import type {
 } from '@root/modules/academics/domain/models';
 
 import { ScreenPanel } from '@templates/ScreenPanel';
-import { BlockedState, EmptyState, ErrorState, Notice } from '@components/ui';
+import {
+  BlockedState,
+  Button,
+  EmptyState,
+  ErrorState,
+  Notice,
+} from '@components/ui';
 
 import { AppInfoModal } from '@features/AppInfoModal';
 import { RIDBoard } from '@features/PartialRID/RIDBoard';
@@ -56,6 +67,13 @@ import {
 } from '@features/AttendedClassesSchedule/scheduleFormat';
 import { UntimedClasses } from '@features/AttendedClassesSchedule/UntimedClasses';
 import { CompanionNow } from '@features/Companion/CompanionNow';
+import { HomeLayoutSheet } from '@features/HomeLayout/HomeLayoutSheet';
+import {
+  HOME_SECTIONS,
+  visibleSections,
+  type HomeSectionId,
+} from '@root/modules/home/domain/homeLayout';
+import { useHomeLayout } from '@root/modules/home/presentation/useHomeLayout';
 import {
   isCurrentPartialRid,
   isPastPartialRid,
@@ -90,6 +108,16 @@ type AttendanceState = {
   focus: { date: string; start: number } | null;
 };
 
+/** Densidade compacta: as seções mais juntas (o padrão é 30 e 10). */
+const COMPACT_SECTION_GAP = 18;
+const COMPACT_HEADER_GAP = 6;
+
+/** "Personalizar o Início" no fim do conteúdo. */
+const Customize = styled.View`
+  margin-top: ${({ theme }) => theme.layout.sectionGap}px;
+  align-items: center;
+`;
+
 const NOT_STARTED_TEXT = 'Parece que o período não se iniciou ainda.';
 /** Com um RID de inscrição já encerrada, o período começou: a grade é que veio vazia. */
 const NO_CLASSES_TEXT =
@@ -115,9 +143,39 @@ export const HomePage = () => {
     request: null,
   });
   const now = useNow();
+  // Personalizar o Início: seções, ordem, saudação, densidade e detalhes
+  const {
+    layout: homeLayout,
+    change: changeLayout,
+    reset: resetLayout,
+  } = useHomeLayout();
+  const [customizing, setCustomizing] = useState(false);
+  const openCustomize = useCallback(() => setCustomizing(true), []);
+  const closeCustomize = useCallback(() => setCustomizing(false), []);
+  const appTheme = useTheme();
+  const homeTheme = useMemo(
+    () =>
+      homeLayout.density === 'compact'
+        ? // os tokens são literais (30, 10): a densidade troca só estes dois
+          ({
+            ...appTheme,
+            layout: {
+              ...appTheme.layout,
+              sectionGap: COMPACT_SECTION_GAP,
+              sectionHeaderGap: COMPACT_HEADER_GAP,
+            },
+          } as unknown as DefaultTheme)
+        : appTheme,
+    [appTheme, homeLayout.density],
+  );
   const { keys: absenceKeys } = useAttendance();
   const { evaluations } = useEvaluations();
-  const { notifications } = useAppServices();
+  const { notifications, companion } = useAppServices();
+  // sem tokens anônimos, a Companhia agora não existe neste aparelho
+  const availableSections = useMemo(
+    () => HOME_SECTIONS.filter(id => id !== 'companion' || companion.supported),
+    [companion.supported],
+  );
   // "Já fiz" tocado na barra com o app aberto não muda o AppState: a cada
   // minuto do relógio da tela, o Início lê o que o aparelho guardou
   useEffect(() => {
@@ -161,7 +219,11 @@ export const HomePage = () => {
   const isBlocked = [scheduleError, gradesError, ridError].some(
     isPortalBlocked,
   );
-  const { scrollRef, onGradesLayout } = useGradesFocus({
+  const {
+    scrollRef,
+    onGradesLayout,
+    requested: gradesRequested,
+  } = useGradesFocus({
     available: isClassGradesAvailable,
     // sem rede ou com erro, "Sem notas no período" seria mentira: espera
     settled: gradesQuery.isSuccess,
@@ -299,7 +361,92 @@ export const HomePage = () => {
     setEvaluationSheet(sheet => ({ ...sheet, visible: false }));
   }, []);
 
-  const greeting = <HomeGreeting firstName={firstName} date={dateLabel(now)} />;
+  const greeting =
+    homeLayout.greeting === 'none' ? null : (
+      <HomeGreeting
+        firstName={firstName}
+        date={dateLabel(now)}
+        style={homeLayout.greeting}
+      />
+    );
+
+  // as seções na ordem do aluno; o atalho "Notas" mostra as notas mesmo
+  // escondidas, para não abrir num Início que não as tem
+  const sections = visibleSections(homeLayout, availableSections);
+  if (gradesRequested && !sections.includes('grades'))
+    sections.splice(
+      homeLayout.order
+        .filter(id => sections.includes(id) || id === 'grades')
+        .indexOf('grades'),
+      0,
+      'grades',
+    );
+
+  const renderSection = (id: HomeSectionId): React.ReactNode => {
+    switch (id) {
+      case 'next-class':
+        return hasTimedClasses ? (
+          <>
+            <NextClassCard
+              data={currentSchedule}
+              now={now}
+              onPress={openClasses}
+              evaluations={openEvaluations}
+              showMap={homeLayout.nextClassMap}
+            />
+            <ReminderPrompt style={styles.prompt} />
+          </>
+        ) : null;
+      case 'companion':
+        return isScheduleAvailable ? (
+          <CompanionNow schedule={currentSchedule} now={now} />
+        ) : null;
+      case 'evaluations':
+        return isScheduleAvailable ? (
+          <UpcomingEvaluations
+            evaluations={evaluations}
+            schedule={currentSchedule}
+            grades={classGrades}
+            now={now}
+            onAdd={() => openEvaluation({ kind: 'new' })}
+            onPress={editEvaluation}
+            limit={homeLayout.evaluationLimit}
+          />
+        ) : null;
+      case 'grades':
+        return isClassGradesAvailable ? (
+          <View onLayout={onGradesLayout} testID="home-grades">
+            <GradeBoard
+              data={classGrades}
+              period={period}
+              evaluations={evaluations}
+              onAnnotate={annotateExam}
+              onEvaluationPress={editEvaluation}
+            />
+          </View>
+        ) : null;
+      case 'week':
+        return (
+          <>
+            <ClassScheduleBoard
+              data={currentSchedule}
+              now={now}
+              onSubjectPress={openClasses}
+              absences={absenceKeys}
+              onEndedClassPress={openEndedClass}
+              period={period}
+              evaluations={openEvaluations}
+              onEvaluationPress={editEvaluation}
+              onAddEvaluation={annotateOn}
+            />
+            <UntimedClasses
+              data={currentSchedule}
+              onSubjectPress={openClasses}
+            />
+          </>
+        );
+    }
+  };
 
   if (isBlocked && !hasSomethingAvailable) {
     return (
@@ -354,83 +501,64 @@ export const HomePage = () => {
   return (
     <>
       <AppInfoModal />
-      <ScreenPanel
-        refreshing={refreshing && !isPaused}
-        onRefresh={onRefresh}
-        scrollRef={scrollRef}
-      >
-        <RemoteNotices style={styles.notice} />
-        {notice}
-        {greeting}
-        {showSkeleton ? <HomeSkeleton /> : null}
-        {showError ? (
-          <>
-            <ErrorState
-              variant="card"
-              message={errorText}
-              onRetry={errorsCallback}
-              style={styles.errorCard}
+      <ThemeProvider theme={homeTheme}>
+        <ScreenPanel
+          refreshing={refreshing && !isPaused}
+          onRefresh={onRefresh}
+          scrollRef={scrollRef}
+        >
+          <RemoteNotices style={styles.notice} />
+          {notice}
+          {greeting}
+          {showSkeleton ? <HomeSkeleton /> : null}
+          {showError ? (
+            <>
+              <ErrorState
+                variant="card"
+                message={errorText}
+                onRetry={errorsCallback}
+                style={styles.errorCard}
+              />
+              {hasTooManyErrors ? <HomeHelp /> : null}
+            </>
+          ) : null}
+          {showNotStarted ? (
+            <EmptyState
+              icon="event_upcoming"
+              text={hasPastRid ? NO_CLASSES_TEXT : NOT_STARTED_TEXT}
             />
-            {hasTooManyErrors ? <HomeHelp /> : null}
-          </>
-        ) : null}
-        {showNotStarted ? (
-          <EmptyState
-            icon="event_upcoming"
-            text={hasPastRid ? NO_CLASSES_TEXT : NOT_STARTED_TEXT}
-          />
-        ) : null}
-        {hasTimedClasses ? (
-          <>
-            <NextClassCard
-              data={currentSchedule}
-              now={now}
-              onPress={openClasses}
-              evaluations={openEvaluations}
+          ) : null}
+          {sections.map(id => (
+            <React.Fragment key={id}>{renderSection(id)}</React.Fragment>
+          ))}
+          {hasSomethingAvailable && !sections.length ? (
+            <EmptyState
+              icon="tune"
+              title="Seu Início está vazio"
+              text="Você escondeu todas as seções. Escolha de novo o que aparece aqui."
+              action={{
+                label: 'Personalizar o Início',
+                icon: 'tune',
+                onPress: openCustomize,
+              }}
             />
-            <ReminderPrompt style={styles.prompt} />
-          </>
-        ) : null}
-        {isScheduleAvailable ? (
-          <CompanionNow schedule={currentSchedule} now={now} />
-        ) : null}
-        {isScheduleAvailable ? (
-          <UpcomingEvaluations
-            evaluations={evaluations}
-            schedule={currentSchedule}
-            grades={classGrades}
-            now={now}
-            onAdd={() => openEvaluation({ kind: 'new' })}
-            onPress={editEvaluation}
-          />
-        ) : null}
-        {isClassGradesAvailable ? (
-          <View onLayout={onGradesLayout} testID="home-grades">
-            <GradeBoard
-              data={classGrades}
-              period={period}
-              evaluations={evaluations}
-              onAnnotate={annotateExam}
-              onEvaluationPress={editEvaluation}
-            />
-          </View>
-        ) : null}
-        <ClassScheduleBoard
-          data={currentSchedule}
-          now={now}
-          onSubjectPress={openClasses}
-          absences={absenceKeys}
-          onEndedClassPress={openEndedClass}
-          period={period}
-          evaluations={openEvaluations}
-          onEvaluationPress={editEvaluation}
-          onAddEvaluation={annotateOn}
-        />
-        <UntimedClasses data={currentSchedule} onSubjectPress={openClasses} />
-        {!isScheduleAvailable && isPartialRidAvailable && partialRID ? (
-          <RIDBoard data={partialRID} />
-        ) : null}
-      </ScreenPanel>
+          ) : null}
+          {!isScheduleAvailable && isPartialRidAvailable && partialRID ? (
+            <RIDBoard data={partialRID} />
+          ) : null}
+          {hasSomethingAvailable && sections.length ? (
+            <Customize>
+              <Button
+                variant="text"
+                size="sm"
+                icon="tune"
+                label="Personalizar o Início"
+                onPress={openCustomize}
+              />
+            </Customize>
+          ) : null}
+        </ScreenPanel>
+      </ThemeProvider>
       <AttendedClassesBoard
         visible={classesSheet.visible}
         focusId={classesSheet.focusId}
@@ -446,6 +574,18 @@ export const HomePage = () => {
         data={currentSchedule}
         focus={attendance.focus}
         now={now}
+      />
+      <HomeLayoutSheet
+        visible={customizing}
+        onClose={closeCustomize}
+        layout={homeLayout}
+        available={availableSections}
+        onChange={update => {
+          void changeLayout(update);
+        }}
+        onReset={() => {
+          void resetLayout();
+        }}
       />
       {evaluationSheet.request ? (
         <EvaluationSheet

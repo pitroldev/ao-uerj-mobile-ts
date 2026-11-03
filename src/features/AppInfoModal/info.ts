@@ -5,6 +5,13 @@ export const APP_INFO_VERSION_KEY = 'app-info-version';
 
 export const APP_INFO = [
   {
+    title: 'Início do seu jeito',
+    icon: 'tune',
+    isNew: true,
+    description:
+      'Em "Personalizar o Início", escolha as seções, a ordem, a saudação, a densidade e quantas avaliações aparecem.',
+  },
+  {
     title: 'Companhia agora',
     icon: 'groups',
     isNew: true,

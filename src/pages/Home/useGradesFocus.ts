@@ -48,5 +48,5 @@ export function useGradesFocus({
     setOffset(event.nativeEvent.layout.y);
   }, []);
 
-  return { scrollRef, onGradesLayout };
+  return { scrollRef, onGradesLayout, requested };
 }
