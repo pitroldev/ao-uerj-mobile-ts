@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.12.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.11.1...v2.12.0) (2026-11-03)
+
+
+### Novidades
+
+* **companion:** Companhia agora, an open table at lunch or the way home together ([0ea2e16](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/0ea2e16a02cb6ab1610d7f1339b554c104f021e5))
+* **server:** Companhia agora in API v2, with a student pass and per-call member keys ([1fa541f](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/1fa541ffd8316319eb48d8ec6c5fb8f62d01354d))
+
 ## 2.11.1 (2026-11-02)
 
 ### Novidades
