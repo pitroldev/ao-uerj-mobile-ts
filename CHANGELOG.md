@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.14.0 (2026-11-04)
+
+### Novidades
+
+- Android: Agora no campus, avisos dos próprios alunos sobre o campus. Fila ou elevador parado, fila ou bandejão fechado, falta de luz, de ar ou de tomada, Wi-Fi fora ou lento, banheiro sem água, sem papel ou fechado, portão, rampa ou sala trancada. Avisar leva dois toques, e quem passa por lá responde "Continua", "Acabou" ou "Valeu".
+- O app mostra primeiro o que fica no caminho das suas aulas, só pela grade, sem usar a localização. Um aviso novo vale para todos depois que outro aluno confirma; três "Acabou" encerram, e quem avisou encerra na hora com "Já resolveu".
+- Pontos e níveis para quem ajuda, sem placar entre alunos, e o resumo do campus na semana e no mês, para compartilhar.
+- O Início mostra "Ainda está assim?" e os avisos do caminho enquanto você está no campus, e o celular pergunta no máximo três vezes por dia, perto da aula. Dá para desligar em Notificações.
+- Moderação: três "Não é verdade" tiram o aviso do ar, e o aluno suspenso tem os avisos tirados na hora. O admin ganhou a aba "Agora no campus", para tirar ou devolver um aviso.
+- Servidor: com a sessão já conhecida, cada aluno tem o próprio limite de pedidos, e os alunos no mesmo Wi-Fi da UERJ deixam de dividir um teto só.
+
 ## 2.13.1 (2026-11-03)
 
 ### Novidades

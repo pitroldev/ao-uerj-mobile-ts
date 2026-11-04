@@ -1,6 +1,6 @@
 {
   "name": "aouerjmobile",
-  "version": "2.13.1",
+  "version": "2.14.0",
   "private": true,
   "scripts": {
     "postinstall": "pnpm --dir server install --ignore-workspace",
