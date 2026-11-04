@@ -19,6 +19,19 @@ import type {
   CompanionStatsRepository,
   WatcherRepository,
 } from '../src/modules/companion/ports.ts';
+import {
+  answerId,
+  type Answer,
+  type Contributor,
+  type DayCounts,
+  type Notice,
+} from '../src/modules/campus-now/domain.ts';
+import type {
+  AnswerRepository,
+  ContributorRepository,
+  DayRepository,
+  NoticeRepository,
+} from '../src/modules/campus-now/ports.ts';
 import type { Message } from '../src/modules/mural/domain.ts';
 import type { MessageRepository } from '../src/modules/mural/ports.ts';
 import type {
@@ -180,6 +193,7 @@ export function memoryRepositories(clock = manualClock()) {
 
   const companion = memoryCompanion();
   const people = memoryStudents();
+  const campus = memoryCampusNow();
 
   return {
     data: {
@@ -196,6 +210,9 @@ export function memoryRepositories(clock = manualClock()) {
       callReports: companion.reports,
       companionStats: companion.stats,
       watched: companion.watched,
+      campusNotices: campus.notices,
+      campusAnswers: campus.answers,
+      campusPeople: campus.people,
     },
     repositories: {
       messages: messageRepository,
@@ -209,6 +226,10 @@ export function memoryRepositories(clock = manualClock()) {
       companionReports: companion.reportRepository,
       companionStats: companion.statsRepository,
       companionWatchers: companion.watcherRepository,
+      campusNotices: campus.noticeRepository,
+      campusAnswers: campus.answerRepository,
+      campusPeople: campus.contributorRepository,
+      campusDays: campus.dayRepository,
       students: people.studentRepository,
       studentSessions: people.sessionRepository,
     },
@@ -359,6 +380,262 @@ export function memoryCompanion() {
     reportRepository,
     statsRepository,
     watcherRepository,
+  };
+}
+
+/**
+ * Os avisos de Agora no campus, as respostas, os pontos e os dias, como no
+ * MongoDB: cada marca de uma resposta liga uma vez só.
+ */
+export function memoryCampusNow() {
+  const notices = new Map<string, Notice>();
+  const answers = new Map<string, Answer>();
+  const people = new Map<string, Contributor>();
+  const days = new Map<string, DayCounts & { day: string }>();
+  const copy = <T>(value: T): T => structuredClone(value);
+  const live = (notice: Notice, now: Date) =>
+    !notice.endedAt && !notice.removedAt && notice.expiresAt > now;
+  const newest = (a: Notice, b: Notice) =>
+    b.createdAt.getTime() - a.createdAt.getTime();
+  const all = () => [...notices.values()];
+  const update = (id: string, change: (notice: Notice) => void) => {
+    const notice = notices.get(id);
+    if (!notice) return null;
+    change(notice);
+    return copy(notice);
+  };
+
+  const noticeRepository: NoticeRepository = {
+    async create(notice) {
+      notices.set(notice.id, copy(notice));
+    },
+    async find(id) {
+      const notice = notices.get(id);
+      return notice ? copy(notice) : null;
+    },
+    async findMany(ids) {
+      return all()
+        .filter(notice => ids.includes(notice.id))
+        .map(copy);
+    },
+    async listActive(now) {
+      return all()
+        .filter(notice => live(notice, now))
+        .sort(newest)
+        .map(copy);
+    },
+    async countActive(now) {
+      return all().filter(notice => live(notice, now)).length;
+    },
+    async listActiveAt(kind, placeKey, now) {
+      return all()
+        .filter(
+          notice =>
+            live(notice, now) &&
+            notice.kind === kind &&
+            notice.placeKey === placeKey,
+        )
+        .map(copy);
+    },
+    async listByReporter(student, since) {
+      return all()
+        .filter(
+          notice => notice.reporter === student && notice.createdAt >= since,
+        )
+        .sort(newest)
+        .map(copy);
+    },
+    async listCreated(from, to) {
+      return all()
+        .filter(notice => notice.createdAt >= from && notice.createdAt < to)
+        .map(copy);
+    },
+    async addConfirmation(id, expiresAt) {
+      return update(id, notice => {
+        notice.confirmations += 1;
+        if (expiresAt > notice.expiresAt) notice.expiresAt = expiresAt;
+      });
+    },
+    async markFirstConfirmed(id, now) {
+      const notice = notices.get(id);
+      if (!notice || notice.firstConfirmedAt) return false;
+      notice.firstConfirmedAt = now;
+      return true;
+    },
+    async addEnd(id) {
+      return update(id, notice => {
+        notice.ends += 1;
+      });
+    },
+    async addThanks(id) {
+      return update(id, notice => {
+        notice.thanks += 1;
+      });
+    },
+    async addFlag(id) {
+      return update(id, notice => {
+        notice.flags += 1;
+      });
+    },
+    async addViews(ids) {
+      for (const id of ids)
+        update(id, notice => {
+          notice.views += 1;
+        });
+    },
+    async end(id, now, by) {
+      const notice = notices.get(id);
+      if (!notice || notice.endedAt || notice.removedAt) return false;
+      notice.endedAt = now;
+      notice.endedBy = by;
+      return true;
+    },
+    async remove(id, now, by) {
+      const notice = notices.get(id);
+      if (!notice || notice.removedAt) return false;
+      notice.removedAt = now;
+      notice.removedBy = by;
+      return true;
+    },
+    async restore(id) {
+      const notice = notices.get(id);
+      if (!notice?.removedAt || notice.removedBy === 'ban') return false;
+      notice.removedAt = null;
+      notice.removedBy = null;
+      return true;
+    },
+    async setPenalized(id, penalized) {
+      const notice = notices.get(id);
+      if (!notice || notice.penalized === penalized) return false;
+      notice.penalized = penalized;
+      return true;
+    },
+    async markReviewed(id, now) {
+      update(id, notice => {
+        notice.reviewedAt = now;
+      });
+    },
+    async listActiveBy(student, now) {
+      return all()
+        .filter(notice => notice.reporter === student && live(notice, now))
+        .map(copy);
+    },
+    async listFlagged(since, limit) {
+      return all()
+        .filter(notice => notice.flags > 0 && notice.createdAt >= since)
+        .sort(newest)
+        .slice(0, limit)
+        .map(copy);
+    },
+    async countPendingFlags(since) {
+      return all().filter(
+        notice =>
+          notice.flags > 0 && notice.createdAt >= since && !notice.reviewedAt,
+      ).length;
+    },
+    async listRecent(limit) {
+      return all().sort(newest).slice(0, limit).map(copy);
+    },
+  };
+
+  const answerOf = (notice: string, student: string): Answer =>
+    answers.get(answerId(notice, student)) ?? {
+      notice,
+      student,
+      answer: null,
+      thanked: false,
+      flagged: false,
+      seen: false,
+    };
+  const answerRepository: AnswerRepository = {
+    async answer(notice, student, value) {
+      const current = answerOf(notice, student);
+      const allowed =
+        value === 'confirm'
+          ? current.answer === null
+          : current.answer !== 'end';
+      if (!allowed) return null;
+      answers.set(answerId(notice, student), { ...current, answer: value });
+      return { previous: current.answer };
+    },
+    async mark(notice, student, field) {
+      const current = answerOf(notice, student);
+      if (current[field]) return false;
+      answers.set(answerId(notice, student), { ...current, [field]: true });
+      return true;
+    },
+    async see(list, student) {
+      const fresh: string[] = [];
+      for (const { id } of list) {
+        const current = answerOf(id, student);
+        if (current.seen) continue;
+        answers.set(answerId(id, student), { ...current, seen: true });
+        fresh.push(id);
+      }
+      return fresh;
+    },
+    async forStudent(student, ids) {
+      return ids.flatMap(id => {
+        const found = answers.get(answerId(id, student));
+        return found ? [copy(found)] : [];
+      });
+    },
+  };
+
+  const contributorRepository: ContributorRepository = {
+    async find(student) {
+      const found = people.get(student);
+      return found ? copy(found) : null;
+    },
+    async add(student, change) {
+      const current = people.get(student) ?? {
+        student,
+        points: 0,
+        notices: 0,
+        answers: 0,
+        confirmedNotices: 0,
+        thanksReceived: 0,
+        viewsReceived: 0,
+      };
+      for (const [key, value] of Object.entries(change))
+        current[key as keyof typeof change] += value ?? 0;
+      current.points = Math.max(0, current.points);
+      people.set(student, current);
+      return copy(current);
+    },
+  };
+
+  const dayRepository: DayRepository = {
+    async add(student, day, field, amount) {
+      const key = `${student}:${day}`;
+      const current = days.get(key) ?? {
+        day,
+        notices: 0,
+        answers: 0,
+        thanks: 0,
+      };
+      current[field] += amount;
+      days.set(key, current);
+      return {
+        notices: current.notices,
+        answers: current.answers,
+        thanks: current.thanks,
+      };
+    },
+    async countDay(day) {
+      return [...days.values()].filter(item => item.day === day).length;
+    },
+  };
+
+  return {
+    notices,
+    answers,
+    people,
+    days,
+    noticeRepository,
+    answerRepository,
+    contributorRepository,
+    dayRepository,
   };
 }
 

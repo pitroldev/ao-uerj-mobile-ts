@@ -81,17 +81,19 @@ O Oxlint guarda as fronteiras:
 
 Os testes:
 
-| Arquivo               | O que cobre                                                                      |
-| --------------------- | -------------------------------------------------------------------------------- |
-| `schedules.test.ts`   | O domínio do gerador, comparado com um porte do gerador antigo                   |
-| `application.test.ts` | Os casos de uso, com os repositórios em memória (`test/support.ts`)              |
-| `http.test.ts`        | As rotas, os status e os corpos que os apps publicados esperam                   |
-| `mongo.test.ts`       | Os repositórios, os índices e a queda do banco, num mongod de verdade            |
-| `adapters.test.ts`    | Anexos, a reconexão do banco, a fila e o pool de threads (heap estourado, saída) |
-| `portal.test.ts`      | A situação do Aluno Online e a sonda, contra um portal local                     |
-| `config.test.ts`      | O ambiente e os erros de configuração                                            |
-| `main.test.ts`        | O processo de verdade: a partida, o log e o SIGTERM (este, fora do Windows)      |
-| `smoke.test.ts`       | O `deploy/server/smoke.mjs` contra o servidor, como o deploy o roda              |
+| Arquivo                   | O que cobre                                                                      |
+| ------------------------- | -------------------------------------------------------------------------------- |
+| `schedules.test.ts`       | O domínio do gerador, comparado com um porte do gerador antigo                   |
+| `application.test.ts`     | Os casos de uso, com os repositórios em memória (`test/support.ts`)              |
+| `http.test.ts`            | As rotas, os status e os corpos que os apps publicados esperam                   |
+| `mongo.test.ts`           | Os repositórios, os índices e a queda do banco, num mongod de verdade            |
+| `adapters.test.ts`        | Anexos, a reconexão do banco, a fila e o pool de threads (heap estourado, saída) |
+| `portal.test.ts`          | A situação do Aluno Online e a sonda, contra um portal local                     |
+| `config.test.ts`          | O ambiente e os erros de configuração                                            |
+| `main.test.ts`            | O processo de verdade: a partida, o log e o SIGTERM (este, fora do Windows)      |
+| `smoke.test.ts`           | O `deploy/server/smoke.mjs` contra o servidor, como o deploy o roda              |
+| `campusNow.test.ts`       | Agora no campus: as regras, os casos de uso, as rotas e a aba do admin           |
+| `campusNow.mongo.test.ts` | Agora no campus num mongod: o lugar guardado e as gravações de uma vez só        |
 
 O mongod vem do `mongodb-memory-server`, na versão de produção
 (`test/mongo.ts`). A primeira execução baixa o binário para
@@ -177,6 +179,13 @@ tem 10 tentativas erradas a cada 15 minutos (acertar não conta).
   que ele abriu acabam). Os relatos da v2 também mostram o aluno. A busca vai
   por POST, para a matrícula não ficar nos logs. Sem `STUDENT_DATA_KEY`, a aba
   avisa que a identificação está desligada.
+- **Agora no campus:** a aba entre a Companhia e os Alunos, com a contagem
+  dos avisos denunciados que esperam você. Em cima, os números da semana;
+  embaixo, os denunciados dos últimos 7 dias e os avisos mais recentes, cada
+  um com o lugar, as respostas, quantos viram, os valeus e quem avisou (o
+  link para o aluno). "Tirar do ar" tira os 15 pontos de quem avisou; "Voltar
+  ao ar" e "Está certo" devolvem e fazem as denúncias pararem de tirá-lo do
+  ar sozinhas.
 
 As páginas são HTML montado no servidor (`http/aouerj/admin/`), sem
 JavaScript, com as cores dos temas claro e escuro do app. Os relatos antigos
@@ -236,9 +245,14 @@ As gravações contam por aluno (`COMPANION_MEMBER_LIMIT_PER_MINUTE`). Os
 desafios, as entradas e as saídas contam por IP
 (`STUDENT_RATE_LIMIT_PER_MINUTE`, 120: cada entrada é um desafio e um pedido,
 e cada uma gasta uma decifração da Play Integrity na cota do Google; o
-aluno entra uma vez por mês, então o Wi-Fi da UERJ cabe). Um pedido com
-sessão conta antes do banco no teto da Companhia por IP, e só sessões
-verdadeiras ficam no cache. Os apps de 2.11.1 a
+aluno entra uma vez por mês, então o Wi-Fi da UERJ cabe). O resultado de
+cada sessão fica 5 minutos no cache do processo (nunca além do fim da
+sessão ou do banimento; banir, desbanir e sair valem na hora), e só sessões
+verdadeiras entram nele, até 20 000. Uma sessão que o cache já conhece
+conta por aluno (`STUDENT_SESSION_LIMIT_PER_MINUTE`, 300), e não pelo IP: o
+Wi-Fi da UERJ põe muitos alunos num IP só, e as listas da Companhia e de
+Agora no campus atualizam sozinhas. A desconhecida (a primeira do processo,
+um token inventado) conta antes do banco no teto da Companhia por IP. Os apps de 2.11.1 a
 2.13 ainda entram na Companhia com o token anônimo (abaixo) enquanto
 `STUDENT_TOKENS=accept`, o padrão; `refuse` exige a sessão (401
 `session_required`).
@@ -401,6 +415,85 @@ Sem a chamada (acabou, saiu do ar, nunca existiu): 404 `call_not_found`; uma
 chave que não é dela: 403 `not_a_member`; uma chave tirada por quem chamou:
 403 `removed_from_call`. Os tipos estão em `contract.ts`.
 
+### Agora no campus
+
+Avisos curtos dos próprios alunos sobre o campus, que somem sozinhos (o
+módulo `modules/campus-now`): a fila dos elevadores, o bandejão, a luz e o
+ar, a internet, os banheiros e o acesso (portão, rampa, sala trancada). Só
+com a sessão de aluno: o servidor sabe quem avisou e quem respondeu, para os
+pontos, os limites e a moderação; os outros alunos nunca veem.
+
+- **Sem texto livre.** O tipo (`kind`), a situação (`status`) e o lugar vêm
+  de listas fechadas, e cada situação pede um tipo de lugar: o hall dos
+  elevadores (no bloco C), o bandejão, um portão do atlas do Mapa, um andar
+  de um bloco (o subsolo só no F) ou uma sala (o código da grade). O resto é
+  422 `invalid_place`; uma situação de outro tipo, 400.
+- **Novo até alguém confirmar.** O aviso vale para todos (`confirmed`) com o
+  primeiro "Continua" de outro aluno ou, direto, se quem avisou tem nível 3
+  ou mais (o selo `level`). A primeira confirmação dá 5 pontos a quem avisou.
+- **Some sozinho:** cada situação vale um tempo desde a criação ou o último
+  "Continua" (fila do bandejão, 30 minutos; filas dos elevadores, 45 e 60;
+  elevadores parados, 3 horas; luz, internet e banheiros, 2 horas, interditado
+  3; portão e rampa, 6 horas; sala trancada, 1 hora), nunca mais de 12 horas
+  depois da criação. Três "Acabou" de alunos diferentes encerram antes, e o
+  "Acabou" de quem avisou ("Já resolveu") encerra na hora.
+- **Repetido vira confirmação.** Avisar o mesmo tipo, situação e lugar de um
+  aviso que vale é o "Continua" dele (`merged`). Outra situação no mesmo
+  lugar (a fila que cresceu) encerra a anterior (`replaced`). Dois alunos
+  avisando o mesmo ao mesmo tempo ficam com um aviso só.
+- **Uma vez por aluno.** Cada aluno responde um aviso uma vez (de "Continua"
+  ainda pode ir a "Acabou"; o resto é 409 `already_answered`), agradece uma
+  vez e denuncia uma vez; o próprio aviso não se confirma, agradece nem
+  denuncia (403 `own_notice`). Uma linha por aviso e aluno (`campusanswers`,
+  `_id` `<aviso>:<aluno>`), com a condição no filtro da gravação, faz dois
+  pedidos juntos contarem uma vez só.
+- **"Não é verdade":** três denúncias de alunos diferentes tiram o aviso do
+  ar, e quem avisou perde 15 pontos. A moderação vê os denunciados na aba
+  "Agora no campus" de `/aouerj/admin`, com quem avisou (nome e matrícula), e
+  decide: "Tirar do ar" (os 15 pontos saem, uma vez só) ou "Voltar ao ar" /
+  "Está certo" (os pontos voltam, e as denúncias não o tiram mais sozinhas).
+  O banimento tira do ar, na hora, os avisos do aluno que ainda valem, sem
+  mexer nos pontos.
+- **Os pontos** ficam por aluno (`campuspeople`), sem placar entre alunos:
+  avisar, 10; responder ("Continua" ou "Acabou", a primeira vez em cada
+  aviso), 3; o próprio aviso confirmado, 5; cada "Valeu" recebido, 1; aviso
+  tirado do ar, −15 (nunca abaixo de zero). Por dia (de São Paulo), só os 5
+  primeiros avisos e as 10 primeiras respostas dão pontos. Os níveis: 1 desde
+  o começo, 2 com 100, 3 com 300, 4 com 800, 5 com 2000.
+- **Os limites:** 10 avisos novos por aluno por dia (429
+  `notice_limit_reached`); 300 avisos valendo no campus inteiro (503
+  `campus_full`); as gravações por aluno por minuto, na mesma conta da
+  Companhia (`COMPANION_MEMBER_LIMIT_PER_MINUTE`, 30, num contador próprio);
+  as leituras, só o teto por IP da v2.
+- **Para muitos alunos:** a lista que vale para todos fica guardada 5
+  segundos no processo (e é refeita a cada gravação dele); o que cada um
+  respondeu vem numa consulta só, pelos `_id`. "Quantos ajudaram hoje"
+  (`helpersToday`: quem avisou, respondeu ou agradeceu no dia, contado pelas
+  linhas de `campusdays`) fica guardado um minuto, e o resumo do campus, dez.
+- **Vistos:** o app manda os ids que apareceram na tela (`POST /seen`, até
+  50); cada aluno conta uma vez em cada aviso, e o próprio não conta. Só
+  quem avisou vê `views` e `thanks`.
+- **O resumo do campus** (`/community`): a semana, de segunda até agora
+  (avisos, respostas, vistos e a média até acabar), e o mês de agora ou o
+  anterior (`?month=AAAA-MM`), só com avisos confirmados que não saíram do
+  ar, juntados por tipo, situação e área (o bloco ou o portão): em quantos
+  dias houve, quantos avisos, a média até acabar e as duas horas com mais
+  avisos. `weekdays` são os dias de segunda a sexta do mês até hoje.
+
+| Rota                                                | O que faz                                                                |
+| --------------------------------------------------- | ------------------------------------------------------------------------ |
+| `GET /aouerj/v2/campus-now`                         | Os avisos que valem, o que o aluno respondeu, `helpersToday` e os pontos |
+| `POST /aouerj/v2/campus-now/notices`                | Avisa (201): o aviso, `merged`, `replaced` e os pontos                   |
+| `POST /aouerj/v2/campus-now/notices/:id/answer`     | "Continua" (`confirm`) ou "Acabou" (`end`)                               |
+| `POST /aouerj/v2/campus-now/notices/:id/thanks`     | "Valeu"                                                                  |
+| `POST /aouerj/v2/campus-now/notices/:id/flag`       | "Não é verdade"                                                          |
+| `POST /aouerj/v2/campus-now/seen`                   | Os avisos que apareceram na tela                                         |
+| `GET /aouerj/v2/campus-now/you`                     | Os pontos, as contagens, a semana e os avisos de hoje do aluno           |
+| `GET /aouerj/v2/campus-now/community?month=AAAA-MM` | O campus somado: a semana e o mês                                        |
+
+Sem a sessão, 401; sem o aviso (acabou, saiu do ar, nunca existiu), 404
+`notice_not_found`. Os tipos estão em `contract.ts`.
+
 ### Consultar o que está no ar
 
 ```sh
@@ -489,6 +582,13 @@ O que mudou de propósito:
   a lista, por 15 minutos; e as contagens de cada dia, por meio ano. Com a
   sessão, também o id do aluno de cada membro e de quem denunciou. Sem IP e
   sem localização.
+- **O que fica guardado em Agora no campus:** cada aviso (tipo, situação,
+  lugar, o id de quem avisou, as contagens e as datas) por 70 dias, para o
+  resumo do mês anterior; o que cada aluno fez com cada aviso (a resposta, o
+  "Valeu", a denúncia e se viu) até 2 dias depois do fim mais longe possível
+  do aviso; as contagens do dia de cada aluno, por 3 dias; e os pontos e as
+  contagens de sempre de cada aluno, sem prazo. Tudo pelo índice TTL, menos
+  os pontos. Sem texto livre, sem IP e sem localização.
 - **O que fica guardado dos alunos identificados:** a matrícula e o nome do
   portal, cifrados, o HMAC da matrícula, os HMACs das instalações e as datas
   de entrada, sem prazo de remoção; as sessões, pelo hash, até vencerem; o id

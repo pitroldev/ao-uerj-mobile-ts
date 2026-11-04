@@ -39,11 +39,14 @@ import type {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Quanto a resposta do `authenticate` vale na memória. Banir e desbanir valem
- * na hora neste processo (o `forget`); num outro, nesse prazo.
+ * Quanto a resposta do `authenticate` vale na memória, nunca além do fim da
+ * sessão (nem do banimento). Banir, desbanir e sair valem na hora neste
+ * processo (o `forget` e o `endSession`); num outro (a troca azul/verde),
+ * nesse prazo. Com muitos alunos, quase todo pedido acaba aqui, sem banco.
  */
-const AUTH_CACHE_MS = 30 * 1000;
-const AUTH_CACHE_MAX = 5000;
+export const AUTH_CACHE_MS = 5 * 60 * 1000;
+/** Sessões guardadas ao mesmo tempo (cada uma, uns 200 bytes). */
+export const AUTH_CACHE_MAX = 20000;
 
 /** O desafio dos alunos guarda o uso com outro prefixo que o da emissão. */
 const usedId = (challenge: Buffer) => `student:${usedChallengeId(challenge)}`;
@@ -83,14 +86,23 @@ export function createStudentIdentity({
     string,
     { result: Authentication; student: string; until: number }
   >();
-  const remember = (id: string, result: Authentication, student: string) => {
+  const remember = (
+    id: string,
+    result: Authentication,
+    student: string,
+    sessionEnds: Date,
+  ) => {
     cache.delete(id);
     // cheio, sai o mais antigo (o Map guarda a ordem de entrada)
     if (cache.size >= AUTH_CACHE_MAX) {
       const oldest = cache.keys().next();
       if (!oldest.done) cache.delete(oldest.value);
     }
-    cache.set(id, { result, student, until: now() + AUTH_CACHE_MS });
+    // nunca além do fim da sessão nem do fim do banimento
+    let until = Math.min(now() + AUTH_CACHE_MS, sessionEnds.getTime());
+    if (!result.ok && result.reason === 'banned' && result.ban.until)
+      until = Math.min(until, result.ban.until.getTime());
+    cache.set(id, { result, student, until });
   };
   // banir e desbanir valem na hora neste processo
   const forget = (studentId: string) => {
@@ -190,6 +202,14 @@ export function createStudentIdentity({
         lastUsedAt: time,
         expiresAt: sessionExpires,
       });
+      // a sessão nova já entra no cache: o primeiro pedido depois da entrada
+      // conta pelo aluno, sem dividir o teto do IP
+      remember(
+        sessionId(token),
+        { ok: true, studentId: current.id },
+        current.id,
+        sessionExpires,
+      );
       return {
         ok: true,
         token,
@@ -215,17 +235,23 @@ export function createStudentIdentity({
         result = { ok: false, reason: 'banned', ban: student.ban as Ban };
       else result = { ok: true, studentId: student.id };
       // o uso empurra o prazo, uma vez por hora
+      let sessionEnds = session.expiresAt;
       if (
         result.ok &&
         time.getTime() - session.lastUsedAt.getTime() >= SESSION_TOUCH_MS
-      )
-        await sessions.touch(
-          id,
-          time,
-          new Date(time.getTime() + SESSION_TTL_MS),
-        );
-      remember(id, result, student.id);
+      ) {
+        sessionEnds = new Date(time.getTime() + SESSION_TTL_MS);
+        await sessions.touch(id, time, sessionEnds);
+      }
+      remember(id, result, student.id, sessionEnds);
       return result;
+    },
+
+    peek(token) {
+      if (token.length !== SESSION_TOKEN_BYTES) return null;
+      const cached = cache.get(sessionId(token));
+      if (!cached || cached.until <= now() || !cached.result.ok) return null;
+      return { studentId: cached.result.studentId };
     },
 
     async endSession(token) {

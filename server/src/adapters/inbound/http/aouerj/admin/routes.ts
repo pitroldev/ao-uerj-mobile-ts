@@ -6,6 +6,7 @@ import express, {
 } from 'express';
 import { rateLimit } from 'express-rate-limit';
 
+import type { CampusNow } from '../../../../../modules/campus-now/ports.ts';
 import type { Companion } from '../../../../../modules/companion/ports.ts';
 import type { ErrorReports } from '../../../../../modules/reports/ports.ts';
 import {
@@ -20,6 +21,7 @@ import type { AdminSession } from '../../adminSession.ts';
 import { notFound } from '../../errors.ts';
 import type { Html } from './html.ts';
 import {
+  campusPage,
   COMPANION_STATS_DAYS,
   companionPage,
   diagnosticPage,
@@ -57,6 +59,7 @@ export function adminRoutes({
   reports,
   suggestions,
   companion,
+  campusNow,
   students,
   session,
   isDatabaseReady,
@@ -68,6 +71,11 @@ export function adminRoutes({
   companion: Pick<
     Companion,
     'reportsForReview' | 'statsForReview' | 'hideByModerator'
+  >;
+  /** Os avisos de Agora no campus: ver, tirar do ar e voltar ao ar. */
+  campusNow: Pick<
+    CampusNow,
+    'moderation' | 'pendingFlags' | 'removeByModerator' | 'restoreByModerator'
   >;
   /** Os alunos identificados: abrir, banir e desbanir. */
   students: StudentIdentity;
@@ -187,10 +195,11 @@ export function adminRoutes({
     withDatabase,
     page(async (req, res) => {
       const filter = filterFromQuery(req.query);
-      const [review, suggested, flagged] = await Promise.all([
+      const [review, suggested, flagged, campusFlags] = await Promise.all([
         reports.review(filter),
         suggestions.listRecent(),
         companion.reportsForReview(COMPANION_REPORTS_PAGE),
+        campusNow.pendingFlags(),
       ]);
       const people = await students.describe(
         review.reports.flatMap(report =>
@@ -208,6 +217,7 @@ export function adminRoutes({
           now: now(),
           suggestions: suggested.length,
           companionReports: flagged.length,
+          campusFlags,
           people,
         }),
       );
@@ -220,10 +230,11 @@ export function adminRoutes({
     signedIn,
     withDatabase,
     page(async (req, res) => {
-      const [suggested, review, flagged] = await Promise.all([
+      const [suggested, review, flagged, campusFlags] = await Promise.all([
         suggestions.listRecent(),
         reports.summarize(),
         companion.reportsForReview(COMPANION_REPORTS_PAGE),
+        campusNow.pendingFlags(),
       ]);
       send(
         res,
@@ -235,6 +246,7 @@ export function adminRoutes({
           now: now(),
           openReports: review.open,
           companionReports: flagged.length,
+          campusFlags,
         }),
       );
     }),
@@ -246,12 +258,14 @@ export function adminRoutes({
     signedIn,
     withDatabase,
     page(async (req, res) => {
-      const [flagged, stats, review, suggested] = await Promise.all([
-        companion.reportsForReview(COMPANION_REPORTS_PAGE),
-        companion.statsForReview(COMPANION_STATS_DAYS),
-        reports.summarize(),
-        suggestions.listRecent(),
-      ]);
+      const [flagged, stats, review, suggested, campusFlags] =
+        await Promise.all([
+          companion.reportsForReview(COMPANION_REPORTS_PAGE),
+          companion.statsForReview(COMPANION_STATS_DAYS),
+          reports.summarize(),
+          suggestions.listRecent(),
+          campusNow.pendingFlags(),
+        ]);
       const done = req.query.feito;
       const people = await students.describe(
         flagged.flatMap(report => [
@@ -273,6 +287,7 @@ export function adminRoutes({
           now: now(),
           openReports: review.open,
           suggestions: suggested.length,
+          campusFlags,
           done:
             done === 'tirada' ? 'hidden' : done === 'acabou' ? 'gone' : null,
         }),
@@ -299,17 +314,82 @@ export function adminRoutes({
 
   /** As contagens das abas, para as páginas dos alunos. */
   const tabCounts = async () => {
-    const [review, suggested, flagged] = await Promise.all([
+    const [review, suggested, flagged, campus] = await Promise.all([
       reports.summarize(),
       suggestions.listRecent(),
       companion.reportsForReview(COMPANION_REPORTS_PAGE),
+      campusNow.pendingFlags(),
     ]);
     return {
       open: review.open,
       suggestions: suggested.length,
       companion: flagged.length,
+      campus,
     };
   };
+
+  routes.get(
+    '/admin/agora',
+    configured,
+    signedIn,
+    withDatabase,
+    page(async (req, res) => {
+      const [counts, moderation] = await Promise.all([
+        tabCounts(),
+        campusNow.moderation(),
+      ]);
+      const people = await students.describe([
+        ...moderation.flagged.map(notice => notice.reporter),
+        ...moderation.recent.map(notice => notice.reporter),
+      ]);
+      const done = req.query.feito;
+      send(
+        res,
+        200,
+        campusPage({
+          base: req.baseUrl,
+          csrf: session!.csrf,
+          now: now(),
+          counts,
+          moderation,
+          people,
+          done:
+            done === 'tirado'
+              ? 'removed'
+              : done === 'mantido'
+                ? 'restored'
+                : done === 'sumiu'
+                  ? 'gone'
+                  : null,
+        }),
+      );
+    }),
+  );
+
+  // tirar do ar (quem avisou perde os pontos) e voltar ao ar (devolve)
+  for (const [action, apply] of [
+    ['tirar', (id: string) => campusNow.removeByModerator(id)],
+    ['voltar', (id: string) => campusNow.restoreByModerator(id)],
+  ] as const) {
+    routes.post(
+      `/admin/agora/:id/${action}`,
+      configured,
+      signedIn,
+      form,
+      fromThePage,
+      withDatabase,
+      page(async (req, res) => {
+        const result = await apply(String(req.params.id));
+        const done =
+          result === 'removed'
+            ? 'tirado'
+            : result === 'restored'
+              ? 'mantido'
+              : 'sumiu';
+        res.redirect(303, `${req.baseUrl}/admin/agora?feito=${done}`);
+      }),
+    );
+  }
 
   /** Sem a `STUDENT_DATA_KEY`, as páginas dos alunos dizem isso. */
   const identityOn: RequestHandler = (req, res, next) => {

@@ -31,3 +31,6 @@ export class ForbiddenError extends DomainError {}
 
 /** O pedido bate com o estado de agora: lotado, encerrado (vira 409). */
 export class ConflictError extends DomainError {}
+
+/** Quem pede passou do limite dele, como o de avisos do dia (vira 429). */
+export class LimitError extends DomainError {}

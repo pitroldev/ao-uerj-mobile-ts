@@ -291,6 +291,106 @@ const studentSessionSchema = new mongoose.Schema(
 studentSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 studentSessionSchema.index({ student: 1 });
 
+/**
+ * Os avisos de Agora no campus. O lugar fica achatado (`placeType`, bloco,
+ * andar, sala, portão). Ficam 70 dias, para o resumo do mês anterior (o
+ * índice TTL apaga em `purgeAt`); as consultas de "agora" filtram por
+ * `expiresAt`.
+ */
+const campusNoticeSchema = new mongoose.Schema(
+  {
+    _id: { required: true, type: String },
+    kind: { required: true, type: String },
+    status: { required: true, type: String },
+    placeType: { required: true, type: String },
+    block: { default: null, type: String },
+    floor: { default: null, type: String },
+    room: { default: null, type: String },
+    gate: { default: null, type: String },
+    placeKey: { required: true, type: String },
+    reporter: { required: true, type: String },
+    level: { default: 1, type: Number },
+    trusted: { default: false, type: Boolean },
+    confirmations: { default: 0, type: Number },
+    ends: { default: 0, type: Number },
+    flags: { default: 0, type: Number },
+    views: { default: 0, type: Number },
+    thanks: { default: 0, type: Number },
+    createdAt: { required: true, type: Date },
+    expiresAt: { required: true, type: Date },
+    firstConfirmedAt: { default: null, type: Date },
+    endedAt: { default: null, type: Date },
+    endedBy: { default: null, type: String },
+    removedAt: { default: null, type: Date },
+    removedBy: { default: null, type: String },
+    penalized: { default: false, type: Boolean },
+    reviewedAt: { default: null, type: Date },
+    purgeAt: { required: true, type: Date },
+  },
+  { versionKey: false, bufferCommands: false },
+);
+campusNoticeSchema.index({ purgeAt: 1 }, { expireAfterSeconds: 0 });
+// os que valem agora: a lista e o mesmo lugar (juntar e trocar), que são
+// poucos (o teto do campus) e não pedem um índice próprio
+campusNoticeSchema.index({ endedAt: 1, removedAt: 1, expiresAt: 1 });
+// os do aluno (a semana, hoje, o banimento)
+campusNoticeSchema.index({ reporter: 1, createdAt: -1 });
+// o resumo do campus e a moderação (os recentes e os denunciados dos últimos
+// 7 dias, que só o admin pede)
+campusNoticeSchema.index({ createdAt: -1 });
+
+/**
+ * O que cada aluno fez com cada aviso (`<aviso>:<aluno>`): a resposta, o
+ * "Valeu", a denúncia e se viu. Uma linha por par faz cada coisa contar uma
+ * vez só, mesmo com dois pedidos juntos. Some 2 dias depois do aviso.
+ */
+const campusAnswerSchema = new mongoose.Schema(
+  {
+    _id: { required: true, type: String },
+    notice: { required: true, type: String },
+    student: { required: true, type: String },
+    answer: { default: null, type: String },
+    thanked: { default: false, type: Boolean },
+    flagged: { default: false, type: Boolean },
+    seen: { default: false, type: Boolean },
+    purgeAt: { required: true, type: Date },
+  },
+  { versionKey: false, bufferCommands: false },
+);
+campusAnswerSchema.index({ purgeAt: 1 }, { expireAfterSeconds: 0 });
+
+/** Os pontos e as contagens de sempre de cada aluno (o id é o do aluno). */
+const campusPersonSchema = new mongoose.Schema(
+  {
+    _id: { required: true, type: String },
+    points: { default: 0, type: Number },
+    notices: { default: 0, type: Number },
+    answers: { default: 0, type: Number },
+    confirmedNotices: { default: 0, type: Number },
+    thanksReceived: { default: 0, type: Number },
+    viewsReceived: { default: 0, type: Number },
+  },
+  { versionKey: false, bufferCommands: false, timestamps: true },
+);
+
+/**
+ * As contagens do dia de cada aluno (`<aluno>:<AAAA-MM-DD>`), para o limite
+ * de avisos, o teto de pontos e "quantos ajudaram hoje". Ficam 3 dias.
+ */
+const campusDaySchema = new mongoose.Schema(
+  {
+    _id: { required: true, type: String },
+    day: { required: true, type: String },
+    notices: { default: 0, type: Number },
+    answers: { default: 0, type: Number },
+    thanks: { default: 0, type: Number },
+    purgeAt: { required: true, type: Date },
+  },
+  { versionKey: false, bufferCommands: false },
+);
+campusDaySchema.index({ purgeAt: 1 }, { expireAfterSeconds: 0 });
+campusDaySchema.index({ day: 1 });
+
 /** Os modelos registrados numa conexão. */
 export function defineModels(connection: Connection) {
   return {
@@ -318,6 +418,24 @@ export function defineModels(connection: Connection) {
     ),
     students: connection.model('Students', studentSchema),
     studentSessions: connection.model('StudentSessions', studentSessionSchema),
+    // Agora no campus, com os nomes das coleções escritos (o Mongoose faria
+    // "campuspeoples")
+    campusNotices: connection.model(
+      'CampusNotices',
+      campusNoticeSchema,
+      'campusnotices',
+    ),
+    campusAnswers: connection.model(
+      'CampusAnswers',
+      campusAnswerSchema,
+      'campusanswers',
+    ),
+    campusPeople: connection.model(
+      'CampusPeople',
+      campusPersonSchema,
+      'campuspeople',
+    ),
+    campusDays: connection.model('CampusDays', campusDaySchema, 'campusdays'),
   };
 }
 

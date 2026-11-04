@@ -6,6 +6,7 @@ import {
   DomainError,
   ForbiddenError,
   InvalidInputError,
+  LimitError,
   NotFoundError,
   UnavailableError,
 } from '../../../shared/errors.ts';
@@ -45,6 +46,8 @@ function describe(err: unknown): { status: number; body: ApiError } {
     return { status: 403, body: { error: err.code, message: err.message } };
   if (err instanceof ConflictError)
     return { status: 409, body: { error: err.code, message: err.message } };
+  if (err instanceof LimitError)
+    return { status: 429, body: { error: err.code, message: err.message } };
   if (err instanceof DomainError)
     return { status: 422, body: { error: err.code, message: err.message } };
 

@@ -284,6 +284,14 @@ const EnvSchema = z
     // decifração da Play Integrity (a cota do Google); o aluno entra uma vez
     // por mês, então o Wi-Fi da UERJ, com muitos num IP só, cabe
     STUDENT_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(120),
+    // os pedidos com uma sessão que o cache já conhece, por aluno: ela não
+    // divide o teto do IP com o resto do Wi-Fi da UERJ (a lista de Agora no
+    // campus e a da Companhia atualizam sozinhas enquanto a tela está aberta)
+    STUDENT_SESSION_LIMIT_PER_MINUTE: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .default(300),
   })
   // o emulador e o debug não passam na Play Integrity; a produção, sim
   .refine(
@@ -388,6 +396,8 @@ export type Config = {
     acceptTokens: boolean;
     /** Por IP, por minuto: os desafios e as entradas, juntos. */
     perMinute: number;
+    /** Por aluno, por minuto: os pedidos com uma sessão que o cache conhece. */
+    sessionPerMinute: number;
   };
 };
 
@@ -461,6 +471,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       dataKey: value.STUDENT_DATA_KEY,
       acceptTokens: value.STUDENT_TOKENS === 'accept',
       perMinute: value.STUDENT_RATE_LIMIT_PER_MINUTE,
+      sessionPerMinute: value.STUDENT_SESSION_LIMIT_PER_MINUTE,
     },
     studentAccess: {
       issuer: value.PRIVATE_TOKEN_ISSUER,

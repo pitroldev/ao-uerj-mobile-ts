@@ -7,6 +7,7 @@ import type {
   StudentAccess,
   TokenIssuer,
 } from '../../../modules/access/ports.ts';
+import type { CampusNow } from '../../../modules/campus-now/ports.ts';
 import type { Companion } from '../../../modules/companion/ports.ts';
 import type { ScheduleGenerator } from '../../../modules/schedules/ports.ts';
 import type { StudentIdentity } from '../../../modules/students/ports.ts';
@@ -27,6 +28,8 @@ export type Services = AoUerjServices & {
   tokens: TokenIssuer;
   /** A Companhia agora, na v2. */
   companion: Companion;
+  /** Agora no campus, na v2. */
+  campusNow: CampusNow;
   /** A identificação do aluno (v2) e a moderação dos alunos. */
   students: StudentIdentity;
 };
@@ -59,6 +62,8 @@ export type HttpSettings = {
   tokenBatchSize: number;
   /** Por IP, por minuto: os desafios e as entradas dos alunos. */
   studentRequestsPerMinute: number;
+  /** Por aluno, por minuto: os pedidos com uma sessão que o cache conhece. */
+  studentSessionRequestsPerMinute: number;
   /** Os tokens anônimos dos apps antigos ainda valem nas rotas de aluno. */
   acceptStudentTokens: boolean;
   /** A versão no ar, para o `GET /aouerj/status`. */
@@ -101,6 +106,7 @@ export function createHttpApp({
       access: services.access,
       tokens: services.tokens,
       companion: services.companion,
+      campusNow: services.campusNow,
       students: services.students,
       mural: services.mural,
       teachers: services.teachers,
@@ -110,6 +116,7 @@ export function createHttpApp({
       tokenBatchSize: settings.tokenBatchSize,
       companionLimits: settings.companionLimits,
       studentRequestsPerMinute: settings.studentRequestsPerMinute,
+      studentSessionRequestsPerMinute: settings.studentSessionRequestsPerMinute,
       acceptTokens: settings.acceptStudentTokens,
     }),
   );

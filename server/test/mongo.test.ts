@@ -78,6 +78,10 @@ test('the connection opens on the old collections, with the indexes the queries 
       .map(model => model.collection.collectionName)
       .sort(),
     [
+      'campusanswers',
+      'campusdays',
+      'campusnotices',
+      'campuspeople',
       'companioncalls',
       'companionreports',
       'companionstats',
@@ -108,6 +112,20 @@ test('the connection opens on the old collections, with the indexes the queries 
   assert.deepEqual(await indexesOf(models.studentSessions), [
     { expiresAt: 1 },
     { student: 1 },
+  ]);
+  // Agora no campus: a lista de agora, o mesmo lugar, os do aluno, o resumo
+  // e os denunciados; as respostas e os dias vencem pelo TTL
+  assert.deepEqual(await indexesOf(models.campusNotices), [
+    { purgeAt: 1 },
+    { endedAt: 1, removedAt: 1, expiresAt: 1 },
+    { reporter: 1, createdAt: -1 },
+    { createdAt: -1 },
+  ]);
+  assert.deepEqual(await indexesOf(models.campusAnswers), [{ purgeAt: 1 }]);
+  assert.deepEqual(await indexesOf(models.campusPeople), []);
+  assert.deepEqual(await indexesOf(models.campusDays), [
+    { purgeAt: 1 },
+    { day: 1 },
   ]);
 
   await db.disconnect();

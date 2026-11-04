@@ -1,4 +1,13 @@
 import {
+  FLAGS_TO_REMOVE,
+  type Gate,
+  type Notice,
+  type NoticeKind,
+  type NoticeStatus,
+  type Place,
+} from '../../../../../modules/campus-now/domain.ts';
+import type { Moderation } from '../../../../../modules/campus-now/ports.ts';
+import {
   MEMBER_REPORTS_TO_HIDE,
   type CallReport,
   type DayStats,
@@ -204,7 +213,7 @@ a.tag:hover{text-decoration:underline}
 .link:hover{text-decoration:underline}
 .link .i{width:1.125rem;height:1.125rem}
 .quiet{color:var(--ink-muted)}
-.act{display:flex;align-items:flex-start}
+.act{display:flex;flex-wrap:wrap;align-items:flex-start;gap:.5rem}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:.4375rem;min-height:2.5rem;padding:0 .875rem;border:1px solid transparent;border-radius:10px;background:var(--fill);color:var(--on-fill);font:inherit;font-size:.875rem;font-weight:600;white-space:nowrap;cursor:pointer}
 .btn:hover{background:var(--fill-press)}
 .btn.tonal{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-line)}
@@ -265,10 +274,15 @@ h1{font-size:1.375rem}
 }
 `);
 
-type Tab = 'reports' | 'suggestions' | 'companion' | 'students';
+type Tab = 'reports' | 'suggestions' | 'companion' | 'campus' | 'students';
 
-/** As contagens das abas. */
-type Counts = { open: number; suggestions: number; companion: number };
+/** As contagens das abas (`campus`: os avisos denunciados que esperam a moderação). */
+type Counts = {
+  open: number;
+  suggestions: number;
+  companion: number;
+  campus: number;
+};
 
 /** O molde: cabeçalho azul com o logo, as abas e o painel. */
 function layout({
@@ -326,7 +340,7 @@ function layout({
           ${
             counts
               ? html`<nav class="tabs" aria-label="Seções">
-                  ${tabLink('reports', `${base}/admin`, 'Relatos', counts.open)}${tabLink('suggestions', `${base}/admin/sugestoes`, 'Sugestões', counts.suggestions)}${tabLink('companion', `${base}/admin/companhia`, 'Companhia', counts.companion)}${tabLink('students', `${base}/admin/alunos`, 'Alunos')}
+                  ${tabLink('reports', `${base}/admin`, 'Relatos', counts.open)}${tabLink('suggestions', `${base}/admin/sugestoes`, 'Sugestões', counts.suggestions)}${tabLink('companion', `${base}/admin/companhia`, 'Companhia', counts.companion)}${tabLink('campus', `${base}/admin/agora`, 'Agora no campus', counts.campus)}${tabLink('students', `${base}/admin/alunos`, 'Alunos')}
                 </nav>`
               : html`<div class="tabs" aria-hidden="true"></div>`
           }
@@ -556,6 +570,7 @@ export function reportsPage({
   now,
   suggestions,
   companionReports,
+  campusFlags,
   people = new Map(),
 }: {
   base: string;
@@ -568,6 +583,8 @@ export function reportsPage({
   people?: ReadonlyMap<string, Student>;
   /** As denúncias da Companhia agora guardadas (30 dias). */
   companionReports: number;
+  /** Os avisos de Agora no campus denunciados que esperam a moderação. */
+  campusFlags: number;
 }) {
   const { summary } = review;
   const totals: Record<ReviewStatus, number> = {
@@ -609,7 +626,12 @@ export function reportsPage({
     title: 'Relatos de erro',
     tab: 'reports',
     csrf,
-    counts: { open: summary.open, suggestions, companion: companionReports },
+    counts: {
+      open: summary.open,
+      suggestions,
+      companion: companionReports,
+      campus: campusFlags,
+    },
     body: html`<h1>Relatos de erro</h1>
       <p class="lede">
         <b>${count(summary.open, 'aberto', 'abertos')}</b>${
@@ -677,6 +699,7 @@ export function suggestionsPage({
   now,
   openReports,
   companionReports,
+  campusFlags,
 }: {
   base: string;
   suggestions: Suggestion[];
@@ -684,6 +707,7 @@ export function suggestionsPage({
   now: Date;
   openReports: number;
   companionReports: number;
+  campusFlags: number;
 }) {
   const groups = byDay(suggestions, suggestion => suggestion.createdAt);
   return layout({
@@ -695,6 +719,7 @@ export function suggestionsPage({
       open: openReports,
       suggestions: suggestions.length,
       companion: companionReports,
+      campus: campusFlags,
     },
     body: html`<h1>Sugestões</h1>
       <p class="lede">
@@ -913,6 +938,7 @@ export function companionPage({
   now,
   openReports,
   suggestions,
+  campusFlags,
   done,
   people = new Map(),
 }: {
@@ -923,6 +949,7 @@ export function companionPage({
   now: Date;
   openReports: number;
   suggestions: number;
+  campusFlags: number;
   /** O resultado do "Tirar do ar" que acabou de voltar para cá. */
   done: 'hidden' | 'gone' | null;
   /** Os alunos que aparecem nas denúncias, abertos. */
@@ -945,7 +972,12 @@ export function companionPage({
     title: 'Companhia agora',
     tab: 'companion',
     csrf,
-    counts: { open: openReports, suggestions, companion: reports.length },
+    counts: {
+      open: openReports,
+      suggestions,
+      companion: reports.length,
+      campus: campusFlags,
+    },
     body: html`<h1>Companhia agora</h1>
       <p class="lede">
         Os números de cada dia, só contagens (sem quem, sem recado nem hora
@@ -1047,6 +1079,330 @@ export function companionPage({
               ${icon('task_alt')}
               <p>Nenhuma denúncia nos últimos 30 dias.</p>
             </div>`
+      }`,
+  });
+}
+
+/* -------------------------------------------------------- Agora no campus */
+
+/** O aviso nas palavras do app ("Fila grande no bandejão"). */
+const NOTICE_TITLE: Record<
+  NoticeKind,
+  Partial<Record<NoticeStatus, string>>
+> = {
+  elevators: {
+    short_queue: 'Elevadores: fila pequena',
+    long_queue: 'Elevadores: fila de 10 min ou mais',
+    stopped: 'Elevadores: todos parados',
+  },
+  ru: {
+    short_queue: 'Fila pequena no bandejão',
+    long_queue: 'Fila grande no bandejão',
+    closed: 'Bandejão fechado',
+  },
+  power: {
+    no_power: 'Sem luz',
+    no_ac: 'Sem ar-condicionado',
+    no_outlets: 'Tomadas sem energia',
+  },
+  internet: { wifi_down: 'Wi-Fi fora', wifi_slow: 'Wi-Fi lento' },
+  restroom: {
+    no_water: 'Banheiro sem água',
+    closed: 'Banheiro interditado',
+    no_paper: 'Banheiro sem papel',
+  },
+  access: {
+    gate_closed: 'Portão fechado',
+    ramp_closed: 'Rampa interditada',
+    room_locked: 'Sala trancada',
+  },
+};
+
+/** Os portões como o Mapa do app os chama. */
+const GATE_LABEL: Record<Gate, string> = {
+  'portao-metro': 'Portão 1',
+  'portao-leste': 'Portão 3',
+  'portao-sudeste': 'Portão 4',
+  'portao-sfx': 'Portão 5',
+  'portao-oeste': 'Portão 6',
+  'portao-radial': 'Portão 7',
+};
+
+const floorText = (floor: string) =>
+  floor === 'T' ? 'térreo' : floor === 'SE' ? 'subsolo' : `${floor}º andar`;
+
+function placeText(place: Place) {
+  switch (place.type) {
+    case 'elevators':
+      return 'Hall dos elevadores, bloco C';
+    case 'ru':
+      return 'Bandejão (Restaurante Universitário)';
+    case 'gate':
+      return GATE_LABEL[place.gate];
+    case 'floor':
+      return `Bloco ${place.block}, ${floorText(place.floor)}`;
+    case 'room':
+      return `Sala ${place.room}, bloco ${place.block}`;
+  }
+}
+
+const REMOVED_LABEL: Record<NonNullable<Notice['removedBy']>, string> = {
+  flags: 'Fora do ar pelas denúncias',
+  moderation: 'Tirado do ar por você',
+  ban: 'Fora do ar: quem avisou foi banido',
+};
+
+function noticeStateTag(notice: Notice, now: Date) {
+  if (notice.removedAt && notice.removedBy)
+    return html`<span class="source"
+      >${icon('visibility_off', 16)}${REMOVED_LABEL[notice.removedBy]}</span
+    >`;
+  if (notice.endedAt)
+    return html`<span class="source"
+      >${
+        notice.endedBy === 'replaced'
+          ? 'Trocado por outro aviso'
+          : notice.endedBy === 'reporter'
+            ? 'Quem avisou disse que acabou'
+            : 'Acabou'
+      }</span
+    >`;
+  if (notice.expiresAt <= now) return html`<span class="source">Venceu</span>`;
+  return html`<span class="state">Valendo</span>`;
+}
+
+/** Um aviso para a moderação: o que é, onde, os números e quem avisou. */
+function noticeRow({
+  base,
+  csrf,
+  notice,
+  now,
+  people,
+}: {
+  base: string;
+  csrf: string;
+  notice: Notice;
+  now: Date;
+  people: ReadonlyMap<string, Student>;
+}) {
+  const reporter = people.get(notice.reporter);
+  const action = (path: 'tirar' | 'voltar', label: string, tonal: boolean) =>
+    html`<form
+      method="post"
+      action="${base}/admin/agora/${encodeURIComponent(notice.id)}/${path}"
+    >
+      <input type="hidden" name="csrf" value="${csrf}" />
+      <button class="btn ${tonal ? 'tonal' : 'line'}" type="submit">
+        ${icon(path === 'tirar' ? 'visibility_off' : 'visibility')}${label}
+      </button>
+    </form>`;
+  const pending = notice.flags > 0 && !notice.reviewedAt;
+  let actions: Html | null = null;
+  if (notice.removedAt && notice.removedBy !== 'ban')
+    actions = html`${action('voltar', 'Voltar ao ar', false)}${pending ? action('tirar', 'Manter fora', true) : null}`;
+  else if (!notice.removedAt)
+    actions = html`${action('tirar', 'Tirar do ar', true)}${pending ? action('voltar', 'Está certo', false) : null}`;
+  return html`<li class="row" id="aviso-${notice.id}">
+    <time class="when" datetime="${notice.createdAt.toISOString()}"
+      >${hourFormat.format(notice.createdAt)}</time
+    >
+    <div>
+      <div class="top">
+        ${
+          notice.flags
+            ? html`<span class="tag"
+                >${count(notice.flags, 'denúncia', 'denúncias')}</span
+              >`
+            : null
+        }
+        <span class="who"
+          >${NOTICE_TITLE[notice.kind][notice.status] ?? notice.status}</span
+        >
+        ${noticeStateTag(notice, now)}
+        ${
+          notice.confirmations || notice.trusted
+            ? null
+            : html`<span class="source">Novo, sem confirmação</span>`
+        }
+      </div>
+      <dl class="facts">
+        <div>
+          <dt>Lugar</dt>
+          <dd>${placeText(notice.place)}</dd>
+        </div>
+        <div>
+          <dt>Continua</dt>
+          <dd>${notice.confirmations.toLocaleString('pt-BR')}</dd>
+        </div>
+        <div>
+          <dt>Acabou</dt>
+          <dd>${notice.ends.toLocaleString('pt-BR')}</dd>
+        </div>
+        <div>
+          <dt>Viram</dt>
+          <dd>${notice.views.toLocaleString('pt-BR')}</dd>
+        </div>
+        <div>
+          <dt>Valeus</dt>
+          <dd>${notice.thanks.toLocaleString('pt-BR')}</dd>
+        </div>
+        <div>
+          <dt>Avisou</dt>
+          <dd>
+            ${
+              reporter
+                ? studentLink(base, reporter)
+                : html`<span class="quiet">aluno não encontrado</span>`
+            }
+            ${
+              notice.trusted
+                ? html`<span class="quiet"> · nível ${notice.level}</span>`
+                : null
+            }
+          </dd>
+        </div>
+      </dl>
+      <div class="foot">
+        <span class="quiet"
+          >${
+            notice.removedAt || notice.endedAt
+              ? `Saiu às ${hourFormat.format(notice.removedAt ?? notice.endedAt!)}`
+              : `Some às ${hourFormat.format(notice.expiresAt)}`
+          }</span
+        >
+        ${
+          notice.reviewedAt
+            ? html`<span class="quiet">Você já olhou</span>`
+            : null
+        }
+      </div>
+    </div>
+    <div class="act">${actions ?? html`<span></span>`}</div>
+  </li>`;
+}
+
+/** Os números da semana do campus, numa tabela só. */
+function campusWeekTable(moderation: Moderation) {
+  const { week } = moderation;
+  return html`<div class="scroll">
+    <table class="nums">
+      <thead>
+        <tr>
+          <th scope="col">Desde</th>
+          <th scope="col">Avisos</th>
+          <th scope="col">Respostas</th>
+          <th scope="col">Viram</th>
+          <th scope="col">Até acabar</th>
+          <th scope="col">Valendo agora</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>${statDay(week.from)}</td>
+          ${cell(week.notices)}${cell(week.answers)}${cell(week.views)}
+          <td>
+            <b
+              >${
+                week.minutesToEnd === null
+                  ? '–'
+                  : `${week.minutesToEnd.toLocaleString('pt-BR')} min`
+              }</b
+            >
+          </td>
+          ${cell(moderation.active)}
+        </tr>
+      </tbody>
+    </table>
+  </div>`;
+}
+
+/**
+ * Agora no campus para a moderação: os avisos denunciados primeiro (7
+ * dias), depois os mais recentes, com quem avisou. Não há texto livre: o que
+ * se modera é o aviso falso. Tirar do ar tira os pontos de quem avisou;
+ * voltar ao ar devolve, e as denúncias não o tiram mais sozinhas.
+ */
+export function campusPage({
+  base,
+  csrf,
+  now,
+  counts,
+  moderation,
+  people,
+  done,
+}: {
+  base: string;
+  csrf: string;
+  now: Date;
+  counts: Counts;
+  moderation: Moderation;
+  /** Quem avisou, aberto. */
+  people: ReadonlyMap<string, Student>;
+  /** O resultado da ação que acabou de voltar para cá. */
+  done: 'removed' | 'restored' | 'gone' | null;
+}) {
+  const row = (notice: Notice) =>
+    noticeRow({ base, csrf, notice, now, people });
+  return layout({
+    base,
+    title: 'Agora no campus',
+    tab: 'campus',
+    csrf,
+    counts,
+    body: html`<h1>Agora no campus</h1>
+      <p class="lede">
+        Os avisos dos alunos sobre o campus (elevadores, bandejão, luz,
+        internet, banheiros, acesso). Os outros alunos não veem quem avisou;
+        aqui, sim.
+      </p>
+      ${
+        done === 'removed'
+          ? html`<p class="done-notice">
+              Saiu do ar, e quem avisou perdeu os pontos desse aviso.
+            </p>`
+          : done === 'restored'
+            ? html`<p class="done-notice">
+                Ficou no ar: as denúncias não o tiram mais sozinhas, e quem
+                avisou recebeu os pontos de volta.
+              </p>`
+            : done === 'gone'
+              ? html`<p class="notice">
+                  Esse aviso não existe mais (ou saiu porque quem avisou foi
+                  banido).
+                </p>`
+              : null
+      }
+      <h2 class="sub">Esta semana</h2>
+      <p class="sub-lede">
+        De segunda até agora. "Respostas": os "Continua" e "Acabou". "Até
+        acabar": a média, em minutos, dos que os alunos encerraram.
+      </p>
+      ${campusWeekTable(moderation)}
+
+      <h2 class="sub">Denunciados</h2>
+      <p class="sub-lede">
+        Os avisos com "Não é verdade" dos últimos 7 dias. Com
+        ${count(FLAGS_TO_REMOVE, 'denúncia', 'denúncias')} de alunos diferentes,
+        o aviso sai do ar sozinho.
+      </p>
+      ${
+        moderation.flagged.length
+          ? html`<ol class="list">
+              ${moderation.flagged.map(row)}
+            </ol>`
+          : html`<div class="empty">
+              ${icon('task_alt')}
+              <p>Nenhum aviso denunciado nos últimos 7 dias.</p>
+            </div>`
+      }
+
+      <h2 class="sub">Recentes</h2>
+      ${
+        moderation.recent.length
+          ? html`<ol class="list">
+              ${moderation.recent.map(row)}
+            </ol>`
+          : html`<p class="sub-lede">Ninguém avisou nada ainda.</p>`
       }`,
   });
 }

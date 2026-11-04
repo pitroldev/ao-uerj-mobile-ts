@@ -3,6 +3,12 @@ import type {
   SingleUse,
 } from '../../../modules/access/ports.ts';
 import type {
+  AnswerRepository,
+  ContributorRepository,
+  DayRepository,
+  NoticeRepository,
+} from '../../../modules/campus-now/ports.ts';
+import type {
   CallReportRepository,
   CallRepository,
   CompanionStatsRepository,
@@ -16,6 +22,12 @@ import type {
 import type { ErrorReportRepository } from '../../../modules/reports/ports.ts';
 import type { SuggestionRepository } from '../../../modules/suggestions/ports.ts';
 import type { TeacherRepository } from '../../../modules/teachers/ports.ts';
+import {
+  createAnswerRepository,
+  createContributorRepository,
+  createDayRepository,
+  createNoticeRepository,
+} from './campusNowRepository.ts';
 import {
   createCallReportRepository,
   createCallRepository,
@@ -49,6 +61,10 @@ export type Repositories = {
   companionWatchers: WatcherRepository;
   students: StudentRepository;
   studentSessions: StudentSessionRepository;
+  campusNotices: NoticeRepository;
+  campusAnswers: AnswerRepository;
+  campusPeople: ContributorRepository;
+  campusDays: DayRepository;
 };
 
 export function createMongoRepositories(models: Models): Repositories {
@@ -66,5 +82,9 @@ export function createMongoRepositories(models: Models): Repositories {
     companionWatchers: createWatcherRepository(models.companionWatchers),
     students: createStudentRepository(models.students),
     studentSessions: createStudentSessionRepository(models.studentSessions),
+    campusNotices: createNoticeRepository(models.campusNotices),
+    campusAnswers: createAnswerRepository(models.campusAnswers),
+    campusPeople: createContributorRepository(models.campusPeople),
+    campusDays: createDayRepository(models.campusDays),
   };
 }

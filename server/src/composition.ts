@@ -28,6 +28,7 @@ import {
   ISSUANCE_CHALLENGE_TTL_MS,
 } from './modules/access/application.ts';
 import type { AppAttester } from './modules/access/ports.ts';
+import { createCampusNow } from './modules/campus-now/application.ts';
 import { createCompanion } from './modules/companion/application.ts';
 import { createMural } from './modules/mural/application.ts';
 import { createPortalWatch } from './modules/portal/application.ts';
@@ -90,6 +91,7 @@ function httpSettingsOf(config: Config): HttpSettings {
     tokenRequestsPerMinute: config.studentAccess.issuance.perMinute,
     tokenBatchSize: config.studentAccess.issuance.batchSize,
     studentRequestsPerMinute: config.students.perMinute,
+    studentSessionRequestsPerMinute: config.students.sessionPerMinute,
     acceptStudentTokens: config.students.acceptTokens,
     release: config.release,
   };
@@ -151,6 +153,12 @@ export function createServer(
     stats: repositories.companionStats,
     watchers: repositories.companionWatchers,
   });
+  const campusNow = createCampusNow({
+    notices: repositories.campusNotices,
+    answers: repositories.campusAnswers,
+    contributors: repositories.campusPeople,
+    days: repositories.campusDays,
+  });
   const services: Services = {
     mural: createMural(repositories.messages),
     teachers: createTeacherDirectory(repositories.teachers, {
@@ -184,6 +192,7 @@ export function createServer(
       batchesPerDay: config.studentAccess.issuance.batchesPerDay,
     }),
     companion,
+    campusNow,
     students: createStudentIdentity({
       students: repositories.students,
       sessions: repositories.studentSessions,
@@ -196,8 +205,12 @@ export function createServer(
             })
           : overrides.attester,
       dataKey: config.students.dataKey,
-      // o banido sai das mesas na hora, sem esperar ninguém denunciar de novo
-      onBan: studentId => companion.dropStudent(studentId),
+      // o banido sai das mesas na hora, sem esperar ninguém denunciar de
+      // novo, e os avisos dele que valem saem do ar
+      onBan: async studentId => {
+        await companion.dropStudent(studentId);
+        await campusNow.dropStudent(studentId);
+      },
     }),
   };
 

@@ -1,5 +1,6 @@
 import express from 'express';
 
+import type { CampusNow } from '../../../../modules/campus-now/ports.ts';
 import type { Companion } from '../../../../modules/companion/ports.ts';
 import type { Mural } from '../../../../modules/mural/ports.ts';
 import type { PortalWatch } from '../../../../modules/portal/ports.ts';
@@ -33,6 +34,11 @@ export type AoUerjServices = {
   >;
   /** Os alunos identificados, para a moderação. */
   students: StudentIdentity;
+  /** Os avisos de Agora no campus, para a moderação. */
+  campusNow: Pick<
+    CampusNow,
+    'moderation' | 'pendingFlags' | 'removeByModerator' | 'restoreByModerator'
+  >;
 };
 
 /**
@@ -93,6 +99,7 @@ export function createAoUerjRouter({
         reports: services.reports,
         suggestions: services.suggestions,
         companion: services.companion,
+        campusNow: services.campusNow,
         students: services.students,
         session,
         isDatabaseReady: () => database.isReady(),

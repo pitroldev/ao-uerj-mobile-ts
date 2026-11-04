@@ -72,23 +72,33 @@ const UNAVAILABLE: ApiError = {
   message: 'Student sign-in is not available right now',
 };
 
+/** Onde o `identifyStudent` deixa o aluno que o cache conhecia. */
+const PEEKED = 'peekedStudent';
+
 /**
  * Lê a sessão, se o pedido trouxer uma (`Authorization: Student …`): válida,
  * guarda o aluno em `res.locals.student`; vencida, 401; banido, 403 com o
  * prazo. Sem sessão, segue: quem exige é o `requireStudentSession`.
  *
- * `limit` vem antes do banco, só para quem manda uma sessão (um token
- * inventado não sai de graça). Com `bestEffort` (o gerador, que não depende
- * do banco), o banco fora do ar ou com erro não segura o pedido: ele segue
- * sem o aluno.
+ * Os limites vêm antes do banco, só para quem manda uma sessão. A sessão que
+ * o cache já conhece conta pelo aluno (`studentLimit`, que lê o id com
+ * `peekedStudentOf`): o Wi-Fi da UERJ põe muitos alunos num IP só, e eles não
+ * dividem um teto. A desconhecida (a primeira do processo, um token
+ * inventado) conta pelo IP (`limit`): um token inventado não sai de graça.
+ * Com `bestEffort` (o gerador, que não depende do banco), o banco fora do ar
+ * ou com erro não segura o pedido: ele segue sem o aluno.
  */
 export function identifyStudent(
   identity: StudentIdentity,
   {
     limit,
+    studentLimit,
     bestEffort,
   }: {
+    /** Por IP: as sessões que o cache não conhece. */
     limit?: RequestHandler;
+    /** Por aluno: as sessões que o cache conhece. */
+    studentLimit?: RequestHandler;
     /** Diz se o banco está pronto; sem ele, nem tenta. */
     bestEffort?: () => boolean;
   } = {},
@@ -121,16 +131,29 @@ export function identifyStudent(
           else next(err);
         });
     };
-    if (!limit) {
+    // a sessão que o cache já conhece conta pelo aluno, não pelo IP
+    const known = studentLimit ? identity.peek(token) : null;
+    if (known) res.locals[PEEKED] = known.studentId;
+    const gate = known ? studentLimit : limit;
+    if (!gate) {
       run();
       return;
     }
-    void limit(req, res, (err?: unknown) => {
+    void gate(req, res, (err?: unknown) => {
       if (err) next(err);
       else run();
     });
   };
 }
+
+/**
+ * O aluno que o cache conhecia neste pedido, para a chave do limite por
+ * aluno (`perKeyLimit`); `undefined` nos outros.
+ */
+export const peekedStudentOf = (req: Request): string | undefined => {
+  const value: unknown = req.res?.locals[PEEKED];
+  return typeof value === 'string' ? value : undefined;
+};
 
 /** Sem a sessão lida pelo `identifyStudent`, 401 `session_required`. */
 export const requireStudentSession: RequestHandler = (req, res, next) => {

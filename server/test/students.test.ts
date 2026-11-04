@@ -5,12 +5,16 @@ import { after, test } from 'node:test';
 import { createServer, type Server } from '../src/composition.ts';
 import { createPortalWatch } from '../src/modules/portal/application.ts';
 import type { AppAttester } from '../src/modules/access/ports.ts';
-import { createStudentIdentity } from '../src/modules/students/application.ts';
+import {
+  AUTH_CACHE_MS,
+  createStudentIdentity,
+} from '../src/modules/students/application.ts';
 import {
   matriculaLookup,
   open,
   seal,
   studentKeys,
+  sessionId,
   studentSessionRequestHash,
 } from '../src/modules/students/domain.ts';
 import {
@@ -228,6 +232,63 @@ test('the session authenticates, a ban stops it right away, and the unban lets t
   await students.endSession(signed.token);
   const ended = await students.authenticate(signed.token);
   assert.equal(!ended.ok && ended.reason, 'invalid_session');
+});
+
+test('peek knows a fresh session from the cache only, never past the session, the ban or the logout', async () => {
+  const { clock, people, students, enroll } = identity();
+  const signed = await enroll();
+  assert.ok(signed.ok);
+  const me = { studentId: signed.studentId };
+  // a entrada já deixa a sessão no cache
+  assert.deepEqual(students.peek(signed.token), me);
+  assert.equal(students.peek(randomBytes(32)), null);
+  assert.equal(students.peek(Buffer.alloc(3)), null);
+  // vencido o cache, só o banco diz; depois, de novo do cache
+  clock.advance(AUTH_CACHE_MS);
+  assert.equal(students.peek(signed.token), null);
+  assert.equal((await students.authenticate(signed.token)).ok, true);
+  assert.deepEqual(students.peek(signed.token), me);
+  // banido: nunca pelo cache, nem depois de o banco dizer que está banido
+  await students.ban(signed.studentId, 1, 'Spam');
+  assert.equal(students.peek(signed.token), null);
+  assert.equal((await students.authenticate(signed.token)).ok, false);
+  assert.equal(students.peek(signed.token), null);
+  await students.unban(signed.studentId);
+  assert.equal(students.peek(signed.token), null);
+  assert.equal((await students.authenticate(signed.token)).ok, true);
+  assert.deepEqual(students.peek(signed.token), me);
+  // o logout tira do cache na hora
+  await students.endSession(signed.token);
+  assert.equal(students.peek(signed.token), null);
+  assert.equal((await students.authenticate(signed.token)).ok, false);
+
+  // a sessão que vence daqui a um minuto não fica no cache além disso
+  const short = await enroll('201910054321', randomBytes(32), 'LUCAS SOUZA');
+  assert.ok(short.ok);
+  const stored = people.sessions.get(sessionId(short.token));
+  assert.ok(stored);
+  clock.advance(AUTH_CACHE_MS);
+  stored.expiresAt = new Date(clock.now() + MINUTE);
+  assert.equal((await students.authenticate(short.token)).ok, true);
+  clock.advance(2 * MINUTE);
+  assert.equal(students.peek(short.token), null);
+  const gone = await students.authenticate(short.token);
+  assert.equal(!gone.ok && gone.reason, 'invalid_session');
+
+  // nem o banimento que acaba daqui a um minuto
+  const brief = await enroll('202010011111', randomBytes(32), 'ANA LIMA');
+  assert.ok(brief.ok);
+  const student = people.students.get(brief.studentId);
+  assert.ok(student);
+  clock.advance(AUTH_CACHE_MS);
+  student.ban = {
+    until: new Date(clock.now() + MINUTE),
+    reason: 'Teste',
+    at: new Date(clock.now()),
+  };
+  assert.equal((await students.authenticate(brief.token)).ok, false);
+  clock.advance(2 * MINUTE);
+  assert.equal((await students.authenticate(brief.token)).ok, true);
 });
 
 test('without STUDENT_DATA_KEY or an attester, nobody signs in', async () => {
@@ -718,4 +779,44 @@ test('the generator does not wait for the database to know the student', async (
   });
   // o corpo vazio é recusado pelo gerador, não pelo banco
   assert.equal(generate.status, 400);
+});
+
+test('a known session counts per student, not in the IP ceiling; an unknown one still pays per IP', async () => {
+  const { call, signIn, as } = await serve({
+    COMPANION_IP_LIMIT_PER_MINUTE: '3',
+    STUDENT_SESSION_LIMIT_PER_MINUTE: '4',
+  });
+  // cinco alunos atrás do mesmo IP (o Wi-Fi da UERJ)
+  const sessions: string[] = [];
+  for (let i = 0; i < 5; i++) {
+    const signed = await signIn(
+      `20181001${String(1000 + i)}`,
+      `ALUNO NUMERO ${i}`,
+    );
+    assert.equal(signed.status, 201);
+    sessions.push(signed.body.session as string);
+  }
+  const list = (session: string) =>
+    call('GET', '/aouerj/v2/campus-now', { headers: as(session) });
+  // dez pedidos de um IP só, bem acima do teto de 3: a sessão é conhecida
+  for (const session of sessions)
+    for (let i = 0; i < 2; i++) assert.equal((await list(session)).status, 200);
+
+  // um aluno só passa do limite dele
+  const [first] = sessions;
+  assert.equal((await list(first)).status, 200);
+  assert.equal((await list(first)).status, 200);
+  const over = await list(first);
+  assert.equal(over.status, 429);
+  assert.equal(over.body.error, 'rate_limited');
+  assert.equal((await list(sessions[1])).status, 200);
+
+  // os tokens inventados contam pelo IP: 401 até o teto, depois 429
+  const bogus = () => list(randomBytes(32).toString('base64url'));
+  for (let i = 0; i < 3; i++) assert.equal((await bogus()).status, 401);
+  const blocked = await bogus();
+  assert.equal(blocked.status, 429);
+  assert.equal(blocked.body.error, 'rate_limited');
+  // e quem é conhecido segue
+  assert.equal((await list(sessions[2])).status, 200);
 });

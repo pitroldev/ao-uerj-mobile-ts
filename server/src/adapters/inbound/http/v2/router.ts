@@ -4,6 +4,7 @@ import type {
   StudentAccess,
   TokenIssuer,
 } from '../../../../modules/access/ports.ts';
+import type { CampusNow } from '../../../../modules/campus-now/ports.ts';
 import type { Companion } from '../../../../modules/companion/ports.ts';
 import type { Mural } from '../../../../modules/mural/ports.ts';
 import type { ErrorReports } from '../../../../modules/reports/ports.ts';
@@ -14,11 +15,13 @@ import type { StudentAuthResponse } from '../contract.ts';
 import { notFound } from '../errors.ts';
 import { perKeyLimit, perMinuteLimit, requireDatabase } from '../middleware.ts';
 import { campusRoutes } from './campus.ts';
+import { campusNowRoutes } from './campusNow.ts';
 import { companionRoutes } from './companion.ts';
 import { requireStudent } from './studentAuth.ts';
 import {
   actorOf,
   identifyStudent,
+  peekedStudentOf,
   requireStudentSession,
   sessionOrToken,
   studentRoutes,
@@ -36,6 +39,7 @@ export function createV2Router({
   access,
   tokens,
   companion,
+  campusNow,
   students,
   mural,
   teachers,
@@ -45,11 +49,14 @@ export function createV2Router({
   tokenBatchSize,
   companionLimits,
   studentRequestsPerMinute,
+  studentSessionRequestsPerMinute,
   acceptTokens,
 }: {
   access: StudentAccess;
   tokens: TokenIssuer;
   companion: Companion;
+  /** Agora no campus: os avisos dos alunos, só com a sessão. */
+  campusNow: CampusNow;
   students: StudentIdentity;
   mural: Mural;
   teachers: TeacherDirectory;
@@ -59,6 +66,11 @@ export function createV2Router({
   tokenBatchSize: number;
   /** Por IP, por minuto: os desafios e as entradas dos alunos. */
   studentRequestsPerMinute: number;
+  /**
+   * Por aluno, por minuto: os pedidos com uma sessão que o cache já conhece,
+   * que não contam no teto do IP.
+   */
+  studentSessionRequestsPerMinute: number;
   /** Os tokens anônimos ainda valem nas rotas de aluno. */
   acceptTokens: boolean;
   /**
@@ -93,11 +105,16 @@ export function createV2Router({
     }),
   );
 
-  // daqui em diante, a sessão (se vier) identifica o aluno; banido, 403. O
-  // teto por IP vem antes do banco
+  // daqui em diante, a sessão (se vier) identifica o aluno; banido, 403. Os
+  // limites vêm antes do banco: a sessão que o cache conhece conta pelo
+  // aluno (o Wi-Fi da UERJ põe muitos num IP só); a desconhecida, pelo IP
   routes.use(
     identifyStudent(students, {
       limit: perMinuteLimit(companionLimits.perIp),
+      studentLimit: perKeyLimit(
+        studentSessionRequestsPerMinute,
+        peekedStudentOf,
+      ),
     }),
   );
 
@@ -127,6 +144,18 @@ export function createV2Router({
       mural,
       teachers,
       reports,
+      withDatabase,
+      session: requireStudentSession,
+      studentLimit: perKeyLimit(companionLimits.perMember, (req: Request) =>
+        req.res ? actorOf(req.res)?.studentId : undefined,
+      ),
+    }),
+  );
+
+  // a conta própria de gravações por aluno, separada da do mural e do relato
+  routes.use(
+    campusNowRoutes({
+      campusNow,
       withDatabase,
       session: requireStudentSession,
       studentLimit: perKeyLimit(companionLimits.perMember, (req: Request) =>

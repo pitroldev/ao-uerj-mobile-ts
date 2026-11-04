@@ -53,6 +53,12 @@ export interface StudentIdentity {
   enroll(request: EnrollmentRequest): Promise<Enrollment>;
   /** Confere o token da sessão (com um cache curto) e se o aluno está banido. */
   authenticate(token: Buffer): Promise<Authentication>;
+  /**
+   * O aluno da sessão se o cache ainda o tem como válido, sem ir ao banco;
+   * `null` sem ele, vencido, banido ou inválido. Serve para contar o pedido
+   * pelo aluno, e não pelo IP, antes de autenticar.
+   */
+  peek(token: Buffer): StudentActor | null;
   /** A saída do app (o logout): a sessão deixa de valer. */
   endSession(token: Buffer): Promise<void>;
 
