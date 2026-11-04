@@ -9,6 +9,7 @@ type StoredMessage = Stored & {
   periodo: string;
   turma: string | number;
   message: string;
+  studentId?: string | null;
 };
 
 export function toMessage(doc: StoredMessage): Message {
@@ -22,6 +23,7 @@ export function toMessage(doc: StoredMessage): Message {
     },
     authorName: doc.fullName,
     text: doc.message,
+    studentId: doc.studentId ?? null,
     createdAt: storedDate(doc.createdAt),
     updatedAt: storedDate(doc.updatedAt),
   };
@@ -52,6 +54,7 @@ export function createMessageRepository(
           periodo: message.thread.period,
           turma: message.thread.classNumber,
           message: message.text,
+          studentId: message.studentId ?? null,
         });
         return toMessage(created.toObject<StoredMessage>());
       }),

@@ -76,7 +76,14 @@ test('only a first name goes with the call', () => {
 
 test('a call shows up an hour before, leaves the list after the time and vanishes later', () => {
   const now = new Date(Date.UTC(2026, 10, 23, 15));
-  const host = { id: 'h', ref: 'r', name: 'Júlia', host: true, joinedAt: now };
+  const host = {
+    id: 'h',
+    ref: 'r',
+    name: 'Júlia',
+    host: true,
+    joinedAt: now,
+    student: null,
+  };
   const at = new Date(now.getTime() + 30 * MINUTE);
   const call = planCall(lunch(at), { id: 'c', now, host });
   assert.equal(call.visibleFrom.getTime(), at.getTime() - 60 * MINUTE);

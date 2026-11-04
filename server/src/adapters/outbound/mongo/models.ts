@@ -3,6 +3,7 @@ import mongoose, { type Connection } from 'mongoose';
 import { COMPANION_LIMITS } from '../../../modules/companion/domain.ts';
 import { MESSAGE_LIMITS } from '../../../modules/mural/domain.ts';
 import { REPORT_LIMITS } from '../../../modules/reports/domain.ts';
+import { STUDENT_LIMITS } from '../../../modules/students/domain.ts';
 import { SUGGESTION_LIMITS } from '../../../modules/suggestions/domain.ts';
 
 /*
@@ -44,6 +45,8 @@ const errorReportSchema = new mongoose.Schema(
     email,
     /** Resolvido na triagem (`/aouerj/admin`); os antigos não têm o campo. */
     resolvedAt: { default: null, type: Date },
+    /** O aluno que relatou (v2); os da rota antiga ficam sem. */
+    studentId: { default: null, type: String },
   },
   OPTIONS,
 );
@@ -56,6 +59,8 @@ const muralMessageSchema = new mongoose.Schema(
     periodo: text(MESSAGE_LIMITS.period),
     turma: text(MESSAGE_LIMITS.classNumber),
     message: text(MESSAGE_LIMITS.text),
+    /** O aluno que escreveu (v2); as da rota antiga ficam sem. */
+    studentId: { default: null, type: String },
   },
   OPTIONS,
 );
@@ -120,6 +125,8 @@ const companionMemberSchema = new mongoose.Schema(
     name: text(COMPANION_LIMITS.name),
     host: { default: false, type: Boolean },
     joinedAt: { required: true, type: Date },
+    /** O aluno (v2, com a sessão); quem entrou com token fica sem. */
+    student: { default: null, type: String },
   },
   { _id: false },
 );
@@ -157,6 +164,7 @@ const companionCallSchema = new mongoose.Schema(
 );
 companionCallSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 companionCallSchema.index({ listedUntil: 1 });
+companionCallSchema.index({ 'members.student': 1 });
 
 /** As denúncias da Companhia agora, para a moderação, por 30 dias. */
 const companionReportSchema = new mongoose.Schema(
@@ -168,6 +176,22 @@ const companionReportSchema = new mongoose.Schema(
     destination: { default: null, type: String },
     note: { default: '', type: String },
     names: { default: [], type: [String] },
+    /** Quem estava na chamada e, com a sessão, o aluno de cada um. */
+    people: {
+      default: [],
+      type: [
+        new mongoose.Schema(
+          {
+            name: { required: true, type: String },
+            host: { default: false, type: Boolean },
+            student: { default: null, type: String },
+          },
+          { _id: false },
+        ),
+      ],
+    },
+    /** O aluno que denunciou (com a sessão). */
+    reporterStudent: { default: null, type: String },
     reason: { required: true, type: String },
     source: { default: null, type: String },
     count: { required: true, type: Number },
@@ -209,6 +233,64 @@ const companionWatcherSchema = new mongoose.Schema(
 );
 companionWatcherSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
+/**
+ * Os alunos identificados (v2): matrícula e nome cifrados (AES-GCM), o HMAC
+ * da matrícula para achar, os aparelhos (HMAC da instalação) e o banimento.
+ */
+const studentDeviceSchema = new mongoose.Schema(
+  {
+    id: { required: true, type: String },
+    firstSeenAt: { required: true, type: Date },
+    lastSeenAt: { required: true, type: Date },
+  },
+  { _id: false },
+);
+const studentSchema = new mongoose.Schema(
+  {
+    _id: { required: true, type: String },
+    lookup: { required: true, type: String },
+    matricula: { required: true, type: String },
+    name: { required: true, type: String },
+    createdAt: { required: true, type: Date },
+    lastSeenAt: { required: true, type: Date },
+    devices: { default: [], type: [studentDeviceSchema] },
+    ban: {
+      default: null,
+      type: new mongoose.Schema(
+        {
+          until: { default: null, type: Date },
+          reason: {
+            required: true,
+            maxlength: STUDENT_LIMITS.banReason,
+            type: String,
+          },
+          at: { required: true, type: Date },
+        },
+        { _id: false },
+      ),
+    },
+  },
+  { versionKey: false, bufferCommands: false },
+);
+studentSchema.index({ lookup: 1 }, { unique: true });
+studentSchema.index({ lastSeenAt: -1 });
+studentSchema.index({ 'ban.at': -1 });
+
+/** As sessões dos alunos: o hash do token; o índice TTL apaga as vencidas. */
+const studentSessionSchema = new mongoose.Schema(
+  {
+    _id: { required: true, type: String },
+    student: { required: true, type: String },
+    device: { required: true, type: String },
+    createdAt: { required: true, type: Date },
+    lastUsedAt: { required: true, type: Date },
+    expiresAt: { required: true, type: Date },
+  },
+  { versionKey: false, bufferCommands: false },
+);
+studentSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+studentSessionSchema.index({ student: 1 });
+
 /** Os modelos registrados numa conexão. */
 export function defineModels(connection: Connection) {
   return {
@@ -234,6 +316,8 @@ export function defineModels(connection: Connection) {
       'CompanionWatchers',
       companionWatcherSchema,
     ),
+    students: connection.model('Students', studentSchema),
+    studentSessions: connection.model('StudentSessions', studentSessionSchema),
   };
 }
 

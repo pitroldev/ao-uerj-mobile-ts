@@ -8,6 +8,7 @@ import type {
 } from '../src/modules/access/ports.ts';
 import {
   isListed,
+  removedStudent,
   type Call,
   type CallReport,
   type DayStats,
@@ -28,6 +29,14 @@ import type {
   AttachmentStore,
   ErrorReportRepository,
 } from '../src/modules/reports/ports.ts';
+import type {
+  StoredSession,
+  StoredStudent,
+} from '../src/modules/students/domain.ts';
+import type {
+  StudentRepository,
+  StudentSessionRepository,
+} from '../src/modules/students/ports.ts';
 import type { Suggestion } from '../src/modules/suggestions/domain.ts';
 import type { SuggestionRepository } from '../src/modules/suggestions/ports.ts';
 import type { Teacher } from '../src/modules/teachers/domain.ts';
@@ -170,9 +179,12 @@ export function memoryRepositories(clock = manualClock()) {
   const counters = new Map<string, { count: number; until: Date }>();
 
   const companion = memoryCompanion();
+  const people = memoryStudents();
 
   return {
     data: {
+      students: people.students,
+      studentSessions: people.sessions,
       messages,
       teachers,
       reports,
@@ -197,6 +209,8 @@ export function memoryRepositories(clock = manualClock()) {
       companionReports: companion.reportRepository,
       companionStats: companion.statsRepository,
       companionWatchers: companion.watcherRepository,
+      students: people.studentRepository,
+      studentSessions: people.sessionRepository,
     },
   };
 }
@@ -222,6 +236,15 @@ export function memoryCompanion() {
     async countAlive(now) {
       return [...calls.values()].filter(call => alive(call, now)).length;
     },
+    async listAliveWith(student, now) {
+      return [...calls.values()]
+        .filter(
+          call =>
+            alive(call, now) &&
+            call.members.some(member => member.student === student),
+        )
+        .map(copy);
+    },
     async find(callId, now) {
       const call = calls.get(callId);
       return alive(call, now) ? copy(call) : null;
@@ -230,6 +253,13 @@ export function memoryCompanion() {
       const call = calls.get(callId);
       if (!alive(call, now) || !isListed(call, now)) return null;
       if (call.members.length >= call.capacity) return null;
+      const { student } = member;
+      if (
+        student &&
+        (call.members.some(item => item.student === student) ||
+          call.removed.includes(removedStudent(student)))
+      )
+        return null;
       call.members.push(structuredClone(member));
       return copy(call);
     },
@@ -330,6 +360,95 @@ export function memoryCompanion() {
     statsRepository,
     watcherRepository,
   };
+}
+
+/** Os alunos e as sessões, como no MongoDB (o `lookup` é único). */
+export function memoryStudents() {
+  const students = new Map<string, StoredStudent>();
+  const sessions = new Map<string, StoredSession>();
+  const copy = <T>(value: T): T => structuredClone(value);
+
+  const studentRepository: StudentRepository = {
+    async findByLookup(lookup) {
+      const found = [...students.values()].find(item => item.lookup === lookup);
+      return found ? copy(found) : null;
+    },
+    async create(student) {
+      const existing = [...students.values()].find(
+        item => item.lookup === student.lookup,
+      );
+      if (existing) return copy(existing);
+      students.set(student.id, copy(student));
+      return copy(student);
+    },
+    async seen(id, { name, device, now, keepDevices }) {
+      const student = students.get(id);
+      if (!student) return null;
+      student.name = name;
+      student.lastSeenAt = now;
+      const known = student.devices.find(item => item.id === device);
+      if (known) known.lastSeenAt = now;
+      else
+        student.devices = [
+          ...student.devices,
+          { id: device, firstSeenAt: now, lastSeenAt: now },
+        ]
+          .sort((a, b) => a.lastSeenAt.getTime() - b.lastSeenAt.getTime())
+          .slice(-keepDevices);
+      return copy(student);
+    },
+    async findById(id) {
+      const found = students.get(id);
+      return found ? copy(found) : null;
+    },
+    async findMany(ids) {
+      return ids.flatMap(id => {
+        const found = students.get(id);
+        return found ? [copy(found)] : [];
+      });
+    },
+    async setBan(id, ban) {
+      const student = students.get(id);
+      if (!student) return null;
+      student.ban = ban ? copy(ban) : null;
+      return copy(student);
+    },
+    async listRecent(limit) {
+      return [...students.values()]
+        .sort((a, b) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime())
+        .slice(0, limit)
+        .map(copy);
+    },
+    async listBanned(now, limit) {
+      return [...students.values()]
+        .filter(item => item.ban && (!item.ban.until || item.ban.until > now))
+        .sort((a, b) => (b.ban?.at.getTime() ?? 0) - (a.ban?.at.getTime() ?? 0))
+        .slice(0, limit)
+        .map(copy);
+    },
+  };
+
+  const sessionRepository: StudentSessionRepository = {
+    async create(session) {
+      sessions.set(session.id, copy(session));
+    },
+    async find(id, now) {
+      const found = sessions.get(id);
+      return found && found.expiresAt > now ? copy(found) : null;
+    },
+    async touch(id, now, expiresAt) {
+      const found = sessions.get(id);
+      if (found) {
+        found.lastUsedAt = now;
+        found.expiresAt = expiresAt;
+      }
+    },
+    async remove(id) {
+      sessions.delete(id);
+    },
+  };
+
+  return { students, sessions, studentRepository, sessionRepository };
 }
 
 /** O que só vale uma vez, como no MongoDB. */

@@ -9,6 +9,8 @@ export type NewErrorReport = {
   description?: string;
   email?: string;
   attachments: string[];
+  /** O aluno que relatou (v2, com a sessão); a rota antiga não sabe. */
+  studentId?: string | null;
 };
 
 export type ErrorReport = {
@@ -16,6 +18,8 @@ export type ErrorReport = {
   page: string;
   description?: string;
   email?: string;
+  /** O aluno que relatou; `null` na rota antiga. */
+  studentId?: string | null;
   attachmentIds: string[];
   /** Quando foi dado como resolvido na administração; aberto, `null`. */
   resolvedAt: Date | null;

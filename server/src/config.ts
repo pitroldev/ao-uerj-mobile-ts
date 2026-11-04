@@ -170,6 +170,24 @@ const certificateDigests = z
       }),
   );
 
+/**
+ * A chave dos dados dos alunos (32 bytes em base64): cifra a matrícula e o
+ * nome e tira o HMAC da busca. Sem ela, a identificação fica desligada.
+ */
+const studentDataKey = z
+  .string()
+  .optional()
+  .transform((value, ctx) => {
+    if (!value?.trim()) return null;
+    const key = Buffer.from(value.trim(), 'base64');
+    if (key.length === 32) return key;
+    ctx.addIssue({
+      code: 'custom',
+      message: 'expected 32 bytes in base64 (openssl rand -base64 32)',
+    });
+    return null;
+  });
+
 const EnvSchema = z
   .object({
     NODE_ENV: z
@@ -254,6 +272,18 @@ const EnvSchema = z
     TOKEN_BATCH_SIZE: z.coerce.number().int().min(1).max(100).default(32),
     TOKEN_BATCHES_PER_DAY: z.coerce.number().int().min(1).max(100).default(4),
     TOKEN_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(60),
+
+    /** A identificação do aluno (matrícula pela Play Integrity). */
+    STUDENT_DATA_KEY: studentDataKey,
+    /**
+     * Os tokens anônimos dos apps antigos (2.11.1 a 2.13) nas rotas de aluno:
+     * `accept` enquanto eles estiverem por aí; `refuse` exige a sessão.
+     */
+    STUDENT_TOKENS: z.enum(['accept', 'refuse']).default('accept'),
+    // os desafios, as entradas e as saídas por IP. Cada entrada gasta uma
+    // decifração da Play Integrity (a cota do Google); o aluno entra uma vez
+    // por mês, então o Wi-Fi da UERJ, com muitos num IP só, cabe
+    STUDENT_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(120),
   })
   // o emulador e o debug não passam na Play Integrity; a produção, sim
   .refine(
@@ -350,6 +380,15 @@ export type Config = {
       perMinute: number;
     };
   };
+  /** A identificação do aluno da API v2. */
+  students: {
+    /** `null`: sem `STUDENT_DATA_KEY`, ninguém entra (503). */
+    dataKey: Buffer | null;
+    /** Os apps antigos ainda entram com o token anônimo. */
+    acceptTokens: boolean;
+    /** Por IP, por minuto: os desafios e as entradas, juntos. */
+    perMinute: number;
+  };
 };
 
 /** Quem atesta o app na emissão dos tokens. */
@@ -417,6 +456,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       queueLimit: value.GENERATOR_QUEUE_LIMIT,
       budgetMs: value.GENERATOR_BUDGET_MS,
       perMinute: value.GENERATOR_RATE_LIMIT_PER_MINUTE,
+    },
+    students: {
+      dataKey: value.STUDENT_DATA_KEY,
+      acceptTokens: value.STUDENT_TOKENS === 'accept',
+      perMinute: value.STUDENT_RATE_LIMIT_PER_MINUTE,
     },
     studentAccess: {
       issuer: value.PRIVATE_TOKEN_ISSUER,

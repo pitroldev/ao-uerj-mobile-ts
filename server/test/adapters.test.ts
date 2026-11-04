@@ -162,6 +162,8 @@ test('the documents become domain objects, old numeric classes included', () => 
       thread: { subjectId: 'IME02-10892', period: '2026.2', classNumber: '1' },
       authorName: 'Ada',
       text: 'Oi',
+      // as da rota antiga não sabem o aluno
+      studentId: null,
       createdAt: at,
       updatedAt: at,
     },

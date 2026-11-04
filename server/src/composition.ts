@@ -35,6 +35,8 @@ import type { PortalWatch } from './modules/portal/ports.ts';
 import { createErrorReports } from './modules/reports/application.ts';
 import type { AttachmentStore } from './modules/reports/ports.ts';
 import { createScheduleGenerator } from './modules/schedules/application.ts';
+import { createStudentIdentity } from './modules/students/application.ts';
+import { STUDENT_CHALLENGE_TTL_MS } from './modules/students/domain.ts';
 import type { ScheduleSolver } from './modules/schedules/ports.ts';
 import { createSuggestions } from './modules/suggestions/application.ts';
 import { createTeacherDirectory } from './modules/teachers/application.ts';
@@ -87,28 +89,36 @@ function httpSettingsOf(config: Config): HttpSettings {
     generationsPerMinute: config.generator.perMinute,
     tokenRequestsPerMinute: config.studentAccess.issuance.perMinute,
     tokenBatchSize: config.studentAccess.issuance.batchSize,
+    studentRequestsPerMinute: config.students.perMinute,
+    acceptStudentTokens: config.students.acceptTokens,
     release: config.release,
   };
 }
 
-/** Quem atesta o app na emissão: a Play Integrity, o modo de teste ou ninguém. */
+/**
+ * Quem atesta o app: a Play Integrity, o modo de teste ou ninguém. A entrada
+ * do aluno exige também o app instalado pela loja (`requireLicensed`).
+ */
 function attesterFor(
   settings: AttestationSettings | null,
   logger: Logger,
+  {
+    challengeTtlMs,
+    requireLicensed,
+  }: { challengeTtlMs: number; requireLicensed: boolean },
 ): AppAttester | null {
   if (!settings) return null;
   if (settings.mode === 'development') {
-    logger.warn(
-      'token attestation in development mode: any client gets tokens',
-    );
+    logger.warn('app attestation in development mode: any client gets through');
     return createDevelopmentAttester();
   }
   return createPlayIntegrityAttester({
     account: settings.account,
     packageName: settings.packageName,
     certificateDigests: settings.certificateDigests,
-    // o token de integridade é pedido depois do desafio, que vale cinco minutos
-    maxAgeMs: ISSUANCE_CHALLENGE_TTL_MS + 60 * 1000,
+    // o token de integridade é pedido depois do desafio
+    maxAgeMs: challengeTtlMs + 60 * 1000,
+    requireLicensed,
   });
 }
 
@@ -135,6 +145,12 @@ export function createServer(
       budgetMs: config.generator.budgetMs,
     });
 
+  const companion = createCompanion({
+    calls: repositories.companionCalls,
+    reports: repositories.companionReports,
+    stats: repositories.companionStats,
+    watchers: repositories.companionWatchers,
+  });
   const services: Services = {
     mural: createMural(repositories.messages),
     teachers: createTeacherDirectory(repositories.teachers, {
@@ -157,18 +173,31 @@ export function createServer(
       keys: config.studentAccess.keys,
       attester:
         overrides.attester === undefined
-          ? attesterFor(config.studentAccess.issuance.attestation, logger)
+          ? attesterFor(config.studentAccess.issuance.attestation, logger, {
+              challengeTtlMs: ISSUANCE_CHALLENGE_TTL_MS,
+              requireLicensed: false,
+            })
           : overrides.attester,
       usedChallenges: repositories.usedChallenges,
       counter: repositories.issuanceCounters,
       batchSize: config.studentAccess.issuance.batchSize,
       batchesPerDay: config.studentAccess.issuance.batchesPerDay,
     }),
-    companion: createCompanion({
-      calls: repositories.companionCalls,
-      reports: repositories.companionReports,
-      stats: repositories.companionStats,
-      watchers: repositories.companionWatchers,
+    companion,
+    students: createStudentIdentity({
+      students: repositories.students,
+      sessions: repositories.studentSessions,
+      usedChallenges: repositories.usedChallenges,
+      attester:
+        overrides.attester === undefined
+          ? attesterFor(config.studentAccess.issuance.attestation, logger, {
+              challengeTtlMs: STUDENT_CHALLENGE_TTL_MS,
+              requireLicensed: true,
+            })
+          : overrides.attester,
+      dataKey: config.students.dataKey,
+      // o banido sai das mesas na hora, sem esperar ninguém denunciar de novo
+      onBan: studentId => companion.dropStudent(studentId),
     }),
   };
 

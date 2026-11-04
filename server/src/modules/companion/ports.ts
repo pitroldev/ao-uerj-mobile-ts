@@ -1,3 +1,4 @@
+import type { StudentActor } from '../students/ports.ts';
 import type {
   Call,
   CallReport,
@@ -35,19 +36,56 @@ export interface Companion {
    * `viewer` (o hash do passe), quem olha entra na contagem de "de olho".
    */
   list(viewer?: string | null): Promise<CallList>;
-  open(request: CallRequest): Promise<Membership>;
-  join(callId: string, name: string): Promise<Membership>;
-  read(callId: string, memberKey: Buffer): Promise<MemberCall>;
+  /**
+   * Com `actor` (a sessão do aluno), o membro guarda o aluno: uma pessoa
+   * abre uma chamada por vez, entra uma vez em cada uma, e quem foi tirado
+   * não volta com outro aparelho.
+   */
+  open(request: CallRequest, actor?: StudentActor | null): Promise<Membership>;
+  join(
+    callId: string,
+    name: string,
+    actor?: StudentActor | null,
+  ): Promise<Membership>;
+  /**
+   * As de chave de membro: a participação de um aluno identificado só vale
+   * com a sessão dele (a chave sozinha não basta).
+   */
+  read(
+    callId: string,
+    memberKey: Buffer,
+    actor?: StudentActor | null,
+  ): Promise<MemberCall>;
   /** Quem chamou e sai encerra a chamada para todos. */
-  leave(callId: string, memberKey: Buffer): Promise<void>;
-  say(callId: string, memberKey: Buffer, phrase: PhraseId): Promise<MemberCall>;
+  leave(
+    callId: string,
+    memberKey: Buffer,
+    actor?: StudentActor | null,
+  ): Promise<void>;
+  say(
+    callId: string,
+    memberKey: Buffer,
+    phrase: PhraseId,
+    actor?: StudentActor | null,
+  ): Promise<MemberCall>;
   /** Quem chamou tira alguém da chamada pelo apelido (`ref`). */
-  remove(callId: string, hostKey: Buffer, ref: string): Promise<MemberCall>;
+  remove(
+    callId: string,
+    hostKey: Buffer,
+    ref: string,
+    actor?: StudentActor | null,
+  ): Promise<MemberCall>;
   report(
     callId: string,
     reporter: Reporter,
     reason: ReportReason,
+    actor?: StudentActor | null,
   ): Promise<void>;
+  /**
+   * O aluno foi banido: as chamadas que ele abriu acabam, e ele sai das
+   * outras na hora.
+   */
+  dropStudent(studentId: string): Promise<void>;
   /** Para a moderação: as denúncias mais recentes primeiro. */
   reportsForReview(limit: number): Promise<CallReport[]>;
   /** A moderação tira do ar uma chamada denunciada. */
@@ -63,11 +101,15 @@ export interface CallRepository {
   listListed(now: Date): Promise<Call[]>;
   /** Quantas ainda valem em `now` (o teto do campus). */
   countAlive(now: Date): Promise<number>;
+  /** As que ainda valem em `now` com o aluno entre os membros. */
+  listAliveWith(student: string, now: Date): Promise<Call[]>;
   /** A chamada que ainda vale (não venceu, não saiu do ar); `null` sem ela. */
   find(callId: string, now: Date): Promise<Call | null>;
   /**
-   * Põe o membro se a chamada estiver na lista e com vaga, de uma vez só
-   * (duas pessoas não ficam com a última vaga); `null` se não entrou.
+   * Põe o membro se a chamada estiver na lista e com vaga e, se ele for um
+   * aluno, se não estiver lá nem tiver sido tirado, tudo de uma vez só (duas
+   * pessoas não ficam com a última vaga, e o mesmo aluno não entra duas
+   * vezes); `null` se não entrou.
    */
   addMember(callId: string, member: Member, now: Date): Promise<Call | null>;
   removeMember(callId: string, member: string): Promise<void>;

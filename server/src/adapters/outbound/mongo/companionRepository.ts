@@ -1,5 +1,6 @@
 import {
   MAX_ALIVE_CALLS,
+  removedStudent,
   STAT_KEYS,
   type Call,
   type CallKind,
@@ -34,6 +35,7 @@ type StoredCall = {
     name: string;
     host: boolean;
     joinedAt: Date;
+    student?: string | null;
   }[];
   feed: { key: string; name: string; phrase: PhraseId; at: Date }[];
   reporters: string[];
@@ -47,10 +49,15 @@ type StoredCall = {
   expiresAt: Date;
 };
 
-type StoredReport = Omit<CallReport, 'id' | 'source' | 'callExpiresAt'> & {
+type StoredReport = Omit<
+  CallReport,
+  'id' | 'source' | 'callExpiresAt' | 'people' | 'reporterStudent'
+> & {
   _id: unknown;
   source?: CallReport['source'];
   callExpiresAt?: Date | null;
+  people?: CallReport['people'];
+  reporterStudent?: string | null;
 };
 
 function toCall(doc: StoredCall): Call {
@@ -68,6 +75,7 @@ function toCall(doc: StoredCall): Call {
       name: member.name,
       host: member.host,
       joinedAt: member.joinedAt,
+      student: member.student ?? null,
     })),
     feed: doc.feed.map(entry => ({
       member: entry.key,
@@ -93,6 +101,7 @@ const storedMember = (member: Member) => ({
   name: member.name,
   host: member.host,
   joinedAt: member.joinedAt,
+  student: member.student,
 });
 
 /** Ainda vale: o TTL do MongoDB passa só a cada minuto. */
@@ -146,6 +155,13 @@ export function createCallRepository(
         return docs.map(toCall);
       }),
     countAlive: now => guarded(() => model.countDocuments(alive(now))),
+    listAliveWith: (student, now) =>
+      guarded(async () => {
+        const docs = await model
+          .find({ ...alive(now), 'members.student': student })
+          .lean<StoredCall[]>();
+        return docs.map(toCall);
+      }),
     find: (callId, now) =>
       guarded(async () =>
         one(
@@ -165,6 +181,13 @@ export function createCallRepository(
                 ...alive(now),
                 // a vaga é conferida na mesma operação que a ocupa
                 $expr: { $lt: [{ $size: '$members' }, '$capacity'] },
+                // e o aluno, também: nem duas vezes, nem depois de tirado
+                ...(member.student
+                  ? {
+                      'members.student': { $ne: member.student },
+                      removed: { $ne: removedStudent(member.student) },
+                    }
+                  : {}),
               },
               { $push: { members: storedMember(member) } },
               AFTER,
@@ -278,6 +301,12 @@ export function createCallReportRepository(
           destination: report.destination ?? null,
           note: report.note ?? '',
           source: report.source ?? null,
+          people: (report.people ?? []).map(person => ({
+            name: person.name,
+            host: person.host,
+            student: person.student ?? null,
+          })),
+          reporterStudent: report.reporterStudent ?? null,
           callExpiresAt: report.callExpiresAt ?? null,
         }));
       }),

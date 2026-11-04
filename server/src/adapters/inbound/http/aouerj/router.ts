@@ -5,6 +5,7 @@ import type { Mural } from '../../../../modules/mural/ports.ts';
 import type { PortalWatch } from '../../../../modules/portal/ports.ts';
 import type { ErrorReports } from '../../../../modules/reports/ports.ts';
 import type { ScheduleGenerator } from '../../../../modules/schedules/ports.ts';
+import type { StudentIdentity } from '../../../../modules/students/ports.ts';
 import type { Suggestions } from '../../../../modules/suggestions/ports.ts';
 import type { TeacherDirectory } from '../../../../modules/teachers/ports.ts';
 import { adminSession } from '../adminSession.ts';
@@ -30,6 +31,8 @@ export type AoUerjServices = {
     Companion,
     'reportsForReview' | 'statsForReview' | 'hideByModerator'
   >;
+  /** Os alunos identificados, para a moderação. */
+  students: StudentIdentity;
 };
 
 /**
@@ -90,6 +93,7 @@ export function createAoUerjRouter({
         reports: services.reports,
         suggestions: services.suggestions,
         companion: services.companion,
+        students: services.students,
         session,
         isDatabaseReady: () => database.isReady(),
       }),

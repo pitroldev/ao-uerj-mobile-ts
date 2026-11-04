@@ -35,9 +35,9 @@ const toThread = (fields: {
   classNumber: fields.turma,
 });
 
-const threadSchema = body(threadFields).transform(toThread);
+export const threadSchema = body(threadFields).transform(toThread);
 
-const newMessageSchema = body({
+export const newMessageSchema = body({
   fullName: requiredText('fullName', { max: MESSAGE_LIMITS.authorName }),
   ...threadFields,
   message: requiredText('message', { max: MESSAGE_LIMITS.text }),

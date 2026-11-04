@@ -392,3 +392,53 @@ export type CompanionPhraseRequest = { phrase: CompanionPhrase };
  * com duas pessoas de dentro. A denúncia de fora vai só para a moderação.
  */
 export type CompanionReportRequest = { reason: CompanionReportReason };
+
+/* --------------------------------------------- identificação do aluno (v2) */
+
+/** `GET /aouerj/v2/students/challenge`: o desafio de entrada (uso único, 5 min). */
+export type StudentChallengeResponse = {
+  challenge: string;
+  /** ISO 8601. */
+  expiresAt: string;
+};
+
+/**
+ * `POST /aouerj/v2/students/session`. O app passa à Play Integrity (pedido
+ * standard) o `requestHash`: o SHA-256, em hex, de "AO UERJ student session
+ * v1", do desafio, da instalação e, com o tamanho (u16) na frente de cada um,
+ * da matrícula e do nome, em UTF-8. Bytes em base64url. O servidor tira os
+ * espaços das pontas dos dois antes do hash: mande-os já assim.
+ */
+export type StudentSessionRequest = {
+  challenge: string;
+  installation: string;
+  integrityToken: string;
+  /** A matrícula do login no Aluno Online (só os dígitos). */
+  matricula: string;
+  /**
+   * O nome como o Aluno Online mostra, em NFC e com os espaços de dentro
+   * juntados num só (o servidor guarda assim).
+   */
+  name: string;
+};
+
+/**
+ * A resposta da entrada (201): a sessão (32 bytes, base64url), que vale 30
+ * dias sem uso e vai em `Authorization: Student <sessão>`.
+ */
+export type StudentSessionResponse = {
+  session: string;
+  expiresAt: string;
+  student: { id: string };
+};
+
+/** O 403 de quem está banido, na entrada e em qualquer rota de aluno. */
+export type StudentBannedError = ApiError & {
+  error: 'student_banned';
+  /** Até quando (ISO 8601); `null` é para sempre. */
+  until: string | null;
+  reason: string;
+};
+
+/** `POST /aouerj/v2/reports`, com a sessão: o relato sem e-mail (o aluno é conhecido). */
+export type StudentErrorReportRequest = Omit<ErrorReportRequest, 'email'>;

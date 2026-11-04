@@ -23,6 +23,7 @@ import {
   phraseFits,
   planCall,
   publicView,
+  removedStudent,
   REPORT_RETENTION_MS,
   statSlot,
   STATS_RETENTION_MS,
@@ -40,6 +41,7 @@ import type {
   CompanionStatsRepository,
   WatcherRepository,
 } from './ports.ts';
+import type { StudentActor } from '../students/ports.ts';
 
 const notFound = () =>
   new NotFoundError(
@@ -56,6 +58,12 @@ const removedFromCall = () =>
     'The host removed this member from the call',
   );
 
+const sessionRequired = () =>
+  new ForbiddenError(
+    'session_required',
+    'This membership belongs to a student: send the student session',
+  );
+
 /** Quanto a contagem de "de olho agora" fica guardada antes de contar de novo. */
 export const WATCHING_CACHE_MS = 30 * 1000;
 
@@ -66,10 +74,11 @@ const one = (...keys: (StatKey | HourStatKey)[]): Counts =>
   Object.fromEntries(keys.map(key => [key, 1]));
 
 /**
- * Os casos de uso da Companhia agora. O servidor não sabe quem é ninguém:
- * abrir, entrar e denunciar de fora gastam um token anônimo de aluno (na
- * rota), e cada um recebe uma chave de membro que vale só naquela chamada.
- * Uma pessoa numa chamada não se liga às outras chamadas que ela abriu.
+ * Os casos de uso da Companhia agora. Cada um recebe uma chave de membro que
+ * vale só naquela chamada. Com a sessão (`actor`), o membro guarda também o
+ * aluno: a moderação sabe quem estava, uma pessoa abre uma chamada por vez
+ * e entra uma vez em cada uma, e quem foi tirado não volta. Os apps antigos
+ * entram com o token anônimo e ficam sem aluno.
  *
  * Os números do dia (`stats`) são só contagens; uma falha ao gravá-los não
  * atrapalha o pedido de ninguém.
@@ -117,15 +126,55 @@ export function createCompanion({
     return value;
   }
 
-  /** A chamada que vale e o membro dono da chave. */
-  async function membership(callId: string, memberKey: Buffer) {
+  /**
+   * A chamada que vale e o membro dono da chave. A participação de um aluno
+   * só vale com a sessão dele: a chave sozinha (copiada, por exemplo) não.
+   */
+  async function membership(
+    callId: string,
+    memberKey: Buffer,
+    actor: StudentActor | null | undefined,
+  ) {
     const call = await calls.find(callId, at());
     if (!call) throw notFound();
     const id = memberId(memberKey);
     const member = call.members.find(item => item.id === id);
     if (!member)
       throw call.removed.includes(id) ? removedFromCall() : notMember();
+    if (member.student) {
+      if (!actor) throw sessionRequired();
+      if (actor.studentId !== member.student) throw notMember();
+    }
     return { call, member };
+  }
+
+  /** As chamadas que valem e que o aluno abriu (e ainda não acabaram). */
+  async function hostedBy(studentId: string, time: Date) {
+    return (await calls.listAliveWith(studentId, time)).filter(
+      call =>
+        !call.endedAt &&
+        call.members.some(item => item.host && item.student === studentId),
+    );
+  }
+
+  /**
+   * Fica só a chamada mais nova que o aluno abriu; as outras acabam. Todo
+   * pedido escolhe a mesma (pela hora em que abriu e, no empate, pelo id),
+   * então duas aberturas ao mesmo tempo não deixam duas no ar. Devolve o id
+   * da que ficou.
+   */
+  async function keepNewestHosted(studentId: string, time: Date) {
+    const openedAt = (call: Call) =>
+      call.members.find(item => item.host)?.joinedAt.getTime() ?? 0;
+    const hosted = (await hostedBy(studentId, time)).sort(
+      (a, b) => openedAt(a) - openedAt(b) || a.id.localeCompare(b.id),
+    );
+    const newest = hosted.pop();
+    for (const older of hosted) {
+      await calls.end(older.id, time);
+      await bump(one('ended'), time);
+    }
+    return newest?.id ?? null;
   }
 
   /** A primeira vez que a chamada chega a algo (duas pessoas, alguém no ponto). */
@@ -176,7 +225,7 @@ export function createCompanion({
       return { calls: listed.map(publicView), watching: count };
     },
 
-    async open(request) {
+    async open(request, actor) {
       const time = at();
       if ((await calls.countAlive(time)) >= MAX_ALIVE_CALLS) {
         await bump(one('busy'), time);
@@ -192,14 +241,24 @@ export function createCompanion({
         name: checkName(request.name),
         host: true,
         joinedAt: time,
+        student: actor?.studentId ?? null,
       };
       const call = planCall(request, { id: newCallId(), now: time, host });
       await calls.create(call);
       await bump(one(`opened_${call.kind}`), time);
+      // uma chamada aberta por aluno: fica a mais nova, e as outras acabam.
+      // Duas aberturas juntas chegam à mesma conta, e só uma fica
+      if (
+        actor &&
+        (await keepNewestHosted(actor.studentId, time)) !== call.id
+      ) {
+        const current = await calls.find(call.id, time);
+        if (current) return { call: memberView(current, host.id), memberKey };
+      }
       return { call: memberView(call, host.id), memberKey };
     },
 
-    async join(callId, name) {
+    async join(callId, name, actor) {
       const time = at();
       const memberKey = newMemberKey();
       const member = {
@@ -208,6 +267,7 @@ export function createCompanion({
         name: checkName(name),
         host: false,
         joinedAt: time,
+        student: actor?.studentId ?? null,
       };
       const joined = await calls.addMember(callId, member, time);
       if (joined) {
@@ -224,6 +284,15 @@ export function createCompanion({
       // não entrou: diz por quê
       const call = await calls.find(callId, time);
       if (!call) throw notFound();
+      if (actor) {
+        if (call.removed.includes(removedStudent(actor.studentId)))
+          throw removedFromCall();
+        if (call.members.some(item => item.student === actor.studentId))
+          throw new ConflictError(
+            'already_member',
+            'This student is already in the call',
+          );
+      }
       if (!isListed(call, time))
         throw new ConflictError(
           'call_closed',
@@ -232,13 +301,13 @@ export function createCompanion({
       throw new ConflictError('call_full', 'The call has no room left');
     },
 
-    async read(callId, memberKey) {
-      const { call, member } = await membership(callId, memberKey);
+    async read(callId, memberKey, actor) {
+      const { call, member } = await membership(callId, memberKey, actor);
       return memberView(call, member.id);
     },
 
-    async leave(callId, memberKey) {
-      const { call, member } = await membership(callId, memberKey);
+    async leave(callId, memberKey, actor) {
+      const { call, member } = await membership(callId, memberKey, actor);
       if (member.host) {
         await calls.end(call.id, at());
         if (!call.endedAt) await bump(one('ended'));
@@ -248,8 +317,8 @@ export function createCompanion({
       }
     },
 
-    async say(callId, memberKey, phrase) {
-      const { call, member } = await membership(callId, memberKey);
+    async say(callId, memberKey, phrase, actor) {
+      const { call, member } = await membership(callId, memberKey, actor);
       if (!phraseFits(phrase, call.kind))
         throw new InvalidInputError(`phrase ${phrase} is not for ${call.kind}`);
       if (call.endedAt)
@@ -268,8 +337,8 @@ export function createCompanion({
       return memberView(updated, member.id);
     },
 
-    async remove(callId, hostKey, ref) {
-      const { call, member } = await membership(callId, hostKey);
+    async remove(callId, hostKey, ref, actor) {
+      const { call, member } = await membership(callId, hostKey, actor);
       if (!member.host)
         throw new ForbiddenError(
           'not_the_host',
@@ -287,24 +356,30 @@ export function createCompanion({
           'Who opened the call leaves by ending it',
         );
       await calls.expel(call.id, target.id);
+      // o aluno tirado não volta nem por outro aparelho
+      if (target.student)
+        await calls.expel(call.id, removedStudent(target.student));
       await bump(one('removed'));
       const updated = await calls.find(call.id, at());
       if (!updated) throw notFound();
       return memberView(updated, member.id);
     },
 
-    async report(callId, reporter, reason) {
+    async report(callId, reporter, reason, actor) {
       const time = at();
       let reporterId: string;
       let source: ReportSource;
       if ('memberKey' in reporter) {
-        const { member } = await membership(callId, reporter.memberKey);
+        const { member } = await membership(callId, reporter.memberKey, actor);
         reporterId = member.id;
         source = member.host ? 'host' : 'member';
       } else {
         if (!(await calls.find(callId, time))) throw notFound();
-        // de fora, cada denúncia gasta um token: conta como uma pessoa
-        reporterId = `${OUTSIDER_PREFIX}${randomBytes(12).toString('base64url')}`;
+        // de fora: com a sessão, uma denúncia por aluno; com o token dos
+        // apps antigos, cada uma gasta um token e conta como uma pessoa
+        reporterId = actor
+          ? `${OUTSIDER_PREFIX}${removedStudent(actor.studentId)}`
+          : `${OUTSIDER_PREFIX}${randomBytes(12).toString('base64url')}`;
         source = 'outsider';
       }
       const counted = await calls.addReporter(callId, reporterId, time);
@@ -319,6 +394,7 @@ export function createCompanion({
           source,
           hides || Boolean(counted.hiddenAt),
           time,
+          actor?.studentId ?? null,
         ),
       );
       await bump(
@@ -327,6 +403,20 @@ export function createCompanion({
           : one(`reports_${source}`),
         time,
       );
+    },
+
+    async dropStudent(studentId) {
+      const time = at();
+      for (const call of await calls.listAliveWith(studentId, time)) {
+        if (call.endedAt) continue;
+        const mine = call.members.filter(item => item.student === studentId);
+        if (mine.some(item => item.host)) {
+          await calls.end(call.id, time);
+          await bump(one('ended'), time);
+        } else
+          for (const member of mine)
+            await calls.removeMember(call.id, member.id);
+      }
     },
 
     reportsForReview: limit => reports.listRecent(limit),
@@ -353,6 +443,7 @@ function snapshot(
   source: ReportSource,
   hidden: boolean,
   time: Date,
+  reporterStudent: string | null,
 ) {
   return {
     callId: call.id,
@@ -362,6 +453,12 @@ function snapshot(
     destination: call.destination,
     note: call.note,
     names: call.members.map(member => member.name),
+    people: call.members.map(member => ({
+      name: member.name,
+      host: member.host,
+      student: member.student,
+    })),
+    reporterStudent,
     reason,
     source,
     count: call.reporters.length,

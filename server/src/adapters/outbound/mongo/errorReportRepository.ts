@@ -15,6 +15,7 @@ type StoredReport = Stored & {
   email?: string;
   filesID?: string[];
   resolvedAt?: Date | null;
+  studentId?: string | null;
 };
 
 export function toReport(doc: StoredReport): ErrorReport {
@@ -23,6 +24,7 @@ export function toReport(doc: StoredReport): ErrorReport {
     page: doc.page || UNKNOWN_PAGE,
     description: doc.description,
     email: doc.email,
+    studentId: doc.studentId ?? null,
     attachmentIds: doc.filesID ?? [],
     // os relatos de antes da triagem não têm o campo: estão abertos
     resolvedAt: doc.resolvedAt ?? null,
@@ -61,6 +63,7 @@ export function createErrorReportRepository(
           description: report.description,
           email: report.email,
           filesID: report.attachmentIds,
+          studentId: report.studentId ?? null,
         });
         return toReport(created.toObject<StoredReport>());
       }),

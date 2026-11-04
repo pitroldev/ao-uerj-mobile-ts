@@ -9,12 +9,14 @@ import type {
 } from '../../../modules/access/ports.ts';
 import type { Companion } from '../../../modules/companion/ports.ts';
 import type { ScheduleGenerator } from '../../../modules/schedules/ports.ts';
+import type { StudentIdentity } from '../../../modules/students/ports.ts';
 import { createAoUerjRouter, type AoUerjServices } from './aouerj/router.ts';
 import type { DatabaseHealth, Release } from './aouerj/status.ts';
 import { handleError, notFound } from './errors.ts';
-import { forceHttps, requestLog } from './middleware.ts';
+import { forceHttps, perKeyLimit, requestLog } from './middleware.ts';
 import { createSchedulesRouter } from './schedules/router.ts';
 import { createV2Router } from './v2/router.ts';
+import { actorOf, identifyStudent } from './v2/students.ts';
 
 /** As portas de entrada que o HTTP usa. */
 export type Services = AoUerjServices & {
@@ -25,6 +27,8 @@ export type Services = AoUerjServices & {
   tokens: TokenIssuer;
   /** A Companhia agora, na v2. */
   companion: Companion;
+  /** A identificação do aluno (v2) e a moderação dos alunos. */
+  students: StudentIdentity;
 };
 
 /** O que o HTTP precisa da configuração. */
@@ -53,6 +57,10 @@ export type HttpSettings = {
   tokenRequestsPerMinute: number;
   /** Quantos pedidos cabem num lote. */
   tokenBatchSize: number;
+  /** Por IP, por minuto: os desafios e as entradas dos alunos. */
+  studentRequestsPerMinute: number;
+  /** Os tokens anônimos dos apps antigos ainda valem nas rotas de aluno. */
+  acceptStudentTokens: boolean;
   /** A versão no ar, para o `GET /aouerj/status`. */
   release: Release;
 };
@@ -93,10 +101,16 @@ export function createHttpApp({
       access: services.access,
       tokens: services.tokens,
       companion: services.companion,
+      students: services.students,
+      mural: services.mural,
+      teachers: services.teachers,
+      reports: services.reports,
       database,
       tokenRequestsPerMinute: settings.tokenRequestsPerMinute,
       tokenBatchSize: settings.tokenBatchSize,
       companionLimits: settings.companionLimits,
+      studentRequestsPerMinute: settings.studentRequestsPerMinute,
+      acceptTokens: settings.acceptStudentTokens,
     }),
   );
   app.use(
@@ -114,9 +128,17 @@ export function createHttpApp({
   app.use(
     '/schedules',
     express.json({ limit: settings.generatorJsonLimit }),
+    // o gerador não depende do banco: sem ele, a geração segue sem o aluno
+    identifyStudent(services.students, {
+      bestEffort: () => database.isReady(),
+    }),
     createSchedulesRouter({
       generator: services.schedules,
       generationsPerMinute: settings.generationsPerMinute,
+      // por aluno, a mesma conta que a Companhia usa por chave
+      studentLimit: perKeyLimit(settings.companionLimits.perMember, req =>
+        req.res ? actorOf(req.res)?.studentId : undefined,
+      ),
     }),
   );
 

@@ -67,6 +67,8 @@ test('the calls and the reports vanish by TTL, and the list has its index', asyn
   assert.deepEqual(await keys(models.companionCalls), [
     [{ expiresAt: 1 }, 0],
     [{ listedUntil: 1 }, null],
+    // uma chamada aberta por aluno: as dele, pela sessão
+    [{ 'members.student': 1 }, null],
   ]);
   assert.deepEqual(
     (await models.companionReports.collection.indexes())

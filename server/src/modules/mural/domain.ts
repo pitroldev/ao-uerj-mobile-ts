@@ -14,6 +14,8 @@ export type NewMessage = {
   /** O nome que o aluno escolheu mostrar. */
   authorName: string;
   text: string;
+  /** O aluno que escreveu (v2, com a sessão); a rota antiga não sabe. */
+  studentId?: string | null;
 };
 
 export type Message = NewMessage & {

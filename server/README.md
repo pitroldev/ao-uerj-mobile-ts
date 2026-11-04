@@ -167,17 +167,86 @@ tem 10 tentativas erradas a cada 15 minutos (acertar não conta).
   em cada hora. Embaixo, as denúncias dos últimos 30 dias: o motivo, de onde
   veio (de quem foi junto, de quem chamou ou de fora), a chamada como estava
   (sem as chaves) e se ela saiu do ar, com o botão "Tirar do ar" enquanto a
-  chamada valer.
+  chamada valer. Com os apps identificados, cada denúncia mostra quem estava
+  (nome e matrícula de cada um) e quem denunciou, com o link para o aluno.
+- **Alunos:** a quarta aba. Busca pela matrícula, os banidos e os que
+  entraram por último; a página do aluno mostra matrícula, nome, aparelhos e
+  primeira e última entrada, com "Banir" (motivo e prazo: 1, 7 ou 30 dias ou
+  para sempre) e "Desbanir". O banimento vale na hora nas rotas com sessão e
+  na entrada por qualquer aparelho, e o aluno sai das mesas da Companhia (as
+  que ele abriu acabam). Os relatos da v2 também mostram o aluno. A busca vai
+  por POST, para a matrícula não ficar nos logs. Sem `STUDENT_DATA_KEY`, a aba
+  avisa que a identificação está desligada.
 
 As páginas são HTML montado no servidor (`http/aouerj/admin/`), sem
 JavaScript, com as cores dos temas claro e escuro do app. Os relatos antigos
 que chegaram sem a tela aparecem como "Sem tela".
 
-### API v2 (aluno anônimo)
+### Identificação do aluno (v2)
 
-As rotas de aluno da versão nova ficam em `/aouerj/v2`. As de `/aouerj`
-continuam iguais, sem token, para os apps publicados. A v2 segue o plano da
-prova de aluno anônima com o Privacy Pass:
+O app identifica o aluno pela matrícula, com a Play Integrity (o módulo
+`modules/students`). As rotas de `/aouerj` continuam iguais, sem nada disso,
+para os apps publicados.
+
+1. **O desafio:** `GET /aouerj/v2/students/challenge` devolve 36 bytes de uso
+   único, válidos por 5 minutos, com um HMAC do servidor.
+2. **A entrada:** depois do login no Aluno Online, o app manda a matrícula e
+   o nome do portal em `POST /aouerj/v2/students/session`, com um token da
+   Play Integrity sobre o `requestHash`: o SHA-256 de `AO UERJ student
+session v1`, do desafio, da instalação (32 bytes, os mesmos de sempre no
+   aparelho) e, cada um com o tamanho (u16) na frente, da matrícula e do
+   nome. A atestação vale só para aquela matrícula, naquele aparelho, agora.
+3. **As checagens:** o desafio é nosso, vale e é gasto; o Google decifra o
+   token e o servidor confere o pacote, o `requestHash`, a idade,
+   `PLAY_RECOGNIZED`, o certificado da Play, `MEETS_DEVICE_INTEGRITY` e o app
+   instalado pela loja (`LICENSED`).
+4. **A sessão:** 32 bytes ao acaso, em `Authorization: Student <sessão>` em
+   cada pedido. Vale 30 dias sem uso (cada uso empurra o prazo, uma vez por
+   hora). O banco guarda só o SHA-256 (`studentsessions`, índice TTL). Uma
+   sessão desconhecida dá 401 `invalid_session`, e o app entra de novo;
+   `POST /students/session/end` é o logout.
+
+**O aluno no banco** (`students`): um documento por matrícula, achado pelo
+HMAC dela (`lookup`, único). Matrícula e nome ficam cifrados (AES-256-GCM, o
+nome do campo como dado associado); os aparelhos, pelo HMAC da instalação (os
+10 mais recentes). As chaves saem de `STUDENT_DATA_KEY` (32 bytes em base64,
+`openssl rand -base64 32`) por HKDF. Sem ela, a entrada responde 503
+`student_identity_unavailable`. Trocar essa chave perde o acesso aos alunos
+já guardados.
+
+**Banimento:** um aluno banido recebe 403 `student_banned`, com `until`
+(`null` é para sempre) e `reason`, na entrada e em qualquer rota com sessão;
+as chamadas que ele abriu acabam e ele sai das outras. Vale na hora no
+processo que baniu; o cache de 30 segundos das sessões é o prazo para valer
+num outro. Enquanto `STUDENT_TOKENS=accept`, um app antigo (2.11.1 a 2.13)
+ainda entra na Companhia com o token anônimo, que não diz quem é: o
+banimento só fecha tudo com `refuse`.
+
+**Com a sessão:**
+
+- a Companhia agora (abaixo) guarda o aluno de cada membro;
+- o mural (`POST /v2/mural/thread` e `/v2/mural/messages`), a busca de
+  docentes (`GET /v2/teachers` e `/v2/teachers/:name`) e o relato de erro
+  (`POST /v2/reports`, sem e-mail) exigem a sessão e guardam o aluno nas
+  gravações, com os corpos e as respostas de `/aouerj`;
+- o gerador (`/schedules`) aceita a sessão e conta a geração por aluno; sem
+  ela, ou com o banco fora do ar, segue como antes (banido, 403).
+
+As gravações contam por aluno (`COMPANION_MEMBER_LIMIT_PER_MINUTE`). Os
+desafios, as entradas e as saídas contam por IP
+(`STUDENT_RATE_LIMIT_PER_MINUTE`, 120: cada entrada é um desafio e um pedido,
+e cada uma gasta uma decifração da Play Integrity na cota do Google; o
+aluno entra uma vez por mês, então o Wi-Fi da UERJ cabe). Um pedido com
+sessão conta antes do banco no teto da Companhia por IP, e só sessões
+verdadeiras ficam no cache. Os apps de 2.11.1 a
+2.13 ainda entram na Companhia com o token anônimo (abaixo) enquanto
+`STUDENT_TOKENS=accept`, o padrão; `refuse` exige a sessão (401
+`session_required`).
+
+### Tokens anônimos (apps de 2.11.1 a 2.13)
+
+A primeira versão da v2 seguia o plano da prova de aluno anônima com o Privacy
+Pass, e os apps dessa época continuam usando:
 
 - **O token:** cada requisição leva `Authorization: PrivateToken token="…"`
   (RFC 9577), um token Blind RSA de 2048 bits (RFC 9578, tipo `0x0002`).
@@ -251,14 +320,20 @@ Desafios e lotes dividem um limite por IP (`TOKEN_RATE_LIMIT_PER_MINUTE`, 60).
 ### Companhia agora
 
 Encontros de minutos entre alunos que não se conhecem (o módulo
-`modules/companion`): uma mesa aberta no almoço (`lunch`) ou a volta em grupo
-depois da última aula da noite (`home`). O servidor não sabe quem é ninguém:
+`modules/companion`): uma mesa no almoço (`lunch`) ou um grupo para voltar
+depois da última aula da noite (`home`).
 
-- **Quem abre, entra ou denuncia de fora** gasta um token de aluno. Abrir e
-  entrar devolvem uma **chave de membro** (32 bytes ao acaso) que vale só
-  naquela chamada: o app a manda em `X-Member-Key` para ler a chamada, mandar
-  recado, sair e denunciar de dentro. O banco guarda só o SHA-256 dela, e
-  nada liga as chamadas de uma mesma pessoa.
+- **Quem abre, entra ou denuncia de fora** manda a sessão de aluno (os apps
+  antigos, um token). Abrir e entrar devolvem uma **chave de membro** (32
+  bytes ao acaso) que vale só naquela chamada: o app a manda em
+  `X-Member-Key` para ler a chamada, mandar recado, sair e denunciar de
+  dentro. O banco guarda só o SHA-256 dela.
+- **Com a sessão, o membro guarda o aluno:** a moderação sabe quem estava em
+  cada chamada denunciada; um aluno abre uma chamada por vez (abrir outra
+  encerra a anterior), entra uma vez em cada uma (409 `already_member`), e
+  quem foi tirado não volta por outro aparelho. A participação de um aluno só
+  vale com a sessão dele: a chave sozinha dá 403 `session_required`. A
+  resposta nunca mostra o aluno de ninguém, só os primeiros nomes.
 - **A lista** pede o **passe de aluno** (`X-Student-Pass`): 36 bytes que um
   token compra em `POST /companion/pass` e que valem uma hora de leituras,
   para o app atualizar a lista sem gastar um token a cada 20 segundos. O passe
@@ -283,7 +358,8 @@ depois da última aula da noite (`home`). O servidor não sabe quem é ninguém:
   ela.
 - **Recados prontos**, sem conversa livre: `on_my_way`, `at_spot`, `late` e,
   só na volta, `home_safe`. A chamada guarda os 60 mais recentes.
-- **Denúncias:** uma por membro (de fora, cada uma gasta um token). Assédio
+- **Denúncias:** uma por membro e, de fora, uma por aluno (com o token dos
+  apps antigos, cada uma gasta um token). Assédio
   denunciado por quem foi junto tira a chamada do ar na hora; outro motivo,
   com duas pessoas de dentro (quem chamou não conta). A denúncia de fora não
   tira nada sozinha, porque uma pessoa só, com três tokens, derrubaria
@@ -410,15 +486,22 @@ O que mudou de propósito:
   ponto, destino, recado, os primeiros nomes, os apelidos, os recados prontos
   e os hashes das chaves de membro) até pouco depois do horário, quando o
   índice TTL a apaga; as denúncias, por 30 dias; o hash do passe de quem olhou
-  a lista, por 15 minutos; e as contagens de cada dia, por meio ano. Sem IP,
-  sem conta, sem localização.
+  a lista, por 15 minutos; e as contagens de cada dia, por meio ano. Com a
+  sessão, também o id do aluno de cada membro e de quem denunciou. Sem IP e
+  sem localização.
+- **O que fica guardado dos alunos identificados:** a matrícula e o nome do
+  portal, cifrados, o HMAC da matrícula, os HMACs das instalações e as datas
+  de entrada, sem prazo de remoção; as sessões, pelo hash, até vencerem; o id
+  do aluno nas mensagens, nos relatos e nas chamadas da v2. Só a aba "Alunos"
+  do admin abre matrícula e nome.
 - **O que fica guardado:** as mensagens do mural (com o nome que o aluno
   escolheu), os relatos (página, descrição, e-mail opcional e os anexos em
   `AOreports/`) e as sugestões (nome, texto e e-mail opcional), sem prazo de
   remoção. Os anexos dos relatos da 1.x trazem a página do portal, com dados
   pessoais: a pasta fica fora do Git e só se lê no servidor.
-- **Ainda não há prova de que quem posta é aluno:** o mural aceita qualquer
-  nome.
+- **Quem posta:** na v2, só o aluno com a sessão, e o servidor sabe quem foi;
+  o nome mostrado continua o que o app manda. As rotas de `/aouerj` dos apps
+  antigos aceitam qualquer nome.
 
 ## Implantação
 

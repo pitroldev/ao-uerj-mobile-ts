@@ -254,9 +254,13 @@ test('a forged, expired or reused challenge gets no tokens', async () => {
 });
 
 test('a request blinded for another key, or too big for the modulus, is refused before the challenge is spent', async () => {
-  const [other] = signingKeys(1);
   const { issuer, used } = setup();
   const { request } = prepare(issuer, { count: 2 });
+  // uma chave com o mesmo último byte do id (1 em 256) passaria nessa parte
+  // da conferência: o teste usa outra
+  const ours = request.tokenRequests[0][2];
+  let [other] = signingKeys(1);
+  while (other.id[other.id.length - 1] === ours) [other] = signingKeys(1);
 
   const foreign = blindToken(other.spki).tokenRequest;
   const tooBig = Buffer.concat([

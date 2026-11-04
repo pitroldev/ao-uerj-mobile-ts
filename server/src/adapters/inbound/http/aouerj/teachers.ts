@@ -12,7 +12,7 @@ import type {
 } from '../contract.ts';
 import { body, parse, requiredText } from '../validation.ts';
 
-const teacherNameSchema = body({
+export const teacherNameSchema = body({
   name: requiredText('name', {
     max: TEACHER_NAME_LIMITS.maximum,
     min: TEACHER_NAME_LIMITS.minimum,

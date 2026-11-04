@@ -31,6 +31,7 @@ import type {
   StudentPassResponse,
 } from '../contract.ts';
 import { body, parse, required, stringFor } from '../validation.ts';
+import { actorOf } from './students.ts';
 
 const MEMBER_KEY = /^[A-Za-z0-9_-]{43}$/;
 
@@ -124,10 +125,11 @@ const callIdOf = (req: Request) => String(req.params.id ?? '');
 const MEMBER_REF = /^[A-Za-z0-9_-]{11}$/;
 
 /**
- * A Companhia agora em `/aouerj/v2/companion`. As leituras da lista levam o
- * passe de aluno; abrir, entrar e denunciar de fora gastam um token (o
- * `student` que vem do roteador); o resto, a chave de membro. Nada fica em
- * cache: as vagas mudam a cada minuto.
+ * A Companhia agora em `/aouerj/v2/companion`. O app identificado manda a
+ * sessão de aluno em tudo, e cada membro guarda o aluno. Os apps antigos
+ * leem a lista com o passe e abrem, entram e denunciam de fora gastando um
+ * token (o `student` que vem do roteador aceita os dois); o resto, a chave
+ * de membro. Nada fica em cache: as vagas mudam a cada minuto.
  *
  * Limites: o token já é o limite de quem abre, entra e pede o passe, então
  * o IP só tem um teto folgado (`campusLimit`); o que usa a chave de membro
@@ -151,7 +153,7 @@ export function companionRoutes({
   const routes = express.Router();
 
   const withPass: RequestHandler = (req, res, next) => {
-    if (access.checkPass(req.get('x-student-pass'))) {
+    if (actorOf(res) || access.checkPass(req.get('x-student-pass'))) {
       next();
       return;
     }
@@ -188,9 +190,15 @@ export function companionRoutes({
   );
 
   routes.get('/companion/calls', withPass, withDatabase, async (req, res) => {
-    // quem olha conta em "de olho agora" pelo hash do passe, nada mais
+    // quem olha conta em "de olho agora" uma vez: pelo aluno, com a sessão,
+    // ou pelo hash do passe, nos apps antigos
+    const actor = actorOf(res);
     const { calls, watching } = await companion.list(
-      viewerId(req.get('x-student-pass') ?? ''),
+      viewerId(
+        actor
+          ? `student:${actor.studentId}`
+          : (req.get('x-student-pass') ?? ''),
+      ),
     );
     noStore(res).json({
       calls: calls.map(toCompanionCall),
@@ -206,6 +214,7 @@ export function companionRoutes({
     async (req, res) => {
       const { call, memberKey } = await companion.open(
         parse(openSchema, req.body),
+        actorOf(res),
       );
       noStore(res)
         .status(201)
@@ -217,7 +226,11 @@ export function companionRoutes({
   );
 
   routes.get('/companion/calls/:id', withDatabase, async (req, res) => {
-    const call = await companion.read(callIdOf(req), memberKeyOf(req));
+    const call = await companion.read(
+      callIdOf(req),
+      memberKeyOf(req),
+      actorOf(res),
+    );
     noStore(res).json({
       call: toMemberCall(call),
     } satisfies CompanionCallResponse);
@@ -230,7 +243,11 @@ export function companionRoutes({
     student,
     async (req, res) => {
       const { name } = parse(joinSchema, req.body);
-      const { call, memberKey } = await companion.join(callIdOf(req), name);
+      const { call, memberKey } = await companion.join(
+        callIdOf(req),
+        name,
+        actorOf(res),
+      );
       noStore(res)
         .status(201)
         .json({
@@ -246,7 +263,7 @@ export function companionRoutes({
     memberLimit,
     withDatabase,
     async (req, res) => {
-      await companion.leave(callIdOf(req), memberKeyOf(req));
+      await companion.leave(callIdOf(req), memberKeyOf(req), actorOf(res));
       noStore(res).json({ status: 'ok' } satisfies OkResponse);
     },
   );
@@ -264,7 +281,12 @@ export function companionRoutes({
           'member_not_found',
           'Nobody in this call has that ref',
         );
-      const call = await companion.remove(callIdOf(req), memberKeyOf(req), ref);
+      const call = await companion.remove(
+        callIdOf(req),
+        memberKeyOf(req),
+        ref,
+        actorOf(res),
+      );
       noStore(res).json({
         call: toMemberCall(call),
       } satisfies CompanionCallResponse);
@@ -278,7 +300,12 @@ export function companionRoutes({
     withDatabase,
     async (req, res) => {
       const { phrase } = parse(phraseSchema, req.body);
-      const call = await companion.say(callIdOf(req), memberKeyOf(req), phrase);
+      const call = await companion.say(
+        callIdOf(req),
+        memberKeyOf(req),
+        phrase,
+        actorOf(res),
+      );
       noStore(res).json({
         call: toMemberCall(call),
       } satisfies CompanionCallResponse);
@@ -307,6 +334,7 @@ export function companionRoutes({
           ? { memberKey: memberKeyOf(req) }
           : { outsider: true },
         reason,
+        actorOf(res),
       );
       noStore(res).json({ status: 'ok' } satisfies OkResponse);
     },

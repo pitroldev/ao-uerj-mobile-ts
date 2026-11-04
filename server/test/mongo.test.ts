@@ -87,6 +87,8 @@ test('the connection opens on the old collections, with the indexes the queries 
       'issuancecounters',
       'muralmessages',
       'spenttokens',
+      'students',
+      'studentsessions',
       'suggestions',
       'usedchallenges',
     ],
@@ -96,6 +98,16 @@ test('the connection opens on the old collections, with the indexes the queries 
   assert.deepEqual(await indexesOf(models.suggestions), [{ createdAt: -1 }]);
   assert.deepEqual(await indexesOf(models.muralMessages), [
     { disciplina: 1, periodo: 1, turma: 1, createdAt: -1 },
+  ]);
+  // a matrícula (pelo HMAC) é única; as sessões vencem pelo TTL
+  assert.deepEqual(await indexesOf(models.students), [
+    { lookup: 1 },
+    { lastSeenAt: -1 },
+    { 'ban.at': -1 },
+  ]);
+  assert.deepEqual(await indexesOf(models.studentSessions), [
+    { expiresAt: 1 },
+    { student: 1 },
   ]);
 
   await db.disconnect();

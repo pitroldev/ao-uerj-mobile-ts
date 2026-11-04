@@ -14,6 +14,11 @@ import type {
   Review,
   ReviewedReport,
 } from '../../../../../modules/reports/ports.ts';
+import {
+  isBanned,
+  STUDENT_LIMITS,
+  type Student,
+} from '../../../../../modules/students/domain.ts';
 import type { Suggestion } from '../../../../../modules/suggestions/domain.ts';
 import { html, trusted, type Html } from './html.ts';
 import { ICON_VIEWBOX, ICONS, type IconName } from './icons.ts';
@@ -215,6 +220,8 @@ a.tag:hover{text-decoration:underline}
 .login{max-width:26rem}
 .login form{margin-top:1.5rem}
 .login label{display:block;margin-bottom:.375rem;font-weight:600}
+.login .field+label{margin-top:1rem}
+.login select.field{appearance:auto}
 .field{width:100%;min-height:3rem;padding:0 .875rem;border:1px solid var(--field);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;letter-spacing:.02em}
 .field:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
 .login .btn{width:100%;min-height:3rem;margin-top:1rem;font-size:.9375rem}
@@ -258,7 +265,7 @@ h1{font-size:1.375rem}
 }
 `);
 
-type Tab = 'reports' | 'suggestions' | 'companion';
+type Tab = 'reports' | 'suggestions' | 'companion' | 'students';
 
 /** As contagens das abas. */
 type Counts = { open: number; suggestions: number; companion: number };
@@ -279,9 +286,9 @@ function layout({
   counts?: Counts;
   body: Html;
 }) {
-  const tabLink = (id: Tab, href: string, label: string, n: number) =>
+  const tabLink = (id: Tab, href: string, label: string, n?: number) =>
     html`<a href="${href}" ${trusted(tab === id ? ' aria-current="page"' : '')}
-      >${label}<span class="n">${n.toLocaleString('pt-BR')}</span></a
+      >${label}${n === undefined ? null : html`<span class="n">${n.toLocaleString('pt-BR')}</span>`}</a
     >`;
   return html`<!doctype html>
     <html lang="pt-BR">
@@ -319,7 +326,7 @@ function layout({
           ${
             counts
               ? html`<nav class="tabs" aria-label="Seções">
-                  ${tabLink('reports', `${base}/admin`, 'Relatos', counts.open)}${tabLink('suggestions', `${base}/admin/sugestoes`, 'Sugestões', counts.suggestions)}${tabLink('companion', `${base}/admin/companhia`, 'Companhia', counts.companion)}
+                  ${tabLink('reports', `${base}/admin`, 'Relatos', counts.open)}${tabLink('suggestions', `${base}/admin/sugestoes`, 'Sugestões', counts.suggestions)}${tabLink('companion', `${base}/admin/companhia`, 'Companhia', counts.companion)}${tabLink('students', `${base}/admin/alunos`, 'Alunos')}
                 </nav>`
               : html`<div class="tabs" aria-hidden="true"></div>`
           }
@@ -471,12 +478,15 @@ function reportRow({
   report,
   filter,
   csrf,
+  people,
 }: {
   base: string;
   report: ReviewedReport;
   filter: ReviewFilter;
   csrf: string;
+  people: ReadonlyMap<string, Student>;
 }) {
+  const student = report.studentId ? people.get(report.studentId) : undefined;
   const done = report.resolvedAt !== null;
   const diagnostics = report.attachments.flatMap(attachment =>
     attachment.kind === 'diagnostic' ? [attachment.diagnostic] : [],
@@ -510,7 +520,7 @@ function reportRow({
                 >${icon('mail')}${report.email}</a
               >`
             : html`<span class="link quiet">Sem e-mail para resposta</span>`
-        }${attachmentLinks(base, report)}
+        }${student ? studentLink(base, student) : null}${attachmentLinks(base, report)}
       </div>
     </div>
     <form
@@ -546,6 +556,7 @@ export function reportsPage({
   now,
   suggestions,
   companionReports,
+  people = new Map(),
 }: {
   base: string;
   review: Review;
@@ -553,6 +564,8 @@ export function reportsPage({
   csrf: string;
   now: Date;
   suggestions: number;
+  /** Os alunos dos relatos da v2, abertos. */
+  people?: ReadonlyMap<string, Student>;
   /** As denúncias da Companhia agora guardadas (30 dias). */
   companionReports: number;
 }) {
@@ -625,7 +638,7 @@ export function reportsPage({
                   ${heading.title}${heading.detail ? html`<span>${heading.detail}</span>` : null}
                 </h2>
                 <ol class="list">
-                  ${group.items.map(report => reportRow({ base, report, filter, csrf }))}
+                  ${group.items.map(report => reportRow({ base, report, filter, csrf, people }))}
                 </ol>
               </section>`;
             })
@@ -901,6 +914,7 @@ export function companionPage({
   openReports,
   suggestions,
   done,
+  people = new Map(),
 }: {
   base: string;
   reports: CallReport[];
@@ -911,6 +925,8 @@ export function companionPage({
   suggestions: number;
   /** O resultado do "Tirar do ar" que acabou de voltar para cá. */
   done: 'hidden' | 'gone' | null;
+  /** Os alunos que aparecem nas denúncias, abertos. */
+  people?: ReadonlyMap<string, Student>;
 }) {
   const groups = byDay(reports, report => report.createdAt);
   // o botão vai só na denúncia mais nova de cada chamada que ainda vale
@@ -995,6 +1011,7 @@ export function companionPage({
                               ? html`<p class="desc">"${report.note}"</p>`
                               : null
                           }
+                          ${peopleList(base, report, people)}
                           <div class="foot">
                             <span>${report.names.join(', ') || 'Ninguém'}</span>
                             <span class="quiet"
@@ -1107,5 +1124,267 @@ export function messagePage({
     body: html`<h1>${title}</h1>
       <p class="lede">${text}</p>
       <p><a class="link" href="${base}/admin">Voltar aos relatos</a></p>`,
+  });
+}
+
+/* ----------------------------------------------------------------- alunos */
+
+const BAN_LABEL: Record<string, string> = {
+  '1': '1 dia',
+  '7': '7 dias',
+  '30': '30 dias',
+  sempre: 'Para sempre',
+};
+
+/** O aluno numa linha: o nome, a matrícula e o link para a página dele. */
+function studentLink(base: string, student: Student) {
+  return html`<a
+    class="link"
+    href="${base}/admin/alunos/${encodeURIComponent(student.id)}"
+    >${icon('person')}${student.name} · ${student.matricula}</a
+  >`;
+}
+
+/** Quem estava na chamada denunciada e quem denunciou, com o aluno de cada um. */
+function peopleList(
+  base: string,
+  report: CallReport,
+  people: ReadonlyMap<string, Student>,
+) {
+  const known = report.people.filter(person => person.student);
+  const reporter = report.reporterStudent
+    ? people.get(report.reporterStudent)
+    : undefined;
+  if (!known.length && !reporter) return null;
+  return html`<dl class="facts">
+    ${known.map(person => {
+      const student = people.get(person.student as string);
+      return html`<div>
+        <dt>${person.name}${person.host ? ' (abriu)' : ''}</dt>
+        <dd>
+          ${student ? studentLink(base, student) : html`<span class="quiet">aluno não encontrado</span>`}
+        </dd>
+      </div>`;
+    })}
+    ${
+      reporter
+        ? html`<div>
+            <dt>Denunciou</dt>
+            <dd>${studentLink(base, reporter)}</dd>
+          </div>`
+        : null
+    }
+  </dl>`;
+}
+
+/** O banimento em texto: "Banido até 10/12, 14:00" ou "Banido para sempre". */
+function banText(student: Student, now: Date) {
+  if (!student.ban || !isBanned(student.ban, now)) return null;
+  return student.ban.until
+    ? `Banido até ${stampFormat.format(student.ban.until)}`
+    : 'Banido para sempre';
+}
+
+function studentRow(base: string, student: Student, now: Date) {
+  const ban = banText(student, now);
+  return html`<li class="row">
+    <time class="when" datetime="${student.lastSeenAt.toISOString()}"
+      >${hourFormat.format(student.lastSeenAt)}</time
+    >
+    <div>
+      <div class="top">
+        <a
+          class="who"
+          href="${base}/admin/alunos/${encodeURIComponent(student.id)}"
+          >${student.name}</a
+        >${ban ? html`<span class="source">${icon('block', 16)}${ban}</span>` : null}
+      </div>
+      <div class="foot">
+        <span>Matrícula ${student.matricula}</span>
+        <span class="quiet"
+          >${count(student.devices.length, 'aparelho', 'aparelhos')}</span
+        >
+        <span class="quiet"
+          >Desde ${stampFormat.format(student.createdAt)}</span
+        >
+      </div>
+    </div>
+  </li>`;
+}
+
+/**
+ * Os alunos identificados: a busca pela matrícula, os banidos e os que
+ * entraram por último. Matrícula e nome só aparecem aqui, abertos para a
+ * moderação.
+ */
+export function studentsPage({
+  base,
+  csrf,
+  now,
+  counts,
+  query,
+  found,
+  banned,
+  recent,
+}: {
+  base: string;
+  csrf: string;
+  now: Date;
+  counts: Counts;
+  /** A matrícula buscada; vazia sem busca. */
+  query: string;
+  /** O resultado da busca: o aluno, `null` sem ninguém ou `undefined` sem busca. */
+  found: Student | null | undefined;
+  banned: Student[];
+  recent: Student[];
+}) {
+  return layout({
+    base,
+    title: 'Alunos',
+    tab: 'students',
+    csrf,
+    counts,
+    body: html`<h1>Alunos</h1>
+      <p class="lede">
+        Quem entrou no app pela matrícula, com a Play Integrity. Matrícula e
+        nome ficam cifrados no banco e só abrem aqui, para a moderação.
+      </p>
+      <form class="login" method="post" action="${base}/admin/alunos/busca">
+        <input type="hidden" name="csrf" value="${csrf}" />
+        <label for="matricula">Buscar pela matrícula</label>
+        <input
+          class="field"
+          id="matricula"
+          name="matricula"
+          inputmode="numeric"
+          autocomplete="off"
+          value="${query}"
+        />
+        <button class="btn" type="submit">${icon('search')}Buscar</button>
+      </form>
+      ${
+        found === undefined
+          ? null
+          : found
+            ? html`<ol class="list">
+                ${studentRow(base, found, now)}
+              </ol>`
+            : html`<p class="notice">
+                Nenhum aluno com essa matrícula entrou no app.
+              </p>`
+      }
+      <h2 class="sub">Banidos</h2>
+      ${
+        banned.length
+          ? html`<ol class="list">
+              ${banned.map(student => studentRow(base, student, now))}
+            </ol>`
+          : html`<p class="sub-lede">Ninguém banido agora.</p>`
+      }
+      <h2 class="sub">Entraram por último</h2>
+      ${
+        recent.length
+          ? html`<ol class="list">
+              ${recent.map(student => studentRow(base, student, now))}
+            </ol>`
+          : html`<p class="sub-lede">Ninguém entrou ainda.</p>`
+      }`,
+  });
+}
+
+/** Um aluno: os dados, os aparelhos e o banimento (banir ou desbanir). */
+export function studentPage({
+  base,
+  csrf,
+  now,
+  counts,
+  student,
+  done,
+}: {
+  base: string;
+  csrf: string;
+  now: Date;
+  counts: Counts;
+  student: Student;
+  /** O que acabou de ser feito, para o aviso. */
+  done: 'banned' | 'unbanned' | null;
+}) {
+  const ban = banText(student, now);
+  const action = `${base}/admin/alunos/${encodeURIComponent(student.id)}`;
+  return layout({
+    base,
+    title: student.name,
+    tab: 'students',
+    csrf,
+    counts,
+    body: html`<a class="back link" href="${base}/admin/alunos"
+        >Voltar aos alunos</a
+      >
+      <h1>${student.name}</h1>
+      ${
+        done === 'banned'
+          ? html`<p class="done-notice">
+              Banido. Ele saiu das mesas da Companhia (as que ele abriu
+              acabaram) e não usa mural, docentes, relatos nem gerador até o fim
+              do prazo. Enquanto os apps antigos valerem
+              (<code>STUDENT_TOKENS=accept</code>), um deles ainda entra na
+              Companhia sem dizer quem é.
+            </p>`
+          : done === 'unbanned'
+            ? html`<p class="done-notice">
+                Desbanido. Ele já pode entrar de novo.
+              </p>`
+            : null
+      }
+      <dl class="sheet">
+        <dt>Matrícula</dt>
+        <dd>${student.matricula}</dd>
+        <dt>Primeira entrada</dt>
+        <dd>${stampFormat.format(student.createdAt)}</dd>
+        <dt>Última entrada</dt>
+        <dd>${stampFormat.format(student.lastSeenAt)}</dd>
+        <dt>Aparelhos</dt>
+        <dd>
+          ${count(student.devices.length, 'aparelho', 'aparelhos')}${student.devices.map(
+            device =>
+              html`<br /><span class="quiet"
+                  >Desde ${stampFormat.format(device.firstSeenAt)}, visto em
+                  ${stampFormat.format(device.lastSeenAt)}</span
+                >`,
+          )}
+        </dd>
+        <dt>Situação</dt>
+        <dd>
+          ${ban ? html`${ban}. Motivo: ${student.ban?.reason ?? ''}` : 'Sem banimento'}
+        </dd>
+      </dl>
+      ${
+        ban
+          ? html`<form class="login" method="post" action="${action}/desbanir">
+              <input type="hidden" name="csrf" value="${csrf}" />
+              <button class="btn line" type="submit">
+                ${icon('restart_alt')}Desbanir
+              </button>
+            </form>`
+          : html`<form class="login" method="post" action="${action}/banir">
+              <input type="hidden" name="csrf" value="${csrf}" />
+              <label for="motivo">Motivo (o aluno vê)</label>
+              <input
+                class="field"
+                id="motivo"
+                name="motivo"
+                maxlength="${String(STUDENT_LIMITS.banReason)}"
+                required
+              />
+              <label for="prazo">Por quanto tempo</label>
+              <select class="field" id="prazo" name="prazo">
+                ${Object.entries(BAN_LABEL).map(
+                  ([value, label]) =>
+                    html`<option value="${value}">${label}</option>`,
+                )}
+              </select>
+              <button class="btn" type="submit">${icon('block')}Banir</button>
+            </form>`
+      }`,
   });
 }

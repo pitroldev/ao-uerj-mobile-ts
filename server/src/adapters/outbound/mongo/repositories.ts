@@ -9,6 +9,10 @@ import type {
   WatcherRepository,
 } from '../../../modules/companion/ports.ts';
 import type { MessageRepository } from '../../../modules/mural/ports.ts';
+import type {
+  StudentRepository,
+  StudentSessionRepository,
+} from '../../../modules/students/ports.ts';
 import type { ErrorReportRepository } from '../../../modules/reports/ports.ts';
 import type { SuggestionRepository } from '../../../modules/suggestions/ports.ts';
 import type { TeacherRepository } from '../../../modules/teachers/ports.ts';
@@ -23,6 +27,10 @@ import { createIssuanceCounterRepository } from './issuanceCounterRepository.ts'
 import { createMessageRepository } from './messageRepository.ts';
 import type { Models } from './models.ts';
 import { createSingleUseRepository } from './singleUseRepository.ts';
+import {
+  createStudentRepository,
+  createStudentSessionRepository,
+} from './studentRepository.ts';
 import { createSuggestionRepository } from './suggestionRepository.ts';
 import { createTeacherRepository } from './teacherRepository.ts';
 
@@ -39,6 +47,8 @@ export type Repositories = {
   companionReports: CallReportRepository;
   companionStats: CompanionStatsRepository;
   companionWatchers: WatcherRepository;
+  students: StudentRepository;
+  studentSessions: StudentSessionRepository;
 };
 
 export function createMongoRepositories(models: Models): Repositories {
@@ -54,5 +64,7 @@ export function createMongoRepositories(models: Models): Repositories {
     companionReports: createCallReportRepository(models.companionReports),
     companionStats: createCompanionStatsRepository(models.companionStats),
     companionWatchers: createWatcherRepository(models.companionWatchers),
+    students: createStudentRepository(models.students),
+    studentSessions: createStudentSessionRepository(models.studentSessions),
   };
 }

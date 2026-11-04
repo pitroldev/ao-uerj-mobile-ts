@@ -32,6 +32,11 @@ export type VerdictExpectation = {
   now: number;
   /** A idade máxima do token de integridade. */
   maxAgeMs: number;
+  /**
+   * Exige o app instalado pela Play (`LICENSED`): a identificação do aluno
+   * pede; a emissão dos tokens, não.
+   */
+  requireLicensed?: boolean;
 };
 
 /** Um relógio adiantado no aparelho não recusa o token por isso. */
@@ -50,6 +55,9 @@ const verdictSchema = z.object({
   }),
   deviceIntegrity: z
     .object({ deviceRecognitionVerdict: z.array(z.string()).optional() })
+    .optional(),
+  accountDetails: z
+    .object({ appLicensingVerdict: z.string().optional() })
     .optional(),
 });
 
@@ -70,7 +78,8 @@ export function judgeVerdict(
 ): Attestation {
   const parsed = verdictSchema.safeParse(payload);
   if (!parsed.success) return untrusted('unreadable_verdict');
-  const { requestDetails, appIntegrity, deviceIntegrity } = parsed.data;
+  const { requestDetails, appIntegrity, deviceIntegrity, accountDetails } =
+    parsed.data;
   if (requestDetails.requestPackageName !== expected.packageName)
     return untrusted('request_package');
   if (requestDetails.requestHash !== expected.requestHash)
@@ -94,6 +103,11 @@ export function judgeVerdict(
     )
   )
     return untrusted('device_integrity');
+  if (
+    expected.requireLicensed &&
+    accountDetails?.appLicensingVerdict !== 'LICENSED'
+  )
+    return untrusted('app_unlicensed');
   return { trusted: true };
 }
 
@@ -132,6 +146,7 @@ export function createPlayIntegrityAttester({
   packageName,
   certificateDigests,
   maxAgeMs,
+  requireLicensed = false,
   fetch = globalThis.fetch,
   now = systemClock,
   timeoutMs = 10_000,
@@ -140,6 +155,7 @@ export function createPlayIntegrityAttester({
   packageName: string;
   certificateDigests: readonly Buffer[];
   maxAgeMs: number;
+  requireLicensed?: boolean;
   fetch?: typeof globalThis.fetch;
   now?: Clock;
   timeoutMs?: number;
@@ -212,6 +228,7 @@ export function createPlayIntegrityAttester({
       requestHash,
       now: now(),
       maxAgeMs,
+      requireLicensed,
     });
   }
 

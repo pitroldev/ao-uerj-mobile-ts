@@ -102,6 +102,9 @@ export const REPORT_RETENTION_MS = 30 * 24 * 60 * MINUTE;
 /** A marca de quem denunciou de fora (o resto é o id de um membro). */
 export const OUTSIDER_PREFIX = 'outsider:';
 
+/** Quem foi tirado como aluno fica em `removed` assim (o resto é o id de um membro). */
+export const removedStudent = (student: string) => `student:${student}`;
+
 /** Quem está na chamada: o hash da chave de membro e o primeiro nome. */
 export type Member = {
   /** SHA-256 (hex) da chave que só o aparelho dessa pessoa tem. */
@@ -114,6 +117,18 @@ export type Member = {
   name: string;
   host: boolean;
   joinedAt: Date;
+  /**
+   * O aluno, quando o pedido veio com a sessão (o app identificado); quem
+   * entrou com o token anônimo dos apps antigos fica com `null`.
+   */
+  student: string | null;
+};
+
+/** Quem estava na chamada denunciada, para a moderação. */
+export type ReportPerson = {
+  name: string;
+  host: boolean;
+  student: string | null;
 };
 
 /** De onde veio a denúncia, para a moderação. */
@@ -198,6 +213,10 @@ export type CallReport = {
   destination: DestinationId | null;
   note: string;
   names: string[];
+  /** Quem estava, com o aluno de cada um (vazio nas de antes do campo). */
+  people: ReportPerson[];
+  /** O aluno que denunciou, com a sessão; `null` sem ela. */
+  reporterStudent: string | null;
   reason: ReportReason;
   /** De dentro, de quem chamou ou de fora; `null` nas de antes do campo. */
   source: ReportSource | null;
