@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.13.1 (2026-11-03)
+
+### Novidades
+
+- Android: o app confirma que você é aluno da UERJ pela matrícula e pelo nome do login no Aluno Online, com a Play Integrity, e entra no servidor do app com uma sessão. O mural, a busca de docentes, a Companhia agora, o relato de erro e o gerador de grades passam a saber quem é o aluno; os outros alunos continuam vendo só o primeiro nome, e só a moderação vê a matrícula.
+- Moderação: quem for denunciado pode ser suspenso por 1, 7 ou 30 dias ou para sempre, em qualquer aparelho. O app mostra até quando e por quê, e o suspenso sai das mesas e dos grupos na hora. Cada aluno abre uma mesa por vez e entra uma vez em cada uma.
+- No iPhone e em aparelhos sem a Play Store, o mural sai do menu, como a Companhia agora. O relato de erro continua chegando.
+- Os tokens anônimos da 2.11.1 saíram do app; o servidor ainda os aceita dos apps antigos.
+- Companhia agora: palavras mais simples ("mesa", "grupo para voltar"), também no admin.
+- Servidor: a aba "Alunos" no admin, com busca pela matrícula, banidos e a página de cada aluno.
+
 ## [2.13.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.12.0...v2.13.0) (2026-11-03)
 
 
