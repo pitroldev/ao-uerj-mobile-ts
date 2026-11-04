@@ -167,7 +167,7 @@ export function CallScreen({
   const [confirmLeave, setConfirmLeave] = useState(false);
   // quem chamou tira alguém: a confirmação, com o nome
   const [removing, setRemoving] = useState<CallMember | null>(null);
-  // de fora, uma denúncia por chamada (cada uma gasta um token)
+  // de fora, uma denúncia por chamada (o servidor conta uma por aluno)
   const [reported, setReported] = useState(() => companion.hasReported(callId));
   const removed = !membership && companion.wasRemoved(callId);
   // o relógio da agenda: anda a cada minuto e na volta do app

@@ -152,7 +152,7 @@ export class CompanionWatch {
     try {
       [{ calls }, mine] = await Promise.all([list(), memberships()]);
     } catch {
-      // sem rede ou sem token agora: a próxima rodada tenta de novo
+      // sem rede ou sem a sessão agora: a próxima rodada tenta de novo
       return 'waiting';
     }
     const at = now();

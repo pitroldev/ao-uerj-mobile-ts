@@ -39,9 +39,9 @@ export type AppStatus = {
   disabledFeatures: string[];
   /**
    * Os ids (SHA-256 do SPKI, em hex) das chaves do emissor dos tokens
-   * anônimos de aluno, até 8. O arquivo é o mesmo para todos, então o app
-   * recusa uma chave fora da lista: o servidor não marca um aluno com uma
-   * chave só dele. Sem a lista, o app não pede tokens.
+   * anônimos, até 8. Servem aos apps até a 2.13, que pedem tokens; o app
+   * atual entra com a sessão de aluno e não usa a lista, mas o arquivo
+   * continua com ela.
    */
   tokenKeys?: string[];
 };

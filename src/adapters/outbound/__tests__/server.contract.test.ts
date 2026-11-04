@@ -17,8 +17,7 @@ import {
 } from '@root/modules/planning/application/testFixtures';
 import type { ScheduleCreationParams } from '@root/modules/planning/domain/models';
 import { testCrypto } from '@root/modules/trust/__tests__/testCrypto';
-import { PrivateTokens } from '@root/modules/trust/application/PrivateTokens';
-import { toHex } from '@root/modules/trust/domain/bytes';
+import { StudentSession } from '@root/modules/trust/application/StudentSession';
 import { CompanionCalls } from '@root/modules/companion/application/CompanionCalls';
 import {
   CompanionError,
@@ -26,14 +25,14 @@ import {
 } from '@root/modules/companion/domain/companion';
 import { AppError } from '@root/shared/errors/AppError';
 
-import { createTokenStore } from '../persistence/token-store';
+import { createStudentSessionStore } from '../persistence/student-session-store';
 import {
   createPrivateApiAdapters,
   createPrivateApiClient,
 } from '../private-api';
 import { createCompanionServer } from '../private-api/companion';
-import { createStudentClient } from '../private-api/studentClient';
-import { createTokenIssuer } from '../private-api/tokens';
+import { createSessionClient } from '../private-api/sessionClient';
+import { createStudentSessionApi } from '../private-api/studentSession';
 import {
   createGeneratorTransport,
   createScheduleGeneratorAdapter,
@@ -70,8 +69,44 @@ afterAll(async () => {
   await exited;
 });
 
-const api = () =>
-  createPrivateApiAdapters(createPrivateApiClient(`${base}/aouerj`));
+/**
+ * O app inteiro menos a Play: o crypto do Node, um cofre em memória, com a
+ * conta logada, e a "Play" do servidor de teste, que só aceita o token
+ * `dev:<requestHash>` com o hash que ele mesmo calcula. Assim o hash do app
+ * (matrícula e nome em UTF-8) é conferido contra o do servidor.
+ */
+function studentSession(
+  matricula = '209912345678',
+  name = 'ESTUDANTE FICTÍCIA',
+  attest = async (requestHash: string) => ({ token: `dev:${requestHash}` }),
+) {
+  const client = createPrivateApiClient(`${base}/aouerj`);
+  const items = new Map<string, string>();
+  const session = new StudentSession({
+    api: createStudentSessionApi(client),
+    device: {
+      crypto: testCrypto,
+      attest,
+    },
+    store: createStudentSessionStore({
+      read: async key => items.get(key) ?? null,
+      write: async (key, value) => {
+        items.set(key, value);
+      },
+      remove: async key => {
+        items.delete(key);
+      },
+      removePrefix: async () => undefined,
+    }),
+    account: () => ({ scope: `account-${matricula}`, matricula, name }),
+  });
+  return { client, session, student: createSessionClient(client, session) };
+}
+
+const api = () => {
+  const { client, student } = studentSession();
+  return createPrivateApiAdapters(client, student);
+};
 
 const thread = {
   subjectId: 'IME01-10001',
@@ -253,78 +288,43 @@ it('puts the subject that locks more pending subjects first with CRITICAL_FIRST'
   ]);
 });
 
-describe('anonymous student tokens (/aouerj/v2)', () => {
-  /** O app inteiro menos a Play: o crypto do Node e a atestação de desenvolvimento. */
-  async function studentTokens() {
-    const client = createPrivateApiClient(`${base}/aouerj`);
-    const issuer = createTokenIssuer(client);
-    // a chave publicada no aviso remoto é a que o servidor usa
-    const { tokenKey } = (await issuer.challenge())!;
-    // o estoque do app, num cofre em memória
-    const items = new Map<string, string>();
-    const store = createTokenStore({
-      read: async name => items.get(name) ?? null,
-      write: async (name, value) => {
-        items.set(name, value);
-      },
-      remove: async name => {
-        items.delete(name);
-      },
-      removePrefix: async () => undefined,
+describe('the student session (/aouerj/v2)', () => {
+  it('signs in with the matrícula and keeps the session for the next requests', async () => {
+    const { session, student } = studentSession();
+    const first = await session.token();
+    expect(first).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    await expect(student.get('/v2/teachers')).resolves.toMatchObject({
+      data: { docentes: ['ADA LOVELACE'] },
     });
-    const tokens = new PrivateTokens({
-      issuer,
-      device: {
-        crypto: testCrypto,
-        attest: async () => ({ token: 'atestação de desenvolvimento' }),
-      },
-      store,
-      allowedKeys: () => [toHex(testCrypto.sha256(tokenKey))],
-      now: () => Date.now(),
-    });
-    return { client, tokens };
-  }
-
-  it('gets a batch the server signed blindly and spends one token per request', async () => {
-    const { client, tokens } = await studentTokens();
-    await expect(tokens.refill()).resolves.toBe('refilled');
-    await expect(tokens.count()).resolves.toBe(32);
-
-    const student = createStudentClient(client, tokens);
-    await expect(student.get('/v2/auth')).resolves.toMatchObject({
-      data: { authenticated: true },
-    });
-    await expect(tokens.count()).resolves.toBe(31);
+    // a mesma sessão no próximo pedido
+    await expect(session.token()).resolves.toBe(first);
   });
 
-  it('swaps a token the server already saw for a fresh one', async () => {
-    const { client, tokens } = await studentTokens();
-    await tokens.refill();
-    const spent = (await tokens.take())!;
-    const fresh = (await tokens.take())!;
-    const once = createStudentClient(client, {
-      take: jest.fn().mockResolvedValueOnce(spent),
-    });
-    await once.get('/v2/auth');
-
-    // o mesmo token de novo é gasto duplo: 401, e o app troca uma vez
-    const take = jest
-      .fn()
-      .mockResolvedValueOnce(spent)
-      .mockResolvedValueOnce(fresh);
-    await expect(
-      createStudentClient(client, { take }).get('/v2/auth'),
-    ).resolves.toMatchObject({ data: { authenticated: true } });
-    expect(take).toHaveBeenCalledTimes(2);
-  });
-
-  it('runs a Companhia agora call end to end: the pass, open, join, phrases and leave', async () => {
-    const { client, tokens } = await studentTokens();
-    await tokens.refill();
-    const companion = createCompanionServer(
-      client,
-      createStudentClient(client, tokens),
+  it('is refused when the attestation covers another request (another name, say)', async () => {
+    const { session } = studentSession(
+      '209912345678',
+      'ESTUDANTE FICTÍCIA',
+      async () => ({ token: `dev:${'0'.repeat(64)}` }),
     );
+    await expect(session.token()).rejects.toEqual(
+      new AppError('STUDENT_PROOF_UNAVAILABLE'),
+    );
+  });
+
+  it('signs in again when the server no longer knows the session', async () => {
+    const { session, student } = studentSession();
+    const first = await session.token();
+    // a saída encerra no servidor; um pedido com a sessão velha entra de novo
+    await createStudentSessionApi(createPrivateApiClient(`${base}/aouerj`)).end(
+      first,
+    );
+    await expect(student.get('/v2/teachers')).resolves.toMatchObject({
+      data: { docentes: ['ADA LOVELACE'] },
+    });
+    await expect(session.token()).resolves.not.toBe(first);
+  });
+
+  it('runs a Companhia agora call end to end with two students: open, join, phrases, removal and leave', async () => {
     const memory = () => {
       let saved: Membership[] = [];
       return {
@@ -334,16 +334,23 @@ describe('anonymous student tokens (/aouerj/v2)', () => {
         },
       };
     };
-    const host = new CompanionCalls({
-      server: companion,
-      store: memory(),
-      now: () => Date.now(),
-    });
-    const guest = new CompanionCalls({
-      server: companion,
-      store: memory(),
-      now: () => Date.now(),
-    });
+    const calls = (matricula: string, name: string) => {
+      const { student } = studentSession(matricula, name);
+      const port = createCompanionServer(student, student);
+      return {
+        server: port,
+        calls: new CompanionCalls({
+          server: port,
+          store: memory(),
+          now: () => Date.now(),
+        }),
+      };
+    };
+    const renata = calls('209900000001', 'RENATA ALVES');
+    const marina = calls('209900000002', 'MARINA COSTA');
+    const bia = calls('209900000003', 'BIA SANTOS');
+    const host = renata.calls;
+    const guest = marina.calls;
 
     const opened = await host.open({
       kind: 'home',
@@ -369,13 +376,17 @@ describe('anonymous student tokens (/aouerj/v2)', () => {
     expect(watching).toBeGreaterThanOrEqual(1);
     const joined = await guest.join(opened.id, 'Marina');
     expect(joined.going).toBe(2);
+    // o mesmo aluno não entra de novo, nem por outro aparelho
+    await expect(marina.server.join(opened.id, 'Marina')).rejects.toEqual(
+      new CompanionError('already_member'),
+    );
     // a última vaga já foi: um terceiro não entra
-    await expect(companion.join(opened.id, 'Bia')).rejects.toEqual(
+    await expect(bia.server.join(opened.id, 'Bia')).rejects.toEqual(
       new CompanionError('full'),
     );
     // o recado com contato o servidor também recusa
     await expect(
-      companion.open({
+      bia.server.open({
         kind: 'lunch',
         at: Date.now() + 20 * 60_000,
         spot: 'ru',
@@ -395,9 +406,9 @@ describe('anonymous student tokens (/aouerj/v2)', () => {
     await guest.report(opened.id, 'other');
 
     // quem chamou tira alguém pelo apelido; quem saiu assim fica sabendo
-    const marina = seen.members.find(member => member.name === 'Marina');
-    expect(marina?.ref).toMatch(/^[A-Za-z0-9_-]{11}$/);
-    const after = await host.remove(opened.id, marina!.ref);
+    const removed = seen.members.find(member => member.name === 'Marina');
+    expect(removed?.ref).toMatch(/^[A-Za-z0-9_-]{11}$/);
+    const after = await host.remove(opened.id, removed!.ref);
     expect(after.going).toBe(1);
     await expect(guest.read(opened.id)).rejects.toEqual(
       new CompanionError('removed'),

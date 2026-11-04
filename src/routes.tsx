@@ -88,8 +88,10 @@ export const MainRoutes = () => {
   const services = useAppServices();
   const notificationsSupported =
     services.notifications.settings.getSnapshot().supported;
-  // a Companhia agora depende dos tokens anônimos (Android com a Play) e do cofre
+  // a Companhia agora e o mural dependem da sessão de aluno (Android com a
+  // Play) e do cofre; sem eles, nem aparecem
   const companionSupported = services.companion.supported;
+  const studentSupported = services.studentSession.supported;
   // a conta salva aparece antes do login da abertura terminar
   const showLoading = status === 'restoring' && !account;
   const isSignedIn = showsAccount({ status, account });
@@ -141,7 +143,9 @@ export const MainRoutes = () => {
             name="Gerador de Grade"
             component={ScheduleCreationPage}
           />
-          <Drawer.Screen name="Mural de Mensagens" component={MessageBoard} />
+          {studentSupported ? (
+            <Drawer.Screen name="Mural de Mensagens" component={MessageBoard} />
+          ) : null}
           <Drawer.Screen
             name="Disciplinas Realizadas"
             component={SubjectsTakenScreen}

@@ -58,7 +58,7 @@ export const APP_INFO = [
     title: 'Mural de Mensagens',
     icon: 'forum',
     description:
-      'Canal de comunicação exclusivo entre alunos da mesma turma com total privacidade.',
+      'Recados entre os alunos da mesma turma. Só entra quem é aluno da UERJ.',
   },
 ] as {
   title: string;
@@ -67,7 +67,7 @@ export const APP_INFO = [
   isNew?: boolean;
   /** Só onde o aparelho tem os avisos (módulo nativo). */
   needsNotifications?: boolean;
-  /** Só onde há a Companhia agora (tokens anônimos de aluno). */
+  /** Só onde há a Companhia agora (o app entra como aluno pela Play). */
   needsCompanion?: boolean;
   description: string;
   /** A descrição sem a verificação no portal (no iPhone, só os lembretes). */

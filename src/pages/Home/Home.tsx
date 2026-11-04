@@ -171,7 +171,7 @@ export const HomePage = () => {
   const { keys: absenceKeys } = useAttendance();
   const { evaluations } = useEvaluations();
   const { notifications, companion } = useAppServices();
-  // sem tokens anônimos, a Companhia agora não existe neste aparelho
+  // sem a sessão de aluno, a Companhia agora não existe neste aparelho
   const availableSections = useMemo(
     () => HOME_SECTIONS.filter(id => id !== 'companion' || companion.supported),
     [companion.supported],

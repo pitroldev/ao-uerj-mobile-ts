@@ -27,7 +27,7 @@ type Props = {
   visible: boolean;
   callId: string;
   title: string;
-  /** Quem está dentro denuncia pela chave; de fora, gasta um token. */
+  /** Quem está dentro denuncia pela chave; de fora, pela sessão (uma vez por aluno). */
   member: boolean;
   /** Quem chamou: a denúncia dele não tira a chamada do ar. */
   host?: boolean;
@@ -50,10 +50,10 @@ function reportedText(
 }
 
 /**
- * Denunciar a chamada: vai para a moderação do app, sem o nome de quem
- * denuncia. Assédio denunciado por quem foi junto tira a chamada do ar na
- * hora; outro motivo, com duas pessoas de dentro. De fora, só a moderação
- * tira (uma pessoa com tokens derrubaria qualquer mesa).
+ * Denunciar a chamada: vai para a moderação do app, que vê quem estava e
+ * quem denunciou (os outros não). Assédio denunciado por quem foi junto tira
+ * a chamada do ar na hora; outro motivo, com duas pessoas de dentro. De
+ * fora, só a moderação tira (ninguém de fora derruba a mesa dos outros).
  */
 export function ReportSheet({
   visible,

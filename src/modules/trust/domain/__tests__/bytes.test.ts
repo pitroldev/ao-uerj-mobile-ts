@@ -1,15 +1,11 @@
 import {
   ascii,
-  bigIntToBytes,
-  bytesToBigInt,
   concat,
-  equalBytes,
   fromBase64,
-  fromHex,
   toBase64,
   toHex,
   u16,
-  u32,
+  utf8,
 } from '../bytes';
 
 const bytes = (...values: number[]) => Uint8Array.from(values);
@@ -54,25 +50,20 @@ describe('base64', () => {
   });
 });
 
-describe('integers and helpers', () => {
-  it('converts big integers to fixed-size big-endian bytes and back', () => {
-    expect(bytesToBigInt(new Uint8Array(0))).toBe(0n);
-    expect(bytesToBigInt(bytes(1, 0))).toBe(256n);
-    expect(bigIntToBytes(256n, 4)).toEqual(bytes(0, 0, 1, 0));
-    expect(() => bigIntToBytes(65536n, 2)).toThrow(RangeError);
-    expect(() => bigIntToBytes(-1n, 2)).toThrow(RangeError);
-  });
-
-  it('writes hex, lengths and ASCII as the protocol expects', () => {
+describe('helpers', () => {
+  it('writes hex, lengths, ASCII and UTF-8 as the session request expects', () => {
     expect(toHex(bytes(0, 15, 255))).toBe('000fff');
-    expect(fromHex('000FfF')).toEqual(bytes(0, 15, 255));
-    expect(() => fromHex('abc')).toThrow(RangeError);
     expect(u16(0x0102)).toEqual(bytes(1, 2));
-    expect(u32(0x01020304)).toEqual(bytes(1, 2, 3, 4));
     expect(concat(bytes(1), bytes(), bytes(2, 3))).toEqual(bytes(1, 2, 3));
-    expect(equalBytes(bytes(1, 2), bytes(1, 2))).toBe(true);
-    expect(equalBytes(bytes(1, 2), bytes(1, 3))).toBe(false);
-    expect(equalBytes(bytes(1), bytes(1, 2))).toBe(false);
     expect(() => ascii('não')).toThrow(RangeError);
+    // o mesmo que o Buffer do servidor: 1, 2, 3 e 4 bytes por caractere
+    const cases: [string, number[]][] = [
+      ['A', [0x41]],
+      ['JOÃO', [0x4a, 0x4f, 0xc3, 0x83, 0x4f]],
+      ['€', [0xe2, 0x82, 0xac]],
+      ['𝄞', [0xf0, 0x9d, 0x84, 0x9e]],
+    ];
+    for (const [text, encoded] of cases)
+      expect(utf8(text)).toEqual(Uint8Array.from(encoded));
   });
 });

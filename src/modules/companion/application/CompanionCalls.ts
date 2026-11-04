@@ -44,11 +44,10 @@ const isGone = (error: unknown) =>
     error.refusal === 'removed');
 
 /**
- * A Companhia agora no app: a lista (com o passe de uma hora, um token por
- * hora de uso), abrir, entrar, recados, sair e denunciar. As participações
- * ficam no cofre, com a chave de membro de cada chamada; cada pessoa tem uma
- * chamada aberta por vez (abrir outra encerra a anterior). O servidor não
- * liga uma participação à outra.
+ * A Companhia agora no app: a lista (com o passe de uma hora), abrir,
+ * entrar, recados, sair e denunciar, tudo com a sessão de aluno. As
+ * participações ficam no cofre, com a chave de membro de cada uma; cada
+ * pessoa tem uma aberta por vez (abrir outra encerra a anterior).
  */
 export class CompanionCalls {
   private pass: { value: string; expiresAt: number } | null = null;
@@ -61,7 +60,7 @@ export class CompanionCalls {
   private listeners = new Set<() => void>();
   /**
    * As chamadas denunciadas de fora nesta sessão: a mesma pessoa não
-   * denuncia de novo (cada denúncia de fora gasta um token).
+   * denuncia de novo (o servidor também conta uma por aluno).
    */
   private reported = new Set<string>();
   /** As chamadas de que quem chamou tirou o aluno: o botão de entrar some. */
@@ -201,7 +200,7 @@ export class CompanionCalls {
     }
   }
 
-  /** Denuncia de dentro (pela chave) ou de fora (gasta um token). */
+  /** Denuncia de dentro (pela chave) ou de fora (pela sessão). */
   async report(callId: string, reason: ReportReason): Promise<void> {
     await this.load();
     const membership = this.membership(callId);
@@ -239,7 +238,7 @@ export class CompanionCalls {
   }
 
   /**
-   * O logout: sai de cada chamada (sem token, só a chave) e apaga tudo. Uma
+   * O logout: sai de cada chamada (a chave e a sessão, que ainda vale) e apaga tudo. Uma
    * falha de rede não impede o logout.
    */
   async clear(): Promise<void> {

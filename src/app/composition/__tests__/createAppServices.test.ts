@@ -60,8 +60,10 @@ jest.mock('@root/adapters/outbound/native/NativeSecureVault', () => ({
 jest.mock('../createWidget', () => ({
   createWidget: jest.fn(() => ({ sync: {} })),
 }));
-jest.mock('../createTrust', () => ({
-  createTrust: jest.fn(() => ({})),
+// a sessão de aluno lê o AppState do React Native, que este teste não carrega
+jest.mock('../createStudentSession', () => ({
+  createStudentSession: jest.fn(() => ({ supported: false })),
+  followIdentity: jest.fn(),
 }));
 jest.mock('@root/adapters/outbound/native/NativeLaunches', () => ({
   createLaunches: jest.fn(() => null),

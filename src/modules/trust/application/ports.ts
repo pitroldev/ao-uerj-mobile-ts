@@ -1,7 +1,6 @@
-import type { TokenCrypto } from '../domain/privateToken';
-import type { TokenStock } from '../domain/tokenStock';
+import type { SessionCrypto, StudentBan } from '../domain/studentSession';
 
-/** O token da Play Integrity sobre o lote, ou por que não veio. */
+/** O token da Play Integrity sobre o pedido, ou por que não veio. */
 export type Attestation =
   | { token: string }
   /**
@@ -12,54 +11,53 @@ export type Attestation =
 
 /** O aparelho: a atestação do app (Android) e a criptografia da plataforma. */
 export interface DeviceTrustPort {
-  crypto: TokenCrypto;
+  crypto: SessionCrypto;
   attest(requestHash: string): Promise<Attestation>;
 }
 
-type IssuanceChallenge = {
-  /** O desafio de uso único da emissão (5 minutos). */
+/** O pedido de sessão: o desafio, a instalação, a atestação e o aluno. */
+export type SessionRequest = {
   challenge: Uint8Array;
-  /** A chave do emissor, no SPKI da RFC 9578. */
-  tokenKey: Uint8Array;
-};
-
-export type IssuanceRequest = {
-  challenge: Uint8Array;
-  /** 32 bytes ao acaso, criados uma vez por instalação. */
   installation: Uint8Array;
   integrityToken: string;
-  tokenRequests: Uint8Array[];
+  matricula: string;
+  name: string;
 };
 
-export type IssuanceRefusal =
+type SessionRefusal =
   /** Desafio vencido ou já usado: vale pedir outro. */
   | 'invalid_challenge'
-  /** A chave mudou entre o desafio e o pedido: vale pedir outro. */
-  | 'invalid_token_request'
+  /** O app, a instalação pela loja ou o aparelho não passaram. */
   | 'attestation_failed'
-  | 'limit_reached'
-  /** A emissão ou a Play Integrity fora do ar no servidor. */
+  | 'banned'
+  /** A identificação ou a Play Integrity fora do ar no servidor. */
   | 'unavailable';
 
-export type Issuance =
-  | { issued: true; tokenKey: Uint8Array; tokenResponses: Uint8Array[] }
-  | { issued: false; refusal: IssuanceRefusal; retryAt?: number };
+export type SessionCreation =
+  | { created: true; token: string; expiresAt: number }
+  | { created: false; refusal: SessionRefusal; ban?: StudentBan };
 
 /**
- * O emissor (pitrol.dev/aouerj/v2/tokens). Sem rede, rejeita com o
- * `AppError` do adaptador.
+ * A identificação no servidor (pitrol.dev/aouerj/v2/students). Sem rede,
+ * rejeita com o `AppError` do adaptador.
  */
-export interface TokenIssuerPort {
-  /** `null` com a emissão desligada no servidor. */
-  challenge(): Promise<IssuanceChallenge | null>;
-  issue(request: IssuanceRequest): Promise<Issuance>;
+export interface StudentSessionApiPort {
+  /** O desafio de uso único; `null` com a identificação desligada no servidor. */
+  challenge(): Promise<Uint8Array | null>;
+  create(request: SessionRequest): Promise<SessionCreation>;
+  /** O logout: a sessão deixa de valer no servidor. Não rejeita. */
+  end(token: string): Promise<void>;
 }
 
-/** O estoque e o id da instalação, guardados no aparelho. */
-export interface TokenStorePort {
-  readStock(): Promise<TokenStock | null>;
-  writeStock(stock: TokenStock): Promise<void>;
-  /** Em base64url; `null` antes da primeira emissão. */
+/** A sessão guardada: de qual conta (o `scope`) e até quando, mais ou menos. */
+export type StoredSession = { token: string; scope: string; expiresAt: number };
+
+/** A sessão e o id da instalação, no cofre. */
+export interface StudentSessionStorePort {
+  read(): Promise<StoredSession | null>;
+  write(session: StoredSession): Promise<void>;
+  clear(): Promise<void>;
+  /** Em base64url; `null` antes da primeira entrada. */
   readInstallation(): Promise<string | null>;
   writeInstallation(installation: string): Promise<void>;
 }

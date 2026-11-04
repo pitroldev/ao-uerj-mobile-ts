@@ -5,7 +5,7 @@ import type { DeviceTrustPort } from '@root/modules/trust/application/ports';
 /**
  * O número (não o id) do projeto do Google Cloud ligado ao app no Play
  * Console, o `ao-uerj`: a Play Integrity o exige no pedido standard. Não é
- * segredo. Vazio, o app não pede tokens.
+ * segredo. Vazio, o app não entra como aluno.
  */
 const CLOUD_PROJECT_NUMBER = '377368074507';
 
@@ -28,7 +28,6 @@ export function createNativeDeviceTrust(
   return {
     crypto: {
       sha256: data => bytes(module.digest('SHA-256', toBase64(data))),
-      sha384: data => bytes(module.digest('SHA-384', toBase64(data))),
       randomBytes: length => bytes(module.randomBytes(length)),
     },
     async attest(requestHash) {

@@ -15,11 +15,8 @@ function fakeModule(): jest.Mocked<Spec> {
     randomBytes: jest.fn(length => toBase64(testCrypto.randomBytes(length))),
     digest: jest.fn((algorithm, data) => {
       const bytes = fromBase64(data)!;
-      return toBase64(
-        algorithm === 'SHA-256'
-          ? testCrypto.sha256(bytes)
-          : testCrypto.sha384(bytes),
-      );
+      if (algorithm !== 'SHA-256') throw new Error(`unexpected ${algorithm}`);
+      return toBase64(testCrypto.sha256(bytes));
     }),
   } as unknown as jest.Mocked<Spec>;
 }
@@ -44,8 +41,7 @@ it('hashes and draws bytes through the platform, in base64', () => {
   expect(toHex(device.crypto.sha256(abc))).toBe(
     'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
   );
-  expect(device.crypto.sha384(abc)).toHaveLength(48);
-  expect(module.digest).toHaveBeenCalledWith('SHA-384', 'YWJj');
+  expect(module.digest).toHaveBeenCalledWith('SHA-256', 'YWJj');
   expect(device.crypto.randomBytes(32)).toHaveLength(32);
   expect(module.randomBytes).toHaveBeenCalledWith(32);
 });

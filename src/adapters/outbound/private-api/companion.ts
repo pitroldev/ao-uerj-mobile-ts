@@ -151,6 +151,7 @@ const REFUSALS: Record<string, CompanionRefusal> = {
   cannot_remove_host: 'not_host',
   companion_full: 'busy',
   invalid_pass: 'pass_expired',
+  already_member: 'already_member',
 };
 
 async function request<T>(execute: () => Promise<T>): Promise<T> {
@@ -177,9 +178,9 @@ async function request<T>(execute: () => Promise<T>): Promise<T> {
 const memberHeaders = (memberKey: string) => ({ 'X-Member-Key': memberKey });
 
 /**
- * A Companhia agora no servidor. `student` leva um token anônimo por
- * requisição (abrir, entrar, o passe, a denúncia de fora); `client`, o
- * passe ou a chave de membro no cabeçalho.
+ * A Companhia agora no servidor. `student` leva a sessão de aluno (abrir,
+ * entrar, o passe, a denúncia de fora); `client`, o passe ou a chave de
+ * membro no cabeçalho (no app, também com a sessão).
  */
 export function createCompanionServer(
   client: PrivateApiHttpClient,

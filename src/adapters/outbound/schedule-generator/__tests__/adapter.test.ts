@@ -1,3 +1,5 @@
+import { AxiosError, AxiosHeaders } from 'axios';
+import { AppError } from '@root/shared/errors/AppError';
 import { createScheduleGeneratorAdapter } from '../index';
 import { legacyPrerequisiteIds } from '../mappers';
 import { parseGeneratorResponse } from '../response';
@@ -201,4 +203,101 @@ it('propagates typed network errors without retrying the POST', async () => {
     ),
   ).rejects.toMatchObject({ code: 'NETWORK' });
   expect(transport.post).toHaveBeenCalledTimes(1);
+});
+
+describe('with the student session', () => {
+  function session(token = 'first') {
+    let current = token;
+    return {
+      supported: true,
+      token: jest.fn(async () => current),
+      invalidate: jest.fn(async () => {
+        current = 'second';
+      }),
+      banned: jest.fn(
+        () => new AppError('STUDENT_BANNED', 'suspensa até 10/12'),
+      ),
+    };
+  }
+  const refused = (status: number, data: unknown) =>
+    new AxiosError('refused', 'ERR_BAD_REQUEST', undefined, undefined, {
+      status,
+      statusText: '',
+      headers: {},
+      config: { headers: new AxiosHeaders() },
+      data,
+    });
+
+  it('counts the generation for the student', async () => {
+    const transport = {
+      post: jest.fn().mockResolvedValue({ data: { data: [generated] } }),
+    };
+    await new GenerateSchedules(
+      createScheduleGeneratorAdapter(transport, session()),
+    ).execute(form);
+    expect(transport.post.mock.calls[0][2]).toEqual({
+      signal: undefined,
+      headers: { Authorization: 'Student first' },
+    });
+  });
+
+  it('generates without the session when the server no longer knows it', async () => {
+    const student = session();
+    const transport = {
+      post: jest
+        .fn()
+        .mockRejectedValueOnce(refused(401, { error: 'invalid_session' }))
+        .mockResolvedValueOnce({ data: { data: [generated] } }),
+    };
+    await expect(
+      new GenerateSchedules(
+        createScheduleGeneratorAdapter(transport, student),
+      ).execute(form),
+    ).resolves.toEqual([generated]);
+    expect(student.invalidate).toHaveBeenCalledWith('first');
+    expect(transport.post.mock.calls[1][2]).toEqual({ signal: undefined });
+  });
+
+  it('generates without the session when the device cannot sign in', async () => {
+    const student = session();
+    student.token.mockRejectedValue(new AppError('STUDENT_PROOF_UNAVAILABLE'));
+    const transport = {
+      post: jest.fn().mockResolvedValue({ data: { data: [generated] } }),
+    };
+    await new GenerateSchedules(
+      createScheduleGeneratorAdapter(transport, student),
+    ).execute(form);
+    expect(transport.post.mock.calls[0][2]).toEqual({ signal: undefined });
+  });
+
+  it('does not generate for a student banned at the sign-in', async () => {
+    const student = session();
+    student.token.mockRejectedValue(
+      new AppError('STUDENT_BANNED', 'suspensa até 10/12'),
+    );
+    const transport = { post: jest.fn() };
+    await expect(
+      new GenerateSchedules(
+        createScheduleGeneratorAdapter(transport, student),
+      ).execute(form),
+    ).rejects.toEqual(new AppError('STUDENT_BANNED', 'suspensa até 10/12'));
+    expect(transport.post).not.toHaveBeenCalled();
+  });
+
+  it('says until when a banned student is out', async () => {
+    const transport = {
+      post: jest.fn().mockRejectedValue(
+        refused(403, {
+          error: 'student_banned',
+          until: '2026-12-10T17:00:00.000Z',
+          reason: 'Spam',
+        }),
+      ),
+    };
+    await expect(
+      new GenerateSchedules(
+        createScheduleGeneratorAdapter(transport, session()),
+      ).execute(form),
+    ).rejects.toEqual(new AppError('STUDENT_BANNED', 'suspensa até 10/12'));
+  });
 });

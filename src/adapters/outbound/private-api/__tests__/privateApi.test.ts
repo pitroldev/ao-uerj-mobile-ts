@@ -1,3 +1,4 @@
+import { AxiosError, AxiosHeaders } from 'axios';
 import { AppError } from '@root/shared/errors/AppError';
 import { Community } from '@root/modules/community/application/Community';
 import { SubmitErrorReport } from '@root/modules/support/application/SubmitErrorReport';
@@ -25,7 +26,8 @@ function setup() {
     post: jest.fn(),
   };
   let currentAccount: typeof account | null = account;
-  const adapters = createPrivateApiAdapters(http);
+  // o mesmo cliente nos dois papéis: o teste vê os caminhos
+  const adapters = createPrivateApiAdapters(http, http);
   const community = new Community({
     ...adapters,
     currentAccount: () => currentAccount,
@@ -61,7 +63,7 @@ describe('private API boundary', () => {
       },
     ]);
     expect(http.post).toHaveBeenCalledWith(
-      '/messages/get',
+      '/v2/mural/thread',
       {
         disciplina: 'IME02-01388',
         turma: '1',
@@ -80,7 +82,7 @@ describe('private API boundary', () => {
     http.post.mockResolvedValue({ data: message });
     await community.postMessage(thread, '  Olá, turma  ');
     expect(http.post).toHaveBeenCalledWith(
-      '/messages/post',
+      '/v2/mural/messages',
       {
         fullName: account.name,
         disciplina: thread.subjectId,
@@ -104,7 +106,7 @@ describe('private API boundary', () => {
       `  ${'a'.repeat(2000)}  `,
     );
     expect(http.post).toHaveBeenCalledWith(
-      '/messages/post',
+      '/v2/mural/messages',
       {
         fullName: account.name,
         disciplina: thread.subjectId,
@@ -148,7 +150,7 @@ describe('private API boundary', () => {
       }),
     ).resolves.toEqual([]);
     expect(http.post).toHaveBeenCalledWith(
-      '/messages/get',
+      '/v2/mural/thread',
       {
         disciplina: thread.subjectId,
         turma: thread.classNumber,
@@ -208,7 +210,7 @@ describe('private API boundary', () => {
       ],
     });
     expect(http.get).toHaveBeenCalledWith(
-      '/docentes/Ana%20%2F%20Souza',
+      '/v2/teachers/Ana%20%2F%20Souza',
       undefined,
     );
   });
@@ -283,7 +285,7 @@ describe('private API boundary', () => {
     };
     await support.execute(draft);
     const [url, payload] = http.post.mock.calls[0];
-    expect(url).toBe('/reportError');
+    expect(url).toBe('/v2/reports');
     const wire = JSON.stringify(payload);
     for (const secret of [
       account.name,
@@ -339,6 +341,84 @@ describe('private API boundary', () => {
   });
 });
 
+describe('the student routes of the v2', () => {
+  it.each([
+    'STUDENT_PROOF_UNAVAILABLE',
+    'NOT_LOGGED_IN',
+    'RATE_LIMITED',
+  ] as const)(
+    'sends the report without the student when there is no session (%s)',
+    async code => {
+      const legacy: jest.Mocked<PrivateApiHttpClient> = {
+        get: jest.fn(),
+        post: jest.fn().mockResolvedValue({ data: { status: 'ok' } }),
+      };
+      const student: jest.Mocked<PrivateApiHttpClient> = {
+        get: jest.fn(),
+        post: jest.fn().mockRejectedValue(new AppError(code)),
+      };
+      const { errorReporter } = createPrivateApiAdapters(legacy, student);
+      await errorReporter.submit({
+        page: 'Notas',
+        description: 'Some a nota',
+        diagnostic: { appVersion: '2.14.0' },
+      } as never);
+      expect(student.post).toHaveBeenCalledWith(
+        '/v2/reports',
+        expect.anything(),
+      );
+      expect(legacy.post).toHaveBeenCalledWith(
+        '/reportError',
+        expect.objectContaining({ page: 'Notas' }),
+      );
+    },
+  );
+
+  it('does not send the report twice when the v2 itself fails', async () => {
+    const legacy: jest.Mocked<PrivateApiHttpClient> = {
+      get: jest.fn(),
+      post: jest.fn(),
+    };
+    const student: jest.Mocked<PrivateApiHttpClient> = {
+      get: jest.fn(),
+      post: jest.fn().mockRejectedValue(
+        new AxiosError('down', 'ERR_BAD_RESPONSE', undefined, undefined, {
+          status: 500,
+          statusText: '',
+          headers: {},
+          config: { headers: new AxiosHeaders() },
+          data: {},
+        }),
+      ),
+    };
+    await expect(
+      createPrivateApiAdapters(legacy, student).errorReporter.submit({
+        page: 'Notas',
+        diagnostic: {},
+      } as never),
+    ).rejects.toEqual(new AppError('SERVICE_UNAVAILABLE'));
+    expect(legacy.post).not.toHaveBeenCalled();
+  });
+
+  it('does not send the report around a ban', async () => {
+    const legacy: jest.Mocked<PrivateApiHttpClient> = {
+      get: jest.fn(),
+      post: jest.fn(),
+    };
+    const student: jest.Mocked<PrivateApiHttpClient> = {
+      get: jest.fn(),
+      post: jest.fn().mockRejectedValue(new AppError('STUDENT_BANNED')),
+    };
+    await expect(
+      createPrivateApiAdapters(legacy, student).errorReporter.submit({
+        page: 'Notas',
+        diagnostic: {},
+      } as never),
+    ).rejects.toEqual(new AppError('STUDENT_BANNED'));
+    expect(legacy.post).not.toHaveBeenCalled();
+  });
+});
+
 describe('shared portal status', () => {
   const read = (data: unknown) => {
     const http: jest.Mocked<PrivateApiHttpClient> = {
@@ -346,7 +426,10 @@ describe('shared portal status', () => {
       post: jest.fn(),
     };
     http.get.mockResolvedValue({ data });
-    return { http, status: createPrivateApiAdapters(http).portalStatus.read() };
+    return {
+      http,
+      status: createPrivateApiAdapters(http, http).portalStatus.read(),
+    };
   };
 
   it('reads the state, since when and the last check of the server', async () => {
@@ -382,7 +465,7 @@ describe('shared portal status', () => {
     };
     http.get.mockRejectedValue(new Error('404'));
     await expect(
-      createPrivateApiAdapters(http).portalStatus.read(),
+      createPrivateApiAdapters(http, http).portalStatus.read(),
     ).resolves.toBeNull();
   });
 });

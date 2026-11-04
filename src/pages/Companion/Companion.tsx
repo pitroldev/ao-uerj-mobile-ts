@@ -352,7 +352,7 @@ function CompanionScreen({
       <EmptyState
         icon="lock"
         title="Confirmando que você é aluno"
-        text="A Companhia agora só abre para alunos da UERJ, sem o servidor saber quem é quem. O app ainda está preparando esse acesso: com a internet ligada, leva até alguns minutos depois de entrar."
+        text="A Companhia agora só abre para alunos da UERJ, confirmados pela matrícula do login. Com a internet ligada, isso leva alguns segundos; em aparelhos sem a Play Store, não dá para confirmar."
         action={{
           label: 'Tentar de novo',
           icon: 'refresh',
@@ -521,7 +521,7 @@ function CompanionScreen({
             />
             <FootNote
               icon="lock"
-              text="Só alunos com o app entram, e o servidor não sabe quem é quem. Sem foto, curso ou localização ao vivo; o encontro é sempre num lugar movimentado do campus."
+              text="Só alunos da UERJ entram, confirmados pela matrícula. Os outros veem só o seu primeiro nome; numa denúncia, a moderação vê quem é. Sem foto, curso ou localização ao vivo; o encontro é sempre num lugar movimentado do campus."
             />
           </Notes>
         </Section>

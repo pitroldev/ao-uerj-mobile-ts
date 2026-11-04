@@ -15,9 +15,10 @@ import type {
   ErrorReportRequest,
   MessageThreadRequest,
   PostMessageRequest,
+  StudentErrorReportRequest,
 } from '../../../../server/src/adapters/inbound/http/contract';
 
-/** O `signal` das telas e, nas rotas de aluno da v2, o `Authorization`. */
+/** O `signal` das telas e, nas rotas de aluno da v2, a sessão no `Authorization`. */
 export type HttpOptions = RequestOptions & { headers?: Record<string, string> };
 
 export interface PrivateApiHttpClient {
@@ -138,8 +139,14 @@ export function createPrivateApiClient(
   });
 }
 
+/**
+ * Os adaptadores do servidor. O que é do aluno (mural, docentes, relato) vai
+ * às rotas da v2 pelo `student`, o cliente com a sessão; o estado do portal
+ * é público. Os apps antigos seguem nas rotas de `/aouerj`.
+ */
 export function createPrivateApiAdapters(
-  client: PrivateApiHttpClient = createPrivateApiClient(),
+  client: PrivateApiHttpClient,
+  student: PrivateApiHttpClient,
 ): {
   portalStatus: SharedPortalStatusPort;
   messageBoard: MessageBoardPort;
@@ -171,8 +178,8 @@ export function createPrivateApiAdapters(
     messageBoard: {
       read: (thread, options) =>
         request(async () => {
-          const { data } = await client.post(
-            '/messages/get',
+          const { data } = await student.post(
+            '/v2/mural/thread',
             {
               disciplina: thread.subjectId,
               turma: thread.classNumber,
@@ -184,8 +191,8 @@ export function createPrivateApiAdapters(
         }),
       post: (input, options) =>
         request(async () => {
-          const { data } = await client.post(
-            '/messages/post',
+          const { data } = await student.post(
+            '/v2/mural/messages',
             {
               fullName: input.authorName,
               disciplina: input.subjectId,
@@ -201,13 +208,13 @@ export function createPrivateApiAdapters(
     teacherDirectory: {
       list: options =>
         request(async () => {
-          const { data } = await client.get('/docentes', options);
+          const { data } = await student.get('/v2/teachers', options);
           return list(object(data).docentes).map(text);
         }),
       find: (name, options) =>
         request(async () => {
-          const { data } = await client.get(
-            `/docentes/${encodeURIComponent(name)}`,
+          const { data } = await student.get(
+            `/v2/teachers/${encodeURIComponent(name)}`,
             options,
           );
           const found = list(object(data).docentes);
@@ -219,11 +226,26 @@ export function createPrivateApiAdapters(
         request(async () => {
           // Retain the server's existing envelope; this field contains only an
           // allowlisted diagnostic object, never a portal HTML response.
-          await client.post('/reportError', {
+          const body = {
             page: report.page,
             description: report.description,
             html: [JSON.stringify(report.diagnostic)],
-          } satisfies ErrorReportRequest);
+          } satisfies StudentErrorReportRequest;
+          try {
+            await student.post('/v2/reports', body);
+          } catch (error) {
+            // sem a sessão (iPhone, aparelho sem a Play, fora da conta, a
+            // entrada recusada), o relato ainda chega, pela rota antiga, sem
+            // o aluno: é por ele que se sabe de um problema. O `AppError` é
+            // o da sessão; a falha do envio em si vem do axios e não repete.
+            // O banido fica sem relatar, como no resto
+            if (!(error instanceof AppError) || error.code === 'STUDENT_BANNED')
+              throw error;
+            await client.post(
+              '/reportError',
+              body satisfies ErrorReportRequest,
+            );
+          }
         }),
     },
   };

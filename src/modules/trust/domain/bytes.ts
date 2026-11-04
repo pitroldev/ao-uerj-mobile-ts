@@ -1,6 +1,6 @@
 /*
- * Bytes para o protocolo dos tokens: base64 (a comum e a de URL), hex,
- * números grandes, concatenação e comparação. O Hermes não tem Buffer nem um
+ * Bytes para a sessão de aluno: base64 (a comum e a de URL), hex, UTF-8,
+ * ASCII e concatenação. O Hermes não tem Buffer nem um
  * atob confiável, então o app converte por conta própria, só com aritmética.
  */
 
@@ -72,26 +72,6 @@ export function toHex(bytes: Uint8Array): string {
   return out;
 }
 
-export function fromHex(hex: string): Uint8Array {
-  if (!/^(?:[0-9a-f]{2})*$/i.test(hex)) throw new RangeError('invalid hex');
-  const out = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < out.length; i++)
-    out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-  return out;
-}
-
-/** O inteiro sem sinal (big-endian) dos bytes. */
-export const bytesToBigInt = (bytes: Uint8Array): bigint =>
-  bytes.length ? BigInt(`0x${toHex(bytes)}`) : 0n;
-
-/** O inteiro em exatamente `length` bytes (big-endian). */
-export function bigIntToBytes(value: bigint, length: number): Uint8Array {
-  const hex = value.toString(16).padStart(length * 2, '0');
-  if (value < 0n || hex.length > length * 2)
-    throw new RangeError('the integer does not fit');
-  return fromHex(hex);
-}
-
 export function concat(...parts: Uint8Array[]): Uint8Array {
   const out = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
   let offset = 0;
@@ -102,19 +82,9 @@ export function concat(...parts: Uint8Array[]): Uint8Array {
   return out;
 }
 
-export function equalBytes(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-  return true;
-}
-
 /** Inteiro sem sinal de 16 bits, big-endian. */
 export const u16 = (value: number) =>
   Uint8Array.of(Math.floor(value / 256) % 256, value % 256);
-
-/** Inteiro sem sinal de 32 bits, big-endian. */
-export const u32 = (value: number) =>
-  concat(u16(Math.floor(value / 65536) % 65536), u16(value % 65536));
 
 /** Texto ASCII (nomes e rótulos do protocolo). */
 export function ascii(text: string): Uint8Array {
@@ -125,4 +95,20 @@ export function ascii(text: string): Uint8Array {
     out[i] = code;
   }
   return out;
+}
+
+/** Texto em UTF-8 (o nome do aluno no pedido de sessão), só com aritmética. */
+export function utf8(text: string): Uint8Array {
+  const out: number[] = [];
+  for (const char of text) {
+    const code = char.codePointAt(0) ?? 0;
+    const tail = (shift: number) => 0x80 + (Math.floor(code / shift) % 64);
+    if (code < 0x80) out.push(code);
+    else if (code < 0x800) out.push(0xc0 + Math.floor(code / 64), tail(1));
+    else if (code < 0x10000)
+      out.push(0xe0 + Math.floor(code / 4096), tail(64), tail(1));
+    else
+      out.push(0xf0 + Math.floor(code / 262144), tail(4096), tail(64), tail(1));
+  }
+  return Uint8Array.from(out);
 }

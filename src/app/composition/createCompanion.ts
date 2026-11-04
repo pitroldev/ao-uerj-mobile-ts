@@ -2,40 +2,26 @@ import { createCompanionStore } from '@root/adapters/outbound/persistence/compan
 import type { SecureVault } from '@root/adapters/outbound/persistence/vault-storage';
 import type { PrivateApiHttpClient } from '@root/adapters/outbound/private-api';
 import { createCompanionServer } from '@root/adapters/outbound/private-api/companion';
-import { createStudentClient } from '@root/adapters/outbound/private-api/studentClient';
 import { CompanionCalls } from '@root/modules/companion/application/CompanionCalls';
-import type { IdentityController } from '@root/modules/identity/application/IdentityController';
-import type { PrivateTokens } from '@root/modules/trust/application/PrivateTokens';
+import type { StudentSession } from '@root/modules/trust/application/StudentSession';
 
 type Dependencies = {
-  identity: Pick<IdentityController, 'getSnapshot' | 'subscribe'>;
-  client: PrivateApiHttpClient;
-  tokens: Pick<PrivateTokens, 'take' | 'supported'>;
+  /** O cliente com a sessão de aluno (todas as rotas da Companhia a levam). */
+  student: PrivateApiHttpClient;
+  session: Pick<StudentSession, 'supported'>;
   vault: SecureVault | null;
 };
 
 /**
- * A Companhia agora: só onde o app consegue tokens anônimos (Android com a
- * Play) e guardar as chaves de membro (o cofre). O logout sai das chamadas e
- * apaga as participações.
+ * A Companhia agora: só onde o app entra como aluno (Android com a Play) e
+ * guarda as chaves de membro (o cofre). Cada pedido leva a sessão, e o
+ * servidor sabe quem está em cada mesa ou grupo. No logout, a composição
+ * chama `clear` antes de encerrar a sessão (ver `followIdentity`).
  */
-export function createCompanion({
-  identity,
-  client,
-  tokens,
-  vault,
-}: Dependencies) {
-  const companion = new CompanionCalls({
-    server: createCompanionServer(client, createStudentClient(client, tokens)),
-    store: vault && tokens.supported ? createCompanionStore(vault) : null,
+export function createCompanion({ student, session, vault }: Dependencies) {
+  return new CompanionCalls({
+    server: createCompanionServer(student, student),
+    store: vault && session.supported ? createCompanionStore(vault) : null,
     now: () => Date.now(),
   });
-  let previous = identity.getSnapshot().status;
-  identity.subscribe(() => {
-    const { status } = identity.getSnapshot();
-    if (status === 'signedOut' && previous !== 'signedOut')
-      void companion.clear().catch(() => undefined);
-    previous = status;
-  });
-  return companion;
 }

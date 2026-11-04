@@ -285,6 +285,10 @@ export function companionErrorMessage(error: unknown, kind?: CallKind): string {
         return 'Só quem abriu pode tirar alguém.';
       case 'member_gone':
         return 'Essa pessoa já tinha saído.';
+      case 'already_member':
+        return words
+          ? `Você já está ${words.inThat}, por outro aparelho.`
+          : 'Você já está aqui, por outro aparelho.';
       case 'busy':
         return 'Tem muita gente abrindo agora. Tente de novo em alguns minutos.';
       default:
@@ -292,7 +296,7 @@ export function companionErrorMessage(error: unknown, kind?: CallKind): string {
     }
   }
   if (error instanceof AppError && error.code === 'STUDENT_PROOF_UNAVAILABLE')
-    return 'Não foi possível confirmar agora que você é aluno da UERJ, sem dizer quem é. Abra o app com a internet ligada e tente de novo em alguns minutos.';
+    return 'Não foi possível confirmar agora que você é aluno da UERJ. Abra o app com a internet ligada e tente de novo mais tarde.';
   return errorMessage(error);
 }
 

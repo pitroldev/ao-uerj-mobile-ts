@@ -12,13 +12,19 @@ import { MainRoutes, type RootDrawerParamList } from '../routes';
 
 let mockIdentity: IdentityState;
 let mockNotifications = { supported: true };
+let mockStudentSupported = true;
 
 jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useIdentity: () => mockIdentity,
   useAppServices: () => ({
     notifications: { settings: { getSnapshot: () => mockNotifications } },
-    // sem tokens anônimos no teste: a Companhia agora fica fora do menu
+    // a Companhia agora fica fora do menu no teste
     companion: { supported: false },
+    studentSession: {
+      get supported() {
+        return mockStudentSupported;
+      },
+    },
   }),
 }));
 jest.mock('@root/app/splash', () => ({ hideSplash: jest.fn() }));
@@ -118,9 +124,14 @@ const signedIn: IdentityState = {
   error: null,
 };
 
-async function setup(identity = signedOut, notifications = true) {
+async function setup(
+  identity = signedOut,
+  notifications = true,
+  student = true,
+) {
   mockIdentity = identity;
   mockNotifications = { supported: notifications };
+  mockStudentSupported = student;
   const navigation = createNavigationContainerRef<RootDrawerParamList>();
   const unhandled = jest.fn();
   const tree = () => (
@@ -146,6 +157,17 @@ describe('MainRoutes authorization', () => {
     expect(screen.getByText('Tela: Notificações')).toBeOnTheScreen();
     await changeIdentity(signedOut);
     expect(navigation.getRootState()?.routeNames).not.toContain('Notificações');
+  });
+
+  it('leaves the mural out where the app cannot sign in as a student (iPhone, no Play)', async () => {
+    const { navigation } = await setup(signedIn, true, false);
+    expect(navigation.getRootState()?.routeNames).not.toContain(
+      'Mural de Mensagens',
+    );
+    const supported = await setup(signedIn);
+    expect(supported.navigation.getRootState()?.routeNames).toContain(
+      'Mural de Mensagens',
+    );
   });
 
   it('leaves Notificações out without the native module', async () => {

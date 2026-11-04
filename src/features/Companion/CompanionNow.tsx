@@ -105,7 +105,7 @@ type Props = { schedule: readonly AttendedClassesSchedule[]; now: Date };
 export function CompanionNow(props: Props) {
   const { companion } = useAppServices();
   const { status } = useRemoteStatus();
-  // sem tokens anônimos (iPhone, app fora da loja) ou desligada pelo aviso remoto
+  // sem a sessão de aluno (iPhone, app fora da loja) ou desligada pelo aviso remoto
   if (!companion.supported || isFeatureDisabled(status, 'companion'))
     return null;
   return <CompanionSlot {...props} />;

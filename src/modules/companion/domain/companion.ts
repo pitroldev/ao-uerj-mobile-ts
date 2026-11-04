@@ -86,7 +86,7 @@ export type CallMember = {
 
 /**
  * A lista e quantos alunos a olharam nos últimos 15 minutos, contando quem
- * pergunta (o servidor conta pelo passe, sem saber quem).
+ * pergunta (o servidor conta cada um uma vez; a lista mostra só o número).
  */
 export type CallList = { calls: CompanionCall[]; watching: number };
 export type CallPhrase = {
@@ -150,7 +150,9 @@ export type CompanionRefusal =
   /** O teto de chamadas do campus. */
   | 'busy'
   /** O passe de leitura venceu: pedir outro (o app faz sozinho). */
-  | 'pass_expired';
+  | 'pass_expired'
+  /** O aluno já está nesta mesa ou neste grupo (por outro aparelho). */
+  | 'already_member';
 
 export class CompanionError extends Error {
   constructor(readonly refusal: CompanionRefusal) {

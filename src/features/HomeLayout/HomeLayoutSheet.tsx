@@ -64,7 +64,7 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   layout: HomeLayout;
-  /** As seções que este aparelho tem (sem a Companhia, sem tokens). */
+  /** As seções que este aparelho tem (sem a sessão de aluno, sem a Companhia). */
   available: readonly HomeSectionId[];
   onChange: (update: (current: HomeLayout) => HomeLayout) => void;
   onReset: () => void;

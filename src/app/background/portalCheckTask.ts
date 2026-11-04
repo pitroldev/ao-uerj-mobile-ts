@@ -17,8 +17,8 @@ const DEADLINE = 3 * 60 * 1000;
  * Antes de qualquer acesso à rede, decide com o que está no aparelho
  * (horário, pausa, avisos ligados da conta salva, cópia salva do aviso
  * remoto); só então busca o aviso remoto, que pode desligar os avisos,
- * restaura a conta (o login da rodada), consulta as páginas dos avisos
- * ligados e repõe os tokens anônimos de aluno.
+ * restaura a conta (o login da rodada) e consulta as páginas dos avisos
+ * ligados.
  */
 export function createPortalCheckTask(services: () => AppServices) {
   const verify = async (data?: TaskData) => {
@@ -60,9 +60,6 @@ export function createPortalCheckTask(services: () => AppServices) {
         return;
       }
       await check.run({ signal: controller.signal });
-      // com o login confirmado nesta rodada, repõe os tokens anônimos (longe
-      // de qualquer ação do aluno); a reposição não rejeita
-      if (!current.identity.getSnapshot().error) await current.trust.refill();
     } catch {
       // o próximo ciclo tenta de novo; nada a mostrar sem tela
     } finally {

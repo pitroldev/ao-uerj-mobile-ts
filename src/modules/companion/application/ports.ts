@@ -12,13 +12,13 @@ export type RequestOptions = { signal?: AbortSignal };
 export type JoinedCall = { call: MemberCall; memberKey: string };
 
 /**
- * O servidor (pitrol.dev/aouerj/v2/companion). Abrir, entrar, pedir o passe
- * e denunciar de fora gastam um token anônimo de aluno; a lista usa o passe
- * de uma hora; o resto, a chave de membro. As recusas vêm como
- * `CompanionError`; rede e servidor fora, como `AppError`.
+ * O servidor (pitrol.dev/aouerj/v2/companion). Todo pedido leva a sessão de
+ * aluno (o servidor sabe quem está em cada mesa ou grupo); a lista usa
+ * também o passe de uma hora, e o resto, a chave de membro. As recusas vêm
+ * como `CompanionError`; rede e servidor fora, como `AppError`.
  */
 export interface CompanionServerPort {
-  /** Gasta um token: o passe que lê a lista por uma hora. */
+  /** O passe que lê a lista por uma hora. */
   pass(): Promise<{ pass: string; expiresAt: number }>;
   /**
    * As chamadas e quantos estão de olho; `CompanionError('pass_expired')`
@@ -36,7 +36,7 @@ export interface CompanionServerPort {
   say(callId: string, memberKey: string, phrase: PhraseId): Promise<MemberCall>;
   /** Quem chamou (pela chave dele) tira alguém pelo apelido. */
   remove(callId: string, memberKey: string, ref: string): Promise<MemberCall>;
-  /** Com a chave, conta uma vez por membro; sem ela, gasta um token. */
+  /** Com a chave, conta uma vez por membro; sem ela, uma vez por aluno (a sessão). */
   report(
     callId: string,
     reason: ReportReason,

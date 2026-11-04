@@ -86,7 +86,7 @@ const Half = styled.View`
  */
 export function NotificationsPage() {
   const { snapshot, settings } = useNotificationSettings();
-  // a Companhia agora existe só onde há tokens anônimos (Android da loja)
+  // a Companhia agora existe só onde o app entra como aluno (Android da loja)
   const companionSupported = useAppServices().companion.supported;
   const { preferences, permission, exactAlarms, check, ready } = snapshot;
   // a tela continua montada no menu: "hoje" e a pausa acompanham o relógio

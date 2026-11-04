@@ -29,6 +29,7 @@ import {
   createPrivateApiClient,
 } from '@root/adapters/outbound/private-api';
 import { createScheduleGeneratorAdapter } from '@root/adapters/outbound/schedule-generator';
+import { createSessionClient } from '@root/adapters/outbound/private-api/sessionClient';
 import { IdentityController } from '@root/modules/identity/application/IdentityController';
 import { Community } from '@root/modules/community/application/Community';
 import { SubmitErrorReport } from '@root/modules/support/application/SubmitErrorReport';
@@ -74,7 +75,7 @@ import { createNotifications } from './createNotifications';
 import { createPortalMonitor } from './createPortalMonitor';
 import { forgetPreviousInstall } from './previousInstall';
 import { createCompanion } from './createCompanion';
-import { createTrust } from './createTrust';
+import { createStudentSession, followIdentity } from './createStudentSession';
 import { createWidget } from './createWidget';
 
 /** Preferências da conta que o logout apaga junto com o cache. */
@@ -120,7 +121,15 @@ export function createAppServices() {
     vault ? { maxAge: longLivedCacheAge } : {},
   );
   const privateClient = createPrivateApiClient();
-  const privateApi = createPrivateApiAdapters(privateClient);
+  // a sessão de aluno no servidor, no cofre: a matrícula e o nome da conta
+  // logada, atestados pela Play; o logout a encerra
+  const studentSession = createStudentSession({
+    vault,
+    client: privateClient,
+    account: () => identity.getSnapshot().account,
+  });
+  const studentClient = createSessionClient(privateClient, studentSession);
+  const privateApi = createPrivateApiAdapters(privateClient, studentClient);
   const transport = createNativePortalTransport();
   // a página inicial do portal: leve e o primeiro passo do próprio login
   const probePortal = async () =>
@@ -152,19 +161,15 @@ export function createAppServices() {
     identity,
   });
   const evaluations = new EvaluationRecords(preferences);
-  // tokens anônimos de aluno (/aouerj/v2), no cofre; o logout os apaga
-  const trust = createTrust({
-    identity,
-    remoteStatus: delivery.status,
-    vault,
-    client: privateClient,
-  });
   // encontros de minutos entre alunos, com as chaves de membro no cofre
   const companion = createCompanion({
-    identity,
-    client: privateClient,
-    tokens: trust,
+    student: studentClient,
+    session: studentSession,
     vault,
+  });
+  // no logout, sai das mesas e dos grupos e só então encerra a sessão
+  followIdentity(studentSession, identity, {
+    beforeClear: () => companion.clear(),
   });
   const notifications = createNotifications({
     queryClient,
@@ -197,7 +202,10 @@ export function createAppServices() {
       currentAccount,
       errorMonitor,
     ),
-    scheduleGenerator: createScheduleGeneratorAdapter(),
+    scheduleGenerator: createScheduleGeneratorAdapter(
+      undefined,
+      studentSession,
+    ),
     academicRecords: portal.records,
     scheduleSharing: new NativeScheduleSharing(),
     documents: portal.documents,
@@ -206,7 +214,7 @@ export function createAppServices() {
     savedDocuments,
     delivery,
     notifications,
-    trust,
+    studentSession,
     companion,
     // faltas marcadas pelo aluno, só no aparelho (o logout apaga)
     attendance: new AttendanceRecords(preferences),

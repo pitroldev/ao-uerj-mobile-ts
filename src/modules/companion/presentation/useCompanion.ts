@@ -41,8 +41,8 @@ export function useMemberships(): readonly Membership[] {
 
 /**
  * As chamadas abertas agora e quantos estão de olho. Atualiza a cada 20 s
- * enquanto `poll` (a tela na frente); o passe de leitura gasta um token por
- * hora de uso.
+ * enquanto `poll` (a tela na frente); o passe de leitura vale uma hora e sai
+ * da sessão de aluno.
  */
 export function useCompanionCalls({
   enabled = true,
