@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.14.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.13.0...v2.14.0) (2026-11-04)
+
+
+### Novidades
+
+* **app:** sign in as the student with Play Integrity and drop the anonymous tokens ([2c215cf](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/2c215cf94f0cd23532889bc317356a21bb481071))
+* **server:** identify students by the matrícula with Play Integrity ([7a8147a](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/7a8147ac5306291ac333af69ac58cecc38f10325))
+
+
+### Correções
+
+* **companion:** plain words for students, "mesa" and "grupo para voltar" ([e7d55f2](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/e7d55f2a47001cb6dd3994f540d702638894f845))
+* **server:** the admin uses the app's words for Companhia agora ([9e93179](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/9e931791d4418fb2a9470276914d008a0e83b8c4))
+
 ## [2.13.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.12.0...v2.13.0) (2026-11-03)
 
 
