@@ -39,6 +39,11 @@ export interface NotificationDevicePort {
   setPortalReturnWatch(enabled: boolean): Promise<void>;
   /** Liga ou desliga a leitura da Companhia agora a cada 15 min ("Me avise"). */
   setCompanionWatch(enabled: boolean): Promise<void>;
+  /**
+   * Liga ou desliga a leitura do Agora no campus a cada 15 min (o "ainda
+   * está lá?" perto das aulas e o que acontece com os avisos do aluno).
+   */
+  setCampusWatch(enabled: boolean): Promise<void>;
   notify(content: NotificationContent): Promise<void>;
   /**
    * Tira da barra os avisos já mostrados e cancela os lembretes de aula e

@@ -115,10 +115,12 @@ class PortalCheckWorker(context: Context, params: WorkerParameters) :
     private const val WORK_NAME = "ao-portal-check"
     private const val RETURN_WORK_NAME = "ao-portal-return"
     private const val COMPANION_WORK_NAME = "ao-companion-watch"
+    private const val CAMPUS_WORK_NAME = "ao-campus-watch"
     /** Same key and values as the task data read in src/app/background/portalCheckTask.ts. */
     private const val KEY_MODE = "mode"
     private const val MODE_RETURN = "return"
     private const val MODE_COMPANION = "companion"
+    private const val MODE_CAMPUS = "campus"
     /** No portal check from 22h to 7h. */
     private const val QUIET_START_HOUR = 22
     private const val QUIET_END_HOUR = 7
@@ -189,6 +191,28 @@ class PortalCheckWorker(context: Context, params: WorkerParameters) :
               .build()
       work.enqueueUniquePeriodicWork(
           COMPANION_WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
+    }
+
+    /**
+     * Agora no campus: the same task in `campus` mode, every 15 minutes on a network, outside quiet
+     * hours. JS only reads the list when a class is near (or the student's own notice is still open),
+     * so most runs end before any request.
+     */
+    fun scheduleCampusWatch(context: Context, enabled: Boolean) {
+      val work = WorkManager.getInstance(context)
+      if (!enabled) {
+        work.cancelUniqueWork(CAMPUS_WORK_NAME)
+        return
+      }
+      val request =
+          PeriodicWorkRequestBuilder<PortalCheckWorker>(15, TimeUnit.MINUTES)
+              .setConstraints(
+                  Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+              )
+              .setInputData(workDataOf(KEY_MODE to MODE_CAMPUS))
+              .setInitialDelay(15, TimeUnit.MINUTES)
+              .build()
+      work.enqueueUniquePeriodicWork(CAMPUS_WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
     }
   }
 }

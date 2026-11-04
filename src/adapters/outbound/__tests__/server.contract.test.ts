@@ -23,6 +23,7 @@ import {
   CompanionError,
   type Membership,
 } from '@root/modules/companion/domain/companion';
+import { CampusNowError } from '@root/modules/campus-now/domain/campusNow';
 import { AppError } from '@root/shared/errors/AppError';
 
 import { createStudentSessionStore } from '../persistence/student-session-store';
@@ -30,6 +31,7 @@ import {
   createPrivateApiAdapters,
   createPrivateApiClient,
 } from '../private-api';
+import { createCampusNowServer } from '../private-api/campusNow';
 import { createCompanionServer } from '../private-api/companion';
 import { createSessionClient } from '../private-api/sessionClient';
 import { createStudentSessionApi } from '../private-api/studentSession';
@@ -418,5 +420,109 @@ describe('the student session (/aouerj/v2)', () => {
     // quem chamou encerra: some da lista
     await host.leave(opened.id);
     expect((await guest.list()).calls).toEqual([]);
+  });
+
+  it('runs an Agora no campus notice end to end with two students: report, confirm, thanks, refusals and the end', async () => {
+    const campus = (matricula: string, name: string) =>
+      createCampusNowServer(studentSession(matricula, name).student);
+    const renata = campus('209900000011', 'RENATA ALVES');
+    const marina = campus('209900000012', 'MARINA COSTA');
+
+    // o subsolo só existe no bloco F
+    await expect(
+      renata.report({
+        kind: 'power',
+        status: 'no_power',
+        place: { type: 'floor', block: 'A', floor: 'SE' },
+      }),
+    ).rejects.toEqual(new CampusNowError('place'));
+
+    const reported = await renata.report({
+      kind: 'elevators',
+      status: 'long_queue',
+      place: { type: 'elevators' },
+    });
+    expect(reported).toMatchObject({
+      merged: false,
+      replaced: null,
+      notice: {
+        kind: 'elevators',
+        status: 'long_queue',
+        place: { type: 'elevators' },
+        state: 'active',
+        mine: true,
+        confirmed: false,
+        confirmations: 0,
+      },
+      you: { earned: 10, points: 10, level: 1, nextLevelAt: 100 },
+    });
+    const { id } = reported.notice;
+    expect(reported.notice.expiresAt).toBeGreaterThan(Date.now());
+
+    const listed = await marina.list();
+    expect(listed.notices).toEqual([
+      expect.objectContaining({ id, mine: false, answer: null, views: null }),
+    ]);
+    expect(listed.helpersToday).toBeGreaterThanOrEqual(1);
+
+    // a primeira confirmação de outro aluno vale para todos
+    const confirmed = await marina.answer(id, 'confirm');
+    expect(confirmed).toMatchObject({
+      notice: { confirmed: true, confirmations: 1, answer: 'confirm' },
+      you: { earned: 3 },
+    });
+    await expect(marina.answer(id, 'confirm')).rejects.toEqual(
+      new CampusNowError('answered'),
+    );
+    await expect(renata.answer(id, 'confirm')).rejects.toEqual(
+      new CampusNowError('own'),
+    );
+    await expect(renata.thank(id)).rejects.toEqual(new CampusNowError('own'));
+    // o mesmo aviso de novo vira a confirmação que já existe
+    await expect(
+      renata.report({
+        kind: 'elevators',
+        status: 'long_queue',
+        place: { type: 'elevators' },
+      }),
+    ).resolves.toMatchObject({ merged: true, notice: { id } });
+
+    expect((await marina.thank(id)).notice.thanked).toBe(true);
+    await marina.seen([id]);
+    await expect(marina.flag(id)).resolves.toBeUndefined();
+
+    const you = await renata.you();
+    // 10 do aviso, 5 da confirmação e 1 do "Valeu"
+    expect(you.you.points).toBe(16);
+    expect(you.counts).toMatchObject({
+      notices: 1,
+      confirmedNotices: 1,
+      thanksReceived: 1,
+      viewsReceived: 1,
+    });
+    expect(you.today).toEqual([
+      expect.objectContaining({ id, mine: true, views: 1, thanks: 1 }),
+    ]);
+
+    // "Já resolveu": quem avisou encerra na hora, e o aviso sai da lista
+    const ended = await renata.answer(id, 'end');
+    expect(ended.notice.state).toBe('ended');
+    expect((await marina.list()).notices).toEqual([]);
+    await expect(marina.answer(id, 'end')).rejects.toEqual(
+      new CampusNowError('gone'),
+    );
+
+    // o mês do servidor é o de São Paulo
+    const month = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+    }).format(new Date());
+    const community = await marina.community(month);
+    expect(community.month.month).toBe(month);
+    expect(community.week.notices).toBeGreaterThanOrEqual(1);
+    await expect(marina.community('2000-01')).rejects.toEqual(
+      new AppError('INVALID_INPUT'),
+    );
   });
 });

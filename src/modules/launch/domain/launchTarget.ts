@@ -9,6 +9,7 @@ const LAUNCH_TARGETS = [
   'map',
   'documents',
   'companion',
+  'campus',
 ] as const;
 
 export type LaunchTarget = (typeof LAUNCH_TARGETS)[number];

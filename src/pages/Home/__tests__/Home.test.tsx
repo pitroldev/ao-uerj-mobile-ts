@@ -118,6 +118,7 @@ const mockServices = {
   launches: null as object | null,
   // sem tokens anônimos: o Início não mostra a Companhia agora
   companion: { supported: false },
+  campusNow: { supported: false },
 };
 const mockNotifications = {
   supported: false,
@@ -1012,7 +1013,14 @@ describe('Personalizar o Início', () => {
       's',
       'home-layout',
       expect.objectContaining({
-        order: ['next-class', 'companion', 'week', 'evaluations', 'grades'],
+        order: [
+          'next-class',
+          'companion',
+          'campus',
+          'week',
+          'evaluations',
+          'grades',
+        ],
         hidden: ['grades'],
         greeting: 'date',
       }),

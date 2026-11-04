@@ -30,6 +30,7 @@ import { CampusMapPage } from './pages/CampusMap/CampusMap';
 import { DocumentsPage } from '@root/pages/Documents';
 import { NotificationsPage } from '@root/pages/Notifications';
 import { CompanionPage } from '@root/pages/Companion';
+import { CampusNowPage } from '@root/pages/CampusNow';
 import { showsAccount } from '@root/modules/identity/domain/identityState';
 
 export type RootDrawerParamList = {
@@ -42,6 +43,8 @@ export type RootDrawerParamList = {
   /** `callId`: abre a chamada (do Início ou de um aviso). */
   /** `create`: abre a folha de abrir (o convite do Início). */
   'Companhia agora': { callId?: string; create?: 'lunch' | 'home' } | undefined;
+  /** `report`: abre a folha de avisar (o "Avisar" do Início). */
+  'Agora no campus': { report?: boolean } | undefined;
   'Mural de Mensagens': undefined;
   'Disciplinas Realizadas': undefined;
   'Disciplinas do Currículo': undefined;
@@ -92,6 +95,7 @@ export const MainRoutes = () => {
   // Play) e do cofre; sem eles, nem aparecem
   const companionSupported = services.companion.supported;
   const studentSupported = services.studentSession.supported;
+  const campusSupported = services.campusNow.supported;
   // a conta salva aparece antes do login da abertura terminar
   const showLoading = status === 'restoring' && !account;
   const isSignedIn = showsAccount({ status, account });
@@ -127,6 +131,9 @@ export const MainRoutes = () => {
             component={CampusMapPage}
             options={{ swipeEnabled: false }}
           />
+          {campusSupported ? (
+            <Drawer.Screen name="Agora no campus" component={CampusNowPage} />
+          ) : null}
           {companionSupported ? (
             <Drawer.Screen name="Companhia agora" component={CompanionPage} />
           ) : null}

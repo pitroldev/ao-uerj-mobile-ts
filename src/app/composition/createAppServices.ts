@@ -69,12 +69,14 @@ import {
 } from '@root/modules/companion/application/CompanionCalls';
 import { COMPANION_WATCH_KEY } from '@root/modules/companion/application/CompanionWatch';
 import { HOME_LAYOUT_KEY } from '@root/modules/home/domain/homeLayout';
+import { CAMPUS_STATE_KEY } from '@root/modules/campus-now/application/campusState';
 import { initializeIdentity } from './initializeIdentity';
 import { createDelivery } from './createDelivery';
 import { createNotifications } from './createNotifications';
 import { createPortalMonitor } from './createPortalMonitor';
 import { forgetPreviousInstall } from './previousInstall';
 import { createCompanion } from './createCompanion';
+import { createCampusNow } from './createCampusNow';
 import { createStudentSession, followIdentity } from './createStudentSession';
 import { createWidget } from './createWidget';
 
@@ -93,6 +95,7 @@ const ACCOUNT_PREFERENCES = [
   COMPANION_WATCH_KEY,
   COMPANION_INVITE_KEY,
   HOME_LAYOUT_KEY,
+  CAMPUS_STATE_KEY,
 ] as const;
 
 function createScope() {
@@ -167,6 +170,13 @@ export function createAppServices() {
     session: studentSession,
     vault,
   });
+  // avisos dos alunos sobre o campus, com a sessão de aluno
+  const campusNow = createCampusNow({
+    student: studentClient,
+    session: studentSession,
+    preferences,
+    account: currentAccount,
+  });
   // no logout, sai das mesas e dos grupos e só então encerra a sessão
   followIdentity(studentSession, identity, {
     beforeClear: () => companion.clear(),
@@ -183,6 +193,7 @@ export function createAppServices() {
     savedScope: async () => (await credentials.read())?.account.scope ?? null,
     probePortal: async () => isPortalAnswer(await probePortal()),
     companion,
+    campusNow,
   });
   return {
     campusMap: new CampusMap(bundledCampusMap),
@@ -216,6 +227,7 @@ export function createAppServices() {
     notifications,
     studentSession,
     companion,
+    campusNow,
     // faltas marcadas pelo aluno, só no aparelho (o logout apaga)
     attendance: new AttendanceRecords(preferences),
     // datas de provas e trabalhos anotadas, também só no aparelho

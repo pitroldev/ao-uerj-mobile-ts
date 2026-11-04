@@ -67,6 +67,7 @@ import {
 } from '@features/AttendedClassesSchedule/scheduleFormat';
 import { UntimedClasses } from '@features/AttendedClassesSchedule/UntimedClasses';
 import { CompanionNow } from '@features/Companion/CompanionNow';
+import { CampusNowHome } from '@features/CampusNow/CampusNowHome';
 import { HomeLayoutSheet } from '@features/HomeLayout/HomeLayoutSheet';
 import {
   HOME_SECTIONS,
@@ -170,11 +171,17 @@ export const HomePage = () => {
   );
   const { keys: absenceKeys } = useAttendance();
   const { evaluations } = useEvaluations();
-  const { notifications, companion } = useAppServices();
-  // sem a sessão de aluno, a Companhia agora não existe neste aparelho
+  const { notifications, companion, campusNow } = useAppServices();
+  // sem a sessão de aluno, a Companhia agora e o Agora no campus não existem
+  // neste aparelho
   const availableSections = useMemo(
-    () => HOME_SECTIONS.filter(id => id !== 'companion' || companion.supported),
-    [companion.supported],
+    () =>
+      HOME_SECTIONS.filter(
+        id =>
+          (id !== 'companion' || companion.supported) &&
+          (id !== 'campus' || campusNow.supported),
+      ),
+    [companion.supported, campusNow.supported],
   );
   // "Já fiz" tocado na barra com o app aberto não muda o AppState: a cada
   // minuto do relógio da tela, o Início lê o que o aparelho guardou
@@ -400,6 +407,10 @@ export const HomePage = () => {
       case 'companion':
         return isScheduleAvailable ? (
           <CompanionNow schedule={currentSchedule} now={now} />
+        ) : null;
+      case 'campus':
+        return isScheduleAvailable ? (
+          <CampusNowHome schedule={currentSchedule} now={now} />
         ) : null;
       case 'evaluations':
         return isScheduleAvailable ? (

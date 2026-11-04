@@ -79,6 +79,7 @@ export function createNativeNotifications(
       module.setPortalCheck(on, intervalHours),
     setPortalReturnWatch: on => module.setPortalReturnWatch(on),
     setCompanionWatch: on => module.setCompanionWatch(on),
+    setCampusWatch: on => module.setCampusWatch(on),
     notify: content => module.notify(content),
     clearPosted: () => module.clearNotifications(),
   };

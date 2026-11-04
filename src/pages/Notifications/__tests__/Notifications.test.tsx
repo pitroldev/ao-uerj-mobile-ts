@@ -21,12 +21,15 @@ import type { CheckState } from '@root/modules/notifications/domain/checkState';
 import { NotificationsPage } from '../Notifications';
 
 let mockSettings: NotificationSettings;
-/** Há tokens anônimos neste aparelho (a Companhia agora existe). */
+/** Há a sessão de aluno neste aparelho (a Companhia agora existe). */
 let mockCompanion = false;
+/** O Agora no campus existe (sessão de aluno). */
+let mockCampus = false;
 jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useAppServices: () => ({
     notifications: { settings: mockSettings },
     companion: { supported: mockCompanion },
+    campusNow: { supported: mockCampus },
   }),
 }));
 jest.mock('react-native-safe-area-context', () => ({
@@ -288,4 +291,30 @@ it('turns the Companhia agora reminders off where the device has the feature', a
 it('leaves the Companhia agora reminders out without anonymous tokens', async () => {
   await mount();
   expect(screen.queryByText('Avisos das mesas e grupos')).toBeNull();
+});
+
+it('turns the Agora no campus notices off where the app signs in as a student', async () => {
+  mockCampus = true;
+  try {
+    await mount();
+    expect(row('Avisos no caminho das aulas')).toBeChecked();
+    await userEvent.press(row('Avisos no caminho das aulas'));
+    await act(settle);
+    expect(mockSettings.getSnapshot().preferences.campusAlerts).toBe(false);
+  } finally {
+    mockCampus = false;
+  }
+});
+
+it('leaves the Agora no campus notices out without the student session or on the iPhone', async () => {
+  await mount();
+  expect(screen.queryByText('Avisos no caminho das aulas')).toBeNull();
+  mockCampus = true;
+  setOS('ios');
+  try {
+    await mount({ device: createDevice({ backgroundChecks: false }) });
+    expect(screen.queryByText('Avisos no caminho das aulas')).toBeNull();
+  } finally {
+    mockCampus = false;
+  }
 });

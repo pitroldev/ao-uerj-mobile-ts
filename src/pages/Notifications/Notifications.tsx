@@ -87,7 +87,10 @@ const Half = styled.View`
 export function NotificationsPage() {
   const { snapshot, settings } = useNotificationSettings();
   // a Companhia agora existe só onde o app entra como aluno (Android da loja)
-  const companionSupported = useAppServices().companion.supported;
+  const services = useAppServices();
+  const companionSupported = services.companion.supported;
+  // o Agora no campus também, e só com a tarefa sem tela (Android)
+  const campusSupported = services.campusNow.supported;
   const { preferences, permission, exactAlarms, check, ready } = snapshot;
   // a tela continua montada no menu: "hoje" e a pausa acompanham o relógio
   const now = useNow().getTime();
@@ -322,6 +325,18 @@ export function NotificationsPage() {
               'companionReminders',
               'Avisos das mesas e grupos',
               'Nas mesas e grupos em que você está: 10 minutos antes do encontro e, no grupo para voltar, o “Chegou bem?” 40 minutos depois da saída.',
+            )}
+          </List>
+        </Section>
+      ) : null}
+
+      {campusSupported && snapshot.backgroundChecks ? (
+        <Section title="Agora no campus">
+          <List>
+            {row(
+              'campusAlerts',
+              'Avisos no caminho das aulas',
+              '“Ainda está lá?” quando um aviso confirmado está no caminho da sua próxima aula (até 3 por dia), e quando o seu aviso é confirmado ou acaba. Depois de abrir o Agora no campus uma vez.',
             )}
           </List>
         </Section>

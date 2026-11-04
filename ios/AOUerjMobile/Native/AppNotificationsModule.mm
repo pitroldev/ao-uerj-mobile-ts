@@ -50,8 +50,8 @@ static NSString *const kDoneKey = @"ao.evaluations.done";
  * aula agendados como avisos de data única até `expiresAt`, lembretes das
  * avaliações (até 20 dos 60 lugares, com o "Já fiz" nos trabalhos),
  * avisos na hora e as aberturas pelo toque. Sem verificação em segundo plano
- * no iPhone: `setPortalCheck`, `setPortalReturnWatch` e `setCompanionWatch`
- * não fazem nada.
+ * no iPhone: `setPortalCheck`, `setPortalReturnWatch`, `setCompanionWatch` e
+ * `setCampusWatch` não fazem nada.
  */
 @interface AppNotificationsModule : NativeAppNotificationsSpecBase <NativeAppNotificationsSpec, RCTInvalidating>
 @end
@@ -513,6 +513,14 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
 - (void)setCompanionWatch:(BOOL)enabled
                   resolve:(RCTPromiseResolveBlock)resolve
                    reject:(RCTPromiseRejectBlock)reject
+{
+  resolve(nil);
+}
+
+/** Sem tarefa sem tela nem sessão de aluno no iPhone: o Agora no campus nem aparece. */
+- (void)setCampusWatch:(BOOL)enabled
+               resolve:(RCTPromiseResolveBlock)resolve
+                reject:(RCTPromiseRejectBlock)reject
 {
   resolve(nil);
 }

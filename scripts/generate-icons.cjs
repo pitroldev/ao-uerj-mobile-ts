@@ -162,12 +162,25 @@ const OUTLINED = [
   'restaurant',
   'subway',
   'train',
+  // Agora no campus (tipos de aviso, respostas, nível e conquistas)
+  'bolt',
+  'door_front',
+  'elevator',
+  'emoji_events',
+  'flag',
+  'near_me',
+  'sentiment_satisfied',
+  'thumb_up',
+  'verified',
+  'water_drop',
+  'workspace_premium',
 ];
 
 /** Ícones que também precisam da variante preenchida (FILL 1). */
 const FILLED = [
   // item ativo do menu lateral
   'account_tree',
+  'campaign',
   'edit_calendar',
   'forum',
   'home',

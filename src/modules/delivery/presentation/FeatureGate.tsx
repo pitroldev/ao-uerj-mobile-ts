@@ -19,6 +19,7 @@ const ROUTE_FEATURES: Readonly<Record<string, FeatureId>> = {
   'Pesquisa de Disciplinas': 'subject-search',
   'Pesquisa de Professores': 'teacher-search',
   'Companhia agora': 'companion',
+  'Agora no campus': 'campus',
 };
 
 export const UNAVAILABLE_TEXT =
@@ -28,6 +29,8 @@ export const UNAVAILABLE_TEXT =
 export const UNAVAILABLE_TEXTS: Readonly<Partial<Record<FeatureId, string>>> = {
   companion:
     'Pausamos a Companhia agora por um tempo enquanto corrigimos um problema. As mesas e os grupos em que você está continuam valendo no horário combinado.',
+  campus:
+    'Pausamos o Agora no campus por um tempo enquanto corrigimos um problema. Os avisos voltam sozinhos quando ele voltar.',
   notifications:
     'Pausamos os avisos por um tempo enquanto corrigimos um problema. Os lembretes de aula e as verificações no Aluno Online voltam quando você abrir o app depois da correção.',
 };

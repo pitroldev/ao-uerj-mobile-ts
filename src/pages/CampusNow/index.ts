@@ -1,0 +1,1 @@
+export { CampusNowPage } from './CampusNow';

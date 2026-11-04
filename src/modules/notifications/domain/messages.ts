@@ -16,12 +16,13 @@ type NotificationChannel =
   | 'enrollment'
   | 'documents'
   | 'portal-status'
-  | 'companion';
+  | 'companion'
+  | 'campus';
 
 /** Tela aberta ao tocar no aviso. */
 type NotificationTarget = Extract<
   LaunchTarget,
-  'home' | 'documents' | 'companion'
+  'home' | 'documents' | 'companion' | 'campus'
 >;
 
 export type NotificationContent = {

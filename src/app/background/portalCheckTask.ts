@@ -5,7 +5,8 @@ export const PORTAL_CHECK_TASK = 'AoUerjPortalCheck';
 
 /**
  * Dados do PortalCheckWorker: `mode: 'return'` no teste de "Avisar quando
- * voltar"; `mode: 'companion'` no "Me avise se abrirem" da Companhia agora.
+ * voltar"; `mode: 'companion'` no "Me avise se abrirem" da Companhia agora;
+ * `mode: 'campus'` no Agora no campus.
  */
 type TaskData = { mode?: string } | null;
 
@@ -34,6 +35,14 @@ export function createPortalCheckTask(services: () => AppServices) {
     if (data?.mode === 'companion') {
       await current.delivery.status.load().catch(() => undefined);
       await current.notifications.companionWatch
+        ?.checkInBackground()
+        .catch(() => undefined);
+      return;
+    }
+    // Agora no campus: a lista, só perto das aulas e sem o portal
+    if (data?.mode === 'campus') {
+      await current.delivery.status.load().catch(() => undefined);
+      await current.notifications.campusWatch
         ?.checkInBackground()
         .catch(() => undefined);
       return;

@@ -24,6 +24,9 @@ function open(target: LaunchTarget) {
       return;
     case 'companion':
       navigate('Companhia agora');
+      return;
+    case 'campus':
+      navigate('Agora no campus');
   }
 }
 

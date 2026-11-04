@@ -8,7 +8,7 @@ import type { RootDrawerParamList } from '@root/routes';
  *
  *   aouerj-dev://inicio | progresso | plano | gerador | mural | realizadas |
  *                curriculo | universais | pesquisa[/<código>] | documentos |
- *                notificacoes | companhia[/<chamada>] | sobre
+ *                notificacoes | companhia[/<chamada>] | campus | sobre
  */
 export const DEV_LINK_PREFIX = 'aouerj-dev://';
 
@@ -26,6 +26,7 @@ const DEV_ROUTE_PATHS = {
   'Pesquisa de Disciplinas': 'pesquisa/:subjectId?',
   Notificações: 'notificacoes',
   'Companhia agora': 'companhia/:callId?',
+  'Agora no campus': 'campus',
   Sobre: 'sobre',
   Login: 'login',
 } as const;

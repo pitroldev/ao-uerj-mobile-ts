@@ -9,7 +9,10 @@ import { isFeatureDisabled } from '@root/modules/delivery/domain/appStatus';
 import type { DocumentsPort } from '@root/modules/documents/application/ports';
 import type { IdentityController } from '@root/modules/identity/application/IdentityController';
 import type { PreferencesStore } from '@root/modules/identity/application/PreferencesStore';
-import { NotificationSettings } from '@root/modules/notifications/application/NotificationSettings';
+import {
+  NotificationSettings,
+  PREFERENCES_KEY,
+} from '@root/modules/notifications/application/NotificationSettings';
 import { PortalCheck } from '@root/modules/notifications/application/PortalCheck';
 import { PortalReturnAlert } from '@root/modules/notifications/application/PortalReturnAlert';
 import type {
@@ -38,6 +41,15 @@ import {
   gradesBySubject,
 } from '@root/modules/evaluations/presentation/scheduleLookup';
 import { evaluationsQueryKey } from '@root/modules/evaluations/presentation/queryKeys';
+import type { CampusNow } from '@root/modules/campus-now/application/CampusNow';
+import { CampusWatch } from '@root/modules/campus-now/application/CampusWatch';
+import {
+  askNotification,
+  confirmedNotification,
+  levelNotification,
+  thanksNotification,
+} from '@root/modules/campus-now/presentation/campusNowText';
+import { normalizeNotificationPreferences } from '@root/modules/notifications/domain/preferences';
 import {
   activeAccount,
   onSavedResourceChange,
@@ -66,6 +78,14 @@ type Dependencies = {
     CompanionCalls,
     'load' | 'getSnapshot' | 'subscribe' | 'list'
   >;
+  /**
+   * Agora no campus: a lista (com a sessão de aluno) e as escolhas do
+   * aparelho, para o "ainda está lá?" e os avisos dos avisos do aluno.
+   */
+  campusNow?: Pick<
+    CampusNow,
+    'supported' | 'list' | 'getSnapshot' | 'subscribe' | 'load'
+  >;
   device?: NotificationDevicePort | null;
 };
 
@@ -87,8 +107,11 @@ export function createNotifications({
   savedScope,
   probePortal,
   companion,
+  campusNow,
   device = createNativeNotifications(),
 }: Dependencies) {
+  const campusDisabled = () =>
+    isFeatureDisabled(remoteStatus.getSnapshot().status, 'campus');
   const account = activeAccount(identity);
   const key = (owner: ActiveAccount, resource: CachedResource) =>
     academicKeys.resource(owner.scope, owner.period, resource);
@@ -149,6 +172,14 @@ export function createNotifications({
             now: Date.now(),
             text: companionReminderText,
           });
+        }
+      : undefined,
+    // a leitura a cada 15 min só para quem já abriu o Agora no campus
+    campusWatch: campusNow?.supported
+      ? async () => {
+          if (campusDisabled()) return false;
+          await campusNow.load();
+          return campusNow.getSnapshot().visited;
         }
       : undefined,
   });
@@ -227,6 +258,37 @@ export function createNotifications({
         })
       : null;
 
+  // Agora no campus no celular: a mesma tarefa sem tela, sem o portal
+  const campusWatch =
+    background && campusNow?.supported
+      ? new CampusWatch({
+          device: background,
+          store: preferences,
+          savedScope,
+          allowed: async scope => {
+            const saved = await preferences.read<unknown>(
+              scope,
+              PREFERENCES_KEY,
+            );
+            return normalizeNotificationPreferences(saved).campusAlerts;
+          },
+          disabled: () =>
+            campusDisabled() ||
+            isFeatureDisabled(
+              remoteStatus.getSnapshot().status,
+              'notifications',
+            ),
+          list: () => campusNow.list(),
+          messages: {
+            ask: askNotification,
+            confirmed: confirmedNotification,
+            thanks: thanksNotification,
+            level: levelNotification,
+          },
+          now: () => Date.now(),
+        })
+      : null;
+
   if (device) {
     // A grade salva mudou (tela, cache restaurado ou verificação): os
     // lembretes acompanham.
@@ -247,6 +309,14 @@ export function createNotifications({
     companion?.subscribe(() => {
       void settings.companionChanged();
     });
+    // a primeira visita ao Agora no campus liga a leitura a cada 15 min; o
+    // aviso remoto pode desligá-la
+    campusNow?.subscribe(() => {
+      void settings.campusChanged();
+    });
+    remoteStatus.subscribe(() => {
+      void settings.campusChanged();
+    });
     // na abertura, assim que a conta é conhecida
     identity.subscribe(() => {
       void consumeDone();
@@ -254,5 +324,12 @@ export function createNotifications({
     void consumeDone();
   }
   settings.start();
-  return { settings, portalCheck, portalReturn, companionWatch, consumeDone };
+  return {
+    settings,
+    portalCheck,
+    portalReturn,
+    companionWatch,
+    campusWatch,
+    consumeDone,
+  };
 }

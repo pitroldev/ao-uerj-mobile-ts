@@ -22,7 +22,7 @@ internal data class AppNotification(
     /** Shown on secure lock screens that hide sensitive content. */
     val publicTitle: String,
     val publicBody: String,
-    /** Screen opened by a tap: "home", "documents" or "companion". */
+    /** Screen opened by a tap: "home", "documents", "companion" or "campus". */
     val target: String,
     /** Dismissed by the system after this many milliseconds (0 keeps it). */
     val timeoutMillis: Long = 0,
@@ -38,6 +38,7 @@ internal object AppNotifier {
   const val CHANNEL_CLASS_REMINDERS = "class-reminders"
   const val CHANNEL_EVALUATIONS = "evaluations"
   const val CHANNEL_COMPANION = "companion"
+  private const val CHANNEL_CAMPUS = "campus"
   private const val CHANNEL_GRADES = "grades"
   private const val CHANNEL_ENROLLMENT = "enrollment"
   private const val CHANNEL_DOCUMENTS = "documents"
@@ -62,6 +63,12 @@ internal object AppNotifier {
               "Companhia agora",
               "Aviso 10 minutos antes da mesa ou do grupo em que você está e o \"Chegou bem?\" depois da volta.",
               NotificationManager.IMPORTANCE_HIGH,
+          ),
+          Channel(
+              CHANNEL_CAMPUS,
+              "Agora no campus",
+              "\"Ainda está lá?\" de um aviso no caminho da sua aula e o que acontece com os seus avisos.",
+              NotificationManager.IMPORTANCE_DEFAULT,
           ),
           Channel(
               CHANNEL_GRADES,

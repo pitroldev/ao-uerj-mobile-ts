@@ -18,8 +18,9 @@ jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useIdentity: () => mockIdentity,
   useAppServices: () => ({
     notifications: { settings: { getSnapshot: () => mockNotifications } },
-    // a Companhia agora fica fora do menu no teste
+    // a Companhia agora e o Agora no campus ficam fora do menu no teste
     companion: { supported: false },
+    campusNow: { supported: false },
     studentSession: {
       get supported() {
         return mockStudentSupported;

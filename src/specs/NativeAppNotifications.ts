@@ -5,14 +5,17 @@ import { TurboModuleRegistry } from 'react-native';
 type NativeNotification = {
   /** O mesmo id substitui o aviso anterior. */
   id: string;
-  /** `class-reminders`, `grades`, `enrollment`, `documents` ou `companion`. */
+  /**
+   * `class-reminders`, `grades`, `enrollment`, `documents`, `companion` ou
+   * `campus`.
+   */
   channel: string;
   title: string;
   body: string;
   /** Versão da tela de bloqueio quando o aparelho oculta conteúdo sensível. */
   publicTitle: string;
   publicBody: string;
-  /** Tela aberta ao tocar: `home`, `documents` ou `companion`. */
+  /** Tela aberta ao tocar: `home`, `documents`, `companion` ou `campus`. */
   target: string;
 };
 
@@ -66,6 +69,11 @@ export interface Spec extends TurboModule {
    * `companion`).
    */
   setCompanionWatch(enabled: boolean): Promise<void>;
+  /**
+   * Liga ou desliga a leitura do Agora no campus a cada 15 min, com rede (a
+   * mesma tarefa sem tela, no modo `campus`). No iPhone, nada.
+   */
+  setCampusWatch(enabled: boolean): Promise<void>;
   notify(notification: NativeNotification): Promise<void>;
   /**
    * Cancela os lembretes de aula, de avaliações e da Companhia agora, esquece os "Já fiz" não

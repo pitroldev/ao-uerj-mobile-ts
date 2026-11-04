@@ -22,7 +22,8 @@ describe('a cópia salva do Início', () => {
   });
 
   it('guarda a ordem do aluno e põe uma seção nova no lugar dela', () => {
-    // uma cópia de antes da Companhia agora, com Semana antes de Notas
+    // uma cópia de antes da Companhia agora e do Agora no campus, com Semana
+    // antes de Notas
     const layout = normalizeHomeLayout({
       order: ['next-class', 'evaluations', 'week', 'grades', 'antiga'],
       hidden: ['grades', 'grades', 'antiga'],
@@ -32,7 +33,14 @@ describe('a cópia salva do Início', () => {
       evaluationLimit: 5,
     });
     expect(layout).toEqual({
-      order: ['next-class', 'companion', 'evaluations', 'week', 'grades'],
+      order: [
+        'next-class',
+        'companion',
+        'campus',
+        'evaluations',
+        'week',
+        'grades',
+      ],
       hidden: ['grades'],
       greeting: 'date',
       density: 'compact',
@@ -48,6 +56,7 @@ describe('arrumar as seções', () => {
     expect(up.order).toEqual([
       'next-class',
       'companion',
+      'campus',
       'evaluations',
       'week',
       'grades',
@@ -67,6 +76,7 @@ describe('arrumar as seções', () => {
     expect(moved.order).toEqual([
       'evaluations',
       'companion',
+      'campus',
       'next-class',
       'grades',
       'week',
@@ -77,6 +87,22 @@ describe('arrumar as seções', () => {
       'grades',
       'week',
     ]);
+  });
+
+  it('uma cópia da 2.13, já com a Companhia, ganha o Agora no campus logo depois dela', () => {
+    const layout = normalizeHomeLayout({
+      order: ['week', 'companion', 'next-class', 'evaluations', 'grades'],
+      hidden: ['companion'],
+    });
+    expect(layout.order).toEqual([
+      'week',
+      'companion',
+      'campus',
+      'next-class',
+      'evaluations',
+      'grades',
+    ]);
+    expect(visibleSections(layout)).toContain('campus');
   });
 
   it('esconde e mostra, e sabe quando voltou ao padrão', () => {

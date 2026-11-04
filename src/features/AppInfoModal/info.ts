@@ -5,6 +5,15 @@ export const APP_INFO_VERSION_KEY = 'app-info-version';
 
 export const APP_INFO = [
   {
+    title: 'Agora no campus',
+    icon: 'campaign',
+    isNew: true,
+    // como a Companhia, depende da sessão de aluno (Android com a Play)
+    needsCompanion: true,
+    description:
+      'Elevador parado, fila do bandejão, falta de luz ou Wi-Fi fora: quem está no lugar avisa em dois toques, e quem vai passar por lá confirma ou diz que acabou. O app pergunta "ainda está lá?" pelo caminho da sua próxima aula.',
+  },
+  {
     title: 'Companhia agora',
     icon: 'groups',
     isNew: true,

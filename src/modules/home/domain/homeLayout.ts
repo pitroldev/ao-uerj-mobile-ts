@@ -11,6 +11,7 @@ export const HOME_LAYOUT_KEY = 'home-layout';
 export const HOME_SECTIONS = [
   'next-class',
   'companion',
+  'campus',
   'evaluations',
   'grades',
   'week',

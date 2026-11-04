@@ -409,6 +409,7 @@ it('with nobody open, says who is watching and asks for a heads-up in the free w
     requestPermission: jest.fn(async () => 'granted' as const),
     notify: jest.fn(async () => undefined),
     setCompanionWatch: jest.fn(async (_on: boolean) => undefined),
+    setCampusWatch: jest.fn(async (_on: boolean) => undefined),
   };
   const saved = new Map<string, unknown>();
   mockServices.notifications = {

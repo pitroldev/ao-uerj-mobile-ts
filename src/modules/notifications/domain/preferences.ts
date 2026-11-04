@@ -37,6 +37,12 @@ export type NotificationPreferences = {
    * o aluno os pede ao entrar numa chamada; a chave os desliga todos.
    */
   companionReminders: boolean;
+  /**
+   * Agora no campus no celular: o "ainda está lá?" de um aviso no caminho da
+   * próxima aula e o que acontece com os avisos do aluno. Vale depois que ele
+   * abre a tela uma vez; a chave os desliga.
+   */
+  campusAlerts: boolean;
   /** Nota nova ou alterada em Notas do Período. */
   grades: boolean;
   /** Mostrar o valor da nota no aviso (desligado: só disciplina e prova). */
@@ -61,6 +67,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   evaluationReminders: true,
   evaluationDefaults: DEFAULT_EVALUATION_DEFAULTS,
   companionReminders: true,
+  campusAlerts: true,
   grades: false,
   gradeValues: false,
   rid: false,
@@ -115,6 +122,7 @@ export function normalizeNotificationPreferences(
     evaluationReminders: flag('evaluationReminders'),
     evaluationDefaults: normalizeEvaluationDefaults(value.evaluationDefaults),
     companionReminders: flag('companionReminders'),
+    campusAlerts: flag('campusAlerts'),
     grades: flag('grades'),
     gradeValues: flag('gradeValues'),
     rid: flag('rid'),

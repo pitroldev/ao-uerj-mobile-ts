@@ -136,6 +136,15 @@ class AppNotificationsModule(reactContext: ReactApplicationContext) :
     }
   }
 
+  override fun setCampusWatch(enabled: Boolean, promise: Promise) {
+    try {
+      PortalCheckWorker.scheduleCampusWatch(reactApplicationContext, enabled)
+      promise.resolve(null)
+    } catch (error: RuntimeException) {
+      promise.reject(E_PORTAL_CHECK, error.message, error)
+    }
+  }
+
   override fun notify(notification: ReadableMap, promise: Promise) {
     val text = { key: String -> notification.getString(key).orEmpty() }
     AppNotifier.post(

@@ -77,6 +77,12 @@ type Dependencies = {
    * antes e o "Chegou bem?"). Sem ela, ficam de fora.
    */
   companionReminders?: () => Promise<CompanionReminderPlan>;
+  /**
+   * O aluno usa o Agora no campus neste aparelho (a sessão de aluno, a tela
+   * aberta uma vez, sem desligamento remoto). Sem ela, a leitura a cada 15
+   * minutos fica desligada.
+   */
+  campusWatch?: () => Promise<boolean>;
 };
 
 /**
@@ -113,6 +119,7 @@ export class NotificationSettings {
   private appliedEvaluations: string | null = null;
   private appliedCompanion: string | null = null;
   private appliedPortal: boolean | null = null;
+  private appliedCampus: boolean | null = null;
   private applying: Promise<void> = Promise.resolve();
   /** As escolhas são salvas uma de cada vez: a segunda parte da primeira. */
   private updating: Promise<unknown> = Promise.resolve();
@@ -351,6 +358,11 @@ export class NotificationSettings {
     return this.apply();
   }
 
+  /** O aluno abriu o Agora no campus (ou o aviso remoto mudou): refaz a leitura. */
+  campusChanged(): Promise<void> {
+    return this.apply();
+  }
+
   /** A verificação em segundo plano registrou um resultado. */
   checkRecorded(scope: string, check: CheckState) {
     if (scope === this.scope) this.publish({ check });
@@ -415,6 +427,23 @@ export class NotificationSettings {
     return build().catch(() => undefined);
   }
 
+  /** A leitura do Agora no campus a cada 15 minutos (só no Android). */
+  private async campusDesired(account: ActiveAccount | null): Promise<boolean> {
+    const watch = this.dependencies.campusWatch;
+    const { permission, remoteDisabled, preferences, backgroundChecks } =
+      this.snapshot;
+    if (
+      !watch ||
+      !backgroundChecks ||
+      !account ||
+      permission !== 'granted' ||
+      remoteDisabled ||
+      !preferences.campusAlerts
+    )
+      return false;
+    return watch().catch(() => false);
+  }
+
   /**
    * Leva o estado desejado ao aparelho, em fila e só quando muda. Enquanto a
    * conta, as preferências ou a permissão não são conhecidas, mantém o que já
@@ -471,6 +500,20 @@ export class NotificationSettings {
             this.appliedCompanion = null;
           });
         }
+      }
+      // sem o Agora no campus neste app (iPhone, testes), a tarefa nem existe
+      const campus = this.dependencies.campusWatch
+        ? await this.campusDesired(account ?? null)
+        : null;
+      if (
+        campus !== null &&
+        campus !== this.appliedCampus &&
+        generation === this.generation
+      ) {
+        this.appliedCampus = campus;
+        await device.setCampusWatch(campus).catch(() => {
+          this.appliedCampus = null;
+        });
       }
       if (desired.portal !== this.appliedPortal) {
         this.appliedPortal = desired.portal;

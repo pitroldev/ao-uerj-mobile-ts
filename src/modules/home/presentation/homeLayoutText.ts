@@ -19,6 +19,11 @@ export const SECTION_TEXT: Readonly<
     description: 'Mesas e grupos para voltar, só na hora certa',
     icon: 'groups',
   },
+  campus: {
+    title: 'Agora no campus',
+    description: 'Avisos no caminho das suas aulas, só quando há',
+    icon: 'campaign',
+  },
   evaluations: {
     title: 'Próximas avaliações',
     description: 'As provas e trabalhos que você anotou',
