@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.15.2 (2026-11-05)
+
+### Novidades
+
+- Sobre: "Política de privacidade", numa seção nova, "Seus dados". A política diz o que fica no celular, o que vai para o servidor do app, quem vê e por quanto tempo. Ela fica no repositório do app, com o histórico de cada mudança.
+
 ## 2.15.1 (2026-11-05)
 
 ### Novidades
