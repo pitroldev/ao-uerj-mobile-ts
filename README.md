@@ -122,6 +122,8 @@ O backend de `https://pitrol.dev` fica em [`server/`](server/README.md): em `/ao
 
 ## Persistência e privacidade
 
+A política de privacidade publicada é [`docs/privacidade.md`](docs/privacidade.md): o link da Play Console e o do Sobre apontam para a página dela no GitHub, então o arquivo não muda de caminho. Toda mudança no que o app guarda ou envia (as listas abaixo) entra lá também, com a data do topo, e no formulário "Segurança dos dados" da Play Console.
+
 - Credenciais e identificação da conta ficam no Keychain/Keystore por `react-native-keychain`.
 - Cookies, token e IDs de requisição são efêmeros e pertencem ao adaptador AO.
 - O cache acadêmico persistido tem dono explícito, e a interface conserva a última resposta em falhas de atualização.
@@ -375,7 +377,7 @@ Pendências do responsável antes de preencher o DSN:
    - manter ligados o Data Scrubber e os scrubbers padrão, e incluir `senha`, `matricula` e `_token` em “Additional Sensitive Fields”.
 3. Limitar o volume para caber na cota gratuita (5 mil erros por mês): rate limit da chave em Client Keys e Spike Protection.
 4. Criar um token de organização para o envio de source maps e configurar `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` e `SENTRY_PROJECT` no environment `play`.
-5. Atualizar a política de privacidade com:
+5. Atualizar a [política de privacidade](docs/privacidade.md), que hoje diz que o app não usa ferramenta de análise, com:
    - registros de falhas e diagnóstico;
    - o Sentry como operador;
    - a região, a retenção e o vínculo do relato.
@@ -393,7 +395,7 @@ O `config/app-status.json` da `main` chega a todos os apps instalados em até 15
 - **Versão mínima:** abaixo de `minSupportedVersion`, o app fica na tela de bloqueio com “Atualizar”, mesmo sem rede, porque a cópia fica salva. Só suba o valor para uma versão que já esteja em produção na Play com rollout de 100%; antes disso, parte dos usuários fica bloqueada sem ter o que instalar.
 - **Chaves dos tokens:** `tokenKeys` lista os ids (o SHA-256 do SPKI, em hex) das chaves do emissor dos tokens anônimos de aluno, que só os apps de 2.11.1 a 2.13 usam (o atual entra com a sessão de aluno). Esses apps só pedem tokens a uma chave da lista e, sem ela, não pedem nenhum. Na troca de chave, publique o id da nova antes de o servidor emitir com ela (sem isso, a reposição espera e tenta de novo depois de uma hora), e tire o da antiga quando ela vencer: os tokens dela saem do estoque.
 - **Endereço fixo:** o URL está embutido em todo binário publicado (`src/adapters/outbound/delivery/remoteAppStatus.ts`). Não renomeie, transfira nem apague a conta `pitroldev` ou este repositório enquanto houver versões com esse endereço em uso.
-- **Pendência do responsável:** a busca já está ativa, sem depender do DSN do Sentry. Incluir o GitHub na política de privacidade e na formalização da transferência internacional da LGPD.
+- **Pendência do responsável:** a busca já está ativa, sem depender do DSN do Sentry. O GitHub já está na [política de privacidade](docs/privacidade.md); falta incluí-lo na formalização da transferência internacional da LGPD.
 
 ## Diagnóstico do portal real
 
