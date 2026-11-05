@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.15.1 (2026-11-05)
+
+### Novidades
+
+- Menu novo, pelo que você faz: "No campus" (Agora no campus, Companhia agora, Mapa, Mural da turma), "Meu curso" (Meu Progresso, Plano até a formatura, Disciplinas, Documentos) e "Inscrição" (Gerador de Grade, Pesquisa de Disciplinas). Na época de inscrição, o grupo ganha a etiqueta "Época de inscrição".
+- Disciplinas numa tela só: Realizadas, Do currículo e Universais viram abas, e o menu volta para a última aba que você abriu.
+- Agora no campus sempre no Início: sem aviso no caminho, uma linha "Nada no seu caminho" com o botão Avisar; na primeira vez, uma apresentação curta.
+- Avisos mais curtos na Companhia agora e no Agora no campus: uma frase só ("Só alunos da UERJ.", "Ninguém vê quem avisou."), e o resto em "Como funciona".
+
 ## 2.15.0 (2026-11-04)
 
 ### Novidades
