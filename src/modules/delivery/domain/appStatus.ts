@@ -44,6 +44,11 @@ export type AppStatus = {
    * continua com ela.
    */
   tokenKeys?: string[];
+  /**
+   * A época de inscrição (datas ISO 8601): enquanto dura, o grupo Inscrição
+   * do menu ganha a etiqueta "Época de inscrição". Sem o campo, nada muda.
+   */
+  enrollment?: { from: string; until: string };
 };
 
 /**
@@ -76,6 +81,8 @@ const MAX_FEATURES = 32;
 const MAX_URL = 300;
 const TOKEN_KEY = /^[0-9a-f]{64}$/;
 const MAX_TOKEN_KEYS = 8;
+/** Uma época de inscrição maior que isso é erro de digitação: o campo sai. */
+const MAX_ENROLLMENT_DAYS = 60;
 
 type LinkDestination = {
   host: string;
@@ -212,7 +219,33 @@ export function parseAppStatus(raw: unknown): AppStatus | null {
     );
     status.tokenKeys = [...new Set(keys)].slice(0, MAX_TOKEN_KEYS);
   }
+  const enrollment = parseEnrollment(raw.enrollment);
+  if (enrollment) status.enrollment = enrollment;
   return status;
+}
+
+/** As duas datas, em ordem e com no máximo `MAX_ENROLLMENT_DAYS`; senão, nada. */
+function parseEnrollment(raw: unknown): AppStatus['enrollment'] | null {
+  if (!isRecord(raw)) return null;
+  const { from, until } = raw;
+  if (typeof from !== 'string' || typeof until !== 'string') return null;
+  const start = Date.parse(from);
+  const end = Date.parse(until);
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return null;
+  if (end - start > MAX_ENROLLMENT_DAYS * 24 * 60 * 60 * 1000) return null;
+  return { from, until };
+}
+
+/** Agora é a época de inscrição do aviso remoto. */
+export function isEnrollmentSeason(
+  status: AppStatus | null,
+  now: number,
+): boolean {
+  const enrollment = status?.enrollment;
+  if (!enrollment) return false;
+  return (
+    Date.parse(enrollment.from) <= now && now < Date.parse(enrollment.until)
+  );
 }
 
 /** Compara `MAJOR.MINOR.PATCH` (sufixos como `-rc.1` são ignorados). */

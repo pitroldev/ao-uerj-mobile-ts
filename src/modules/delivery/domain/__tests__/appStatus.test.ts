@@ -4,6 +4,7 @@ import committed from '@/config/app-status.json';
 import schema from '@/config/app-status.schema.json';
 import {
   compareVersions,
+  isEnrollmentSeason,
   isFeatureDisabled,
   isVersionSupported,
   noticeLinkHost,
@@ -210,6 +211,40 @@ describe('notice links', () => {
   });
 });
 
+describe('the enrollment season', () => {
+  const from = '2026-11-03T00:00:00-03:00';
+  const until = '2026-11-14T23:59:00-03:00';
+  const at = (iso: string) => Date.parse(iso);
+
+  it('marks the season between the two dates, and only there', () => {
+    const status = parseAppStatus(doc({ enrollment: { from, until } }));
+    expect(status?.enrollment).toEqual({ from, until });
+    expect(isEnrollmentSeason(status, at('2026-11-02T23:59:00-03:00'))).toBe(
+      false,
+    );
+    expect(isEnrollmentSeason(status, at(from))).toBe(true);
+    expect(isEnrollmentSeason(status, at('2026-11-10T12:00:00-03:00'))).toBe(
+      true,
+    );
+    expect(isEnrollmentSeason(status, at(until))).toBe(false);
+    expect(isEnrollmentSeason(parseAppStatus(doc()), at(from))).toBe(false);
+    expect(isEnrollmentSeason(null, at(from))).toBe(false);
+  });
+
+  it.each([
+    ['dates in the wrong order', { from: until, until: from }],
+    ['a date that is not a date', { from: 'amanhã', until }],
+    ['a season over 60 days', { from, until: '2027-03-01T00:00:00-03:00' }],
+    ['a missing end', { from }],
+    ['a list', [from, until]],
+  ])('drops %s, keeping the rest of the document', (_case, enrollment) => {
+    const status = parseAppStatus(doc({ enrollment }));
+    expect(status).not.toBeNull();
+    expect(status?.enrollment).toBeUndefined();
+    expect(status?.disabledFeatures).toEqual(['message-board']);
+  });
+});
+
 describe('config/app-status.schema.json', () => {
   it('validates the committed config/app-status.json', () => {
     expect(validate(schema, committed)).toEqual([]);
@@ -225,6 +260,8 @@ describe('config/app-status.schema.json', () => {
       doc({ notices: [{ ...notice, level: 'urgent' }] }),
       doc({ tokenKeys: ['AB'.repeat(32)] }),
       doc({ tokenKeys: ['ab'.repeat(32), 'ab'.repeat(32)] }),
+      doc({ enrollment: { from: '2026-11-03T00:00:00-03:00' } }),
+      doc({ enrollment: { from: 'amanhã', until: 'depois' } }),
     ])
       expect(validate(schema, invalid)).not.toEqual([]);
   });
