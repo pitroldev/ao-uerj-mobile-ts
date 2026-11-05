@@ -35,6 +35,8 @@ export type CampusState = {
   day: string;
   /** O aluno já abriu o Agora no campus: só então o celular pergunta. */
   visited: boolean;
+  /** O aluno dispensou a apresentação do Início ("Agora não"). */
+  introduced: boolean;
   classes: RoomClass[];
   /** "Não vou passar por lá". */
   skipped: string[];
@@ -112,7 +114,7 @@ function ownNotice(raw: unknown): OwnNotice | null {
 
 /**
  * A cópia salva, sem confiar no formato. Num dia novo, as listas de hoje
- * recomeçam; as salas, a visita e o nível continuam.
+ * recomeçam; as salas, a visita, a apresentação e o nível continuam.
  */
 export function normalizeCampusState(raw: unknown, now: number): CampusState {
   const value =
@@ -130,6 +132,7 @@ export function normalizeCampusState(raw: unknown, now: number): CampusState {
   return {
     day: today,
     visited: value.visited === true,
+    introduced: value.introduced === true,
     classes,
     skipped: sameDay ? strings(value.skipped, 100) : [],
     asked: sameDay ? strings(value.asked, 100) : [],

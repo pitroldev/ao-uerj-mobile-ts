@@ -140,6 +140,7 @@ it('skips a notice for the day, marks the first visit and keeps the rooms only w
     scope: 'conta',
     skipped: [],
     visited: false,
+    introduced: false,
     asked: [],
   });
   const listener = jest.fn();
@@ -151,6 +152,7 @@ it('skips a notice for the day, marks the first visit and keeps the rooms only w
     scope: 'conta',
     skipped: ['n9'],
     visited: true,
+    introduced: false,
     asked: [],
   });
   expect(listener).toHaveBeenCalledTimes(2);
@@ -230,6 +232,19 @@ it('marks the first visit of each account, even after another one visited', asyn
   ).toBe(true);
 });
 
+it('keeps the Home introduction dismissed, without turning on the phone questions', async () => {
+  const { campus, state } = setup();
+  await campus.dismissIntro();
+  await campus.dismissIntro();
+  expect(campus.getSnapshot()).toMatchObject({
+    introduced: true,
+    visited: false,
+  });
+  // num dia novo, continua dispensada
+  const tomorrow = normalizeCampusState({ ...state(), day: '2026-11-22' }, NOW);
+  expect(tomorrow).toMatchObject({ introduced: true, visited: false });
+});
+
 it('does nothing without an account', async () => {
   const { campus, server, write } = setup({ account: null });
   await campus.markSeen(['a']);
@@ -272,6 +287,7 @@ it('starts the lists over on a new day, keeping the rooms, the visit and the lev
   // um formato estragado vira o vazio
   expect(normalizeCampusState('lixo', NOW)).toMatchObject({
     visited: false,
+    introduced: false,
     classes: [],
     level: null,
   });

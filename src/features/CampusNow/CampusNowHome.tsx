@@ -8,6 +8,7 @@ import {
   List,
   ListRow,
   Section,
+  Tag,
   Text,
   snackbar,
 } from '@components/ui';
@@ -43,6 +44,7 @@ import {
 } from '@root/modules/campus-now/presentation/useCampusNow';
 import { isFeatureDisabled } from '@root/modules/delivery/domain/appStatus';
 import { useRemoteStatus } from '@root/modules/delivery/presentation/DeliveryProvider';
+import { CampusIntroCard } from './CampusIntroCard';
 import { StillThereCard } from './StillThereCard';
 
 const Summary = styled(Text)`
@@ -56,10 +58,13 @@ const HOME_LIMIT = 2;
 type Props = { schedule: readonly AttendedClassesSchedule[]; now: Date };
 
 /**
- * "Agora no campus" no Início, só quando há o que dizer e o aluno deve estar
- * no campus (pela grade): a pergunta "ainda está lá?" de um aviso no caminho
- * da aula, respondida ali mesmo, ou os avisos confirmados de agora, os do
- * caminho primeiro. Sem aviso, nada aparece.
+ * "Agora no campus" no Início, sempre à vista (quem nunca abriu o menu também
+ * fica sabendo que existe). Com o aluno no campus pela grade: a pergunta
+ * "ainda está lá?" de um aviso no caminho da aula, respondida ali mesmo, ou
+ * os avisos confirmados de agora, os do caminho primeiro; sem aviso, uma
+ * linha só ("Nada no seu caminho", com Avisar). Fora do campus ou sem
+ * resposta do servidor, a linha diz para que serve, sem prometer nada. Na
+ * primeira vez, uma apresentação curta toma o lugar da linha.
  */
 export function CampusNowHome(props: Props) {
   const { campusNow } = useAppServices();
@@ -91,8 +96,63 @@ function CampusSlot({ schedule, now }: Props) {
   const [busy, setBusy] = useState<NoticeAnswer | null>(null);
 
   const open = () => navigation.navigate('Agora no campus');
+  const report = () => navigation.navigate('Agora no campus', { report: true });
 
-  if (!onCampus || !query.data) return null;
+  // a apresentação, até o aluno abrir a tela ou dispensar (só depois de ler
+  // as escolhas da conta, para não piscar)
+  const introducing =
+    state.scope !== null && !state.visited && !state.introduced;
+  const quiet = (line: 'calm' | 'about') =>
+    introducing ? (
+      <Section
+        title="Agora no campus"
+        action={<Tag tone="accent" label="Novo" />}
+      >
+        <CampusIntroCard
+          onOpen={open}
+          onDismiss={() => {
+            void campusNow.dismissIntro().catch(() => undefined);
+          }}
+        />
+      </Section>
+    ) : (
+      <Section title="Agora no campus">
+        <List>
+          {line === 'calm' ? (
+            <ListRow
+              leading={<IconTile icon="task_alt" tone="accent" />}
+              title="Nada no seu caminho"
+              subtitle="Viu algo? Avise em dois toques."
+              trailing={
+                <Button
+                  variant="text"
+                  size="sm"
+                  icon="campaign"
+                  label="Avisar"
+                  onPress={report}
+                />
+              }
+              onPress={open}
+              accessibilityLabel="Agora no campus: nada no seu caminho. Ver os avisos"
+            />
+          ) : (
+            <ListRow
+              leading={<IconTile icon="campaign" tone="accent" />}
+              title="Avisos sobre o campus"
+              subtitle="Fila, elevador ou Wi-Fi: quem está lá avisa."
+              chevron
+              onPress={open}
+              accessibilityLabel="Agora no campus: avisos sobre o campus. Ver"
+            />
+          )}
+        </List>
+      </Section>
+    );
+
+  // fora do campus pela grade, sem consultar nada
+  if (!onCampus) return quiet('about');
+  // sem resposta (sem internet, aluno ainda sem confirmação): não promete calma
+  if (!query.data) return query.error ? quiet('about') : null;
   const notices = query.data.notices.filter(notice => isLive(notice, nowMs));
   const ask = askTarget(notices, spots, {
     skipped: state.skipped,
@@ -161,7 +221,7 @@ function CampusSlot({ schedule, now }: Props) {
         b.notice.confirmations - a.notice.confirmations ||
         b.notice.createdAt - a.notice.createdAt,
     );
-  if (!shown.length) return null;
+  if (!shown.length) return quiet('calm');
   const helpers = query.data.helpersToday;
   const summary = `${shown.length} ${shown.length === 1 ? 'aviso agora' : 'avisos agora'}${helpers ? ` · ${colleagues(helpers)} ${helpers === 1 ? 'ajudou' : 'ajudaram'} hoje` : ''}`;
 

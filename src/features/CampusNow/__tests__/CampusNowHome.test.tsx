@@ -64,14 +64,28 @@ function notice(now: Date, partial: Partial<CampusNotice> = {}): CampusNotice {
   };
 }
 
-function setup(now: Date, notices: CampusNotice[]) {
+/** O que o aparelho guarda do Agora no campus (`visited`: já abriu a tela). */
+let mockSaved: Record<string, unknown> | null;
+
+function setup(
+  now: Date,
+  notices: CampusNotice[],
+  {
+    saved = { visited: true },
+    offline = false,
+  }: { saved?: Record<string, unknown> | null; offline?: boolean } = {},
+) {
   mockNotices = notices;
+  mockSaved = saved;
   mockServer = {
-    list: jest.fn(async () => ({
-      notices: mockNotices,
-      helpersToday: 40,
-      you: { points: 10, level: 1, levelAt: 0, nextLevelAt: 100 },
-    })),
+    list: jest.fn(async () => {
+      if (offline) throw new Error('offline');
+      return {
+        notices: mockNotices,
+        helpersToday: 40,
+        you: { points: 10, level: 1, levelAt: 0, nextLevelAt: 100 },
+      };
+    }),
     report: jest.fn(),
     answer: jest.fn(async (id: string, _answer: NoticeAnswer) => ({
       notice: {
@@ -89,7 +103,12 @@ function setup(now: Date, notices: CampusNotice[]) {
   mockServices = {
     campusNow: new CampusNow({
       server: mockServer,
-      store: { read: async () => null, write: async () => undefined },
+      store: {
+        read: async <T,>() => mockSaved as T | null,
+        write: jest.fn(async (_scope: string, _key: string, value: unknown) => {
+          mockSaved = value as Record<string, unknown>;
+        }),
+      },
       account: () => ({ scope: 'account-1' }),
       now: () => now.getTime(),
     }),
@@ -171,18 +190,64 @@ it('lists the confirmed notices of now, and opens the screen', async () => {
   expect(mockNavigate).toHaveBeenCalledWith('Agora no campus');
 });
 
-it('stays quiet away from the campus, without notices or when turned off remotely', async () => {
+it('says what it is for away from the campus, without asking the server', async () => {
+  const user = userEvent.setup();
   const sunday = new Date(2026, 10, 22, 14, 5);
   await setup(sunday, [notice(sunday)]);
+  expect(await screen.findByText('Avisos sobre o campus')).toBeOnTheScreen();
   expect(mockServer.list).not.toHaveBeenCalled();
-  expect(screen.toJSON()).toBeNull();
+  await user.press(
+    screen.getByRole('button', {
+      name: 'Agora no campus: avisos sobre o campus. Ver',
+    }),
+  );
+  expect(mockNavigate).toHaveBeenCalledWith('Agora no campus');
+});
 
+it('says nothing is on the way when there is no notice, and reports in one tap', async () => {
+  const user = userEvent.setup();
   const monday = new Date(2026, 10, 23, 15, 0);
   await setup(monday, []);
-  await waitFor(() => expect(mockServer.list).toHaveBeenCalled());
-  expect(screen.toJSON()).toBeNull();
+  expect(await screen.findByText('Nada no seu caminho')).toBeOnTheScreen();
+  await user.press(screen.getByRole('button', { name: 'Avisar' }));
+  expect(mockNavigate).toHaveBeenCalledWith('Agora no campus', {
+    report: true,
+  });
+});
 
+it('does not promise calm without an answer from the server', async () => {
+  const monday = new Date(2026, 10, 23, 15, 0);
+  await setup(monday, [], { offline: true });
+  expect(await screen.findByText('Avisos sobre o campus')).toBeOnTheScreen();
+  expect(screen.queryByText('Nada no seu caminho')).toBeNull();
+});
+
+it('introduces itself once, until the student opens the screen or says "Agora não"', async () => {
+  const user = userEvent.setup();
+  const monday = new Date(2026, 10, 23, 15, 0);
+  await setup(monday, [], { saved: null });
+  expect(await screen.findByText('Novo')).toBeOnTheScreen();
+  expect(screen.queryByText('Nada no seu caminho')).toBeNull();
+  await user.press(screen.getByRole('button', { name: 'Conhecer' }));
+  expect(mockNavigate).toHaveBeenCalledWith('Agora no campus');
+  await user.press(screen.getByRole('button', { name: 'Agora não' }));
+  expect(await screen.findByText('Nada no seu caminho')).toBeOnTheScreen();
+  expect(mockSaved).toMatchObject({ introduced: true, visited: false });
+  expect(screen.queryByText('Novo')).toBeNull();
+});
+
+it('asks about a notice on the way before introducing itself', async () => {
+  const now = new Date(2026, 10, 23, 14, 5);
+  await setup(now, [notice(now)], { saved: null });
+  expect(
+    await screen.findByText('Os elevadores ainda estão parados?'),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Conhecer' })).toBeNull();
+});
+
+it('stays out when turned off remotely', async () => {
   mockDisabled = ['campus'];
+  const monday = new Date(2026, 10, 23, 15, 0);
   await setup(monday, [notice(monday)]);
   expect(screen.toJSON()).toBeNull();
 });

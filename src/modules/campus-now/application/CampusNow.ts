@@ -26,6 +26,8 @@ export type CampusNowSnapshot = {
   skipped: readonly string[];
   /** O aluno já abriu a tela (o celular só pergunta depois disso). */
   visited: boolean;
+  /** O aluno dispensou a apresentação do Início ("Agora não"). */
+  introduced: boolean;
   /** Os avisos de que o celular já perguntou hoje, do mais antigo ao mais novo. */
   asked: readonly string[];
 };
@@ -42,6 +44,7 @@ const EMPTY: CampusNowSnapshot = {
   scope: null,
   skipped: [],
   visited: false,
+  introduced: false,
   asked: [],
 };
 
@@ -182,6 +185,16 @@ export class CampusNow {
   }
 
   /**
+   * "Agora não" na apresentação do Início: ela não volta. Diferente da visita,
+   * não liga as perguntas do celular (o aluno ainda não viu a tela).
+   */
+  async dismissIntro(): Promise<void> {
+    await this.update(state =>
+      state.introduced ? state : { ...state, introduced: true },
+    );
+  }
+
+  /**
    * A lista chegou com o app na tela: o que o aluno já viu aqui (o aviso dele
    * confirmado, o nível novo) não vira aviso do celular depois. `true` quando
    * um aviso dele ganhou "Valeu" desde a última vez (um momento bom).
@@ -251,11 +264,13 @@ export class CampusNow {
       scope,
       skipped: state.skipped,
       visited: state.visited,
+      introduced: state.introduced,
       asked: state.asked,
     };
     if (
       this.snapshot.scope === next.scope &&
       this.snapshot.visited === next.visited &&
+      this.snapshot.introduced === next.introduced &&
       JSON.stringify(this.snapshot.skipped) === JSON.stringify(next.skipped) &&
       JSON.stringify(this.snapshot.asked) === JSON.stringify(next.asked)
     )
