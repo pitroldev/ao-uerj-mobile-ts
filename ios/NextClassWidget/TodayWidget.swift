@@ -62,12 +62,12 @@ struct TodayProvider: TimelineProvider {
       return
     }
     let now = Date()
-    completion(entry(at: now, schedule: WidgetStore.load(), signedOut: WidgetStore.signedOut))
+    completion(entry(at: now, schedule: WidgetStore.savedSchedule(), signedOut: WidgetStore.signedOut))
   }
 
   func getTimeline(in context: Context, completion: @escaping (Timeline<TodayEntry>) -> Void) {
     let now = Date()
-    let schedule = WidgetStore.load()
+    let schedule = WidgetStore.savedSchedule()
     let signedOut = WidgetStore.signedOut
     let moments = WidgetStore.changes(after: now, schedule: schedule)
     let entries = ([now] + moments).map { entry(at: $0, schedule: schedule, signedOut: signedOut) }

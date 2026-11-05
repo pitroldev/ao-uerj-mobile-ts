@@ -37,7 +37,7 @@ struct TodayClassesIntent: AppIntent {
 /// O texto de "Aulas de hoje", com os avisos dos widgets quando falta a grade.
 enum TodaySummary {
   static func text(at date: Date) -> String {
-    guard let schedule = WidgetStore.load() else {
+    guard let schedule = WidgetStore.savedSchedule() else {
       return WidgetStore.signedOut ? ClassTexts.signedOut : ClassTexts.notLoaded
     }
     if date > schedule.expiresAt { return ClassTexts.outdated }
@@ -58,7 +58,11 @@ enum TodaySummary {
 }
 
 /// Frases prontas para a Siri e atalhos no app Atalhos e no Spotlight.
-@available(iOS 17.0, *)
+///
+/// Sem `shortTitle`/`systemImageName`: esse `init` é do iOS 17, e há relatos
+/// de o iOS 16 ler `appShortcuts` mesmo com o provedor marcado como iOS 17 e
+/// cair (fóruns da Apple, 747409 e 756087). Assim vale do iOS 16 em diante.
+@available(iOS 16.0, *)
 struct AOUerjShortcuts: AppShortcutsProvider {
   static var appShortcuts: [AppShortcut] {
     AppShortcut(
@@ -66,27 +70,21 @@ struct AOUerjShortcuts: AppShortcutsProvider {
       phrases: [
         "Próxima aula no \(.applicationName)",
         "Qual é a minha próxima aula no \(.applicationName)",
-      ],
-      shortTitle: "Próxima aula",
-      systemImageName: "calendar.badge.clock"
+      ]
     )
     AppShortcut(
       intent: TodayClassesIntent(),
       phrases: [
         "Aulas de hoje no \(.applicationName)",
         "Quais são as minhas aulas hoje no \(.applicationName)",
-      ],
-      shortTitle: "Aulas de hoje",
-      systemImageName: "list.bullet.rectangle"
+      ]
     )
     AppShortcut(
       intent: OpenAppAreaIntent(),
       phrases: [
         "Abrir \(\.$target) no \(.applicationName)",
         "Abrir o \(.applicationName)",
-      ],
-      shortTitle: "Abrir no AO UERJ",
-      systemImageName: "arrow.up.forward.app"
+      ]
     )
   }
 }

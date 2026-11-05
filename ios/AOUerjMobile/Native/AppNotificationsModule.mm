@@ -45,6 +45,16 @@ static NSString *const kDoneAction = @"evaluation-done";
 static NSString *const kDoneKey = @"ao.evaluations.done";
 
 /**
+ * Um número do JSON vindo do JS, ou `fallback`. O JS manda números, mas uma
+ * data inválida vira `null` no `JSON.stringify`, e `[NSNull doubleValue]`
+ * derruba o app ("unrecognized selector").
+ */
+static double AONumber(id value, double fallback)
+{
+  return [value isKindOfClass:[NSNumber class]] ? [value doubleValue] : fallback;
+}
+
+/**
  * Avisos para o JS (spec: src/specs/NativeAppNotifications.ts), como o
  * AppNotificationsModule.kt do Android, nos limites do iOS: lembretes de
  * aula agendados como avisos de data única até `expiresAt`, lembretes das
@@ -226,15 +236,15 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
 {
   NSCalendar *calendar = [NSCalendar currentCalendar];
   NSDate *now = [NSDate date];
-  NSTimeInterval expiresAt = [plan[@"expiresAt"] doubleValue] / 1000.0;
+  NSTimeInterval expiresAt = AONumber(plan[@"expiresAt"], 0) / 1000.0;
   NSDate *today = [calendar startOfDayForDate:now];
   NSMutableArray<NSDictionary *> *occurrences = [NSMutableArray array];
   for (id item in plan[@"reminders"]) {
     if (![item isKindOfClass:[NSDictionary class]]) {
       continue;
     }
-    NSInteger weekday = [item[@"weekday"] integerValue];
-    NSInteger minutes = [item[@"minutes"] integerValue];
+    NSInteger weekday = (NSInteger)AONumber(item[@"weekday"], -1);
+    NSInteger minutes = (NSInteger)AONumber(item[@"minutes"], -1);
     NSString *identifier = [item[@"id"] isKindOfClass:[NSString class]] ? item[@"id"] : nil;
     if (weekday < 1 || weekday > 7 || minutes < 0 || minutes >= 24 * 60 || !identifier) {
       continue;
@@ -371,8 +381,8 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
         ![item[@"evaluationId"] isKindOfClass:[NSString class]] || ![item[@"title"] isKindOfClass:[NSString class]]) {
       continue;
     }
-    NSTimeInterval at = [item[@"at"] doubleValue] / 1000.0;
-    NSTimeInterval until = [item[@"until"] doubleValue] / 1000.0;
+    NSTimeInterval at = AONumber(item[@"at"], 0) / 1000.0;
+    NSTimeInterval until = AONumber(item[@"until"], 0) / 1000.0;
     if (at <= now || until <= now || [done containsObject:item[@"evaluationId"]]) {
       continue;
     }
@@ -390,9 +400,9 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
     content.body = [item[@"body"] isKindOfClass:[NSString class]] ? item[@"body"] : @"";
     content.sound = [UNNotificationSound defaultSound];
     content.threadIdentifier = @"evaluations";
-    content.categoryIdentifier = [item[@"completable"] boolValue] ? kEvaluationCategory : kPrivateCategory;
+    content.categoryIdentifier = AONumber(item[@"completable"], 0) != 0 ? kEvaluationCategory : kPrivateCategory;
     content.userInfo = @{@"target" : @"home", @"evaluationId" : evaluation};
-    NSDate *date = [NSDate dateWithTimeIntervalSince1970:[item[@"at"] doubleValue] / 1000.0];
+    NSDate *date = [NSDate dateWithTimeIntervalSince1970:AONumber(item[@"at"], 0) / 1000.0];
     NSDateComponents *components =
         [calendar components:(NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour |
                               NSCalendarUnitMinute)
@@ -448,8 +458,8 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
           ![item[@"title"] isKindOfClass:[NSString class]]) {
         continue;
       }
-      NSTimeInterval at = [item[@"at"] doubleValue] / 1000.0;
-      NSTimeInterval until = [item[@"until"] doubleValue] / 1000.0;
+      NSTimeInterval at = AONumber(item[@"at"], 0) / 1000.0;
+      NSTimeInterval until = AONumber(item[@"until"], 0) / 1000.0;
       if (at <= now || until <= at) {
         continue;
       }
@@ -468,7 +478,7 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
       content.threadIdentifier = @"companion";
       content.categoryIdentifier = kPrivateCategory;
       content.userInfo = @{@"target" : @"companion"};
-      NSDate *date = [NSDate dateWithTimeIntervalSince1970:[item[@"at"] doubleValue] / 1000.0];
+      NSDate *date = [NSDate dateWithTimeIntervalSince1970:AONumber(item[@"at"], 0) / 1000.0];
       NSDateComponents *components =
           [calendar components:(NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour |
                                 NSCalendarUnitMinute)

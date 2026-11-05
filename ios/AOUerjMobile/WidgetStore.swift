@@ -117,7 +117,7 @@ public final class WidgetStore: NSObject {
 
   static var signedOut: Bool { defaults?.bool(forKey: signedOutKey) ?? false }
 
-  static func load() -> WidgetSchedule? {
+  static func savedSchedule() -> WidgetSchedule? {
     guard let json = defaults?.string(forKey: scheduleKey) else { return nil }
     return parse(json)
   }
@@ -168,7 +168,7 @@ public final class WidgetStore: NSObject {
 
   /// O mesmo, com a grade e o logout salvos no App Group.
   static func lookup(at date: Date) -> ClassLookup {
-    lookup(at: date, schedule: load(), signedOut: signedOut)
+    lookup(at: date, schedule: savedSchedule(), signedOut: signedOut)
   }
 
   /**

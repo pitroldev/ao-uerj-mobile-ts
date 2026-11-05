@@ -65,7 +65,7 @@ struct NextClassProvider: TimelineProvider {
 
   func getTimeline(in context: Context, completion: @escaping (Timeline<NextClassEntry>) -> Void) {
     let now = Date()
-    let schedule = WidgetStore.load()
+    let schedule = WidgetStore.savedSchedule()
     let signedOut = WidgetStore.signedOut
     let moments = WidgetStore.changes(after: now, schedule: schedule)
     let entries = ([now] + moments).map {
