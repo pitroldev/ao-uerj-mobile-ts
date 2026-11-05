@@ -108,6 +108,27 @@ it('does not ask where the store review is unavailable, nor fail when it errors'
   await expect(failing.prompter.notePositiveMoment()).resolves.toBe(true);
 });
 
+it('does not hold the history while the store takes its time to answer', async () => {
+  const store = createMemoryStore({
+    [REVIEW_HISTORY_KEY]: {
+      firstSessionAt: start,
+      sessions: REVIEW_MIN_SESSIONS,
+      lastRequestAt: null,
+    },
+  });
+  now = start + REVIEW_MIN_USE;
+  const silent = prompter(store);
+  // a Play recebeu o pedido e não respondeu (como logo depois de ligar o celular)
+  silent.review.request.mockReturnValueOnce(new Promise<undefined>(() => {}));
+  await expect(silent.prompter.notePositiveMoment()).resolves.toBe(true);
+  await expect(silent.prompter.notePositiveMoment()).resolves.toBe(false);
+  await silent.prompter.noteSession();
+  expect(store.data.get(REVIEW_HISTORY_KEY)).toMatchObject({
+    sessions: REVIEW_MIN_SESSIONS + 1,
+    lastRequestAt: now,
+  });
+});
+
 it('lets the session finish its write before evaluating a positive moment', async () => {
   const store = createMemoryStore({
     [REVIEW_HISTORY_KEY]: {

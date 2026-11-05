@@ -57,18 +57,23 @@ export class ReviewPrompter {
     });
   }
 
-  /** Pede a avaliação se a política deixar; `true` quando pediu. */
-  notePositiveMoment(): Promise<boolean> {
-    return this.enqueue(async () => {
-      const { review, now } = this.dependencies;
+  /**
+   * Pede a avaliação se a política deixar; `true` quando pediu. O pedido à
+   * loja fica fora da fila: a Play pode demorar ou nunca responder (logo
+   * depois de ligar o celular, por exemplo), e a fila é só do histórico.
+   */
+  async notePositiveMoment(): Promise<boolean> {
+    const { review, now } = this.dependencies;
+    const allowed = await this.enqueue(async () => {
       if (this.askedThisSession || !review.isAvailable()) return false;
       const history = await this.read();
       if (!history || !canRequestReview(history, now())) return false;
       this.askedThisSession = true;
       // a loja não diz se mostrou a folha: o pedido conta mesmo assim
       await this.write({ ...history, lastRequestAt: now() });
-      await review.request().catch(() => undefined);
       return true;
     });
+    if (allowed) void review.request().catch(() => undefined);
+    return allowed;
   }
 }
