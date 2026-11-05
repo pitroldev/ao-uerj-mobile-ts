@@ -127,6 +127,19 @@ class AppNotificationsModule(reactContext: ReactApplicationContext) :
     }
   }
 
+  /**
+   * iPhone only (BGTaskScheduler rounds delivered as events): here WorkManager starts the headless
+   * task itself (PortalCheckWorker), so there is nothing to listen to.
+   */
+  override fun listenBackgroundTasks(promise: Promise) {
+    promise.resolve(null)
+  }
+
+  /** iPhone only: the headless task here ends when its JS promise settles. */
+  override fun setTaskCompleted(taskId: String, success: Boolean, promise: Promise) {
+    promise.resolve(null)
+  }
+
   override fun setCompanionWatch(enabled: Boolean, promise: Promise) {
     try {
       PortalCheckWorker.scheduleCompanionWatch(reactApplicationContext, enabled)

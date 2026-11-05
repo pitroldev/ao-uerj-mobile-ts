@@ -33,10 +33,15 @@ export type NotificationsSnapshot = {
   /** O aparelho tem os recursos (o módulo nativo existe). */
   supported: boolean;
   /**
-   * Há verificação no portal em segundo plano (só no Android); no iOS ficam
-   * os lembretes de aula.
+   * Há verificação no portal em segundo plano: WorkManager no Android e
+   * BGTaskScheduler no iPhone, quando o iOS deixar.
    */
   backgroundChecks: boolean;
+  /**
+   * Há as leituras a cada 15 minutos (o "ainda está lá?" do Agora no
+   * campus): só no Android.
+   */
+  frequentWatches: boolean;
   /** Preferências da conta ativa já lidas. */
   ready: boolean;
   preferences: NotificationPreferences;
@@ -130,6 +135,7 @@ export class NotificationSettings {
     this.snapshot = {
       supported: dependencies.device !== null,
       backgroundChecks: dependencies.device?.backgroundChecks ?? false,
+      frequentWatches: dependencies.device?.frequentWatches ?? false,
       ready: false,
       preferences: DEFAULT_NOTIFICATION_PREFERENCES,
       permission: null,
@@ -430,11 +436,11 @@ export class NotificationSettings {
   /** A leitura do Agora no campus a cada 15 minutos (só no Android). */
   private async campusDesired(account: ActiveAccount | null): Promise<boolean> {
     const watch = this.dependencies.campusWatch;
-    const { permission, remoteDisabled, preferences, backgroundChecks } =
+    const { permission, remoteDisabled, preferences, frequentWatches } =
       this.snapshot;
     if (
       !watch ||
-      !backgroundChecks ||
+      !frequentWatches ||
       !account ||
       permission !== 'granted' ||
       remoteDisabled ||

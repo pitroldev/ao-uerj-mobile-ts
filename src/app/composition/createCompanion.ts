@@ -13,7 +13,7 @@ type Dependencies = {
 };
 
 /**
- * A Companhia agora: só onde o app entra como aluno (Android com a Play) e
+ * A Companhia agora: só onde o app entra como aluno (Play ou App Attest) e
  * guarda as chaves de membro (o cofre). Cada pedido leva a sessão, e o
  * servidor sabe quem está em cada mesa ou grupo. No logout, a composição
  * chama `clear` antes de encerrar a sessão (ver `followIdentity`).

@@ -3,8 +3,9 @@ import { ascii, concat, toHex, u16, utf8 } from './bytes';
 /*
  * A identificação do aluno no servidor (pitrol.dev/aouerj/v2/students): o app
  * manda a matrícula e o nome do login no Aluno Online, com a Play Integrity
- * sobre esses campos, e recebe uma sessão que vai em cada pedido. O hash do
- * pedido é o mesmo do servidor (server/src/modules/students/domain.ts).
+ * (no iPhone, o App Attest) sobre esses campos, e recebe uma sessão que vai
+ * em cada pedido. O hash do pedido é o mesmo do servidor
+ * (server/src/modules/students/domain.ts).
  */
 
 /** Os bytes que o hash do pedido usa (o SHA-256 da plataforma). */
@@ -29,9 +30,10 @@ export const normalizeName = (name: string) =>
   name.normalize('NFC').replace(/\s+/g, ' ').trim();
 
 /**
- * O `requestHash` da Play Integrity para entrar: o SHA-256, em hex, do
- * rótulo, do desafio, da instalação, da matrícula e do nome. A atestação vale
- * só para esta matrícula, neste aparelho, agora.
+ * O `requestHash` da atestação para entrar: o SHA-256, em hex, do rótulo,
+ * do desafio, da instalação, da matrícula e do nome. A Play Integrity o
+ * recebe assim; o App Attest, os 32 bytes dele (o `clientDataHash`). A
+ * atestação vale só para esta matrícula, neste aparelho, agora.
  */
 export function sessionRequestHash(
   crypto: SessionCrypto,

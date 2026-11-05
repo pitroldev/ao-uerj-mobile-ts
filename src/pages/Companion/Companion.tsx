@@ -29,7 +29,7 @@ import { useBackHandler } from '@hooks/useBackHandler';
 import { useNow } from '@features/AttendedClassesSchedule/useNow';
 import {
   HowItWorksSheet,
-  PROOF_WAIT_TEXT,
+  proofWaitText,
   type HowItWorksItem,
 } from '@features/HowItWorks/HowItWorksSheet';
 import {
@@ -382,7 +382,7 @@ function CompanionScreen({
       <EmptyState
         icon="lock"
         title="Confirmando que você é aluno"
-        text={PROOF_WAIT_TEXT}
+        text={proofWaitText()}
         action={{
           label: 'Tentar de novo',
           icon: 'refresh',

@@ -3,6 +3,7 @@ import { AppError } from '@root/shared/errors/AppError';
 import { fromBase64, toBase64 } from '@root/modules/trust/domain/bytes';
 import type { StudentBan } from '@root/modules/trust/domain/studentSession';
 import type {
+  DeviceProof,
   SessionCreation,
   StudentSessionApiPort,
 } from '@root/modules/trust/application/ports';
@@ -16,6 +17,18 @@ import type {
 import type { PrivateApiHttpClient } from './index';
 
 const encode = (value: Uint8Array) => toBase64(value, { url: true });
+
+/**
+ * A prova do aparelho no campo do contrato: vai uma só, o token da Play
+ * (Android) ou o App Attest (iPhone).
+ */
+function proofFields(
+  proof: DeviceProof,
+): Pick<StudentSessionRequest, 'integrityToken' | 'appAttest'> {
+  if ('token' in proof) return { integrityToken: proof.token };
+  const { keyId, attestation } = proof.appAttest;
+  return { appAttest: { keyId, attestation } };
+}
 
 /** A falha que não é uma recusa do servidor: rede ou resposta inesperada. */
 function failure(error: unknown): AppError {
@@ -60,7 +73,8 @@ function refusal(error: unknown): SessionCreation | null {
 
 /**
  * A identificação do aluno (`/aouerj/v2/students`): o desafio, a entrada e a
- * saída. Os bytes vão em base64url com o `=` do fim.
+ * saída. Os bytes vão em base64url com o `=` do fim; os do App Attest, em
+ * base64 padrão, como a Apple os dá.
  */
 export function createStudentSessionApi(
   client: PrivateApiHttpClient,
@@ -87,7 +101,7 @@ export function createStudentSessionApi(
         const { data } = await client.post('/v2/students/session', {
           challenge: encode(request.challenge),
           installation: encode(request.installation),
-          integrityToken: request.integrityToken,
+          ...proofFields(request.proof),
           matricula: request.matricula,
           name: request.name,
         } satisfies StudentSessionRequest);

@@ -23,8 +23,11 @@ function setup({
     matricula: ' 201810012345 ',
     name: 'MARINA  COSTA',
   },
+  device = 'play',
 }: {
   account?: Account | null;
+  /** Quem atesta: a Play Integrity (Android) ou o App Attest (iPhone). */
+  device?: 'play' | 'appAttest';
 } = {}) {
   let current = account;
   let saved: StoredSession | null = null;
@@ -53,9 +56,11 @@ function setup({
     })),
     end: jest.fn<Promise<void>, [string]>(async () => undefined),
   };
-  const attest = jest.fn<Promise<Attestation>, [string]>(async hash => ({
-    token: `play:${hash}`,
-  }));
+  const attest = jest.fn<Promise<Attestation>, [string]>(async hash =>
+    device === 'play'
+      ? { token: `play:${hash}` }
+      : { appAttest: { keyId: `key:${hash}`, attestation: 'cbor' } },
+  );
   const session = new StudentSession({
     api,
     device: { crypto: testCrypto, attest },
@@ -100,7 +105,7 @@ it('signs in once with the attested matrícula and name, and reuses the session'
     matricula: '201810012345',
     name: 'MARINA COSTA',
   });
-  expect(request.integrityToken).toBe(`play:${attest.mock.calls[0][0]}`);
+  expect(request.proof).toEqual({ token: `play:${attest.mock.calls[0][0]}` });
   expect(attest).toHaveBeenCalledWith(
     sessionRequestHash(testCrypto, {
       challenge: CHALLENGE,
@@ -113,6 +118,70 @@ it('signs in once with the attested matrícula and name, and reuses the session'
   expect(fromBase64(installation()!)).toEqual(request.installation);
   await expect(session.token()).resolves.toBe('token-1');
   expect(api.create).toHaveBeenCalledTimes(1);
+});
+
+it('signs in on the iPhone with App Attest over the same request hash', async () => {
+  const { session, api, attest } = setup({ device: 'appAttest' });
+  await expect(session.token()).resolves.toBe('token-1');
+  const request = api.create.mock.calls[0][0];
+  const hash = attest.mock.calls[0][0];
+  expect(hash).toBe(
+    sessionRequestHash(testCrypto, {
+      challenge: CHALLENGE,
+      installation: request.installation,
+      matricula: '201810012345',
+      name: 'MARINA COSTA',
+    }),
+  );
+  // a chave nova e a atestação vão no lugar do token da Play
+  expect(request.proof).toEqual({
+    appAttest: { keyId: `key:${hash}`, attestation: 'cbor' },
+  });
+  expect(request).toMatchObject({
+    matricula: '201810012345',
+    name: 'MARINA COSTA',
+  });
+  await expect(session.token()).resolves.toBe('token-1');
+  expect(attest).toHaveBeenCalledTimes(1);
+});
+
+it.each([
+  ['Apple busy', { failure: 'transient' } as const, RETRY_AFTER_MS.transient],
+  [
+    'no App Attest on the device',
+    { failure: 'unavailable' } as const,
+    RETRY_AFTER_MS.refused,
+  ],
+])(
+  'with App Attest, after %s, waits as long as on Android',
+  async (_, failure, wait) => {
+    const ctx = setup({ device: 'appAttest' });
+    ctx.attest.mockResolvedValueOnce(failure);
+    const first = await ctx.session.token().catch((caught: unknown) => caught);
+    expect(first).toEqual(new AppError('STUDENT_PROOF_UNAVAILABLE'));
+    expect(ctx.api.create).not.toHaveBeenCalled();
+    ctx.advance(wait - 1);
+    await expect(ctx.session.token()).rejects.toBe(first);
+    expect(ctx.attest).toHaveBeenCalledTimes(1);
+    ctx.advance(1);
+    await expect(ctx.session.token()).resolves.toBe('token-1');
+  },
+);
+
+it('with App Attest refused on the server, waits an hour before a new key', async () => {
+  const ctx = setup({ device: 'appAttest' });
+  ctx.api.create.mockResolvedValueOnce({
+    created: false,
+    refusal: 'attestation_failed',
+  });
+  const first = await ctx.session.token().catch((caught: unknown) => caught);
+  expect(first).toEqual(new AppError('STUDENT_PROOF_UNAVAILABLE'));
+  ctx.advance(RETRY_AFTER_MS.refused - 1);
+  await expect(ctx.session.token()).rejects.toBe(first);
+  expect(ctx.attest).toHaveBeenCalledTimes(1);
+  ctx.advance(1);
+  await expect(ctx.session.token()).resolves.toBe('token-1');
+  expect(ctx.attest).toHaveBeenCalledTimes(2);
 });
 
 it('signs in again after the server refused the session, and for another account', async () => {

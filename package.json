@@ -99,6 +99,7 @@
     },
     "ios": {
       "modulesProvider": {
+        "AppAttest": "AppAttestModule",
         "AppNotifications": "AppNotificationsModule",
         "HomeWidget": "HomeWidgetModule",
         "SecureVault": "SecureVaultModule"

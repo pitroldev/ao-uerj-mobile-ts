@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import {
   fireEvent,
   screen,
@@ -358,17 +359,38 @@ it('invites the class when nobody opened a table yet', async () => {
   ).toBeOnTheScreen();
 });
 
-it('explains when the app cannot prove the student yet', async () => {
+it('explains when the app cannot prove the student yet, in the words of each system', async () => {
   mockServer.pass.mockRejectedValue(new AppError('STUDENT_PROOF_UNAVAILABLE'));
+  // o Jest roda como iPhone: lá, a confirmação passa pela Apple
   await renderPage();
   expect(
     await screen.findByText('Confirmando que você é aluno'),
   ).toBeOnTheScreen();
   expect(
     screen.getByText(
-      'Leva alguns segundos. Sem a Play Store no celular, não dá para confirmar.',
+      'Leva alguns segundos. Sem internet, não dá para confirmar.',
     ),
   ).toBeOnTheScreen();
+  await screen.unmount();
+
+  const originalOS = Platform.OS;
+  Object.defineProperty(Platform, 'OS', {
+    value: 'android',
+    configurable: true,
+  });
+  try {
+    await renderPage();
+    expect(
+      await screen.findByText(
+        'Leva alguns segundos. Sem a Play Store no celular, não dá para confirmar.',
+      ),
+    ).toBeOnTheScreen();
+  } finally {
+    Object.defineProperty(Platform, 'OS', {
+      value: originalOS,
+      configurable: true,
+    });
+  }
 });
 
 it('says who gets in in one line, and the rest only under "Como funciona"', async () => {

@@ -46,8 +46,8 @@ function valid(raw: unknown, now: number): raw is Request {
 /**
  * "Avisar quando voltar": com o portal fora do ar, o aluno pede um aviso. Com
  * o app na tela, quem avisa é a própria tela quando o portal responde; fora
- * dela, o Android roda uma tarefa a cada 15 minutos que só testa o portal e
- * avisa uma vez.
+ * dela, uma tarefa que só testa o portal e avisa uma vez: a cada 15 minutos
+ * no Android e quando o iOS deixar no iPhone.
  */
 export class PortalReturnAlert {
   private snapshot: PortalReturnSnapshot = { scope: null, requested: false };
@@ -107,7 +107,8 @@ export class PortalReturnAlert {
   /**
    * Tarefa sem tela: com o pedido vigente, testa o portal e avisa uma vez
    * quando ele responde. Sem pedido (já avisado, logout, vencido), para a
-   * tarefa.
+   * tarefa. No iPhone, a rodada nem começa com a tela bloqueada, quando a
+   * conta salva no Keychain não abre (AppDelegate.swift).
    */
   async checkInBackground(): Promise<'notified' | 'waiting' | 'stopped'> {
     const { store, savedScope, remote, probe, device, now } = this.dependencies;

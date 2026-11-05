@@ -19,6 +19,17 @@ type NativeNotification = {
   target: string;
 };
 
+/** Uma rodada da verificação em segundo plano no iPhone (BGTaskScheduler). */
+type BackgroundTask = {
+  /** O mesmo id volta em `setTaskCompleted`. */
+  id: string;
+  /**
+   * `return` ("Avisar quando voltar") e `check` (a verificação no portal),
+   * nessa ordem: os que venceram nesta rodada.
+   */
+  modes: Array<string>;
+};
+
 export interface Spec extends TurboModule {
   /** Avisos liberados para o app (permissão do Android 13+ e chave do sistema). */
   areNotificationsEnabled(): Promise<boolean>;
@@ -56,17 +67,32 @@ export interface Spec extends TurboModule {
    * (os lembretes delas já pararam); lidos uma vez.
    */
   consumeDoneEvaluations(): Promise<Array<string>>;
-  /** Liga (a cada `intervalHours`) ou desliga a verificação no portal. */
+  /**
+   * Liga (a cada `intervalHours`) ou desliga a verificação no portal. No
+   * iPhone, o intervalo é o mínimo: o iOS decide quando a rodada acontece.
+   */
   setPortalCheck(enabled: boolean, intervalHours: number): Promise<void>;
   /**
    * Liga ou desliga o teste do portal a cada 15 min, com rede, para o aviso
-   * "Avisar quando voltar" (a mesma tarefa sem tela, no modo `return`).
+   * "Avisar quando voltar" (a mesma tarefa sem tela, no modo `return`). No
+   * iPhone, 15 min é o mínimo, como na verificação.
    */
   setPortalReturnWatch(enabled: boolean): Promise<void>;
   /**
+   * iPhone: o JS já assina `onBackgroundTask` e `onBackgroundTaskExpired`, e
+   * o módulo entrega as rodadas guardadas e as próximas. No Android, nada: o
+   * WorkManager inicia a tarefa sem tela.
+   */
+  listenBackgroundTasks(): Promise<void>;
+  /**
+   * iPhone: a rodada `taskId` terminou, e o iOS pode suspender o app logo
+   * depois. No Android, nada.
+   */
+  setTaskCompleted(taskId: string, success: boolean): Promise<void>;
+  /**
    * Liga ou desliga a leitura da lista da Companhia agora a cada 15 min, com
    * rede, para o "Me avise se abrirem" (a mesma tarefa sem tela, no modo
-   * `companion`).
+   * `companion`). No iPhone, nada.
    */
   setCompanionWatch(enabled: boolean): Promise<void>;
   /**
@@ -84,6 +110,13 @@ export interface Spec extends TurboModule {
   consumeLaunchTarget(): Promise<string | null>;
   /** Aviso tocado com o app em memória: o destino se lê com `consumeLaunchTarget`. */
   readonly onOpenTarget: CodegenTypes.EventEmitter<string>;
+  /**
+   * iPhone: uma rodada em segundo plano começou (o app pode ter aberto só
+   * para ela, sem tela). Só depois de `listenBackgroundTasks`.
+   */
+  readonly onBackgroundTask: CodegenTypes.EventEmitter<BackgroundTask>;
+  /** iPhone: o tempo da rodada (o id) acabou; o JS para e a encerra. */
+  readonly onBackgroundTaskExpired: CodegenTypes.EventEmitter<string>;
 }
 
 /**

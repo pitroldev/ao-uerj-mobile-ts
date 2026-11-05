@@ -49,6 +49,11 @@ function setup(
   preferences: Record<string, unknown>,
   disabled: string[] = [],
   device = createDevice(),
+  /** A Companhia agora e o Agora no campus, quando o teste precisa deles. */
+  extra: Pick<
+    Parameters<typeof createNotifications>[0],
+    'companion' | 'campusNow'
+  > = {},
 ) {
   let state: IdentityState = {
     status: 'restoring',
@@ -126,6 +131,7 @@ function setup(
     savedScope: async () => identity.getSnapshot().account?.scope ?? null,
     probePortal: async () => true,
     device,
+    ...extra,
   });
   const key = (resource: string) =>
     academicKeys.resource(ACCOUNT.scope, ACCOUNT.period, resource);
@@ -270,7 +276,40 @@ it('drops the PF reminders when new grades exempt the student', async () => {
   expect(device.state.evaluations).toEqual({ reminders: [] });
 });
 
-it('leaves the portal tasks out where the device has no background checks (iOS)', async () => {
+it('has the portal tasks but not the 15-minute watches on the iPhone', () => {
+  // só o que a composição usa ao montar; nada é lido antes do login
+  const extra = {
+    companion: {
+      load: jest.fn(async () => undefined),
+      getSnapshot: jest.fn(),
+      subscribe: jest.fn(() => () => undefined),
+      list: jest.fn(),
+    },
+    campusNow: {
+      supported: true,
+      load: jest.fn(async () => undefined),
+      getSnapshot: jest.fn(),
+      subscribe: jest.fn(() => () => undefined),
+      list: jest.fn(),
+    },
+  } as unknown as Parameters<typeof setup>[3];
+  const android = setup({ grades: true }, [], createDevice(), extra);
+  expect(android.notifications.companionWatch).not.toBeNull();
+  expect(android.notifications.campusWatch).not.toBeNull();
+
+  const iphone = setup(
+    { grades: true },
+    [],
+    createDevice({ frequentWatches: false }),
+    extra,
+  );
+  expect(iphone.notifications.portalCheck).not.toBeNull();
+  expect(iphone.notifications.portalReturn).not.toBeNull();
+  expect(iphone.notifications.companionWatch).toBeNull();
+  expect(iphone.notifications.campusWatch).toBeNull();
+});
+
+it('leaves the portal tasks out where the device has no background checks', async () => {
   const { notifications, queryClient, device, signIn, key } = setup(
     { classReminders: true, grades: true },
     [],

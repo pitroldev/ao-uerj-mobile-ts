@@ -29,7 +29,7 @@ import { useNow } from '@features/AttendedClassesSchedule/useNow';
 import { StillThereCard } from '@features/CampusNow/StillThereCard';
 import {
   HowItWorksSheet,
-  PROOF_WAIT_TEXT,
+  proofWaitText,
   type HowItWorksItem,
 } from '@features/HowItWorks/HowItWorksSheet';
 import { useAppServices } from '@root/app/providers/AppServicesProvider';
@@ -365,7 +365,7 @@ function LiveView({
       <EmptyState
         icon="lock"
         title="Confirmando que você é aluno"
-        text={PROOF_WAIT_TEXT}
+        text={proofWaitText()}
         action={{
           label: 'Tentar de novo',
           icon: 'refresh',
@@ -506,7 +506,7 @@ function LiveView({
 
         <Notes>
           {alerts.supported &&
-          alerts.backgroundChecks &&
+          alerts.frequentWatches &&
           alerts.ready &&
           alerts.preferences.campusAlerts &&
           alerts.permission !== null &&

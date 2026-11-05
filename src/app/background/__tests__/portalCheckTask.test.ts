@@ -203,6 +203,31 @@ it('joins a check already running instead of starting another', async () => {
   expect(check.run).toHaveBeenCalledTimes(2);
 });
 
+it('stops the pages when the caller aborts, as the end of an iPhone round does', async () => {
+  const { task, calls, check } = setup();
+  const round = new AbortController();
+  let seen: AbortSignal | undefined;
+  check.run.mockImplementationOnce(async (options?: unknown) => {
+    seen = (options as { signal: AbortSignal }).signal;
+    round.abort();
+    return 'failed';
+  });
+  await task(null, round.signal);
+  expect(seen?.aborted).toBe(true);
+  // o que já foi lido fica salvo
+  expect(calls).toContain('flush');
+
+  // uma rodada que já chegou sem tempo não deixa as páginas consultarem
+  const late = new AbortController();
+  late.abort();
+  check.run.mockImplementationOnce(async (options?: unknown) => {
+    seen = (options as { signal: AbortSignal }).signal;
+    return 'failed';
+  });
+  await task(null, late.signal);
+  expect(seen?.aborted).toBe(true);
+});
+
 it('only tests the portal in the return mode, without signing in', async () => {
   const { task, calls, source, portalReturn } = setup();
   await task({ mode: 'return' });

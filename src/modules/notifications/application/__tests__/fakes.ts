@@ -33,12 +33,15 @@ export function createDevice({
   request = 'granted',
   exactAlarms = true,
   backgroundChecks = true,
+  frequentWatches = backgroundChecks,
 }: {
   permission?: PermissionState;
   request?: PermissionState;
   exactAlarms?: boolean;
-  /** `false` como no iOS: só os lembretes de aula. */
+  /** `false`: só os lembretes, sem as tarefas no portal. */
   backgroundChecks?: boolean;
+  /** `false` como no iPhone: sem as leituras a cada 15 minutos. */
+  frequentWatches?: boolean;
 } = {}) {
   const state: {
     permission: PermissionState;
@@ -55,6 +58,7 @@ export function createDevice({
   const device = {
     state,
     backgroundChecks,
+    frequentWatches,
     permission: jest.fn(async () => state.permission),
     requestPermission: jest.fn(async () => {
       state.permission = request;

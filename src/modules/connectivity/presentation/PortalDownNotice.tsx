@@ -12,8 +12,8 @@ type Props = {
 
 /**
  * O portal não responde com a internet funcionando: de quando, se é de
- * todos, a próxima tentativa, "Tentar agora" e, no Android, "Avisar quando
- * voltar".
+ * todos, a próxima tentativa, "Tentar agora" e, onde há a tarefa sem tela
+ * (Android e iPhone), "Avisar quando voltar".
  */
 export function PortalDownNotice({ suffix = '', style }: Props) {
   const status = usePortalStatus();

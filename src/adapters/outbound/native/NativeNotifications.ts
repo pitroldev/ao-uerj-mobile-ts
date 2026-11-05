@@ -22,10 +22,11 @@ type Options = {
 
 /**
  * Avisos pelo módulo nativo local. No Android: canais, lembretes com
- * AlarmManager e as tarefas no portal com WorkManager. No iOS: lembretes de
- * aula agendados no UNUserNotificationCenter, sem tarefas no portal (o iOS
- * não garante quando uma tarefa em segundo plano roda). `null` onde o módulo
- * não existe.
+ * AlarmManager e as tarefas sem tela com WorkManager. No iOS: lembretes
+ * agendados no UNUserNotificationCenter e a verificação no portal e "Avisar
+ * quando voltar" pelo BGTaskScheduler, quando o iOS deixar (sem as leituras a
+ * cada 15 minutos da Companhia agora e do Agora no campus). `null` onde o
+ * módulo não existe.
  */
 export function createNativeNotifications(
   module: Spec | null | undefined = NativeAppNotifications,
@@ -39,7 +40,8 @@ export function createNativeNotifications(
   const enabled = async () =>
     (await module.areNotificationsEnabled()) ? 'granted' : 'denied';
   return {
-    backgroundChecks: os === 'android',
+    backgroundChecks: os === 'android' || os === 'ios',
+    frequentWatches: os === 'android',
     permission: enabled,
     async requestPermission(): Promise<PermissionState> {
       if ((await enabled()) === 'granted') return 'granted';

@@ -67,7 +67,7 @@ export function errorMessage(error: unknown): string {
       'Esta página não está disponível para sua conta no Aluno Online agora.',
     INVALID_INPUT: 'Confira os dados informados.',
     STUDENT_PROOF_UNAVAILABLE:
-      'Não foi possível confirmar agora que você é aluno da UERJ. Abra o app com a internet ligada e tente de novo mais tarde. Em iPhone e em aparelhos sem a Play Store, essa função ainda não abre.',
+      'Não foi possível confirmar agora que você é aluno da UERJ. Abra o app com a internet ligada e tente de novo mais tarde. Essa função só abre no app baixado da loja.',
     STUDENT_BANNED:
       'Sua conta está suspensa no AO UERJ por uma denúncia. Mural, docentes, Companhia e gerador de grades voltam quando a suspensão acabar.',
   };

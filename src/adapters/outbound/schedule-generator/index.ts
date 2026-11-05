@@ -42,8 +42,8 @@ const sessionRefused = (error: unknown) =>
 
 /**
  * O gerador de grades. Com a sessão de aluno, cada geração conta para o
- * aluno; sem como entrar agora (iPhone, sem rede para a atestação), segue sem
- * ela, como nos apps antigos. Banido, não gera, como no servidor.
+ * aluno; sem como entrar agora (simulador, sem rede para a atestação), segue
+ * sem ela, como nos apps antigos. Banido, não gera, como no servidor.
  */
 export function createScheduleGeneratorAdapter(
   transport: GeneratorTransport = createGeneratorTransport(),

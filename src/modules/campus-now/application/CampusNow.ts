@@ -33,7 +33,7 @@ export type CampusNowSnapshot = {
 };
 
 type Dependencies = {
-  /** `null` sem a sessão de aluno (iPhone, app fora da Play): nada funciona. */
+  /** `null` sem a sessão de aluno (simulador, app fora da loja): nada funciona. */
   server: CampusNowServerPort | null;
   store: CampusNowStorePort;
   account: () => { scope: string } | null | undefined;

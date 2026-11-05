@@ -6,7 +6,8 @@ export const PORTAL_CHECK_TASK = 'AoUerjPortalCheck';
 /**
  * Dados do PortalCheckWorker: `mode: 'return'` no teste de "Avisar quando
  * voltar"; `mode: 'companion'` no "Me avise se abrirem" da Companhia agora;
- * `mode: 'campus'` no Agora no campus.
+ * `mode: 'campus'` no Agora no campus. As rodadas do iPhone usam os mesmos
+ * (ver backgroundRounds.ts).
  */
 type TaskData = { mode?: string } | null;
 
@@ -14,15 +15,16 @@ type TaskData = { mode?: string } | null;
 const DEADLINE = 3 * 60 * 1000;
 
 /**
- * Verificação de avisos chamada pelo WorkManager com o app fora da tela.
- * Antes de qualquer acesso à rede, decide com o que está no aparelho
- * (horário, pausa, avisos ligados da conta salva, cópia salva do aviso
- * remoto); só então busca o aviso remoto, que pode desligar os avisos,
- * restaura a conta (o login da rodada) e consulta as páginas dos avisos
- * ligados.
+ * Verificação de avisos chamada pelo WorkManager (ou, no iPhone, pelo
+ * BGTaskScheduler) com o app fora da tela. Antes de qualquer acesso à rede,
+ * decide com o que está no aparelho (horário, pausa, avisos ligados da conta
+ * salva, cópia salva do aviso remoto); só então busca o aviso remoto, que
+ * pode desligar os avisos, restaura a conta (o login da rodada) e consulta as
+ * páginas dos avisos ligados. `signal` para as consultas antes do prazo (o
+ * fim da rodada do iPhone); o que já foi lido fica.
  */
 export function createPortalCheckTask(services: () => AppServices) {
-  const verify = async (data?: TaskData) => {
+  const verify = async (data?: TaskData, signal?: AbortSignal) => {
     const current = services();
     // "Avisar quando voltar": só o teste leve do portal, sem login
     if (data?.mode === 'return') {
@@ -51,6 +53,9 @@ export function createPortalCheckTask(services: () => AppServices) {
     if (!check) return;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), DEADLINE);
+    const stop = () => controller.abort();
+    signal?.addEventListener('abort', stop);
+    if (signal?.aborted) stop();
     try {
       // à noite, na pausa ou com os avisos desligados, nem o aviso remoto é
       // buscado: vale a cópia salva
@@ -73,6 +78,7 @@ export function createPortalCheckTask(services: () => AppServices) {
       // o próximo ciclo tenta de novo; nada a mostrar sem tela
     } finally {
       clearTimeout(timer);
+      signal?.removeEventListener('abort', stop);
       await current.flushCache().catch(() => undefined);
     }
   };
@@ -80,10 +86,12 @@ export function createPortalCheckTask(services: () => AppServices) {
   // exemplo) com o JS ainda consultando, e uma nova chamada esperaria a
   // anterior em vez de repetir as consultas e os avisos.
   let running: Promise<void> | null = null;
-  return (data?: TaskData) => {
-    running ??= verify(data).finally(() => {
+  return (data?: TaskData, signal?: AbortSignal) => {
+    running ??= verify(data, signal).finally(() => {
       running = null;
     });
     return running;
   };
 }
+
+export type PortalCheckTask = ReturnType<typeof createPortalCheckTask>;

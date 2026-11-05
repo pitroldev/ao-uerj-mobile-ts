@@ -127,7 +127,8 @@ export function createAppServices() {
   );
   const privateClient = createPrivateApiClient();
   // a sessão de aluno no servidor, no cofre: a matrícula e o nome da conta
-  // logada, atestados pela Play; o logout a encerra
+  // logada, atestados pela Play (no iPhone, pelo App Attest); o logout a
+  // encerra
   const studentSession = createStudentSession({
     vault,
     client: privateClient,

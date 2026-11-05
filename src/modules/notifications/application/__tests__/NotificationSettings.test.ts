@@ -105,7 +105,7 @@ it('loads the saved choices and schedules reminders and the portal check', async
   expect(device!.state.portal).toBe(true);
 });
 
-it('schedules only the reminders where there is no background check (iOS)', async () => {
+it('schedules only the reminders where there is no background check', async () => {
   const { settings, device, account } = setup({
     device: createDevice({ backgroundChecks: false }),
     saved: { classReminders: true, grades: true },

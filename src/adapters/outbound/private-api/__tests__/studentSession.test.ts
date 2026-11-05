@@ -24,7 +24,7 @@ function setup() {
 const request = {
   challenge: Uint8Array.of(1, 2, 3),
   installation: Uint8Array.of(250, 251),
-  integrityToken: 'play',
+  proof: { token: 'play' },
   matricula: '201810012345',
   name: 'MARINA COSTA',
 };
@@ -65,6 +65,31 @@ it('sends the sign-in in base64url and reads the session', async () => {
     matricula: '201810012345',
     name: 'MARINA COSTA',
   });
+});
+
+it('sends the App Attest of the iPhone instead of the Play token, as Apple gave it', async () => {
+  const { http, api } = setup();
+  http.post.mockResolvedValueOnce({
+    data: { session: 's'.repeat(43), expiresAt: '2026-12-03T12:00:00.000Z' },
+  });
+  await expect(
+    api.create({
+      ...request,
+      proof: {
+        appAttest: { keyId: 'a2V5+/8=', attestation: 'o2Nm+/dA==' },
+      },
+    }),
+  ).resolves.toMatchObject({ created: true });
+  // só a prova do iPhone, em base64 padrão (os outros bytes, em base64url)
+  const body = http.post.mock.calls[0][1];
+  expect(body).toEqual({
+    challenge: 'AQID',
+    installation: '-vs=',
+    appAttest: { keyId: 'a2V5+/8=', attestation: 'o2Nm+/dA==' },
+    matricula: '201810012345',
+    name: 'MARINA COSTA',
+  });
+  expect(body).not.toHaveProperty('integrityToken');
 });
 
 it('tells the refusals apart: challenge, attestation, ban and the server off', async () => {

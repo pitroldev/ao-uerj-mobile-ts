@@ -234,7 +234,7 @@ export function createPrivateApiAdapters(
           try {
             await student.post('/v2/reports', body);
           } catch (error) {
-            // sem a sessão (iPhone, aparelho sem a Play, fora da conta, a
+            // sem a sessão (simulador, aparelho sem a Play, fora da conta, a
             // entrada recusada), o relato ainda chega, pela rota antiga, sem
             // o aluno: é por ele que se sabe de um problema. O `AppError` é
             // o da sessão; a falha do envio em si vem do axios e não repete.

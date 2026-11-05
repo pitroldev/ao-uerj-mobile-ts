@@ -20,7 +20,6 @@ import { REMINDER_KEYS } from '@root/modules/evaluations/domain/evaluations';
 import { REMINDER_LABEL } from '@root/modules/evaluations/presentation/evaluationText';
 import { ScreenPanel } from '@templates/ScreenPanel';
 import { useNow } from '@features/AttendedClassesSchedule/useNow';
-import { CHECK_INTERVAL_HOURS } from '@root/modules/notifications/domain/checkState';
 import {
   REMINDER_LEADS,
   hasAnyNotification,
@@ -81,15 +80,16 @@ const Half = styled.View`
  * Notificações: lembrete antes da aula (grade salva, sem portal), lembretes
  * das avaliações anotadas (com os padrões das novas) e avisos do Aluno
  * Online (nota, RID e documento), cada um ligado pelo aluno. Os avisos do
- * Aluno Online dependem da verificação em segundo plano, que só o Android
- * tem; no iPhone a tela mostra os lembretes.
+ * Aluno Online dependem da verificação em segundo plano: no Android, a cada
+ * `CHECK_INTERVAL_HOURS` horas; no iPhone, quando o iOS deixar, e a tela diz
+ * isso (`systemTexts`).
  */
 export function NotificationsPage() {
   const { snapshot, settings } = useNotificationSettings();
   // a Companhia agora existe só onde o app entra como aluno (Android da loja)
   const services = useAppServices();
   const companionSupported = services.companion.supported;
-  // o Agora no campus também, e só com a tarefa sem tela (Android)
+  // o Agora no campus também, e só com a leitura a cada 15 minutos (Android)
   const campusSupported = services.campusNow.supported;
   const { preferences, permission, exactAlarms, check, ready } = snapshot;
   // a tela continua montada no menu: "hoje" e a pausa acompanham o relógio
@@ -330,7 +330,7 @@ export function NotificationsPage() {
         </Section>
       ) : null}
 
-      {campusSupported && snapshot.backgroundChecks ? (
+      {campusSupported && snapshot.frequentWatches ? (
         <Section title="Agora no campus">
           <List>
             {row(
@@ -343,10 +343,7 @@ export function NotificationsPage() {
       ) : null}
 
       {snapshot.backgroundChecks ? (
-        <Section
-          title="Aluno Online"
-          description={`O app consulta o portal a cada ${CHECK_INTERVAL_HOURS} horas, das 7h às 22h, com a conta salva neste aparelho.`}
-        >
+        <Section title="Aluno Online" description={texts.checkSchedule}>
           <List>
             {row(
               'grades',
@@ -374,6 +371,11 @@ export function NotificationsPage() {
           {usesPortalChecks(preferences) ? (
             <Status variant="meta" tone="muted">
               {checkStatusText(check, now)}
+            </Status>
+          ) : null}
+          {texts.checkNote ? (
+            <Status variant="meta" tone="muted">
+              {texts.checkNote}
             </Status>
           ) : null}
         </Section>

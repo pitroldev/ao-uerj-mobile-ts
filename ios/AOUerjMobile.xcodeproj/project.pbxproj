@@ -33,6 +33,8 @@
 		C0DE00000000000000000007 /* SecureVaultModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000006 /* SecureVaultModule.mm */; };
 		C0DE00000000000000000009 /* AppNotificationsModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000008 /* AppNotificationsModule.mm */; };
 		C0DE0000000000000000000B /* HomeWidgetModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0DE0000000000000000000A /* HomeWidgetModule.mm */; };
+		C0DE00000000000000000061 /* AppAttestModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000060 /* AppAttestModule.mm */; };
+		C0DE00000000000000000063 /* DeviceCheck.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000062 /* DeviceCheck.framework */; };
 		C0DE00000000000000000011 /* NextClassWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000010 /* NextClassWidget.swift */; };
 		C0DE00000000000000000015 /* NextClassWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000014 /* NextClassWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
@@ -91,6 +93,8 @@
 		C0DE00000000000000000006 /* SecureVaultModule.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = SecureVaultModule.mm; path = AOUerjMobile/Native/SecureVaultModule.mm; sourceTree = "<group>"; };
 		C0DE00000000000000000008 /* AppNotificationsModule.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = AppNotificationsModule.mm; path = AOUerjMobile/Native/AppNotificationsModule.mm; sourceTree = "<group>"; };
 		C0DE0000000000000000000A /* HomeWidgetModule.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = HomeWidgetModule.mm; path = AOUerjMobile/Native/HomeWidgetModule.mm; sourceTree = "<group>"; };
+		C0DE00000000000000000060 /* AppAttestModule.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = AppAttestModule.mm; path = AOUerjMobile/Native/AppAttestModule.mm; sourceTree = "<group>"; };
+		C0DE00000000000000000062 /* DeviceCheck.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceCheck.framework; path = System/Library/Frameworks/DeviceCheck.framework; sourceTree = SDKROOT; };
 		C0DE0000000000000000000C /* AOUerjMobile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = AOUerjMobile.entitlements; path = AOUerjMobile/AOUerjMobile.entitlements; sourceTree = "<group>"; };
 		C0DE00000000000000000010 /* NextClassWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NextClassWidget.swift; path = NextClassWidget/NextClassWidget.swift; sourceTree = "<group>"; };
 		C0DE00000000000000000012 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = NextClassWidget/Info.plist; sourceTree = "<group>"; };
@@ -103,6 +107,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0DE00000000000000000063 /* DeviceCheck.framework in Frameworks */,
 				0C80B921A6F3F58F76C31292 /* libPods-aouerjmobile.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -140,6 +145,7 @@
 		C0DE00000000000000000020 /* Native */ = {
 			isa = PBXGroup;
 			children = (
+				C0DE00000000000000000060 /* AppAttestModule.mm */,
 				C0DE00000000000000000008 /* AppNotificationsModule.mm */,
 				C0DE0000000000000000000A /* HomeWidgetModule.mm */,
 				C0DE00000000000000000006 /* SecureVaultModule.mm */,
@@ -165,6 +171,7 @@
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				C0DE00000000000000000062 /* DeviceCheck.framework */,
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
 				5DCACB8F33CDC322A6C60F78 /* libPods-aouerjmobile.a */,
 			);
@@ -430,6 +437,7 @@
 				C0DE00000000000000000051 /* AppShortcuts.swift in Sources */,
 				C0DE00000000000000000002 /* LaunchCenter.swift in Sources */,
 				C0DE00000000000000000004 /* WidgetStore.swift in Sources */,
+				C0DE00000000000000000061 /* AppAttestModule.mm in Sources */,
 				C0DE00000000000000000009 /* AppNotificationsModule.mm in Sources */,
 				C0DE0000000000000000000B /* HomeWidgetModule.mm in Sources */,
 				C0DE00000000000000000007 /* SecureVaultModule.mm in Sources */,

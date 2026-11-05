@@ -13,9 +13,15 @@ export type PermissionState = 'granted' | 'denied' | 'blocked';
 export interface NotificationDevicePort {
   /**
    * Roda as tarefas sem tela no portal (verificação periódica e "Avisar
-   * quando voltar"): só no Android. No iOS ficam os lembretes de aula.
+   * quando voltar"): o WorkManager no Android e o BGTaskScheduler no iPhone,
+   * quando o iOS deixar (pode levar horas).
    */
   readonly backgroundChecks: boolean;
+  /**
+   * As leituras a cada 15 minutos da Companhia agora e do Agora no campus:
+   * só no Android. O iPhone não acorda o app com essa frequência.
+   */
+  readonly frequentWatches: boolean;
   permission(): Promise<PermissionState>;
   requestPermission(): Promise<PermissionState>;
   openSettings(): Promise<void>;
@@ -33,7 +39,10 @@ export interface NotificationDevicePort {
    * aparelho já parou os lembretes delas); lidas uma vez.
    */
   consumeDoneEvaluations(): Promise<string[]>;
-  /** Liga ou desliga a verificação periódica no portal (WorkManager). */
+  /**
+   * Liga ou desliga a verificação periódica no portal (WorkManager; no
+   * iPhone, o intervalo é o mínimo).
+   */
   setPortalCheck(enabled: boolean, intervalHours: number): Promise<void>;
   /** Liga ou desliga o teste do portal a cada 15 min ("Avisar quando voltar"). */
   setPortalReturnWatch(enabled: boolean): Promise<void>;

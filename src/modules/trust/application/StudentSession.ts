@@ -19,7 +19,10 @@ type Account = { scope: string; matricula: string; name: string };
 
 type Dependencies = {
   api: StudentSessionApiPort;
-  /** `null` onde não há atestação (iOS, módulo ausente): o app não entra. */
+  /**
+   * `null` onde não há atestação (simulador, módulo ausente): o app não
+   * entra. A Play Integrity no Android e o App Attest no iPhone.
+   */
   device: DeviceTrustPort | null;
   /** `null` sem o cofre: sem onde guardar a sessão, o app não entra. */
   store: StudentSessionStorePort | null;
@@ -32,15 +35,19 @@ const MINUTE = 60_000;
 
 /**
  * Quanto esperar para entrar de novo depois de cada recusa. Cada tentativa
- * gasta uma atestação da Play e uma decifração na cota do servidor: as telas
- * que perguntam de tempos em tempos não podem repetir a entrada toda vez.
+ * gasta uma atestação (da Play ou da Apple) e uma verificação na cota do
+ * servidor: as telas que perguntam de tempos em tempos não podem repetir a
+ * entrada toda vez.
  */
 export const RETRY_AFTER_MS = {
-  /** O app, a loja ou o aparelho não passaram, ou a Play não existe aqui. */
+  /**
+   * O app, a loja ou o aparelho não passaram, ou a Play (o App Attest) não
+   * existe aqui.
+   */
   refused: 60 * MINUTE,
   /** O servidor sem a identificação ou recusando o pedido. */
   server: 10 * MINUTE,
-  /** Play ocupada, limite do servidor, desafio vencido duas vezes. */
+  /** Play ou Apple ocupada, limite do servidor, desafio vencido duas vezes. */
   transient: MINUTE,
   /** Banido: confere de novo de hora em hora (a moderação pode desbanir). */
   banned: 60 * MINUTE,
@@ -51,10 +58,11 @@ type Refusal = { scope: string; until: number; error: AppError };
 
 /**
  * A sessão de aluno no servidor. Na primeira vez (e quando o servidor a
- * recusa), o app pede um desafio, a Play Integrity atesta a matrícula e o
- * nome do login, e o servidor devolve a sessão, guardada no cofre. Daí em
- * diante, cada pedido de aluno leva `Authorization: Student <sessão>`.
- * O logout encerra a sessão no servidor e a apaga.
+ * recusa), o app pede um desafio, a Play Integrity (no iPhone, o App Attest)
+ * atesta a matrícula e o nome do login, e o servidor devolve a sessão,
+ * guardada no cofre. Daí em diante, cada pedido de aluno leva
+ * `Authorization: Student <sessão>`. O logout encerra a sessão no servidor e
+ * a apaga.
  */
 export class StudentSession {
   private entering: { scope: string; promise: Promise<string> } | null = null;
@@ -62,7 +70,7 @@ export class StudentSession {
 
   constructor(private readonly dependencies: Dependencies) {}
 
-  /** O aparelho consegue entrar: tem quem ateste (Android) e onde guardar. */
+  /** O aparelho consegue entrar: tem quem ateste e onde guardar a sessão. */
   get supported(): boolean {
     return Boolean(this.dependencies.device && this.dependencies.store);
   }
@@ -172,7 +180,7 @@ export class StudentSession {
           name,
         }),
       );
-      if (!('token' in attestation))
+      if ('failure' in attestation)
         throw this.refuse(
           scope,
           unavailable(),
@@ -185,7 +193,7 @@ export class StudentSession {
         result = await api.create({
           challenge,
           installation,
-          integrityToken: attestation.token,
+          proof: attestation,
           matricula,
           name,
         });

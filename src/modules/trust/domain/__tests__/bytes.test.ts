@@ -2,6 +2,7 @@ import {
   ascii,
   concat,
   fromBase64,
+  fromHex,
   toBase64,
   toHex,
   u16,
@@ -65,5 +66,15 @@ describe('helpers', () => {
     ];
     for (const [text, encoded] of cases)
       expect(utf8(text)).toEqual(Uint8Array.from(encoded));
+  });
+
+  it('reads hex back, in either case, and refuses what is not hex', () => {
+    expect(fromHex('000fff')).toEqual(bytes(0, 15, 255));
+    expect(fromHex('ABcd')).toEqual(bytes(0xab, 0xcd));
+    expect(fromHex('')).toEqual(bytes());
+    const all = Uint8Array.from({ length: 256 }, (_, index) => index);
+    expect(fromHex(toHex(all))).toEqual(all);
+    for (const invalid of ['f', 'fg', '0x00', 'ab cd', '+1'])
+      expect(fromHex(invalid)).toBeNull();
   });
 });

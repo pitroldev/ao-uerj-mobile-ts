@@ -69,7 +69,7 @@ type Props = { schedule: readonly AttendedClassesSchedule[]; now: Date };
 export function CampusNowHome(props: Props) {
   const { campusNow } = useAppServices();
   const { status } = useRemoteStatus();
-  // sem a sessão de aluno (iPhone, app fora da loja) ou desligado pelo aviso remoto
+  // sem a sessão de aluno (simulador, app fora da loja) ou desligado pelo aviso remoto
   if (!campusNow.supported || isFeatureDisabled(status, 'campus')) return null;
   return <CampusSlot {...props} />;
 }

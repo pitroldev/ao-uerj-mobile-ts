@@ -72,6 +72,15 @@ export function toHex(bytes: Uint8Array): string {
   return out;
 }
 
+/** Lê hex (o `requestHash`), em maiúsculas ou minúsculas; `null` se não for. */
+export function fromHex(text: string): Uint8Array | null {
+  if (text.length % 2 !== 0 || !/^[0-9a-fA-F]*$/.test(text)) return null;
+  const out = new Uint8Array(text.length / 2);
+  for (let i = 0; i < out.length; i++)
+    out[i] = Number.parseInt(text.slice(i * 2, i * 2 + 2), 16);
+  return out;
+}
+
 export function concat(...parts: Uint8Array[]): Uint8Array {
   const out = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
   let offset = 0;

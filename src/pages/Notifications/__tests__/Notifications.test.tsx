@@ -134,7 +134,40 @@ it('explains a refused permission and keeps the switch off', async () => {
   expect(device.openSettings).toHaveBeenCalled();
 });
 
-it('shows only the class reminders on the iPhone, in its own words', async () => {
+it('says how often the Android checks the portal, with nothing else to ask', async () => {
+  await mount({ saved: { grades: true } });
+  expect(
+    screen.getByText(
+      'O app consulta o portal a cada 4 horas, das 7h às 22h, com a conta salva neste aparelho.',
+    ),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText(/Atualização em 2º Plano/)).toBeNull();
+});
+
+it('explains on the iPhone that iOS picks when the app looks at the portal', async () => {
+  setOS('ios');
+  const device = createDevice({ frequentWatches: false });
+  await mount({ device, saved: { grades: true } });
+  expect(
+    screen.getByText(
+      'O iPhone escolhe quando o app pode olhar o portal, das 7h às 22h, com a conta salva neste aparelho. Por isso, o aviso pode chegar horas depois.',
+    ),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText(
+      'Precisa da Atualização em 2º Plano ligada nos Ajustes. Se você fechar o app no seletor de apps, o iPhone só volta a olhar depois que você abrir o app de novo.',
+    ),
+  ).toBeOnTheScreen();
+  expect(row('Notas novas')).toBeChecked();
+  await userEvent.press(row('RID'));
+  await act(settle);
+  expect(row('RID')).toBeChecked();
+  expect(device.setPortalCheck).toHaveBeenLastCalledWith(true, 4);
+  // as palavras dos alunos: nada de "chamada"
+  expect(screen.queryAllByText(/chamada/i)).toHaveLength(0);
+});
+
+it('shows only the reminders where there is no background check, in the iPhone words', async () => {
   setOS('ios');
   const info = jest.spyOn(snackbar, 'info').mockImplementation(() => undefined);
   const device = createDevice({
@@ -310,10 +343,12 @@ it('turns the Agora no campus notices off where the app signs in as a student', 
 it('leaves the Agora no campus notices out without the student session or on the iPhone', async () => {
   await mount();
   expect(screen.queryByText('Avisos no caminho das aulas')).toBeNull();
+  // no iPhone, mesmo com a sessão de aluno: o iOS não acorda o app a cada 15 minutos
   mockCampus = true;
   setOS('ios');
   try {
-    await mount({ device: createDevice({ backgroundChecks: false }) });
+    await mount({ device: createDevice({ frequentWatches: false }) });
+    expect(screen.queryByText('Aluno Online')).toBeOnTheScreen();
     expect(screen.queryByText('Avisos no caminho das aulas')).toBeNull();
   } finally {
     mockCampus = false;

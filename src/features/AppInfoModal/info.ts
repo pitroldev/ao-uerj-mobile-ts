@@ -8,7 +8,7 @@ export const APP_INFO = [
     title: 'Agora no campus',
     icon: 'campaign',
     isNew: true,
-    // como a Companhia, depende da sessão de aluno (Android com a Play)
+    // como a Companhia, depende da sessão de aluno (Play ou App Attest)
     needsCompanion: true,
     description:
       'Elevador parado, fila do bandejão, falta de luz ou Wi-Fi fora: quem está no lugar avisa em dois toques, e quem vai passar por lá confirma ou diz que acabou. O app pergunta "ainda está lá?" pelo caminho da sua próxima aula.',
@@ -76,7 +76,7 @@ export const APP_INFO = [
   isNew?: boolean;
   /** Só onde o aparelho tem os avisos (módulo nativo). */
   needsNotifications?: boolean;
-  /** Só onde há a Companhia agora (o app entra como aluno pela Play). */
+  /** Só onde há a Companhia agora (o app entra como aluno). */
   needsCompanion?: boolean;
   description: string;
   /** A descrição sem a verificação no portal (no iPhone, só os lembretes). */

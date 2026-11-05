@@ -1,6 +1,6 @@
 import NativeDeviceTrust, { type Spec } from '@root/specs/NativeDeviceTrust';
-import { fromBase64, toBase64 } from '@root/modules/trust/domain/bytes';
 import type { DeviceTrustPort } from '@root/modules/trust/application/ports';
+import { platformCrypto } from './platformCrypto';
 
 /**
  * O número (não o id) do projeto do Google Cloud ligado ao app no Play
@@ -9,16 +9,10 @@ import type { DeviceTrustPort } from '@root/modules/trust/application/ports';
  */
 const CLOUD_PROJECT_NUMBER = '377368074507';
 
-function bytes(value: string): Uint8Array {
-  const decoded = fromBase64(value);
-  if (!decoded) throw new Error('the native module returned invalid base64');
-  return decoded;
-}
-
 /**
  * A Play Integrity e a criptografia da plataforma (SHA-2 e SecureRandom) pelo
- * módulo nativo local. `null` no iOS (o módulo só existe no Android) ou sem o
- * número do projeto.
+ * módulo nativo local. `null` no iOS (o módulo só existe no Android; lá, o
+ * App Attest) ou sem o número do projeto.
  */
 export function createNativeDeviceTrust(
   module: Spec | null | undefined = NativeDeviceTrust,
@@ -26,10 +20,7 @@ export function createNativeDeviceTrust(
 ): DeviceTrustPort | null {
   if (!module || !/^\d+$/.test(cloudProjectNumber)) return null;
   return {
-    crypto: {
-      sha256: data => bytes(module.digest('SHA-256', toBase64(data))),
-      randomBytes: length => bytes(module.randomBytes(length)),
-    },
+    crypto: platformCrypto(module),
     async attest(requestHash) {
       try {
         return {

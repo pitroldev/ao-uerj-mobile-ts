@@ -73,15 +73,18 @@ it('is absent where the native module does not exist', () => {
   expect(createNativeNotifications()).toBeNull();
 });
 
-it('runs the portal tasks only on Android', () => {
+it('runs the portal checks on Android and the iPhone, and the 15-minute watches only on Android', () => {
   const { module } = nativeModule();
-  expect(
-    createNativeNotifications(module, { os: 'android', apiLevel: 34 })!
-      .backgroundChecks,
-  ).toBe(true);
-  expect(
-    createNativeNotifications(module, { os: 'ios' })!.backgroundChecks,
-  ).toBe(false);
+  const android = createNativeNotifications(module, {
+    os: 'android',
+    apiLevel: 34,
+  })!;
+  expect(android.backgroundChecks).toBe(true);
+  expect(android.frequentWatches).toBe(true);
+  // o BGTaskScheduler, quando o iOS deixar
+  const ios = createNativeNotifications(module, { os: 'ios' })!;
+  expect(ios.backgroundChecks).toBe(true);
+  expect(ios.frequentWatches).toBe(false);
 });
 
 it.each([

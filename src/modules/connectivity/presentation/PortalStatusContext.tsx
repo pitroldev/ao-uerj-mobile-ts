@@ -11,6 +11,7 @@ import type {
   PortalReturnAlert,
   PortalReturnSnapshot,
 } from '@root/modules/notifications/application/PortalReturnAlert';
+import { systemTexts } from '@root/modules/notifications/presentation/systemTexts';
 import { PORTAL_UP } from '../domain/portalAvailability';
 import type {
   PortalMonitor,
@@ -18,7 +19,7 @@ import type {
 } from '../application/PortalMonitor';
 
 type PortalReturnRequest = {
-  /** Só no Android, onde há avisos nativos. */
+  /** Onde há a tarefa sem tela (Android e iPhone). */
   supported: boolean;
   requested: boolean;
   request: () => Promise<void>;
@@ -60,7 +61,7 @@ const noSnapshot = () => NONE;
 type Props = React.PropsWithChildren<{
   monitor: PortalMonitor;
   identity: Pick<IdentityController, 'subscribe' | 'getSnapshot'>;
-  /** "Avisar quando voltar" (`null` onde não há avisos nativos). */
+  /** "Avisar quando voltar" (`null` sem a tarefa sem tela). */
   alert: PortalReturnAlert | null;
 }>;
 
@@ -98,13 +99,19 @@ export function PortalStatusProvider({
           requested: alertSnapshot.scope === scope && alertSnapshot.requested,
           async request() {
             const result = await alert.request().catch(() => 'denied' as const);
-            if (result === 'requested')
-              snackbar.success('Vamos avisar quando o Aluno Online voltar.');
-            else
+            const texts = systemTexts();
+            if (result !== 'requested')
               snackbar.error(
                 'Não foi possível pedir o aviso.',
-                'Permita as notificações do AO UERJ nas configurações do Android.',
+                texts.returnDeniedHint,
               );
+            // no iPhone, quem escolhe a hora de olhar o portal é o iOS
+            else if (texts.returnRequestedHint)
+              snackbar.success(
+                'Vamos avisar quando o Aluno Online voltar.',
+                texts.returnRequestedHint,
+              );
+            else snackbar.success('Vamos avisar quando o Aluno Online voltar.');
           },
           cancel: () => alert.cancel(),
         }

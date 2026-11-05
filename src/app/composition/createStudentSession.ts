@@ -1,5 +1,6 @@
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
+import { createNativeAppAttest } from '@root/adapters/outbound/native/NativeAppAttest';
 import { createNativeDeviceTrust } from '@root/adapters/outbound/native/NativeDeviceTrust';
 import { createStudentSessionStore } from '@root/adapters/outbound/persistence/student-session-store';
 import type { SecureVault } from '@root/adapters/outbound/persistence/vault-storage';
@@ -15,14 +16,25 @@ const WARM_UP_MS = { min: 5_000, max: 30_000 };
 type Account = { scope: string; matricula: string; name: string };
 
 /**
- * A sessão de aluno no servidor: só onde há atestação (Android com a Play) e
- * o cofre. `account` é lida na hora de entrar (a conta logada).
+ * Quem atesta o app neste aparelho: o App Attest no iPhone, a Play Integrity
+ * no Android. `null` onde não há (simulador, módulo ausente).
+ */
+export function createDeviceTrust(
+  os: typeof Platform.OS = Platform.OS,
+): DeviceTrustPort | null {
+  return os === 'ios' ? createNativeAppAttest() : createNativeDeviceTrust();
+}
+
+/**
+ * A sessão de aluno no servidor: só onde há atestação (a Play no Android, o
+ * App Attest no iPhone) e o cofre. `account` é lida na hora de entrar (a
+ * conta logada).
  */
 export function createStudentSession({
   vault,
   client,
   account,
-  device = createNativeDeviceTrust(),
+  device = createDeviceTrust(),
 }: {
   vault: SecureVault | null;
   client: PrivateApiHttpClient;

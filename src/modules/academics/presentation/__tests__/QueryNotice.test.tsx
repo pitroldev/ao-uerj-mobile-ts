@@ -1,6 +1,8 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { act, fireEvent, screen } from '@testing-library/react-native';
 import { onlineManager } from '@tanstack/react-query';
+import { snackbar } from '@components/ui/Snackbar';
 import { PortalMonitor } from '@root/modules/connectivity/application/PortalMonitor';
 import { PortalStatusProvider } from '@root/modules/connectivity/presentation/PortalStatusContext';
 import type { PortalReturnAlert } from '@root/modules/notifications/application/PortalReturnAlert';
@@ -74,7 +76,7 @@ it('says the portal is not answering, keeps the data and offers to retry now', a
   expect(
     screen.queryByText(/Não foi possível atualizar/),
   ).not.toBeOnTheScreen();
-  // sem avisos nativos (iOS), sem "Avisar quando voltar"
+  // sem a tarefa sem tela (sem o módulo nativo), sem "Avisar quando voltar"
   expect(
     screen.queryByRole('button', {
       name: 'Avisar quando o Aluno Online voltar',
@@ -85,8 +87,8 @@ it('says the portal is not answering, keeps the data and offers to retry now', a
   expect(probe.mock.calls.length).toBe(before + 1);
 });
 
-it('offers the notice of when the portal comes back, where there are notifications', async () => {
-  const request = jest.fn(async () => 'requested' as const);
+function returnAlert(answer: 'requested' | 'denied' = 'requested') {
+  const request = jest.fn(async () => answer);
   const snapshot = { scope: null, requested: false };
   const alert = {
     subscribe: () => () => undefined,
@@ -95,6 +97,23 @@ it('offers the notice of when the portal comes back, where there are notificatio
     request,
     cancel: jest.fn(async () => undefined),
   } as unknown as PortalReturnAlert;
+  return { alert, request };
+}
+
+const originalOS = Platform.OS;
+const setOS = (value: typeof Platform.OS) =>
+  Object.defineProperty(Platform, 'OS', { value, configurable: true });
+afterEach(() => {
+  setOS(originalOS);
+  jest.restoreAllMocks();
+});
+
+it('offers the notice of when the portal comes back, where there are notifications', async () => {
+  setOS('android');
+  const success = jest
+    .spyOn(snackbar, 'success')
+    .mockImplementation(() => undefined);
+  const { alert, request } = returnAlert();
   const { monitor, render } = setup({ alert });
   await render(notice());
   await act(() => monitor.failed('unavailable'));
@@ -102,6 +121,45 @@ it('offers the notice of when the portal comes back, where there are notificatio
     screen.getByRole('button', { name: 'Avisar quando o Aluno Online voltar' }),
   );
   expect(request).toHaveBeenCalledTimes(1);
+  expect(success).toHaveBeenCalledWith(
+    'Vamos avisar quando o Aluno Online voltar.',
+  );
+});
+
+it('tells on the iPhone that the notice of the return may take a while', async () => {
+  setOS('ios');
+  const success = jest
+    .spyOn(snackbar, 'success')
+    .mockImplementation(() => undefined);
+  const { alert } = returnAlert();
+  const { monitor, render } = setup({ alert });
+  await render(notice());
+  await act(() => monitor.failed('unavailable'));
+  await fireEvent.press(
+    screen.getByRole('button', { name: 'Avisar quando o Aluno Online voltar' }),
+  );
+  expect(success).toHaveBeenCalledWith(
+    'Vamos avisar quando o Aluno Online voltar.',
+    'No iPhone, o aviso pode demorar: quem escolhe a hora de olhar é o iPhone.',
+  );
+});
+
+it('points to the iPhone settings when the notice cannot be requested', async () => {
+  setOS('ios');
+  const error = jest
+    .spyOn(snackbar, 'error')
+    .mockImplementation(() => undefined);
+  const { alert } = returnAlert('denied');
+  const { monitor, render } = setup({ alert });
+  await render(notice());
+  await act(() => monitor.failed('unavailable'));
+  await fireEvent.press(
+    screen.getByRole('button', { name: 'Avisar quando o Aluno Online voltar' }),
+  );
+  expect(error).toHaveBeenCalledWith(
+    'Não foi possível pedir o aviso.',
+    'Permita os avisos do AO UERJ nos Ajustes do iPhone.',
+  );
 });
 
 it('leaves the portal out of the notice of our own API', async () => {

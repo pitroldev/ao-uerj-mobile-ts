@@ -3,6 +3,14 @@
 #import <React/RCTInvalidating.h>
 #import <UIKit/UIKit.h>
 #import <UserNotifications/UserNotifications.h>
+// A fábrica do React Native (pod React-RCTAppDelegate), para a categoria do fim do arquivo.
+#if __has_include(<React-RCTAppDelegate/RCTReactNativeFactory.h>)
+#import <React-RCTAppDelegate/RCTReactNativeFactory.h>
+#elif __has_include(<React_RCTAppDelegate/RCTReactNativeFactory.h>)
+#import <React_RCTAppDelegate/RCTReactNativeFactory.h>
+#else
+#import <RCTReactNativeFactory.h>
+#endif
 
 /**
  * O que o módulo usa da `LaunchCenter` (Swift, `LaunchCenter.swift`), lida
@@ -17,6 +25,24 @@
 static id<AOLaunchCenterAPI> SharedLaunchCenter(void)
 {
   return [NSClassFromString(@"AOLaunchCenter") valueForKey:@"shared"];
+}
+
+/**
+ * O que o módulo usa da `BackgroundCheck` (Swift, `AppDelegate.swift`): os
+ * pedidos ao BGTaskScheduler e as rodadas em segundo plano. Lida pelo nome,
+ * como a `LaunchCenter`; os seletores são os `@objc(...)` de lá.
+ */
+@protocol AOBackgroundCheckAPI <NSObject>
+- (void)setPortalCheck:(BOOL)enabled intervalHours:(double)intervalHours;
+- (void)setReturnWatch:(BOOL)enabled;
+/** Cada bloco diz se o evento saiu; sem ele, a rodada espera o próximo módulo. */
+- (void)listen:(BOOL (^)(NSDictionary *round))deliver expire:(BOOL (^)(NSString *roundId))expire;
+- (void)complete:(NSString *)roundId success:(BOOL)success;
+@end
+
+static id<AOBackgroundCheckAPI> SharedBackgroundCheck(void)
+{
+  return [NSClassFromString(@"AOBackgroundCheck") valueForKey:@"shared"];
 }
 
 /** Lembretes de aula: prefixo dos ids, para trocá-los sem tocar nos outros avisos. */
@@ -59,9 +85,12 @@ static double AONumber(id value, double fallback)
  * AppNotificationsModule.kt do Android, nos limites do iOS: lembretes de
  * aula agendados como avisos de data única até `expiresAt`, lembretes das
  * avaliações (até 20 dos 60 lugares, com o "Já fiz" nos trabalhos),
- * avisos na hora e as aberturas pelo toque. Sem verificação em segundo plano
- * no iPhone: `setPortalCheck`, `setPortalReturnWatch`, `setCompanionWatch` e
- * `setCampusWatch` não fazem nada.
+ * avisos na hora e as aberturas pelo toque. A verificação no portal e
+ * "Avisar quando voltar" vão ao BGTaskScheduler (`BackgroundCheck`, no
+ * AppDelegate.swift), que entrega as rodadas ao JS pelos eventos
+ * `onBackgroundTask` e `onBackgroundTaskExpired`. As leituras a cada 15
+ * minutos (`setCompanionWatch` e `setCampusWatch`) não fazem nada: o iOS não
+ * acorda o app com essa frequência.
  */
 @interface AppNotificationsModule : NativeAppNotificationsSpecBase <NativeAppNotificationsSpec, RCTInvalidating>
 @end
@@ -130,6 +159,28 @@ static __weak AppNotificationsModule *gCurrentModule;
   if (_eventEmitterCallback) {
     [self emitOnOpenTarget:@"open"];
   }
+}
+
+/**
+ * Uma rodada em segundo plano para o JS (`{id, modes}`). `NO` se este
+ * módulo já saiu (reload) ou ainda não tem o callback: a rodada espera.
+ */
+- (BOOL)emitBackgroundRound:(NSDictionary *)round
+{
+  if (gCurrentModule != self || !_eventEmitterCallback) {
+    return NO;
+  }
+  [self emitOnBackgroundTask:round];
+  return YES;
+}
+
+- (BOOL)emitBackgroundRoundExpired:(NSString *)roundId
+{
+  if (gCurrentModule != self || !_eventEmitterCallback) {
+    return NO;
+  }
+  [self emitOnBackgroundTaskExpired:roundId];
+  return YES;
 }
 
 #pragma mark - Permissão e configurações
@@ -503,12 +554,15 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
   resolve(done);
 }
 
-// Sem verificação em segundo plano no iPhone (o iOS não garante horário).
+#pragma mark - Verificação em segundo plano
+
+// O intervalo é o mínimo: o iOS decide quando a rodada acontece.
 - (void)setPortalCheck:(BOOL)enabled
          intervalHours:(double)intervalHours
                resolve:(RCTPromiseResolveBlock)resolve
                 reject:(RCTPromiseRejectBlock)reject
 {
+  [SharedBackgroundCheck() setPortalCheck:enabled intervalHours:intervalHours];
   resolve(nil);
 }
 
@@ -516,10 +570,34 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
                      resolve:(RCTPromiseResolveBlock)resolve
                       reject:(RCTPromiseRejectBlock)reject
 {
+  [SharedBackgroundCheck() setReturnWatch:enabled];
   resolve(nil);
 }
 
-/** Sem tarefa sem tela no iPhone: o "Me avise" da Companhia nem aparece. */
+// O JS já assina os eventos: as rodadas guardadas (o app pode ter aberto só para elas) saem agora.
+- (void)listenBackgroundTasks:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
+{
+  __weak AppNotificationsModule *weakSelf = self;
+  [SharedBackgroundCheck()
+      listen:^BOOL(NSDictionary *round) {
+        return [weakSelf emitBackgroundRound:round];
+      }
+      expire:^BOOL(NSString *roundId) {
+        return [weakSelf emitBackgroundRoundExpired:roundId];
+      }];
+  resolve(nil);
+}
+
+- (void)setTaskCompleted:(NSString *)taskId
+                 success:(BOOL)success
+                 resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject
+{
+  [SharedBackgroundCheck() complete:taskId success:success];
+  resolve(nil);
+}
+
+/** Sem a leitura a cada 15 min no iPhone: o "Me avise" da Companhia não aparece (`frequentWatches`). */
 - (void)setCompanionWatch:(BOOL)enabled
                   resolve:(RCTPromiseResolveBlock)resolve
                    reject:(RCTPromiseRejectBlock)reject
@@ -527,7 +605,7 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
   resolve(nil);
 }
 
-/** Sem tarefa sem tela nem sessão de aluno no iPhone: o Agora no campus nem aparece. */
+/** Sem a leitura a cada 15 min no iPhone: o "ainda está lá?" do Agora no campus fica de fora (`frequentWatches`). */
 - (void)setCampusWatch:(BOOL)enabled
                resolve:(RCTPromiseResolveBlock)resolve
                 reject:(RCTPromiseRejectBlock)reject
@@ -563,6 +641,9 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
   [center removeAllDeliveredNotifications];
   // os "Já fiz" não lidos eram da conta que saiu
   [[NSUserDefaults standardUserDefaults] removeObjectForKey:kDoneKey];
+  // e o pedido de "Avisar quando voltar" também (o logout o apaga): sem isso,
+  // o iOS abriria o app só para o JS descobrir que não há pedido
+  [SharedBackgroundCheck() setReturnWatch:NO];
   resolve(nil);
 }
 
@@ -571,6 +652,33 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
 - (void)consumeLaunchTarget:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
 {
   resolve([SharedLaunchCenter() consume]);
+}
+
+@end
+
+/**
+ * O React Native sem janela, para a rodada em segundo plano com o app
+ * fechado: a fábrica abre o host como a abertura pela cena faz antes de criar
+ * a tela, e a cena que se conectar depois o reusa (`createReactHostIfNeeded`
+ * do `RCTRootViewFactory`). Chamada pela `AppReactNative`
+ * (SceneDelegate.swift) pelo nome: o Swift não enxerga o tipo da
+ * configuração do menu de desenvolvimento.
+ */
+@interface RCTReactNativeFactory (AOWithoutWindow)
+- (void)ao_startReactNativeWithoutWindow;
+@end
+
+@implementation RCTReactNativeFactory (AOWithoutWindow)
+
+- (void)ao_startReactNativeWithoutWindow
+{
+  if (self.rootViewFactory.reactHost) {
+    return;
+  }
+  // os argumentos de startReactNativeWithModuleName:…, sem as opções de abertura (sem cena, não há)
+  [self.rootViewFactory initializeReactHostWithLaunchOptions:nil
+                                         bundleConfiguration:self.bundleConfiguration
+                                        devMenuConfiguration:self.devMenuConfiguration];
 }
 
 @end

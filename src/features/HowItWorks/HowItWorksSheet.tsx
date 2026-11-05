@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 
 import {
   BottomSheet,
@@ -13,10 +14,15 @@ export type HowItWorksItem = { icon: IconName; text: string };
 
 /**
  * Enquanto o app confirma que é um aluno da UERJ (a tela já diz isso no
- * título): só o que o aluno precisa saber para esperar ou desistir.
+ * título): só o que o aluno precisa saber para esperar ou desistir. No
+ * Android, a confirmação passa pela Play Store; no iPhone, pela Apple, só
+ * com a internet. Lido a cada desenho (os testes trocam a plataforma).
  */
-export const PROOF_WAIT_TEXT =
-  'Leva alguns segundos. Sem a Play Store no celular, não dá para confirmar.';
+export function proofWaitText(): string {
+  return Platform.OS === 'ios'
+    ? 'Leva alguns segundos. Sem internet, não dá para confirmar.'
+    : 'Leva alguns segundos. Sem a Play Store no celular, não dá para confirmar.';
+}
 
 type Props = {
   visible: boolean;

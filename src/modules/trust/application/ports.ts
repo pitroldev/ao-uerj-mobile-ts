@@ -1,25 +1,39 @@
 import type { SessionCrypto, StudentBan } from '../domain/studentSession';
 
-/** O token da Play Integrity sobre o pedido, ou por que não veio. */
+/**
+ * O App Attest do iPhone: o id da chave nova e o objeto de atestação da
+ * Apple sobre os bytes do pedido, os dois em base64 padrão.
+ */
+type AppAttestProof = { keyId: string; attestation: string };
+
+/**
+ * A prova de que é o app da loja num aparelho íntegro, sobre o pedido: o
+ * token da Play Integrity (Android) ou o App Attest (iPhone).
+ */
+export type DeviceProof = { token: string } | { appAttest: AppAttestProof };
+
+/** A prova do aparelho, ou por que não veio. */
 export type Attestation =
-  | { token: string }
+  | DeviceProof
   /**
-   * `transient`: rede, limite da Play ou serviço ocupado. `unavailable`: sem
-   * a Play, versão antiga ou app fora da loja; não adianta insistir logo.
+   * `transient`: rede, limite ou serviço ocupado (da Play ou da Apple).
+   * `unavailable`: sem a Play ou o App Attest, versão antiga ou app fora da
+   * loja; não adianta insistir logo.
    */
   | { failure: 'transient' | 'unavailable' };
 
-/** O aparelho: a atestação do app (Android) e a criptografia da plataforma. */
+/** O aparelho: a atestação do app e a criptografia da plataforma. */
 export interface DeviceTrustPort {
   crypto: SessionCrypto;
+  /** `requestHash`: o hash do pedido, em hex (`sessionRequestHash`). */
   attest(requestHash: string): Promise<Attestation>;
 }
 
-/** O pedido de sessão: o desafio, a instalação, a atestação e o aluno. */
+/** O pedido de sessão: o desafio, a instalação, a prova do aparelho e o aluno. */
 export type SessionRequest = {
   challenge: Uint8Array;
   installation: Uint8Array;
-  integrityToken: string;
+  proof: DeviceProof;
   matricula: string;
   name: string;
 };
@@ -30,7 +44,7 @@ type SessionRefusal =
   /** O app, a instalação pela loja ou o aparelho não passaram. */
   | 'attestation_failed'
   | 'banned'
-  /** A identificação ou a Play Integrity fora do ar no servidor. */
+  /** A identificação ou a verificação da atestação fora do ar no servidor. */
   | 'unavailable';
 
 export type SessionCreation =

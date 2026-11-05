@@ -160,7 +160,7 @@ describe('MainRoutes authorization', () => {
     expect(navigation.getRootState()?.routeNames).not.toContain('Notificações');
   });
 
-  it('leaves the mural out where the app cannot sign in as a student (iPhone, no Play)', async () => {
+  it('leaves the mural out where the app cannot sign in as a student (simulator, no Play)', async () => {
     const { navigation } = await setup(signedIn, true, false);
     expect(navigation.getRootState()?.routeNames).not.toContain(
       'Mural de Mensagens',

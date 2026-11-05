@@ -113,6 +113,11 @@ export function createNotifications({
 }: Dependencies) {
   const campusDisabled = () =>
     isFeatureDisabled(remoteStatus.getSnapshot().status, 'campus');
+  // as tarefas sem tela no portal: WorkManager no Android, BGTaskScheduler no
+  // iPhone; as leituras a cada 15 minutos (Companhia agora e Agora no
+  // campus), só no Android
+  const background = device?.backgroundChecks ? device : null;
+  const watching = background?.frequentWatches ? background : null;
   const account = activeAccount(identity);
   const key = (owner: ActiveAccount, resource: CachedResource) =>
     academicKeys.resource(owner.scope, owner.period, resource);
@@ -176,13 +181,14 @@ export function createNotifications({
         }
       : undefined,
     // a leitura a cada 15 min só para quem já abriu o Agora no campus
-    campusWatch: campusNow?.supported
-      ? async () => {
-          if (campusDisabled()) return false;
-          await campusNow.load();
-          return campusNow.getSnapshot().visited;
-        }
-      : undefined,
+    campusWatch:
+      watching && campusNow?.supported
+        ? async () => {
+            if (campusDisabled()) return false;
+            await campusNow.load();
+            return campusNow.getSnapshot().visited;
+          }
+        : undefined,
   });
   /**
    * "Já fiz" tocado nos avisos: o aparelho já parou os lembretes; aqui a
@@ -212,8 +218,6 @@ export function createNotifications({
     }
     void settings.evaluationsChanged();
   };
-  // as tarefas sem tela no portal só existem no Android (no iOS, os lembretes)
-  const background = device?.backgroundChecks ? device : null;
   const portalCheck = background
     ? new PortalCheck({
         records,
@@ -241,9 +245,9 @@ export function createNotifications({
     : null;
   // "Me avise se abrirem": a mesma tarefa sem tela, lendo a lista
   const companionWatch =
-    background && companion
+    watching && companion
       ? new CompanionWatch({
-          device: background,
+          device: watching,
           store: preferences,
           account,
           savedScope,
@@ -261,9 +265,9 @@ export function createNotifications({
 
   // Agora no campus no celular: a mesma tarefa sem tela, sem o portal
   const campusWatch =
-    background && campusNow?.supported
+    watching && campusNow?.supported
       ? new CampusWatch({
-          device: background,
+          device: watching,
           store: preferences,
           savedScope,
           allowed: async scope => {

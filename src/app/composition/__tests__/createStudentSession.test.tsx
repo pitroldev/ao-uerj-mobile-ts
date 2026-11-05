@@ -1,15 +1,55 @@
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import type { SecureVault } from '@root/adapters/outbound/persistence/vault-storage';
 import type { PrivateApiHttpClient } from '@root/adapters/outbound/private-api';
 import type { IdentityState } from '@root/modules/identity/domain/types';
 import { testCrypto } from '@root/modules/trust/__tests__/testCrypto';
-import { createStudentSession, followIdentity } from '../createStudentSession';
+import { toBase64 } from '@root/modules/trust/domain/bytes';
+import type { Spec as AppAttestSpec } from '@root/specs/NativeAppAttest';
+import type { Spec as DeviceTrustSpec } from '@root/specs/NativeDeviceTrust';
+import {
+  createDeviceTrust,
+  createStudentSession,
+  followIdentity,
+} from '../createStudentSession';
 
+// os dois módulos nativos ausentes, até um teste pôr um deles
+let mockAppAttest: jest.Mocked<AppAttestSpec> | null = null;
+let mockDeviceTrust: jest.Mocked<DeviceTrustSpec> | null = null;
+jest.mock('@root/specs/NativeAppAttest', () => ({
+  __esModule: true,
+  get default() {
+    return mockAppAttest;
+  },
+}));
 jest.mock('@root/specs/NativeDeviceTrust', () => ({
   __esModule: true,
-  default: null,
+  get default() {
+    return mockDeviceTrust;
+  },
 }));
+
+const crypto = {
+  randomBytes: jest.fn((length: number) =>
+    toBase64(testCrypto.randomBytes(length)),
+  ),
+  digest: jest.fn(() => toBase64(new Uint8Array(32))),
+};
+
+function appAttestModule(supported = true) {
+  return {
+    ...crypto,
+    isSupported: jest.fn(() => supported),
+    attest: jest.fn(async () => ({ keyId: 'key', attestation: 'cbor' })),
+  } as unknown as jest.Mocked<AppAttestSpec>;
+}
+
+function playModule() {
+  return {
+    ...crypto,
+    requestToken: jest.fn(async () => 'play-token'),
+  } as unknown as jest.Mocked<DeviceTrustSpec>;
+}
 
 const ACCOUNT = {
   scope: 's',
@@ -65,9 +105,52 @@ beforeEach(() => {
 afterEach(() => {
   jest.useRealTimers();
   appStateMock.currentState = originalState;
+  mockAppAttest = null;
+  mockDeviceTrust = null;
 });
 
-it('needs the attestation and the vault (none on iOS or without the native module)', () => {
+it('attests with App Attest on the iPhone and with Play Integrity on Android', async () => {
+  mockAppAttest = appAttestModule();
+  mockDeviceTrust = playModule();
+  const hash = 'ab'.repeat(32);
+  await expect(createDeviceTrust('ios')?.attest(hash)).resolves.toEqual({
+    appAttest: { keyId: 'key', attestation: 'cbor' },
+  });
+  expect(mockDeviceTrust.requestToken).not.toHaveBeenCalled();
+  await expect(createDeviceTrust('android')?.attest(hash)).resolves.toEqual({
+    token: 'play-token',
+  });
+  expect(mockAppAttest.attest).toHaveBeenCalledTimes(1);
+
+  // sem dizer a plataforma, vale a do aparelho (o Jest roda como iOS)
+  expect(Platform.OS).toBe('ios');
+  const session = createStudentSession({
+    vault: {} as SecureVault,
+    client: {} as PrivateApiHttpClient,
+    account: () => null,
+  });
+  expect(session.supported).toBe(true);
+});
+
+it('does not sign in on the iPhone simulator, which has no App Attest', () => {
+  mockAppAttest = appAttestModule(false);
+  // o módulo da Play nunca vale no iPhone
+  mockDeviceTrust = playModule();
+  expect(createDeviceTrust('ios')).toBeNull();
+  expect(
+    createStudentSession({
+      vault: {} as SecureVault,
+      client: {} as PrivateApiHttpClient,
+      account: () => null,
+    }).supported,
+  ).toBe(false);
+  // e o do App Attest, nunca no Android
+  mockAppAttest = appAttestModule();
+  mockDeviceTrust = null;
+  expect(createDeviceTrust('android')).toBeNull();
+});
+
+it('needs the attestation and the vault (none without the native module)', () => {
   const client = {} as PrivateApiHttpClient;
   expect(
     createStudentSession({ vault: null, client, account: () => null })

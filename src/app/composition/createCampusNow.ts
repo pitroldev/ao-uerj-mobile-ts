@@ -13,7 +13,7 @@ type Dependencies = {
 };
 
 /**
- * Agora no campus: só onde o app entra como aluno (Android com a Play). As
+ * Agora no campus: só onde o app entra como aluno (Play ou App Attest). As
  * escolhas do aparelho ficam nas preferências da conta, que o logout apaga.
  */
 export function createCampusNow({
