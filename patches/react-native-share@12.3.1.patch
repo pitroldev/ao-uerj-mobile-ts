@@ -1,0 +1,15 @@
+diff --git a/android/src/main/java/cl/json/social/TargetChosenReceiver.java b/android/src/main/java/cl/json/social/TargetChosenReceiver.java
+index b73fb5e5a7c69d248847d4fd941fb935e246d356..be3c6fefac8379452ecba969fb48f8330dc325b7 100644
+--- a/android/src/main/java/cl/json/social/TargetChosenReceiver.java
++++ b/android/src/main/java/cl/json/social/TargetChosenReceiver.java
+@@ -55,7 +55,9 @@ public class TargetChosenReceiver extends BroadcastReceiver {
+ 
+         Intent intent = new Intent(sTargetChosenReceiveAction);
+         intent.setPackage(reactContext.getPackageName());
+-        intent.setClass(reactContext.getApplicationContext(), TargetChosenReceiver.class);
++        // The receiver is registered at runtime, not in the manifest: a broadcast
++        // with an explicit component only reaches manifest receivers, so the
++        // chosen target was never reported. Package and action are enough.
+         intent.putExtra(EXTRA_RECEIVER_TOKEN, sLastRegisteredReceiver.hashCode());
+         final PendingIntent callback = PendingIntent.getBroadcast(reactContext, 0, intent,
+             Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ?

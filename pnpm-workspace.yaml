@@ -20,3 +20,9 @@ allowBuilds:
 # 12+ is ESM-only.
 overrides:
   uuid@<11.1.1: ^11.1.1
+
+# react-native-share (Android): the "target chosen" broadcast named the runtime
+# receiver as an explicit component, which only reaches manifest receivers, so
+# Share.open never reported a share as done (only the chosen app's result).
+patchedDependencies:
+  react-native-share@12.3.1: patches/react-native-share@12.3.1.patch
