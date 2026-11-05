@@ -32,6 +32,10 @@ import {
   showsCount,
   subjectListPhase,
 } from '@features/SubjectsToTake';
+import {
+  SUBJECT_TABS_PANEL,
+  SubjectTabs,
+} from '@features/SubjectTabs/SubjectTabs';
 
 type TypeFilter = (typeof CURRICULUM_TYPE_FILTERS)[number]['value'];
 type TakenFilter = 'pending' | 'taken';
@@ -171,6 +175,8 @@ export const CurriculumSubjects = () => {
   return (
     <SubjectListPanel
       listRef={listRef}
+      top={<SubjectTabs current="Disciplinas do Currículo" />}
+      topStyle={SUBJECT_TABS_PANEL}
       header={header}
       items={filteredData}
       renderItem={renderSubject}

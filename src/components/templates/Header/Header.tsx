@@ -8,6 +8,10 @@ import { useIdentity } from '@root/app/providers/AppServicesProvider';
 import * as RootNavigation from '@services/rootNavigation';
 import { AoLogo } from '@components/ui/AoLogo';
 import { IconButton } from '@components/ui/Button';
+import {
+  isSubjectRoute,
+  SUBJECTS_TITLE,
+} from '@features/SubjectTabs/subjectRoutes';
 
 import { useHeaderState } from './headerStore';
 import { Container, LogoButton, Title, TitleButton } from './Header.styles';
@@ -61,11 +65,14 @@ export const Header = ({ navigationState }: Props) => {
   );
 
   const isAtHome = currentRoute === 'Início';
+  // as três telas de disciplinas são abas de "Disciplinas"
   const title = isAtHome
     ? account?.period === 'current'
       ? 'Período atual'
       : account?.period
-    : currentRoute;
+    : currentRoute && isSubjectRoute(currentRoute)
+      ? SUBJECTS_TITLE
+      : currentRoute;
 
   // A barra de status é transparente (de ponta a ponta em todas as versões):
   // o azul por trás dela é o deste cabeçalho, ou o topo do Login e do

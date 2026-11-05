@@ -1,5 +1,10 @@
 import React, { useMemo } from 'react';
-import { FlatList, type FlatListProps } from 'react-native';
+import {
+  FlatList,
+  type FlatListProps,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import styled from 'styled-components/native';
 
 import {
@@ -102,6 +107,9 @@ const Gutter = styled.View`
 export type SubjectListPanelProps<T> = {
   /** Avisos, filtros, busca e contagem (rolam junto com a lista). */
   header: React.ReactNode;
+  /** O topo fixo, acima da lista (as abas de "Disciplinas"), e o estilo dele. */
+  top?: React.ReactNode;
+  topStyle?: StyleProp<ViewStyle>;
   items: readonly T[];
   renderItem: FlatListProps<T>['renderItem'];
   keyExtractor: (item: T, index: number) => string;
@@ -117,6 +125,8 @@ export type SubjectListPanelProps<T> = {
  */
 export function SubjectListPanel<T>({
   header,
+  top,
+  topStyle,
   items,
   renderItem,
   keyExtractor,
@@ -132,7 +142,7 @@ export function SubjectListPanel<T>({
     [panel.paddingTop, panel.paddingBottom],
   );
   return (
-    <ScreenPanel scroll={false}>
+    <ScreenPanel scroll={false} header={top} headerStyle={topStyle}>
       <FlatList
         ref={listRef}
         data={items}

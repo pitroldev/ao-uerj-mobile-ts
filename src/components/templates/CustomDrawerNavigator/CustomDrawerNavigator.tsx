@@ -15,7 +15,17 @@ import {
 } from '@root/app/providers/AppServicesProvider';
 import { errorMessage } from '@root/shared/errors/AppError';
 import { useDisabledRoutes } from '@root/modules/delivery/presentation/FeatureGate';
-import { useCanInvite } from '@root/modules/delivery/presentation/DeliveryProvider';
+import {
+  useCanInvite,
+  useRemoteStatus,
+} from '@root/modules/delivery/presentation/DeliveryProvider';
+import { isEnrollmentSeason } from '@root/modules/delivery/domain/appStatus';
+import { useNow } from '@features/AttendedClassesSchedule/useNow';
+import {
+  lastSubjectRoute,
+  SUBJECT_ROUTES,
+  SUBJECTS_TITLE,
+} from '@features/SubjectTabs/subjectRoutes';
 import { InviteSheet } from '@root/modules/delivery/presentation/InviteSheet';
 import {
   appInvite,
@@ -41,56 +51,91 @@ import {
   Bottom,
   Container,
   Footer,
+  GroupHead,
   GroupLabel,
   Highlight,
   Item,
   ItemLabel,
   Nav,
+  SeasonTag,
   Separator,
   User,
   UserText,
   Version,
 } from './CustomDrawerNavigator.styles';
 
-type NavGroup = { label: string | null; items: [string, IconName][] };
+type NavItem = {
+  /** A rota que o item abre. */
+  route: string;
+  icon: IconName;
+  /** O nome no menu, quando é mais curto que o da tela. */
+  label?: string;
+  /** As rotas que acendem o item (Disciplinas: as três abas). */
+  routes?: readonly string[];
+};
 
-/** Agrupamento e ícones do menu (rotas sem entrada aqui vão para Ferramentas). */
+type NavGroup = {
+  label: string | null;
+  /** Ganha "Época de inscrição" na época do aviso remoto (sem mudar a ordem). */
+  enrollment?: boolean;
+  items: NavItem[];
+};
+
+/**
+ * O menu pelo que o aluno faz, não pela origem da tela (Aluno Online ou app):
+ * o Início sozinho no topo, o dia no campus, o curso e a inscrição. Rotas sem
+ * entrada aqui vão para o fim, junto de Notificações e Sobre.
+ */
 const NAV: NavGroup[] = [
+  { label: null, items: [{ route: 'Início', icon: 'home' }] },
   {
-    label: 'Acadêmico',
+    label: 'No campus',
     items: [
-      ['Início', 'home'],
-      ['Meu Progresso', 'monitoring'],
-      ['Plano até a formatura', 'school'],
-      ['Emissão de Documentos', 'description'],
-      ['Disciplinas Realizadas', 'task_alt'],
-      ['Disciplinas do Currículo', 'account_tree'],
-      ['Disciplinas Universais', 'public'],
-      ['Pesquisa de Disciplinas', 'search'],
+      { route: 'Agora no campus', icon: 'campaign' },
+      { route: 'Companhia agora', icon: 'groups' },
+      { route: 'Mapa', icon: 'location_on' },
+      { route: 'Mural de Mensagens', icon: 'forum', label: 'Mural da turma' },
     ],
   },
   {
-    label: 'Ferramentas',
+    label: 'Meu curso',
     items: [
-      ['Mapa', 'location_on'],
-      ['Agora no campus', 'campaign'],
-      ['Companhia agora', 'groups'],
-      ['Gerador de Grade', 'edit_calendar'],
-      ['Mural de Mensagens', 'forum'],
-      ['Pesquisa de Professores', 'person_search'],
+      { route: 'Meu Progresso', icon: 'monitoring' },
+      { route: 'Plano até a formatura', icon: 'school' },
+      {
+        route: SUBJECT_ROUTES[0],
+        icon: 'menu_book',
+        label: SUBJECTS_TITLE,
+        routes: SUBJECT_ROUTES,
+      },
+      {
+        route: 'Emissão de Documentos',
+        icon: 'description',
+        label: 'Documentos',
+      },
+    ],
+  },
+  {
+    label: 'Inscrição',
+    enrollment: true,
+    items: [
+      { route: 'Gerador de Grade', icon: 'edit_calendar' },
+      { route: 'Pesquisa de Disciplinas', icon: 'search' },
+      { route: 'Pesquisa de Professores', icon: 'person_search' },
     ],
   },
   {
     label: null,
     items: [
-      ['Notificações', 'notifications'],
-      ['Sobre', 'info'],
+      { route: 'Notificações', icon: 'notifications' },
+      { route: 'Sobre', icon: 'info' },
     ],
   },
 ];
 
 const HIDDEN_ROUTES = ['Login', 'Loading', 'Informações da Disciplina'];
-const KNOWN = new Set(NAV.flatMap(g => g.items.map(([name]) => name)));
+const covered = (item: NavItem) => item.routes ?? [item.route];
+const KNOWN = new Set(NAV.flatMap(g => g.items.flatMap(covered)));
 
 export const DrawerNavigator = ({
   state,
@@ -106,6 +151,9 @@ export const DrawerNavigator = ({
   const [themeSheetOpen, setThemeSheetOpen] = useState(false);
   // indicar o app fica no pé do menu, sempre à vista, só onde há loja
   const canInvite = useCanInvite();
+  // a época de inscrição vem do aviso remoto
+  const remote = useRemoteStatus();
+  const now = useNow();
   const [invite, setInvite] = useState<Invite | null>(null);
   const isSignedIn = Boolean(account);
 
@@ -114,27 +162,36 @@ export const DrawerNavigator = ({
 
   const groups = useMemo(() => {
     const available = new Set(routeNames);
-    const extras = routeNames.filter(
-      name => !KNOWN.has(name) && !HIDDEN_ROUTES.includes(name),
-    );
-    return NAV.map(group => ({
-      label: group.label,
+    const extras: NavItem[] = routeNames
+      .filter(name => !KNOWN.has(name) && !HIDDEN_ROUTES.includes(name))
+      .map(name => ({ route: name, icon: 'chevron_right' }));
+    const last = NAV.length - 1;
+    return NAV.map((group, index) => ({
+      ...group,
       items: [
-        ...group.items.filter(([name]) => available.has(name)),
-        ...(group.label === 'Ferramentas'
-          ? extras.map(name => [name, 'chevron_right'] as [string, IconName])
-          : []),
+        ...(index === last ? extras : []),
+        ...group.items.flatMap(item => {
+          const routes = covered(item).filter(name => available.has(name));
+          return routes.length ? [{ ...item, routes }] : [];
+        }),
       ],
     })).filter(group => group.items.length > 0);
   }, [routeNames]);
+
+  // o item aceso (Disciplinas fica aceso em qualquer uma das abas)
+  const activeKey = groups
+    .flatMap(group => group.items)
+    .find(item => covered(item).includes(currentRouteName))?.route;
+  const enrolling = isEnrollmentSeason(remote.status, now.getTime());
 
   const [frames, setFrames] = useState<
     Record<string, { y: number; height: number }>
   >({});
   const highlightY = useAnimatedValue(0);
   const placed = useRef(false);
-  const activeY = frames[currentRouteName]?.y;
-  const activeHeight = frames[currentRouteName]?.height ?? theme.sizes.touch;
+  const activeY = activeKey ? frames[activeKey]?.y : undefined;
+  const activeHeight =
+    (activeKey ? frames[activeKey]?.height : undefined) ?? theme.sizes.touch;
 
   useEffect(() => {
     if (activeY == null) return;
@@ -197,37 +254,58 @@ export const DrawerNavigator = ({
         {groups.map((group, gi) =>
           [
             group.label ? (
-              <GroupLabel
-                key={`g-${group.label}`}
-                variant="meta"
-                weight="medium"
-                tone="onBrandMuted"
-                accessibilityRole="header"
-              >
-                {group.label}
-              </GroupLabel>
-            ) : (
+              <GroupHead key={`g-${group.label}`}>
+                <GroupLabel
+                  variant="meta"
+                  weight="medium"
+                  tone="onBrandMuted"
+                  accessibilityRole="header"
+                  accessibilityLabel={
+                    group.enrollment && enrolling
+                      ? `${group.label}, época de inscrição`
+                      : group.label
+                  }
+                >
+                  {group.label}
+                </GroupLabel>
+                {group.enrollment && enrolling ? (
+                  <SeasonTag importantForAccessibility="no-hide-descendants">
+                    <Text variant="caption" weight="medium" tone="onBrand">
+                      Época de inscrição
+                    </Text>
+                  </SeasonTag>
+                ) : null}
+              </GroupHead>
+            ) : gi > 0 ? (
               <Separator key={`sep-${gi}`} />
-            ),
+            ) : null,
           ].concat(
-            group.items.map(([route, icon]) => {
-              const active = route === currentRouteName;
+            group.items.map(item => {
+              const routes = covered(item);
+              const active = item.route === activeKey;
+              const name = item.label ?? item.route;
               // desativado pelo aviso remoto: a tela explica o motivo
-              const off = disabledRoutes.has(route);
+              const open = routes.filter(route => !disabledRoutes.has(route));
+              const off = open.length === 0;
+              // Disciplinas volta à última aba aberta (ou à primeira que abre)
+              const remembered = lastSubjectRoute();
+              const target = open.includes(remembered)
+                ? remembered
+                : (open[0] ?? routes[0]);
               return (
                 <Item
-                  key={route}
-                  onLayout={onItemLayout(route)}
-                  onPress={() => navigation.navigate(route)}
+                  key={item.route}
+                  onLayout={onItemLayout(item.route)}
+                  onPress={() => navigation.navigate(target)}
                   accessibilityRole="menuitem"
-                  accessibilityLabel={off ? `${route}, indisponível` : route}
+                  accessibilityLabel={off ? `${name}, indisponível` : name}
                   accessibilityState={{ selected: active }}
                   style={({ pressed }) =>
                     pressed && !active && { backgroundColor: c.brandRule }
                   }
                 >
                   <Icon
-                    name={icon}
+                    name={item.icon}
                     filled={active}
                     color={active ? c.onBrandSelected : c.onBrandMuted}
                   />
@@ -237,7 +315,7 @@ export const DrawerNavigator = ({
                     color={active ? c.onBrandSelected : c.onBrand}
                     numberOfLines={2}
                   >
-                    {route}
+                    {name}
                   </ItemLabel>
                   {off ? (
                     <Text variant="caption" tone="onBrandMuted">

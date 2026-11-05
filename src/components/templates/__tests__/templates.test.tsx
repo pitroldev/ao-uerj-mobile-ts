@@ -20,6 +20,7 @@ import { ScreenPanel } from '../ScreenPanel';
 import { Header } from '../Header';
 import { headerStore, useHeaderBack } from '../Header/headerStore';
 import { DrawerNavigator } from '../CustomDrawerNavigator';
+import { rememberSubjectRoute } from '@features/SubjectTabs/subjectRoutes';
 
 const mockSignOut = jest.fn(() => Promise.resolve());
 let mockAccount: {
@@ -231,6 +232,17 @@ it('follows the active route after the first render', async () => {
   ).toBeOnTheScreen();
 });
 
+it('names the three subject screens "Disciplinas", their tabs', async () => {
+  await renderWithProviders(
+    <Header navigationState={drawerState('Disciplinas do Currículo')} />,
+  );
+  expect(screen.getByRole('header', { name: 'Disciplinas' })).toBeOnTheScreen();
+  await screen.rerender(
+    <Header navigationState={drawerState('Disciplinas Universais')} />,
+  );
+  expect(screen.getByRole('header', { name: 'Disciplinas' })).toBeOnTheScreen();
+});
+
 it('appears once the login gives way to the signed-in routes', async () => {
   await renderWithProviders(<Header navigationState={drawerState('Login')} />);
   expect(
@@ -287,12 +299,23 @@ it('lists the routes in groups, navigates and signs out from the drawer', async 
   ).toBeOnTheScreen();
   expect(screen.getByText('Marina Albuquerque Teixeira')).toBeOnTheScreen();
   expect(screen.getByText('Matrícula 209912345678')).toBeOnTheScreen();
-  expect(screen.getByRole('header', { name: 'Acadêmico' })).toBeOnTheScreen();
-  expect(screen.getByRole('header', { name: 'Ferramentas' })).toBeOnTheScreen();
-  for (const route of routeNames) {
-    expect(screen.getByRole('menuitem', { name: route })).toHaveTextContent(
-      route,
-    );
+  // os grupos são pelo que o aluno faz, não pela origem da tela
+  expect(screen.getByRole('header', { name: 'No campus' })).toBeOnTheScreen();
+  expect(screen.getByRole('header', { name: 'Meu curso' })).toBeOnTheScreen();
+  expect(screen.getByRole('header', { name: 'Inscrição' })).toBeOnTheScreen();
+  // as três telas de disciplinas são um item só; o mural tem nome curto
+  const items = [
+    'Início',
+    'Meu Progresso',
+    'Gerador de Grade',
+    'Mural da turma',
+    'Disciplinas',
+    'Pesquisa de Disciplinas',
+    'Sobre',
+  ];
+  expect(screen.getAllByRole('menuitem')).toHaveLength(items.length);
+  for (const name of items) {
+    expect(screen.getByRole('menuitem', { name })).toHaveTextContent(name);
   }
   expect(screen.getByRole('button', { name: 'Sair' })).toHaveTextContent(
     'Sair',
@@ -301,10 +324,10 @@ it('lists the routes in groups, navigates and signs out from the drawer', async 
   expect(
     screen.getByRole('menuitem', { name: 'Meu Progresso' }),
   ).toBeSelected();
-  await user.press(
-    screen.getByRole('menuitem', { name: 'Mural de Mensagens' }),
-  );
+  await user.press(screen.getByRole('menuitem', { name: 'Mural da turma' }));
   expect(navigation.navigate).toHaveBeenCalledWith('Mural de Mensagens');
+  await user.press(screen.getByRole('menuitem', { name: 'Disciplinas' }));
+  expect(navigation.navigate).toHaveBeenCalledWith('Disciplinas Realizadas');
   await user.press(screen.getByRole('button', { name: 'Sair' }));
   expect(navigation.closeDrawer).toHaveBeenCalled();
   expect(mockSignOut).toHaveBeenCalled();
@@ -343,23 +366,48 @@ it('opens the theme options from the drawer footer and applies the choice', asyn
 
 it('wraps long drawer labels and sizes the highlight to the active item', async () => {
   const navigation = { navigate: jest.fn(), closeDrawer: jest.fn() };
-  const routeNames = ['Início', 'Disciplinas do Currículo', 'Sobre'];
+  const routeNames = ['Início', 'Plano até a formatura', 'Sobre'];
   await renderWithProviders(
     <DrawerNavigator
       {...({ state: { routeNames, index: 1 }, navigation } as any)}
     />,
   );
   // fonte grande: o rótulo quebra em duas linhas em vez de virar reticências
-  expect(screen.getByText('Disciplinas do Currículo')).toHaveProp(
+  expect(screen.getByText('Plano até a formatura')).toHaveProp(
     'numberOfLines',
     2,
   );
   await fireEvent.layout(
-    screen.getByRole('menuitem', { name: 'Disciplinas do Currículo' }),
+    screen.getByRole('menuitem', { name: 'Plano até a formatura' }),
     { x: 0, y: 120, width: 276, height: 74 },
   );
   // o destaque é decorativo: o item ativo já é anunciado como selecionado
   expect(screen.getByTestId('drawer-highlight')).toHaveStyle({ height: 74 });
+});
+
+it('keeps Disciplinas lit on any of its tabs, and goes back to the last tab', async () => {
+  const navigation = { navigate: jest.fn(), closeDrawer: jest.fn() };
+  const routeNames = [
+    'Início',
+    'Disciplinas Realizadas',
+    'Disciplinas do Currículo',
+    'Disciplinas Universais',
+  ];
+  const user = userEvent.setup();
+  rememberSubjectRoute('Disciplinas Universais');
+  try {
+    await renderWithProviders(
+      <DrawerNavigator
+        {...({ state: { routeNames, index: 2 }, navigation } as any)}
+      />,
+    );
+    const subjects = screen.getByRole('menuitem', { name: 'Disciplinas' });
+    expect(subjects).toBeSelected();
+    await user.press(subjects);
+    expect(navigation.navigate).toHaveBeenCalledWith('Disciplinas Universais');
+  } finally {
+    rememberSubjectRoute('Disciplinas Realizadas');
+  }
 });
 
 it('registers the header back action only while the screen wants it', async () => {

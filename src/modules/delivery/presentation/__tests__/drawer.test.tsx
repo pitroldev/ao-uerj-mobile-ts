@@ -46,13 +46,19 @@ const mockAppearance = {
 async function mount({
   disabled = [],
   store: inStore = false,
-}: { disabled?: string[]; store?: boolean } = {}) {
+  enrollment,
+}: {
+  disabled?: string[];
+  store?: boolean;
+  enrollment?: { from: string; until: string };
+} = {}) {
   const store = createMemoryStore({
     [APP_STATUS_KEY]: {
       schemaVersion: 1,
       minSupportedVersion: '1.0.0',
       notices: [],
       disabledFeatures: disabled,
+      ...(enrollment ? { enrollment } : {}),
     },
   });
   const now = () => 0;
@@ -79,6 +85,7 @@ async function mount({
               'Mural de Mensagens',
               'Meu Progresso',
               'Emissão de Documentos',
+              'Gerador de Grade',
             ],
             index: 0,
           },
@@ -96,7 +103,7 @@ it('marks the screens disabled by the remote notice, which still explain themsel
   });
   const user = userEvent.setup();
   const board = await screen.findByRole('menuitem', {
-    name: 'Mural de Mensagens, indisponível',
+    name: 'Mural da turma, indisponível',
   });
   expect(board).toHaveTextContent(/Indisponível/);
   expect(
@@ -106,11 +113,41 @@ it('marks the screens disabled by the remote notice, which still explain themsel
   await user.press(board);
   expect(navigation.navigate).toHaveBeenCalledWith('Mural de Mensagens');
   const documents = screen.getByRole('menuitem', {
-    name: 'Emissão de Documentos, indisponível',
+    name: 'Documentos, indisponível',
   });
   expect(documents).toHaveTextContent(/Indisponível/);
   await user.press(documents);
   expect(navigation.navigate).toHaveBeenCalledWith('Emissão de Documentos');
+});
+
+const DAY = 24 * 60 * 60 * 1000;
+const iso = (offset: number) => new Date(Date.now() + offset).toISOString();
+
+it('marks the enrollment season of the remote notice on the Inscrição group, without moving it', async () => {
+  await mount({ enrollment: { from: iso(-DAY), until: iso(DAY) } });
+  expect(
+    await screen.findByRole('header', {
+      name: 'Inscrição, época de inscrição',
+    }),
+  ).toBeOnTheScreen();
+  // a etiqueta é visual: o título do grupo já a anuncia
+  expect(
+    screen.getByText('Época de inscrição', { includeHiddenElements: true }),
+  ).toBeOnTheScreen();
+  // a ordem não muda: o grupo continua depois do curso
+  expect(
+    screen.getAllByRole('header').map(h => h.props.accessibilityLabel),
+  ).toEqual(['No campus', 'Meu curso', 'Inscrição, época de inscrição']);
+});
+
+it('drops the label once the enrollment season is over', async () => {
+  await mount({ enrollment: { from: iso(-3 * DAY), until: iso(-DAY) } });
+  expect(
+    await screen.findByRole('header', { name: 'Inscrição' }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByText('Época de inscrição', { includeHiddenElements: true }),
+  ).toBeNull();
 });
 
 it('offers "Indicar o app" at the foot of the menu, only where the app is in a store', async () => {

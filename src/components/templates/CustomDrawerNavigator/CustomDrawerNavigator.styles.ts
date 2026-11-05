@@ -30,8 +30,23 @@ export const Nav = styled.ScrollView`
   border-top-color: ${({ theme }) => theme.colors.brandRule};
 `;
 
-export const GroupLabel = styled(Text)`
+/** Título do grupo, com a etiqueta da época ao lado quando houver. */
+export const GroupHead = styled.View`
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   padding: 16px 12px 6px 12px;
+`;
+
+export const GroupLabel = styled(Text)``;
+
+/** "Época de inscrição": etiqueta clara sobre o azul, canto cortado. */
+export const SeasonTag = styled.View`
+  padding: 1px 8px;
+  border-radius: ${({ theme }) => theme.radii.sm}px;
+  border-top-right-radius: 0px;
+  background-color: ${({ theme }) => theme.colors.brandRule};
 `;
 
 export const Separator = styled.View`

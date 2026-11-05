@@ -20,6 +20,10 @@ import {
   SubjectListFallback,
   subjectListPhase,
 } from '@features/SubjectsToTake';
+import {
+  SUBJECT_TABS_PANEL,
+  SubjectTabs,
+} from '@features/SubjectTabs/SubjectTabs';
 
 const NO_SUBJECTS: SubjectsTaken[] = [];
 
@@ -66,6 +70,8 @@ export const SubjectsTakenScreen = () => {
       scrollRef={scrollRef}
       refreshing={query.isFetching && !query.isPaused}
       onRefresh={retry}
+      header={<SubjectTabs current="Disciplinas Realizadas" />}
+      headerStyle={SUBJECT_TABS_PANEL}
     >
       <QueryNotice
         dataUpdatedAt={query.dataUpdatedAt}

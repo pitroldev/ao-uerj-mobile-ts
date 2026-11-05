@@ -24,6 +24,10 @@ import {
   showsCount,
   subjectListPhase,
 } from '@features/SubjectsToTake';
+import {
+  SUBJECT_TABS_PANEL,
+  SubjectTabs,
+} from '@features/SubjectTabs/SubjectTabs';
 
 const ALL_DEPARTMENTS = '';
 const NO_SUBJECTS: UniversalSubject[] = [];
@@ -129,6 +133,8 @@ export const UniversalSubjects = () => {
   return (
     <SubjectListPanel
       listRef={listRef}
+      top={<SubjectTabs current="Disciplinas Universais" />}
+      topStyle={SUBJECT_TABS_PANEL}
       header={header}
       items={filteredSubjects}
       renderItem={renderSubject}
