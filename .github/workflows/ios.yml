@@ -9,7 +9,7 @@ permissions:
 jobs:
   ios:
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -25,25 +25,32 @@ jobs:
           ruby-version: '3.3'
           bundler-cache: true
       - run: pnpm install --frozen-lockfile
-      # O build Debug abaixo não empacota o JS: o bundle de release para iOS
-      # pega o que só quebra nessa plataforma (resolução de módulos, assets).
-      - name: Bundle the JS for iOS (release)
-        run: >-
-          pnpm exec react-native bundle
-          --platform ios
-          --dev false
-          --entry-file index.js
-          --bundle-output "$RUNNER_TEMP/main.jsbundle"
-          --assets-dest "$RUNNER_TEMP/assets"
       - run: bundle exec pod install --project-directory=ios
-      - name: Build without signing for simulator
+      # Release, como vai para a loja: o Xcode empacota o JS de iOS (o que só
+      # quebra nessa plataforma: resolução de módulos, assets) e o Hermes o
+      # compila. Sem assinatura, o simulador abre o app do mesmo jeito.
+      - name: Build without signing for simulator (Release)
         run: >-
           xcodebuild
           -workspace ios/AOUerjMobile.xcworkspace
           -scheme AOUerjMobile
-          -configuration Debug
+          -configuration Release
           -sdk iphonesimulator
           -destination 'generic/platform=iOS Simulator'
           -derivedDataPath ios/build
           CODE_SIGNING_ALLOWED=NO
           build
+      # Abre o app num iPhone simulado e confere que ele não cai (abertura,
+      # tema escuro, link aouerj:// e segunda abertura), com capturas de tela.
+      - name: Smoke test on the iPhone simulator
+        run: |
+          app=$(find ios/build/Build/Products/Release-iphonesimulator -maxdepth 1 -name '*.app' | head -1)
+          echo "app: $app"
+          bash scripts/ci/ios-smoke.sh "$app" "$RUNNER_TEMP/ios-smoke"
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-smoke
+          path: ${{ runner.temp }}/ios-smoke
+          retention-days: 14
+          if-no-files-found: ignore
