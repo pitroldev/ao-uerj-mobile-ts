@@ -521,6 +521,32 @@ it('says all is calm when nothing is going on, with the way to report', async ()
   expect(screen.queryByRole('button', { name: 'Convidar a turma' })).toBeNull();
 });
 
+it('says nobody sees who reported, and the rest only under "Como funciona"', async () => {
+  mockNotices = [];
+  await renderPage();
+  const note = await screen.findByRole('button', {
+    name: 'Ninguém vê quem avisou. Como funciona',
+  });
+  expect(screen.queryByText(/a moderação vê quem avisou/)).toBeNull();
+  const user = userEvent.setup();
+  await user.press(note);
+  expect(
+    await screen.findByRole('header', { name: 'Como funciona' }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText(
+      'Só alunos da UERJ avisam, confirmados pela matrícula do login.',
+    ),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText('Se alguém denunciar, a moderação vê quem avisou.'),
+  ).toBeOnTheScreen();
+  await user.press(screen.getByRole('button', { name: 'Entendi' }));
+  await waitFor(() =>
+    expect(screen.queryByText(/a moderação vê quem avisou/)).toBeNull(),
+  );
+});
+
 it('invites the class when nothing is going on, without opening anything by itself', async () => {
   mockNotices = [];
   mockCanInvite = true;

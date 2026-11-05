@@ -27,6 +27,11 @@ import { useHeaderBack } from '@templates/Header/headerStore';
 import { useBackHandler } from '@hooks/useBackHandler';
 import { useNow } from '@features/AttendedClassesSchedule/useNow';
 import { StillThereCard } from '@features/CampusNow/StillThereCard';
+import {
+  HowItWorksSheet,
+  PROOF_WAIT_TEXT,
+  type HowItWorksItem,
+} from '@features/HowItWorks/HowItWorksSheet';
 import { useAppServices } from '@root/app/providers/AppServicesProvider';
 import { useSchedule } from '@root/modules/academics/presentation/queries';
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
@@ -109,6 +114,23 @@ const Notes = styled.View`
 `;
 
 type View = 'live' | 'you' | 'community';
+
+/** O detalhe que sai do rodapé: abre por "Como funciona". */
+const HOW_IT_WORKS: readonly HowItWorksItem[] = [
+  {
+    icon: 'verified',
+    text: 'Só alunos da UERJ avisam, confirmados pela matrícula do login.',
+  },
+  {
+    icon: 'visibility_off',
+    text: 'Ninguém vê quem avisou: sem foto e sem nomes.',
+  },
+  { icon: 'flag', text: 'Se alguém denunciar, a moderação vê quem avisou.' },
+  {
+    icon: 'schedule',
+    text: 'Cada aviso some sozinho. Cada "Continua" empurra o fim, e três "Acabou" encerram antes.',
+  },
+];
 
 /** Por quanto tempo o aviso escolhido fica marcado na lista. */
 const SELECTED_MS = 3000;
@@ -211,6 +233,7 @@ function LiveView({
   // sem avisos, o convite: o Agora no campus depende de quem está lá
   const canInvite = useCanInvite();
   const [invite, setInvite] = useState<Invite | null>(null);
+  const [explaining, setExplaining] = useState(false);
 
   const notices = useMemo(
     () => (query.data?.notices ?? []).filter(notice => isLive(notice, nowMs)),
@@ -342,7 +365,7 @@ function LiveView({
       <EmptyState
         icon="lock"
         title="Confirmando que você é aluno"
-        text="O Agora no campus só abre para alunos da UERJ, confirmados pela matrícula do login. Com a internet ligada, isso leva alguns segundos; em aparelhos sem a Play Store, não dá para confirmar."
+        text={PROOF_WAIT_TEXT}
         action={{
           label: 'Tentar de novo',
           icon: 'refresh',
@@ -505,13 +528,14 @@ function LiveView({
               }}
             />
           ) : null}
-          <FootNote
-            icon="schedule"
-            text='Cada aviso some sozinho. Cada "Continua" empurra o fim; três "Acabou" encerram antes.'
-          />
+          <FootNote icon="schedule" text="Cada aviso some sozinho." />
           <FootNote
             icon="lock"
-            text="Só alunos da UERJ avisam, confirmados pela matrícula. Os colegas não veem quem avisou; a moderação vê, se houver denúncia. Sem foto e sem nomes."
+            text="Ninguém vê quem avisou."
+            link={{
+              label: 'Como funciona',
+              onPress: () => setExplaining(true),
+            }}
           />
         </Notes>
       </>
@@ -570,6 +594,11 @@ function LiveView({
         onFlag={notice => actions.flag(notice.id)}
       />
       <InviteSheet invite={invite} onClose={() => setInvite(null)} />
+      <HowItWorksSheet
+        visible={explaining}
+        onClose={() => setExplaining(false)}
+        items={HOW_IT_WORKS}
+      />
     </>
   );
 }

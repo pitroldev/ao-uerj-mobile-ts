@@ -154,23 +154,41 @@ const Note = styled.View`
   margin-top: 10px;
 `;
 
+const PressableNote = styled.Pressable`
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+`;
+
 const NoteText = styled(Text)`
   flex: 1;
 `;
 
-/** Nota de rodapé com ícone (".foot-note"): explicações curtas, como "CR aproximado". */
+/** A nota é pequena: o toque vale um pouco além dela. */
+const LINK_HIT_SLOP = 10;
+/** Como o `Button` "link": sublinha enquanto o dedo está em cima. */
+const UNDERLINE = { textDecorationLine: 'underline' } as const;
+
+/**
+ * Nota de rodapé com ícone (".foot-note"): explicações curtas, como "CR
+ * aproximado". Com `link`, a nota inteira abre o detalhe ("Como funciona"),
+ * que fica no fim da frase, na cor de destaque.
+ */
 export function FootNote({
   text,
   icon = 'info',
+  link,
   style,
 }: {
   text: string;
   icon?: IconName;
+  link?: { label: string; onPress: () => void };
   style?: StyleProp<ViewStyle>;
 }) {
   const theme = useTheme();
-  return (
-    <Note style={style}>
+  const content = (pressed: boolean) => (
+    <>
       <Icon
         name={icon}
         size={theme.sizes.icon.md}
@@ -178,7 +196,32 @@ export function FootNote({
       />
       <NoteText variant="meta" tone="muted">
         {text}
+        {link ? (
+          <>
+            {' '}
+            <Text
+              variant="meta"
+              weight="semibold"
+              tone="accent"
+              style={pressed ? UNDERLINE : undefined}
+            >
+              {link.label}
+            </Text>
+          </>
+        ) : null}
       </NoteText>
-    </Note>
+    </>
+  );
+  if (!link) return <Note style={style}>{content(false)}</Note>;
+  return (
+    <PressableNote
+      onPress={link.onPress}
+      hitSlop={LINK_HIT_SLOP}
+      accessibilityRole="button"
+      accessibilityLabel={`${text} ${link.label}`}
+      style={style}
+    >
+      {({ pressed }) => content(pressed)}
+    </PressableNote>
   );
 }

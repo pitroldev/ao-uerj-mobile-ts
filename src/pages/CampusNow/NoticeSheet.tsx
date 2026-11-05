@@ -130,10 +130,7 @@ export function NoticeSheet({
               icon="schedule"
               text='Cada "Continua" empurra o fim do aviso. Três "Acabou" encerram antes.'
             />
-            <FootNote
-              icon="lock"
-              text="Os colegas não veem quem avisou. A moderação vê, se houver denúncia."
-            />
+            <FootNote icon="lock" text="Ninguém vê quem avisou." />
           </Notes>
         </>
       ) : null}

@@ -323,6 +323,27 @@ it('drops the divider of the last row only', async () => {
   expect(divider('b')).not.toBeOnTheScreen();
 });
 
+it('opens the detail from a foot note with a link, and keeps a plain one static', async () => {
+  const onPress = jest.fn();
+  await renderWithProviders(
+    <>
+      <FootNote
+        icon="lock"
+        text="Só alunos da UERJ."
+        link={{ label: 'Como funciona', onPress }}
+      />
+      <FootNote text="O CR é calculado pelo app." />
+    </>,
+  );
+  await userEvent
+    .setup()
+    .press(
+      screen.getByRole('button', { name: 'Só alunos da UERJ. Como funciona' }),
+    );
+  expect(onPress).toHaveBeenCalledTimes(1);
+  expect(screen.getAllByRole('button')).toHaveLength(1);
+});
+
 it('blocks presses while a button is loading and exposes busy', async () => {
   const onPress = jest.fn();
   await renderWithProviders(

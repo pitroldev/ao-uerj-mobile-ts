@@ -398,7 +398,7 @@ export function CreateCallSheet({
           <Text variant="meta" weight="semibold" tone="ink">
             {name}
           </Text>
-          , só o primeiro nome. {LIFETIME_TEXT[kind]}
+          . {LIFETIME_TEXT[kind]}
         </Text>
       </Field>
     </BottomSheet>

@@ -289,7 +289,7 @@ export function CallScreen({
       refreshList();
       snackbar.success(
         kind.joined,
-        `Encontro: ${spot.name}, ${clockText(joined.at)}. Quem vai já vê o seu primeiro nome.`,
+        `Encontro: ${spot.name}, ${clockText(joined.at)}.`,
       );
     });
   };
@@ -664,8 +664,17 @@ export function CallScreen({
           <Below>
             {removed ? null : (
               <Text variant="meta" tone="muted">
-                Quem vai passa a ver o seu primeiro nome ({name || 'escolha um'}
-                ). O encontro é num lugar movimentado do campus.
+                {name ? (
+                  <>
+                    Quem vai vê você como{' '}
+                    <Text variant="meta" weight="semibold" tone="ink">
+                      {name}
+                    </Text>
+                    .
+                  </>
+                ) : (
+                  'Ao entrar, você escolhe o nome que os outros veem.'
+                )}
               </Text>
             )}
             {reported ? (

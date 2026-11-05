@@ -28,6 +28,11 @@ import { useHeaderBack } from '@templates/Header/headerStore';
 import { useBackHandler } from '@hooks/useBackHandler';
 import { useNow } from '@features/AttendedClassesSchedule/useNow';
 import {
+  HowItWorksSheet,
+  PROOF_WAIT_TEXT,
+  type HowItWorksItem,
+} from '@features/HowItWorks/HowItWorksSheet';
+import {
   useAppServices,
   useIdentity,
 } from '@root/app/providers/AppServicesProvider';
@@ -96,6 +101,20 @@ const WatchBox = styled.View`
 `;
 
 const NAME_AVATAR = 32;
+
+/** O detalhe que sai do rodapé: abre por "Como funciona". */
+const HOW_IT_WORKS: readonly HowItWorksItem[] = [
+  {
+    icon: 'verified',
+    text: 'Só alunos da UERJ entram, confirmados pela matrícula do login.',
+  },
+  { icon: 'person', text: 'Os outros veem só o seu primeiro nome.' },
+  { icon: 'flag', text: 'Se alguém denunciar, a moderação vê quem é.' },
+  {
+    icon: 'location_on',
+    text: 'Sem foto, curso ou localização ao vivo. O encontro é sempre num lugar movimentado do campus.',
+  },
+];
 
 /** A volta é o padrão à noite e depois da última aula do fim da tarde. */
 function defaultKind(window: FreeWindow, now: Date): CallKind {
@@ -225,6 +244,7 @@ function CompanionScreen({
   // sem mesas nem grupos, o convite: mais gente no app, mais companhia
   const canInvite = useCanInvite();
   const [invite, setInvite] = useState<Invite | null>(null);
+  const [explaining, setExplaining] = useState(false);
   // com a chamada aberta, a lista segue: quem está fora vê as vagas mudarem
   const query = useCompanionCalls({ poll: focused });
   const watch = useCompanionWatch(now.getTime());
@@ -362,7 +382,7 @@ function CompanionScreen({
       <EmptyState
         icon="lock"
         title="Confirmando que você é aluno"
-        text="A Companhia agora só abre para alunos da UERJ, confirmados pela matrícula do login. Com a internet ligada, isso leva alguns segundos; em aparelhos sem a Play Store, não dá para confirmar."
+        text={PROOF_WAIT_TEXT}
         action={{
           label: 'Tentar de novo',
           icon: 'refresh',
@@ -535,13 +555,14 @@ function CompanionScreen({
             {watching && (shown.length || outside.length) ? (
               <FootNote icon="groups" text={`${watching} na Companhia.`} />
             ) : null}
-            <FootNote
-              icon="schedule"
-              text={`${LIFETIME_TEXT[tab]} Só aparece o primeiro nome.`}
-            />
+            <FootNote icon="schedule" text={LIFETIME_TEXT[tab]} />
             <FootNote
               icon="lock"
-              text="Só alunos da UERJ entram, confirmados pela matrícula. Os outros veem só o seu primeiro nome; numa denúncia, a moderação vê quem é. Sem foto, curso ou localização ao vivo; o encontro é sempre num lugar movimentado do campus."
+              text="Só alunos da UERJ."
+              link={{
+                label: 'Como funciona',
+                onPress: () => setExplaining(true),
+              }}
             />
           </Notes>
         </Section>
@@ -599,6 +620,11 @@ function CompanionScreen({
         />
       ) : null}
       <InviteSheet invite={invite} onClose={() => setInvite(null)} />
+      <HowItWorksSheet
+        visible={explaining}
+        onClose={() => setExplaining(false)}
+        items={HOW_IT_WORKS}
+      />
     </>
   );
 }

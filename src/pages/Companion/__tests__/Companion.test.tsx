@@ -364,6 +364,34 @@ it('explains when the app cannot prove the student yet', async () => {
   expect(
     await screen.findByText('Confirmando que você é aluno'),
   ).toBeOnTheScreen();
+  expect(
+    screen.getByText(
+      'Leva alguns segundos. Sem a Play Store no celular, não dá para confirmar.',
+    ),
+  ).toBeOnTheScreen();
+});
+
+it('says who gets in in one line, and the rest only under "Como funciona"', async () => {
+  await renderPage();
+  const note = await screen.findByRole('button', {
+    name: 'Só alunos da UERJ. Como funciona',
+  });
+  expect(screen.queryByText(/a moderação vê quem é/)).toBeNull();
+  const user = userEvent.setup();
+  await user.press(note);
+  expect(
+    await screen.findByRole('header', { name: 'Como funciona' }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText('Os outros veem só o seu primeiro nome.'),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText('Se alguém denunciar, a moderação vê quem é.'),
+  ).toBeOnTheScreen();
+  await user.press(screen.getByRole('button', { name: 'Entendi' }));
+  await waitFor(() =>
+    expect(screen.queryByText(/a moderação vê quem é/)).toBeNull(),
+  );
 });
 
 it('shows the way home in steps, and only the count to who is outside', async () => {
