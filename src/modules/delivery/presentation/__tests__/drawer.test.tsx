@@ -1,4 +1,5 @@
 import React from 'react';
+import { Share } from 'react-native';
 import { screen, userEvent } from '@testing-library/react-native';
 
 import { renderWithProviders } from '@root/test-utils/render';
@@ -14,6 +15,10 @@ import { DeliveryProvider } from '../DeliveryProvider';
 
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-clipboard/clipboard', () => ({
+  __esModule: true,
+  default: { setString: jest.fn() },
 }));
 jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useIdentity: () => ({
@@ -38,16 +43,20 @@ const mockAppearance = {
   choose: jest.fn(),
 };
 
-it('marks the screens disabled by the remote notice, which still explain themselves', async () => {
+async function mount({
+  disabled = [],
+  store: inStore = false,
+}: { disabled?: string[]; store?: boolean } = {}) {
   const store = createMemoryStore({
     [APP_STATUS_KEY]: {
       schemaVersion: 1,
       minSupportedVersion: '1.0.0',
       notices: [],
-      disabledFeatures: ['message-board', 'documents'],
+      disabledFeatures: disabled,
     },
   });
   const now = () => 0;
+  const storeListing = createStoreListing(inStore);
   const delivery = {
     appVersion: '1.3.5',
     status: new RemoteStatus({
@@ -55,16 +64,11 @@ it('marks the screens disabled by the remote notice, which still explain themsel
       store,
       now,
     }),
-    updates: new AppUpdates({
-      updates: null,
-      storeListing: createStoreListing(false),
-      store,
-      now,
-    }),
+    updates: new AppUpdates({ updates: null, storeListing, store, now }),
     review: { notePositiveMoment: jest.fn() },
+    storeListing,
   };
   const navigation = { navigate: jest.fn(), closeDrawer: jest.fn() };
-  const user = userEvent.setup();
   await renderWithProviders(
     <DeliveryProvider delivery={delivery} ready={false}>
       <DrawerNavigator
@@ -83,6 +87,14 @@ it('marks the screens disabled by the remote notice, which still explain themsel
       />
     </DeliveryProvider>,
   );
+  return { navigation };
+}
+
+it('marks the screens disabled by the remote notice, which still explain themselves', async () => {
+  const { navigation } = await mount({
+    disabled: ['message-board', 'documents'],
+  });
+  const user = userEvent.setup();
   const board = await screen.findByRole('menuitem', {
     name: 'Mural de Mensagens, indisponível',
   });
@@ -99,4 +111,28 @@ it('marks the screens disabled by the remote notice, which still explain themsel
   expect(documents).toHaveTextContent(/Indisponível/);
   await user.press(documents);
   expect(navigation.navigate).toHaveBeenCalledWith('Emissão de Documentos');
+});
+
+it('offers "Indicar o app" at the foot of the menu, only where the app is in a store', async () => {
+  await mount();
+  await screen.findByRole('menuitem', { name: 'Meu Progresso' });
+  expect(screen.queryByRole('button', { name: 'Indicar o app' })).toBeNull();
+});
+
+it('opens the invite with the message from the menu', async () => {
+  const share = jest
+    .spyOn(Share, 'share')
+    .mockResolvedValue({ action: 'sharedAction', activityType: undefined });
+  await mount({ store: true });
+  const user = userEvent.setup();
+  await user.press(
+    await screen.findByRole('button', { name: 'Indicar o app' }),
+  );
+  expect(await screen.findByText('Indicar o AO UERJ')).toBeOnTheScreen();
+  await user.press(screen.getByRole('button', { name: 'Mandar' }));
+  expect(share).toHaveBeenCalledWith({
+    message: expect.stringMatching(
+      /^Tô usando o AO UERJ: .*Android: https:\/\/play\.google\.com\/store\/apps\/details\?id=com\.aouerjmobile&referrer=utm_source%3Dmenu$/,
+    ),
+  });
 });

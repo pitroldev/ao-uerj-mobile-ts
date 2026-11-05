@@ -53,5 +53,6 @@ export function createDelivery({
       now,
     }),
     review,
+    storeListing: nativeStoreListing,
   };
 }

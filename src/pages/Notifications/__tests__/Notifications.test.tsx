@@ -199,6 +199,7 @@ it('shows the result of the last portal check', async () => {
   const check: CheckState = {
     lastRunAt: Date.now(),
     lastOutcome: 'offline',
+    goodNewsAt: null,
     pausedUntil: null,
     documentsCheckedAt: null,
     notifiedDocuments: [],

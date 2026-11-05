@@ -82,6 +82,12 @@ jest.mock('@root/modules/academics/presentation/useScheduleSharing', () => ({
     SvgRenderer: () => null,
   }),
 }));
+// numa loja, a imagem diz onde baixar e a legenda leva o link
+let mockCanInvite = false;
+jest.mock('@root/modules/delivery/presentation/DeliveryProvider', () => ({
+  ...jest.requireActual('@root/modules/delivery/presentation/DeliveryProvider'),
+  useCanInvite: () => mockCanInvite,
+}));
 // professores da Pesquisa de Disciplinas, por disciplina, na imagem da grade
 const mockLoadTeachers = jest.fn();
 jest.mock('@root/modules/academics/presentation/useSubjectTeachers', () => ({
@@ -113,6 +119,8 @@ const mockServices = {
     },
     // "Já fiz" dos avisos, lido a cada minuto do relógio do Início
     consumeDone: jest.fn(async () => undefined),
+    // a boa notícia da verificação (vaga, aprovação) tem teste próprio
+    goodNews: { take: jest.fn(async () => false) },
   },
   // sem aberturas nativas (widget e atalhos)
   launches: null as object | null,
@@ -530,6 +538,35 @@ it('shares the week with the teachers of each subject', async () => {
   );
   const svg = new TextDecoder().decode(bytes);
   expect(svg).toContain('Turma 1 · Ana Souza, João Lima');
+  // fora de uma loja: sem "Play Store" e sem legenda
+  expect(svg).not.toContain('Play Store');
+  expect(mockShare.mock.calls[0][1]).toBeUndefined();
+});
+
+it('says where to get the app on the shared week, with the link in the caption', async () => {
+  mockCanInvite = true;
+  try {
+    mockShare.mockResolvedValueOnce(undefined);
+    await renderHome();
+    await userEvent
+      .setup()
+      .press(
+        screen.getByRole('button', { name: 'Compartilhar grade da semana' }),
+      );
+    await waitFor(() => expect(mockShare).toHaveBeenCalled());
+    const [uri, caption] = mockShare.mock.calls[0] as [string, string];
+    const bytes = Uint8Array.from(atob(uri.split(',')[1]), char =>
+      char.charCodeAt(0),
+    );
+    expect(new TextDecoder().decode(bytes)).toContain(
+      'Feito com o app AO UERJ · grátis na Play Store',
+    );
+    expect(caption).toMatch(
+      /^Minha grade de 2026\.2, feita no app AO UERJ: https:\/\/play\.google\.com\/.*utm_source%3Dgrade$/,
+    );
+  } finally {
+    mockCanInvite = false;
+  }
 });
 
 it('shares the week without teachers when they cannot be read', async () => {

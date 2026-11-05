@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
 import {
   keepPreviousData,
@@ -11,6 +11,7 @@ import {
   useIdentity,
 } from '@root/app/providers/AppServicesProvider';
 import { isTransientError } from '@root/shared/errors/AppError';
+import { useDelayedMoment } from '@root/modules/delivery/presentation/positiveMoments';
 import type { CampusNowSnapshot } from '../application/CampusNow';
 import {
   CampusNowError,
@@ -27,6 +28,8 @@ import {
 /** Com a tela na frente, a lista anda a cada 30 s; no Início, a cada minuto. */
 const LIST_POLL_MS = 30_000;
 export const HOME_POLL_MS = 60_000;
+/** O "Valeu" novo aparece na lista antes da folha de avaliação da loja. */
+const THANKED_MOMENT_MS = 2_500;
 
 const campusKeys = {
   all: (scope: string) => ['campus-now', scope] as const,
@@ -63,7 +66,10 @@ export function useCampusNowState(): CampusNowSnapshot {
 
 /**
  * Os avisos que valem agora, quantos ajudaram hoje e os pontos do aluno.
- * Atualiza a cada `interval` enquanto `poll` (a tela na frente).
+ * Atualiza a cada `interval` enquanto `poll` (a tela na frente) e, quando a
+ * tela volta para a frente (pelo menu, que não a desmonta), na hora se a
+ * lista estiver vencida: "agora" não pode mostrar a lista de quando o aluno
+ * saiu.
  */
 export function useCampusNotices({
   enabled = true,
@@ -81,11 +87,27 @@ export function useCampusNotices({
     staleTime: LIST_POLL_MS / 2,
     retry,
   });
-  // o que a tela já mostrou (o nível, o aviso confirmado) não vira aviso do celular
-  const { data } = query;
+  // só na volta: o intervalo cuida do resto, sem uma busca a mais por ciclo
+  const polling = useRef(poll);
+  const { isStale, refetch } = query;
   useEffect(() => {
-    if (data) void campusNow.observe(data).catch(() => undefined);
-  }, [campusNow, data]);
+    const resumed = poll && !polling.current;
+    polling.current = poll;
+    if (resumed && isStale) void refetch();
+  }, [poll, isStale, refetch]);
+  // o que a tela já mostrou (o nível, o aviso confirmado) não vira aviso do
+  // celular; um "Valeu" novo num aviso do aluno é um momento bom
+  const { data } = query;
+  const thankedMoment = useDelayedMoment(THANKED_MOMENT_MS);
+  useEffect(() => {
+    if (!data) return;
+    campusNow.observe(data).then(
+      thanked => {
+        if (thanked) thankedMoment();
+      },
+      () => undefined,
+    );
+  }, [campusNow, data, thankedMoment]);
   return query;
 }
 

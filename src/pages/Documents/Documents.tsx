@@ -24,6 +24,7 @@ import type {
   StudentDocument,
 } from '@root/modules/documents/domain/models';
 import { usePortalStatus } from '@root/modules/connectivity/presentation/PortalStatusContext';
+import { usePositiveMoment } from '@root/modules/delivery/presentation/DeliveryProvider';
 import { snackbar } from '@components/ui/Snackbar';
 
 const Intro = styled(Text)`
@@ -138,6 +139,10 @@ function DocumentsScreen() {
   const saved = useSavedDocuments();
   // emitir e excluir dependem do portal: sem internet ou com ele fora, não
   const reachable = online && !portal.down;
+  // o PDF emitido é um momento bom: conta quando o aluno fecha a folha,
+  // depois de usar o PDF, e não por cima dela
+  const positiveMoment = usePositiveMoment();
+  const [issued, setIssued] = useState(false);
   const [deletion, setDeletion] = useState<{
     owner: string;
     document: StudentDocument;
@@ -237,7 +242,9 @@ function DocumentsScreen() {
                       loadingLabel="Preparando PDF…"
                       disabled={busy || !reachable}
                       onPress={() => {
-                        void issue(document);
+                        void issue(document).then(done => {
+                          if (done) setIssued(true);
+                        });
                       }}
                     />
                   ) : null}
@@ -272,6 +279,11 @@ function DocumentsScreen() {
       <BottomSheet
         visible={result !== null}
         onClose={clearResult}
+        onClosed={() => {
+          if (!issued) return;
+          setIssued(false);
+          positiveMoment();
+        }}
         title="PDF pronto"
         closeLabel="Fechar documento"
         swipeToClose={!busy}

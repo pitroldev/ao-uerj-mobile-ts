@@ -40,6 +40,7 @@ import {
 import type { RootDrawerParamList } from '@root/routes';
 import { useOnlineStatus } from '@root/modules/academics/presentation/useOnlineStatus';
 import { usePortalStatus } from '@root/modules/connectivity/presentation/PortalStatusContext';
+import { useMomentOnLeave } from '@root/modules/delivery/presentation/positiveMoments';
 
 import { PlanSubjectSheet } from './PlanSubjectSheet';
 import {
@@ -100,6 +101,8 @@ export function GraduationPlanPage() {
 
   const view = useGraduationPlan({ load: true });
   const [selected, setSelected] = useState<string | null>(null);
+  // escolher quando formar é um momento bom; conta ao sair do plano
+  const chose = useMomentOnLeave();
 
   let content: React.ReactNode;
   if (view.status === 'loading') content = <PlanSkeleton />;
@@ -110,7 +113,7 @@ export function GraduationPlanPage() {
   } else if (view.status === 'reading') {
     content = <Reading done={view.catalog.done} total={view.catalog.total} />;
   } else {
-    content = <Plan view={view} onSelect={setSelected} />;
+    content = <Plan view={view} onSelect={setSelected} onChoose={chose} />;
   }
 
   return (
@@ -187,9 +190,12 @@ function Reading({ done, total }: { done: number; total: number }) {
 function Plan({
   view,
   onSelect,
+  onChoose,
 }: {
   view: GraduationPlanView;
   onSelect: (key: string) => void;
+  /** Escolheu outra formatura (dentro do prazo da Síntese). */
+  onChoose: () => void;
 }) {
   const { plan, label, deadline, synthesis, catalog } = view;
   // ler de novo esquece o que foi lido: sem o portal, ficaria sem nada
@@ -320,6 +326,11 @@ function Plan({
                   }
                   leading={<Radio selected={checked} />}
                   onPress={() => {
+                    if (
+                      !checked &&
+                      (option.slack === null || option.slack >= 0)
+                    )
+                      onChoose();
                     void view.setLoad(option.load);
                   }}
                   accessibilityRole="radio"

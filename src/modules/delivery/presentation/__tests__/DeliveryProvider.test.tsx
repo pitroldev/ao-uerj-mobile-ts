@@ -25,7 +25,10 @@ import {
 } from '../../application/__tests__/fakes';
 import {
   DeliveryProvider,
+  MOMENT_RETURN_WINDOW,
+  useCanInvite,
   usePositiveMoment,
+  useStoreListing,
   type Delivery,
 } from '../DeliveryProvider';
 import {
@@ -66,6 +69,7 @@ function createDelivery({
     status: new RemoteStatus({ source: createSource(fetched), store, now }),
     updates: new AppUpdates({ updates: port, storeListing, store, now }),
     review,
+    storeListing,
   };
   return { delivery, store, port, storeListing, review };
 }
@@ -437,5 +441,77 @@ describe('usePositiveMoment', () => {
   it('does nothing without the provider', async () => {
     const { result } = await renderHook(() => usePositiveMoment());
     expect(() => result.current()).not.toThrow();
+  });
+
+  /** O momento acontece com o app fora da frente (a grade mandada pelo app escolhido). */
+  const momentAway = async () => {
+    const { delivery, review } = createDelivery();
+    const { result } = await renderHook(() => usePositiveMoment(), {
+      wrapper: createWrapper({
+        wrapper: ({ children }) => (
+          <DeliveryProvider delivery={delivery} ready={false}>
+            {children}
+          </DeliveryProvider>
+        ),
+      }),
+    });
+    const state = AppState as { currentState: unknown };
+    const original = state.currentState;
+    state.currentState = 'background';
+    try {
+      await act(() => result.current());
+    } finally {
+      state.currentState = original;
+    }
+    return review;
+  };
+
+  it('counts a moment from outside the app when the student comes back, where the store can show its sheet', async () => {
+    const review = await momentAway();
+    // fora da frente, a loja não mostraria nada e o pedido gastaria a vez
+    expect(review.notePositiveMoment).not.toHaveBeenCalled();
+    await foreground();
+    expect(review.notePositiveMoment).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets the moment go when the student comes back much later', async () => {
+    const left = Date.now();
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(left);
+    try {
+      const review = await momentAway();
+      clock.mockReturnValue(left + MOMENT_RETURN_WINDOW + 1);
+      await foreground();
+      expect(review.notePositiveMoment).not.toHaveBeenCalled();
+    } finally {
+      clock.mockRestore();
+    }
+  });
+});
+
+describe('the store listing', () => {
+  const read = async (available: boolean) => {
+    const { delivery } = createDelivery({
+      storeListing: createStoreListing(available),
+    });
+    const { result } = await renderHook(
+      () => ({ listing: useStoreListing(), invite: useCanInvite() }),
+      {
+        wrapper: createWrapper({
+          wrapper: ({ children }) => (
+            <DeliveryProvider delivery={delivery} ready={false}>
+              {children}
+            </DeliveryProvider>
+          ),
+        }),
+      },
+    );
+    return result.current;
+  };
+
+  it('offers inviting and rating only where the app is in a store', async () => {
+    await expect(read(true)).resolves.toMatchObject({ invite: true });
+    await expect(read(false)).resolves.toMatchObject({ invite: false });
+    const { result } = await renderHook(() => useCanInvite());
+    expect(result.current).toBe(false);
   });
 });

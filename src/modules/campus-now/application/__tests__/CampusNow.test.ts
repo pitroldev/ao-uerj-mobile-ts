@@ -186,13 +186,22 @@ it('what the screen showed does not become a phone notice later', async () => {
     helpersToday: 3,
     you,
   };
-  await campus.observe(list);
+  // o "Valeu" novo é um momento bom, uma vez só
+  await expect(campus.observe(list)).resolves.toBe(true);
   expect(state().own[0]).toMatchObject({
     confirmedTold: true,
     views: 4,
     thanks: 1,
   });
   expect(state().level).toBe(3);
+  await expect(campus.observe(list)).resolves.toBe(false);
+  // mais vistos sem "Valeu" novo não contam
+  await expect(
+    campus.observe({
+      ...list,
+      notices: [notice({ confirmed: true, views: 9, thanks: 1 })],
+    }),
+  ).resolves.toBe(false);
 });
 
 it('marks the first visit of each account, even after another one visited', async () => {

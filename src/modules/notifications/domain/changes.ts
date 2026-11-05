@@ -4,6 +4,7 @@ import type {
   Grade,
   PartialRID,
 } from '@root/modules/academics/domain/models';
+import { passesByGrade } from '@root/modules/academics/domain/rules/finalExam';
 import type { StudentDocument } from '@root/modules/documents/domain/models';
 
 /**
@@ -250,6 +251,30 @@ export function enrollmentChanges(
       },
     ];
   });
+}
+
+/**
+ * As notas novas aprovam alguma disciplina que a referência ainda não dava
+ * como aprovada (a média publicada passa, a dispensa da PF ou a PF lançada).
+ */
+export function hasNewApproval(
+  known: KnownGrades,
+  current: readonly ClassGrade[],
+): boolean {
+  return current.some(
+    item =>
+      passesByGrade(item.grades) &&
+      !passesByGrade(known[classKey(item.id, item.class)] ?? {}),
+  );
+}
+
+/** O resultado da inscrição trouxe uma vaga que antes não estava aceita. */
+export function hasNewAcceptance(
+  changes: readonly EnrollmentChange[],
+): boolean {
+  return changes.some(
+    change => change.accepted && change.previous?.accepted !== true,
+  );
 }
 
 const DAY = 24 * 60 * 60 * 1000;

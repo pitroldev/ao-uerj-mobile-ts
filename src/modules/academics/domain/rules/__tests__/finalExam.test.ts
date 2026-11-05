@@ -2,6 +2,7 @@ import {
   finalExamOutlook,
   isPassingGrade,
   neededFinalExam,
+  passesByGrade,
   projectCumulativeAverage,
   projectedFinal,
   type PeriodFinal,
@@ -281,5 +282,21 @@ describe('projected CR', () => {
       projectCumulativeAverage(retake, finalsOf(['777', 7]), credits, '2026.1')
         .projected,
     ).toBe(5.75);
+  });
+});
+
+describe('passesByGrade', () => {
+  it('passes with the published average, the exemption or the final exam', () => {
+    expect(passesByGrade({ result: 5 })).toBe(true);
+    expect(passesByGrade({ p1: 7, p2: 7.4 })).toBe(true);
+    expect(passesByGrade({ p1: 5, p2: 5, pf: 5 })).toBe(true);
+  });
+  it('does not pass yet with a final exam to take, a low average or no grades', () => {
+    expect(passesByGrade({ p1: 5, p2: 6 })).toBe(false);
+    expect(passesByGrade({ p1: 2, p2: 3 })).toBe(false);
+    expect(passesByGrade({ result: 4.9 })).toBe(false);
+    expect(passesByGrade({ p1: 5, p2: 5, pf: 4 })).toBe(false);
+    expect(passesByGrade({ p1: 8 })).toBe(false);
+    expect(passesByGrade({})).toBe(false);
   });
 });

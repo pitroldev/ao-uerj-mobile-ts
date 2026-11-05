@@ -1,6 +1,8 @@
 export type ScheduleImage = {
   url: string;
   type: 'image/png' | 'image/svg+xml';
+  /** A legenda que vai junto (no WhatsApp, o texto embaixo da imagem). */
+  message?: string;
 };
 
 export interface ScheduleSharingPort {

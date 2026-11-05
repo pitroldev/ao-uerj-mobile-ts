@@ -14,6 +14,7 @@ import type {
   RemoteStatus,
   RemoteStatusSnapshot,
 } from '../application/RemoteStatus';
+import type { StoreListingPort } from '../application/ports';
 import type { ReviewPrompter } from '../application/ReviewPrompter';
 import { isVersionSupported, visibleNotices } from '../domain/appStatus';
 import { UpdateRequired } from './UpdateRequired';
@@ -23,6 +24,8 @@ export type Delivery = {
   status: RemoteStatus;
   updates: AppUpdates;
   review: Pick<ReviewPrompter, 'notePositiveMoment'>;
+  /** A página do app na loja: "Avaliar na Play Store" e os convites. */
+  storeListing: StoreListingPort;
 };
 
 /** Sem provedor (testes de telas, Storybook) tudo fica inerte: sem avisos nem bloqueios. */
@@ -163,13 +166,46 @@ export function useRemoteNotices() {
   return { notices, dismiss };
 }
 
+/** Até quando a volta ao app ainda é o fim do momento (mandar a grade e voltar). */
+export const MOMENT_RETURN_WINDOW = 5 * 60 * 1000;
+
 /**
- * Registra um momento positivo (grade compartilhada, grades geradas); a
- * avaliação na loja só aparece se a política deixar.
+ * Registra um momento positivo (grade compartilhada, grades geradas,
+ * documento emitido, formatura escolhida, "Valeu" recebido, boa notícia da
+ * verificação); a avaliação na loja só aparece se a política deixar. Com o
+ * app fora da frente, a loja não mostraria a folha e o pedido gastaria a vez:
+ * o momento conta na volta. É o caso da grade compartilhada, que termina com
+ * o app escolhido na frente; depois de alguns minutos fora, não conta mais.
  */
 export function usePositiveMoment(): () => void {
   const delivery = useDelivery();
   return useCallback(() => {
-    void delivery?.review.notePositiveMoment();
+    if (!delivery) return;
+    const note = () => {
+      void delivery.review.notePositiveMoment();
+    };
+    if (AppState.currentState !== 'background') {
+      note();
+      return;
+    }
+    const leftAt = Date.now();
+    const subscription = AppState.addEventListener('change', state => {
+      if (state !== 'active') return;
+      subscription.remove();
+      if (Date.now() - leftAt <= MOMENT_RETURN_WINDOW) note();
+    });
   }, [delivery]);
+}
+
+/** A página do app na loja; `null` sem provedor (testes de telas). */
+export function useStoreListing(): StoreListingPort | null {
+  return useDelivery()?.storeListing ?? null;
+}
+
+/**
+ * Indicar e avaliar só existem onde o app está numa loja (o Android, pela
+ * Play): no iPhone o link levaria a uma página que não abre lá.
+ */
+export function useCanInvite(): boolean {
+  return useStoreListing()?.available ?? false;
 }

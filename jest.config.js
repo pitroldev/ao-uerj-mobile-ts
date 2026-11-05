@@ -20,6 +20,7 @@ module.exports = {
         '<rootDir>/jest/setup-reanimated.js',
         '<rootDir>/jest/setup-gesture-handler.js',
         '<rootDir>/jest/setup-bootsplash.js',
+        '<rootDir>/jest/setup-clipboard.js',
       ],
       // ESM-only packages that still need Babel.
       transformIgnorePatterns: [

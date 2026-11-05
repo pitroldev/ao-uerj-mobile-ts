@@ -228,6 +228,12 @@ jest.mock('@root/modules/academics/presentation/QueryNotice', () => ({
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
+// o convite só existe onde o app está numa loja
+let mockCanInvite = false;
+jest.mock('@root/modules/delivery/presentation/DeliveryProvider', () => ({
+  ...jest.requireActual('@root/modules/delivery/presentation/DeliveryProvider'),
+  useCanInvite: () => mockCanInvite,
+}));
 
 const renderPage = () =>
   renderWithProviders(<CompanionPage />, {
@@ -236,6 +242,7 @@ const renderPage = () =>
 
 beforeEach(() => {
   mockNow = new Date(2026, 10, 23, 12, 5);
+  mockCanInvite = false;
   services();
 });
 
@@ -332,6 +339,23 @@ it('starts on the way home after the last class, and says when nobody called yet
   ).toBeOnTheScreen();
   expect(screen.getByText('Sua última aula acabou às 22:10')).toBeOnTheScreen();
   expect(screen.getByText('Grupos para voltar')).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Convidar a turma' })).toBeNull();
+});
+
+it('invites the class when nobody opened a table yet', async () => {
+  mockCanInvite = true;
+  mockServer.list.mockResolvedValue({ calls: [], watching: 0 });
+  await renderPage();
+  expect(
+    await screen.findByText('Quanto mais gente, mais mesas no almoço.'),
+  ).toBeOnTheScreen();
+  await userEvent
+    .setup()
+    .press(screen.getByRole('button', { name: 'Convidar a turma' }));
+  expect(await screen.findByText('Indicar o AO UERJ')).toBeOnTheScreen();
+  expect(
+    screen.getByText(/dá pra abrir uma mesa no almoço ou um grupo pra voltar/),
+  ).toBeOnTheScreen();
 });
 
 it('explains when the app cannot prove the student yet', async () => {

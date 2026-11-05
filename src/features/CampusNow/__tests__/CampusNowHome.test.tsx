@@ -110,7 +110,10 @@ jest.mock('@root/modules/delivery/presentation/DeliveryProvider', () => ({
   useRemoteStatus: () => ({
     status: { disabledFeatures: mockDisabled, notices: [] },
   }),
+  // o "Valeu" recebido vira momento bom (teste no CampusNow)
+  usePositiveMoment: () => mockPositiveMoment,
 }));
+const mockPositiveMoment = jest.fn();
 const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: mockNavigate }),

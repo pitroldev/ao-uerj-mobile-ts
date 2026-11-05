@@ -31,6 +31,13 @@ import { useAppServices } from '@root/app/providers/AppServicesProvider';
 import { useSchedule } from '@root/modules/academics/presentation/queries';
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
 import { useNotificationSettings } from '@root/modules/notifications/presentation/useNotificationSettings';
+import { useCanInvite } from '@root/modules/delivery/presentation/DeliveryProvider';
+import { InviteLine } from '@root/modules/delivery/presentation/InviteLine';
+import { InviteSheet } from '@root/modules/delivery/presentation/InviteSheet';
+import {
+  CAMPUS_INVITE,
+  type Invite,
+} from '@root/modules/delivery/presentation/inviteText';
 import { AppError } from '@root/shared/errors/AppError';
 import {
   ENDS_TO_CLOSE,
@@ -201,6 +208,9 @@ function LiveView({
   }, [selected]);
   const [details, setDetails] = useState<CampusNotice | null>(null);
   const [busy, setBusy] = useState<{ id: string; kind: RowBusy } | null>(null);
+  // sem avisos, o convite: o Agora no campus depende de quem está lá
+  const canInvite = useCanInvite();
+  const [invite, setInvite] = useState<Invite | null>(null);
 
   const notices = useMemo(
     () => (query.data?.notices ?? []).filter(notice => isLive(notice, nowMs)),
@@ -436,11 +446,19 @@ function LiveView({
               ))}
             </List>
           ) : (
-            <EmptyState
-              icon="task_alt"
-              title="Tudo tranquilo no campus agora"
-              text="Nenhum aviso valendo. Viu fila, falta de luz ou Wi-Fi fora? Avise em dois toques: quem vai passar por lá agradece."
-            />
+            <>
+              <EmptyState
+                icon="task_alt"
+                title="Tudo tranquilo no campus agora"
+                text="Nenhum aviso valendo. Viu fila, falta de luz ou Wi-Fi fora? Avise em dois toques: quem vai passar por lá agradece."
+              />
+              {canInvite ? (
+                <InviteLine
+                  text="Quanto mais gente, mais avisos no caminho."
+                  onPress={() => setInvite(CAMPUS_INVITE)}
+                />
+              ) : null}
+            </>
           )}
         </Section>
 
@@ -551,6 +569,7 @@ function LiveView({
         onMap={openMap}
         onFlag={notice => actions.flag(notice.id)}
       />
+      <InviteSheet invite={invite} onClose={() => setInvite(null)} />
     </>
   );
 }

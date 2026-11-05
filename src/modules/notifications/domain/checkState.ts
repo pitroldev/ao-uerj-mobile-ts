@@ -38,6 +38,11 @@ export type CheckState = {
   notifiedDocuments: string[];
   /** Referência dos avisos de nota, RID e inscrição (`null`: nenhuma ainda). */
   known: KnownReadings | null;
+  /**
+   * A última verificação que achou uma boa notícia (vaga confirmada,
+   * aprovação nas notas): o app conta como momento bom quando o aluno abre.
+   */
+  goodNewsAt: number | null;
 };
 
 export const EMPTY_CHECK_STATE: CheckState = {
@@ -47,6 +52,7 @@ export const EMPTY_CHECK_STATE: CheckState = {
   documentsCheckedAt: null,
   notifiedDocuments: [],
   known: null,
+  goodNewsAt: null,
 };
 
 const OUTCOMES: readonly CheckOutcome[] = [
@@ -79,6 +85,7 @@ export function normalizeCheckState(raw: unknown): CheckState {
           .slice(-MAX_NOTIFIED_DOCUMENTS)
       : [],
     known: normalizeKnownReadings(value.known),
+    goodNewsAt: time('goodNewsAt'),
   };
 }
 

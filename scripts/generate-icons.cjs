@@ -82,6 +82,7 @@ const OUTLINED = [
   'person',
   'progress_activity',
   'public',
+  'qr_code_2',
   'refresh',
   'remove',
   'restart_alt',

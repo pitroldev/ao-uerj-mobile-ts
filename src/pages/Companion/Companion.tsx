@@ -34,6 +34,13 @@ import {
 import { useSchedule } from '@root/modules/academics/presentation/queries';
 import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
 import { AppError } from '@root/shared/errors/AppError';
+import { useCanInvite } from '@root/modules/delivery/presentation/DeliveryProvider';
+import { InviteLine } from '@root/modules/delivery/presentation/InviteLine';
+import { InviteSheet } from '@root/modules/delivery/presentation/InviteSheet';
+import {
+  COMPANION_INVITE,
+  type Invite,
+} from '@root/modules/delivery/presentation/inviteText';
 import {
   isCurrent,
   type CallKind,
@@ -215,6 +222,9 @@ function CompanionScreen({
   } | null>(null);
   const [joining, setJoining] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  // sem mesas nem grupos, o convite: mais gente no app, mais companhia
+  const canInvite = useCanInvite();
+  const [invite, setInvite] = useState<Invite | null>(null);
   // com a chamada aberta, a lista segue: quem está fora vê as vagas mudarem
   const query = useCompanionCalls({ poll: focused });
   const watch = useCompanionWatch(now.getTime());
@@ -457,6 +467,16 @@ function CompanionScreen({
             action={{ label: text.cta, icon: 'add', onPress: openCreate }}
           />
           {watchBox}
+          {canInvite ? (
+            <InviteLine
+              text={
+                tab === 'home'
+                  ? 'Quanto mais gente, mais grupos para voltar.'
+                  : 'Quanto mais gente, mais mesas no almoço.'
+              }
+              onPress={() => setInvite(COMPANION_INVITE)}
+            />
+          ) : null}
         </>
       );
   }
@@ -578,6 +598,7 @@ function CompanionScreen({
           onSave={setName}
         />
       ) : null}
+      <InviteSheet invite={invite} onClose={() => setInvite(null)} />
     </>
   );
 }

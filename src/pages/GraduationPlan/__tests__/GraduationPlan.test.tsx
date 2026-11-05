@@ -89,6 +89,11 @@ jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useIdentity: () => ({ status: 'signedIn', account: mockAccount }),
   useAppServices: () => mockServices,
 }));
+const mockMoment = jest.fn();
+jest.mock('@root/modules/delivery/presentation/DeliveryProvider', () => ({
+  ...jest.requireActual('@root/modules/delivery/presentation/DeliveryProvider'),
+  usePositiveMoment: () => mockMoment,
+}));
 
 let stores: ReturnType<typeof memoryStore>;
 let queryClient: QueryClient;
@@ -347,6 +352,32 @@ it('lets the student pick a later graduation with a lighter load', async () => {
     screen.getByText('Abaixo do mínimo de 2 disciplinas da inscrição'),
   ).toBeOnTheScreen();
   expect(storedChoices()).toMatchObject({ load: 2 });
+});
+
+it('counts the chosen graduation as a good moment when the student leaves the plan', async () => {
+  const free = ['Desenho', 'Física I', 'Química'].map((name, i) => ({
+    ...PLAN_CURRICULUM[1],
+    id: `IME01-1000${6 + i}`,
+    name,
+    period: 1,
+  }));
+  mockCurriculum = makeQuery([...PLAN_CURRICULUM, ...free]);
+  const page = await renderPage();
+  await planReady();
+  // tocar na que já está escolhida não é escolha
+  await user().press(screen.getByText('Formar em 2027.2'));
+  await user().press(screen.getByText('Formar em 2028.1'));
+  await screen.findByLabelText('Formatura prevista: 2028.1');
+  expect(mockMoment).not.toHaveBeenCalled();
+  await page.unmount();
+  expect(mockMoment).toHaveBeenCalledTimes(1);
+});
+
+it('does not count leaving the plan without a new choice', async () => {
+  const page = await renderPage();
+  await planReady();
+  await page.unmount();
+  expect(mockMoment).not.toHaveBeenCalled();
 });
 
 it('counts the subjects in progress as passed', async () => {

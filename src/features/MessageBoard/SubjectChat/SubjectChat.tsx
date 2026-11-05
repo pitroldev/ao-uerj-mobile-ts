@@ -12,6 +12,13 @@ import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
 import { useOnlineStatus } from '@root/modules/academics/presentation/useOnlineStatus';
 import { communityKeys } from '@root/modules/community/presentation/queryKeys';
 import { MAX_MESSAGE_LENGTH } from '@root/modules/community/domain/models';
+import { useCanInvite } from '@root/modules/delivery/presentation/DeliveryProvider';
+import { InviteLine } from '@root/modules/delivery/presentation/InviteLine';
+import { InviteSheet } from '@root/modules/delivery/presentation/InviteSheet';
+import {
+  muralInvite,
+  type Invite,
+} from '@root/modules/delivery/presentation/inviteText';
 import {
   ErrorState,
   Icon,
@@ -51,6 +58,9 @@ export const SubjectChat = (subject: AttendedSubjectInfo) => {
   const theme = useTheme();
   const [text, setText] = useState('');
   const [sentCount, setSentCount] = useState(0);
+  // a conversa vazia convida a turma (o mural só serve com ela aqui)
+  const canInvite = useCanInvite();
+  const [invite, setInvite] = useState<Invite | null>(null);
   const { community } = useAppServices();
   const { account } = useIdentity();
   const online = useOnlineStatus();
@@ -132,10 +142,18 @@ export const SubjectChat = (subject: AttendedSubjectInfo) => {
     }
   } else if (messages.length === 0) {
     placeholder = (
-      <Hint dashed padding={14}>
-        <Icon name="lightbulb" color={theme.colors.accent} />
-        <HintText tone="muted">{HINT}</HintText>
-      </Hint>
+      <>
+        <Hint dashed padding={14}>
+          <Icon name="lightbulb" color={theme.colors.accent} />
+          <HintText tone="muted">{HINT}</HintText>
+        </Hint>
+        {canInvite ? (
+          <InviteLine
+            text="A turma ainda não está aqui?"
+            onPress={() => setInvite(muralInvite(subject.name, subject.class))}
+          />
+        ) : null}
+      </>
     );
   }
 
@@ -214,6 +232,7 @@ export const SubjectChat = (subject: AttendedSubjectInfo) => {
         placeholder={placeholder}
         followKey={`${period}:${sentCount}`}
       />
+      <InviteSheet invite={invite} onClose={() => setInvite(null)} />
     </ScreenPanel>
   );
 };

@@ -183,9 +183,11 @@ export class CampusNow {
 
   /**
    * A lista chegou com o app na tela: o que o aluno já viu aqui (o aviso dele
-   * confirmado, o nível novo) não vira aviso do celular depois.
+   * confirmado, o nível novo) não vira aviso do celular depois. `true` quando
+   * um aviso dele ganhou "Valeu" desde a última vez (um momento bom).
    */
-  async observe(current: NoticeList): Promise<void> {
+  async observe(current: NoticeList): Promise<boolean> {
+    let thanked = false;
     await this.update(state => {
       let changed = state.level !== current.you.level;
       const own = state.own.map(item => {
@@ -194,6 +196,7 @@ export class CampusNow {
         const confirmedTold = item.confirmedTold || live.confirmed;
         const thanks = live.thanks ?? item.thanks;
         const views = live.views ?? item.views;
+        if (thanks > item.thanks) thanked = true;
         if (
           confirmedTold === item.confirmedTold &&
           thanks === item.thanks &&
@@ -205,6 +208,7 @@ export class CampusNow {
       });
       return changed ? { ...state, own, level: current.you.level } : state;
     });
+    return thanked;
   }
 
   /** As salas da grade, para a verificação sem tela; grava só quando mudam. */

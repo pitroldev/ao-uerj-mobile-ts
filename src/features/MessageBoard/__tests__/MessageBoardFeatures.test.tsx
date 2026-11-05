@@ -57,6 +57,15 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('@react-native-clipboard/clipboard', () => ({
   setString: jest.fn(),
 }));
+// o convite da conversa vazia só existe onde o app está numa loja
+let mockCanInvite = false;
+jest.mock('@root/modules/delivery/presentation/DeliveryProvider', () => ({
+  ...jest.requireActual('@root/modules/delivery/presentation/DeliveryProvider'),
+  useCanInvite: () => mockCanInvite,
+}));
+beforeEach(() => {
+  mockCanInvite = false;
+});
 
 const SUBJECT = {
   id: 'IME02-10892',
@@ -389,6 +398,23 @@ describe('subject chat', () => {
     expect(sticky()).toHaveTextContent(second);
   });
 
+  it('invites the class to an empty thread, with the subject and the turma', async () => {
+    mockCanInvite = true;
+    mockMessages.mockResolvedValueOnce([]);
+    await renderChat();
+    expect(
+      await screen.findByText('A turma ainda não está aqui?'),
+    ).toBeOnTheScreen();
+    await userEvent
+      .setup()
+      .press(screen.getByRole('button', { name: 'Convidar a turma' }));
+    expect(
+      await screen.findByText(
+        'Abri o mural de Sistemas Distribuídos (turma 2) no AO UERJ. Entra lá pra gente trocar material, links e datas de prova:',
+      ),
+    ).toBeOnTheScreen();
+  });
+
   it('shows the hint for an empty thread and the error with retry', async () => {
     mockMessages.mockResolvedValueOnce([]);
     await renderChat();
@@ -397,6 +423,9 @@ describe('subject chat', () => {
         'Compartilhe informações da turma, como grupos, links, materiais e datas de prova.',
       ),
     ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole('button', { name: 'Convidar a turma' }),
+    ).toBeNull();
     await screen.unmount();
     client.clear();
 

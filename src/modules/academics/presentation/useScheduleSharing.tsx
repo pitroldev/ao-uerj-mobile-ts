@@ -20,13 +20,14 @@ export function useScheduleSharing() {
   const ready = useRef(false);
   const pending = useRef(false);
   const [exporting, setExporting] = useState(false);
-  const share = async (svgUri: string) => {
+  /** `caption`: a legenda que vai junto (o link do app, onde há loja). */
+  const share = async (svgUri: string, caption?: string) => {
     if (pending.current) return;
     pending.current = true;
     setExporting(true);
     // `.finally` da promessa: o React Compiler 1.0 não compila try/finally.
     const shared = await new ShareSchedule(scheduleSharing)
-      .execute(ready.current ? imageRef.current : null, svgUri)
+      .execute(ready.current ? imageRef.current : null, svgUri, caption)
       .finally(() => {
         pending.current = false;
         setExporting(false);

@@ -116,6 +116,24 @@ export function finalExamOutlook(grade: Grade): FinalExamOutlook {
 }
 
 /**
+ * As notas já aprovam: a média publicada passa, a semestral dispensa da PF
+ * ou a PF lançada leva a nota final a 5,0. A frequência fica de fora (o
+ * quadro de notas não a traz).
+ */
+export function passesByGrade(grade: Grade): boolean {
+  const outlook = finalExamOutlook(grade);
+  switch (outlook.kind) {
+    case 'exempt':
+      return true;
+    case 'published':
+    case 'final-exam-done':
+      return isPassingGrade(outlook.final);
+    default:
+      return false;
+  }
+}
+
+/**
  * A nota final que entra no CR: a publicada, a da PF lançada, a média
  * semestral (dispensado ou sem direito à PF) ou a da PF simulada.
  */

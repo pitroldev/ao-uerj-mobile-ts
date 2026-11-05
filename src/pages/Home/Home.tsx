@@ -26,6 +26,7 @@ import { QueryNotice } from '@root/modules/academics/presentation/QueryNotice';
 import { useOnlineStatus } from '@root/modules/academics/presentation/useOnlineStatus';
 import { RemoteNotices } from '@root/modules/delivery/presentation/RemoteNotices';
 import { ReminderPrompt } from '@root/modules/notifications/presentation/ReminderPrompt';
+import { useGoodNewsMoment } from '@root/modules/notifications/presentation/useGoodNewsMoment';
 import { toIsoDate } from '@root/modules/attendance/domain/attendance';
 import { useAttendance } from '@root/modules/attendance/presentation/useAttendance';
 import {
@@ -144,6 +145,8 @@ export const HomePage = () => {
     request: null,
   });
   const now = useNow();
+  // vaga confirmada ou aprovação achadas em segundo plano: um momento bom
+  useGoodNewsMoment();
   // Personalizar o Início: seções, ordem, saudação, densidade e detalhes
   const {
     layout: homeLayout,

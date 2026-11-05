@@ -267,6 +267,17 @@ jest.mock('@root/modules/academics/presentation/QueryNotice', () => ({
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
+// o convite só existe onde o app está numa loja
+let mockCanInvite = false;
+const mockMoment = jest.fn();
+jest.mock('@root/modules/delivery/presentation/DeliveryProvider', () => ({
+  ...jest.requireActual('@root/modules/delivery/presentation/DeliveryProvider'),
+  useCanInvite: () => mockCanInvite,
+  usePositiveMoment: () => mockMoment,
+}));
+beforeEach(() => {
+  mockCanInvite = false;
+});
 
 const renderPage = () =>
   renderWithProviders(<CampusNowPage />, {
@@ -506,6 +517,51 @@ it('says all is calm when nothing is going on, with the way to report', async ()
   // um "Avisar" só (o do rodapé), e sem o mapa vazio
   expect(screen.getAllByRole('button', { name: 'Avisar' })).toHaveLength(1);
   expect(screen.queryByLabelText(/Mapa do campus/)).toBeNull();
+  // fora de uma loja, sem convite
+  expect(screen.queryByRole('button', { name: 'Convidar a turma' })).toBeNull();
+});
+
+it('invites the class when nothing is going on, without opening anything by itself', async () => {
+  mockNotices = [];
+  mockCanInvite = true;
+  await renderPage();
+  expect(
+    await screen.findByText('Quanto mais gente, mais avisos no caminho.'),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText('Indicar o AO UERJ')).toBeNull();
+  await userEvent
+    .setup()
+    .press(screen.getByRole('button', { name: 'Convidar a turma' }));
+  expect(await screen.findByText('Indicar o AO UERJ')).toBeOnTheScreen();
+  expect(
+    screen.getByText(/quem está no campus avisa fila do bandejão/),
+  ).toBeOnTheScreen();
+});
+
+it('counts a "Valeu" on the own notice as a good moment, a moment later', async () => {
+  const campus = mockServices.campusNow as CampusNow;
+  await campus.report({
+    kind: 'power',
+    status: 'no_ac',
+    place: { type: 'floor', block: 'B', floor: '6' },
+  });
+  // alguém agradeceu o aviso do aluno
+  mockNotices = mockNotices.map(item =>
+    item.id === 'novo' ? { ...item, thanks: 1 } : item,
+  );
+  await renderPage();
+  await screen.findByText('Avisos agora');
+  expect(mockMoment).not.toHaveBeenCalled();
+  await waitFor(() => expect(mockMoment).toHaveBeenCalledTimes(1), {
+    timeout: 4_000,
+  });
+});
+
+it('leaves the invite out while there are notices', async () => {
+  mockCanInvite = true;
+  await renderPage();
+  await screen.findByText('Avisos agora');
+  expect(screen.queryByRole('button', { name: 'Convidar a turma' })).toBeNull();
 });
 
 it('explains when the student cannot be confirmed yet', async () => {

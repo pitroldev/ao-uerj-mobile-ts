@@ -49,6 +49,21 @@ describe('schedule sharing', () => {
       type: 'image/svg+xml',
     });
   });
+  it('sends the caption with the image, as PNG or as the SVG fallback', async () => {
+    await new ShareSchedule(sharing).execute({}, 'svg', 'Minha grade: link');
+    expect(sharing.share).toHaveBeenLastCalledWith({
+      url: 'file:///schedule.png',
+      type: 'image/png',
+      message: 'Minha grade: link',
+    });
+    sharing.capturePng.mockRejectedValue(new Error('capture unavailable'));
+    await new ShareSchedule(sharing).execute({}, 'svg', 'Minha grade: link');
+    expect(sharing.share).toHaveBeenLastCalledWith({
+      url: 'svg',
+      type: 'image/svg+xml',
+      message: 'Minha grade: link',
+    });
+  });
   it('does not open another share dialog if sharing fails', async () => {
     sharing.share.mockRejectedValue(new Error('share unavailable'));
     await expect(new ShareSchedule(sharing).execute({}, 'svg')).rejects.toThrow(

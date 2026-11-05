@@ -280,12 +280,17 @@ export type WeekImageOptions = {
   period?: string | null;
   /** Professores de cada disciplina (por `subjectKey`), na legenda. */
   teachers?: ReadonlyMap<string, readonly string[]>;
+  /**
+   * O rodapé diz onde baixar ("grátis na Play Store"): só onde o app está
+   * numa loja (o Android).
+   */
+  store?: boolean;
 };
 
 /** SVG da semana (1080 de largura; a altura acompanha a grade e a legenda). */
 export function buildWeekImage(
   data: readonly AttendedClassesSchedule[] = [],
-  { period, teachers }: WeekImageOptions = {},
+  { period, teachers, store = false }: WeekImageOptions = {},
 ): string {
   const blocks: Block[] = data
     .filter(item => hasClassTime(item) && !isCanceled(item))
@@ -479,12 +484,15 @@ export function buildWeekImage(
     }
   }
 
-  // rodapé discreto: o logo e o nome do app
+  // rodapé discreto: o logo, o nome do app e, numa loja, onde baixar (quem
+  // recebe a imagem no grupo da turma não tem como tocar num link nela)
   y += 24;
   parts.push(
     `<line x1="${PAD}" x2="${W - PAD}" y1="${y}" y2="${y}" stroke="${C.rule}" stroke-width="1.5"/>`,
   );
-  const footer = 'Feito com o app AO UERJ';
+  const footer = store
+    ? 'Feito com o app AO UERJ · grátis na Play Store'
+    : 'Feito com o app AO UERJ';
   const footerLogo = 50;
   const footerWidth = footerLogo + 14 + textWidth(footer, 'Inter-Medium', 22);
   const footerX = (W - footerWidth) / 2;

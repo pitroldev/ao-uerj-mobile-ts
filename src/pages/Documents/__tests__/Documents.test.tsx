@@ -38,6 +38,10 @@ jest.mock('@root/app/providers/AppServicesProvider', () => ({
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
+const mockMoment = jest.fn();
+jest.mock('@root/modules/delivery/presentation/DeliveryProvider', () => ({
+  usePositiveMoment: () => mockMoment,
+}));
 
 const REGULAR: StudentDocument = {
   id: 'regular',
@@ -157,6 +161,20 @@ it('prepares a PDF, shares it again without reissuing, and retains it on share f
   expect(mockSharing.share).toHaveBeenCalledTimes(2);
   expect(mockSharing.share).toHaveBeenLastCalledWith(PDF);
   expect(mockDocuments.issue).toHaveBeenCalledTimes(1);
+});
+
+it('counts the PDF as a good moment when the student closes it, not on top of it', async () => {
+  await mount();
+  const user = userEvent.setup();
+  await user.press(
+    await screen.findByRole('button', { name: `Obter PDF: ${REGULAR.title}` }),
+  );
+  expect(
+    await screen.findByRole('header', { name: 'PDF pronto' }),
+  ).toBeOnTheScreen();
+  expect(mockMoment).not.toHaveBeenCalled();
+  await user.press(screen.getByRole('button', { name: 'Fechar documento' }));
+  await waitFor(() => expect(mockMoment).toHaveBeenCalledTimes(1));
 });
 
 it('requires explicit confirmation to delete the selected document and supports cancellation', async () => {

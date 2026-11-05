@@ -50,6 +50,7 @@ function wrapper() {
       now,
     }),
     review: { notePositiveMoment },
+    storeListing: createStoreListing(false),
   };
   return createWrapper({
     queryClient: client,

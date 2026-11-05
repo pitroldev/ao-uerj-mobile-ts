@@ -15,6 +15,12 @@ import {
 } from '@root/app/providers/AppServicesProvider';
 import { errorMessage } from '@root/shared/errors/AppError';
 import { useDisabledRoutes } from '@root/modules/delivery/presentation/FeatureGate';
+import { useCanInvite } from '@root/modules/delivery/presentation/DeliveryProvider';
+import { InviteSheet } from '@root/modules/delivery/presentation/InviteSheet';
+import {
+  appInvite,
+  type Invite,
+} from '@root/modules/delivery/presentation/inviteText';
 import {
   THEME_PREFERENCE_LABEL,
   ThemePreferenceSheet,
@@ -32,6 +38,7 @@ import {
 import type { IconName } from '@components/ui';
 
 import {
+  Bottom,
   Container,
   Footer,
   GroupLabel,
@@ -97,6 +104,9 @@ export const DrawerNavigator = ({
   const disabledRoutes = useDisabledRoutes();
   const { preference } = useThemePreference();
   const [themeSheetOpen, setThemeSheetOpen] = useState(false);
+  // indicar o app fica no pé do menu, sempre à vista, só onde há loja
+  const canInvite = useCanInvite();
+  const [invite, setInvite] = useState<Invite | null>(null);
   const isSignedIn = Boolean(account);
 
   const { routeNames } = state;
@@ -241,39 +251,56 @@ export const DrawerNavigator = ({
         )}
       </Nav>
 
-      <Footer>
-        <Item
-          $auto
-          onPress={handleLogout}
-          accessibilityRole="button"
-          accessibilityLabel="Sair"
-          style={({ pressed }) => pressed && { backgroundColor: c.brandRule }}
-        >
-          <Icon name="logout" color={c.onBrandMuted} />
-          <Text variant="body" tone="onBrand">
-            Sair
-          </Text>
-        </Item>
-        <Version
-          variant="caption"
-          weight="regular"
-          tone="onBrandMuted"
-          align="right"
-        >
-          {`Versão ${version}`}
-        </Version>
-        <IconButton
-          icon={theme.name === 'dark' ? 'dark_mode' : 'light_mode'}
-          onBrand
-          accessibilityLabel={`Tema: ${THEME_PREFERENCE_LABEL[preference]}`}
-          accessibilityHint="Abre as opções de tema"
-          onPress={() => setThemeSheetOpen(true)}
-        />
-      </Footer>
+      <Bottom>
+        {canInvite ? (
+          <Item
+            onPress={() => setInvite(appInvite('menu'))}
+            accessibilityRole="button"
+            accessibilityLabel="Indicar o app"
+            accessibilityHint="Abre a mensagem para mandar à turma e o QR"
+            style={({ pressed }) => pressed && { backgroundColor: c.brandRule }}
+          >
+            <Icon name="share" color={c.onBrandMuted} />
+            <ItemLabel variant="body" tone="onBrand" numberOfLines={2}>
+              Indicar o app
+            </ItemLabel>
+          </Item>
+        ) : null}
+        <Footer>
+          <Item
+            $auto
+            onPress={handleLogout}
+            accessibilityRole="button"
+            accessibilityLabel="Sair"
+            style={({ pressed }) => pressed && { backgroundColor: c.brandRule }}
+          >
+            <Icon name="logout" color={c.onBrandMuted} />
+            <Text variant="body" tone="onBrand">
+              Sair
+            </Text>
+          </Item>
+          <Version
+            variant="caption"
+            weight="regular"
+            tone="onBrandMuted"
+            align="right"
+          >
+            {`Versão ${version}`}
+          </Version>
+          <IconButton
+            icon={theme.name === 'dark' ? 'dark_mode' : 'light_mode'}
+            onBrand
+            accessibilityLabel={`Tema: ${THEME_PREFERENCE_LABEL[preference]}`}
+            accessibilityHint="Abre as opções de tema"
+            onPress={() => setThemeSheetOpen(true)}
+          />
+        </Footer>
+      </Bottom>
       <ThemePreferenceSheet
         visible={themeSheetOpen}
         onClose={() => setThemeSheetOpen(false)}
       />
+      <InviteSheet invite={invite} onClose={() => setInvite(null)} />
     </Container>
   );
 };

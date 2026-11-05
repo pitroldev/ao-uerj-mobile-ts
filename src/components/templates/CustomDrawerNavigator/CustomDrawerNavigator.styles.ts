@@ -75,15 +75,19 @@ export const Highlight = styled(Animated.View)<{ $height: number }>`
   background-color: ${({ theme }) => theme.colors.brandHighlight};
 `;
 
-/** Rodapé com "Sair" e a versão (".dr-foot"). */
-export const Footer = styled.View`
-  flex-direction: row;
-  align-items: center;
-  gap: 4px;
+/** O pé do menu, fora da rolagem: "Indicar o app" e o rodapé (".dr-foot"). */
+export const Bottom = styled.View`
   margin: 8px 12px 0px 12px;
   padding-top: 8px;
   border-top-width: ${({ theme }) => theme.borders.hairline}px;
   border-top-color: ${({ theme }) => theme.colors.brandRule};
+`;
+
+/** Rodapé com "Sair" e a versão. */
+export const Footer = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
 `;
 
 /** ".dr-ver": encosta no botão de tema, à direita. */

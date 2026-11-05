@@ -46,6 +46,7 @@ import {
   CHECK_STATE_KEY,
   PREFERENCES_KEY,
 } from '@root/modules/notifications/application/NotificationSettings';
+import { GOOD_NEWS_SEEN_KEY } from '@root/modules/notifications/application/GoodNews';
 import {
   ATTENDANCE_KEY,
   AttendanceRecords,
@@ -85,6 +86,7 @@ const ACCOUNT_PREFERENCES = [
   'elective-credits',
   PREFERENCES_KEY,
   CHECK_STATE_KEY,
+  GOOD_NEWS_SEEN_KEY,
   ATTENDANCE_KEY,
   EVALUATIONS_KEY,
   PREREQUISITES_KEY,

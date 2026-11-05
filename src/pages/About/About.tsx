@@ -5,6 +5,12 @@ import { useTheme } from 'styled-components/native';
 import { ErrorReportModal } from '@features/ErrorReport/ErrorReportModal';
 import { AoLogo, Icon, Section, Text, snackbar } from '@components/ui';
 import { ScreenPanel } from '@templates/ScreenPanel';
+import { useStoreListing } from '@root/modules/delivery/presentation/DeliveryProvider';
+import { InviteSheet } from '@root/modules/delivery/presentation/InviteSheet';
+import {
+  appInvite,
+  type Invite,
+} from '@root/modules/delivery/presentation/inviteText';
 
 import {
   AppName,
@@ -41,11 +47,20 @@ export const AboutPage = () => {
   const theme = useTheme();
   const { fontScale } = useWindowDimensions();
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  // avaliar e indicar só onde o app está numa loja (o Android)
+  const store = useStoreListing();
+  const [invite, setInvite] = useState<Invite | null>(null);
 
   const openUrl = (url: string) => {
     Linking.openURL(url).catch((err: Error) => {
       console.log('AboutOpenURL error', err);
       snackbar.error('Não foi possível abrir este link.');
+    });
+  };
+
+  const rate = () => {
+    store?.open().catch(() => {
+      snackbar.error('Não foi possível abrir a Play Store.');
     });
   };
 
@@ -133,6 +148,37 @@ export const AboutPage = () => {
         </SocialLinks>
       </Creator>
 
+      {store?.available ? (
+        <Section title="Ajude o app a crescer">
+          <SupportList bleed={false}>
+            <SupportRow
+              inset={0}
+              leading={
+                <Icon name="star" size={24} color={theme.colors.accent} />
+              }
+              title="Avaliar na Play Store"
+              titleWeight="medium"
+              meta="Sua nota ajuda outros alunos a acharem o app"
+              external
+              accessibilityRole="link"
+              accessibilityHint="Abre a página do AO UERJ na Play Store"
+              onPress={rate}
+            />
+            <SupportRow
+              inset={0}
+              leading={
+                <Icon name="share" size={24} color={theme.colors.accent} />
+              }
+              title="Indicar para a turma"
+              titleWeight="medium"
+              meta="Mande o link no grupo ou mostre o QR"
+              chevron
+              onPress={() => setInvite(appInvite('sobre'))}
+            />
+          </SupportList>
+        </Section>
+      ) : null}
+
       <Section title="Ajude a melhorar">
         <SupportList bleed={false}>
           <SupportRow
@@ -172,6 +218,7 @@ export const AboutPage = () => {
           />
         </SupportList>
       </Section>
+      <InviteSheet invite={invite} onClose={() => setInvite(null)} />
     </ScreenPanel>
   );
 };

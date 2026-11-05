@@ -14,6 +14,7 @@ import {
   PREFERENCES_KEY,
 } from '@root/modules/notifications/application/NotificationSettings';
 import { PortalCheck } from '@root/modules/notifications/application/PortalCheck';
+import { GoodNews } from '@root/modules/notifications/application/GoodNews';
 import { PortalReturnAlert } from '@root/modules/notifications/application/PortalReturnAlert';
 import type {
   AcademicCachePort,
@@ -331,5 +332,11 @@ export function createNotifications({
     companionWatch,
     campusWatch,
     consumeDone,
+    // as boas notícias da verificação viram momento bom na abertura
+    goodNews: new GoodNews({
+      store: preferences,
+      account,
+      now: () => Date.now(),
+    }),
   };
 }

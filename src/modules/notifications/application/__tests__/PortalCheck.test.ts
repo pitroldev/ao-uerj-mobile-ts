@@ -531,3 +531,37 @@ it('neither notifies nor saves when the account changes during the check', async
   expect(device.notify).not.toHaveBeenCalled();
   expect(store.write).not.toHaveBeenCalled();
 });
+
+it('marks the good news of a new approval or a new seat, for the app to count it when opened', async () => {
+  // a P2 de 8,5 dispensa da PF (média 7,75)
+  const approved = setup({
+    preferences: { grades: true },
+    cache: createCache({ grades: grades(null) }),
+  });
+  await approved.check.run();
+  expect((approved.saved() as CheckState).goodNewsAt).toBe(AFTERNOON);
+
+  const seat = setup({
+    preferences: { rid: true },
+    cache: createCache({
+      'partial-rid': rid(5),
+      'enrollment-result': result(false),
+    }),
+  });
+  await seat.check.run();
+  expect((seat.saved() as CheckState).goodNewsAt).toBe(AFTERNOON);
+});
+
+it('keeps the last good news when a check finds none, and the first reading is never news', async () => {
+  const { check, saved } = setup({
+    preferences: { grades: true },
+    state: { goodNewsAt: 123 },
+    cache: createCache({ grades: grades(8.5) }),
+  });
+  await check.run();
+  expect((saved() as CheckState).goodNewsAt).toBe(123);
+
+  const first = setup({ preferences: { grades: true, rid: true } });
+  await first.check.run();
+  expect((first.saved() as CheckState).goodNewsAt).toBeNull();
+});

@@ -31,6 +31,8 @@ import {
 } from '@root/modules/attendance/domain/attendance';
 import { useScheduleSharing } from '@root/modules/academics/presentation/useScheduleSharing';
 import { toSvgDataUri } from '@root/modules/academics/presentation/scheduleSvg';
+import { useCanInvite } from '@root/modules/delivery/presentation/DeliveryProvider';
+import { scheduleCaption } from '@root/modules/delivery/presentation/inviteText';
 import {
   useSubjectTeachers,
   type SubjectTeachers,
@@ -141,6 +143,8 @@ export const ClassScheduleBoard = React.memo(function ClassScheduleBoard({
   const { fontScale } = useWindowDimensions();
   const safeData = useMemo(() => (data ?? []).filter(hasClassTime), [data]);
   const { share, exporting, SvgRenderer } = useScheduleSharing();
+  // numa loja, a imagem diz onde baixar e a legenda leva o link
+  const store = useCanInvite();
   const loadTeachers = useSubjectTeachers();
   const [teachers, setTeachers] = useState<SubjectTeachers>(NO_TEACHERS);
   const [preparing, setPreparing] = useState(false);
@@ -148,8 +152,8 @@ export const ClassScheduleBoard = React.memo(function ClassScheduleBoard({
   const fade = useAnimatedValue(1);
 
   const svgString = useMemo(
-    () => buildWeekImage(safeData, { period, teachers }),
-    [period, safeData, teachers],
+    () => buildWeekImage(safeData, { period, teachers, store }),
+    [period, safeData, teachers, store],
   );
 
   const today = now.getDay();
@@ -338,7 +342,10 @@ export const ClassScheduleBoard = React.memo(function ClassScheduleBoard({
     setPreparing(false);
     try {
       await share(
-        toSvgDataUri(buildWeekImage(safeData, { period, teachers: found })),
+        toSvgDataUri(
+          buildWeekImage(safeData, { period, teachers: found, store }),
+        ),
+        store ? scheduleCaption(period) : undefined,
       );
     } catch {
       snackbar.error(

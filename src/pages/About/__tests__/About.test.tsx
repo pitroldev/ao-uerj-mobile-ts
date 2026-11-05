@@ -12,10 +12,55 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('@features/ErrorReport/ErrorReportModal', () => ({
   ErrorReportModal: 'ErrorReportModal',
 }));
+// sem loja (o iPhone, os testes sem provedor) até um teste pôr a Play
+let mockListing: { available: boolean; open: jest.Mock } | null = null;
+jest.mock('@root/modules/delivery/presentation/DeliveryProvider', () => ({
+  ...jest.requireActual('@root/modules/delivery/presentation/DeliveryProvider'),
+  useStoreListing: () => mockListing,
+}));
 
 beforeEach(async () => {
+  mockListing = null;
   jest.mocked(Linking.openURL).mockReset().mockResolvedValue(undefined);
   await renderWithProviders(<AboutPage />);
+});
+
+it('leaves rating and inviting out where the app is in no store', () => {
+  expect(
+    screen.queryByRole('header', { name: 'Ajude o app a crescer' }),
+  ).toBeNull();
+});
+
+it('rates on the Play and invites the class where the app is in the store', async () => {
+  mockListing = { available: true, open: jest.fn(async () => undefined) };
+  await renderWithProviders(<AboutPage />);
+  const user = userEvent.setup();
+  expect(
+    screen.getByRole('header', { name: 'Ajude o app a crescer' }),
+  ).toBeOnTheScreen();
+  await user.press(
+    screen.getByRole('link', { name: /^Avaliar na Play Store/ }),
+  );
+  expect(mockListing.open).toHaveBeenCalledTimes(1);
+  await user.press(
+    screen.getByRole('button', { name: /^Indicar para a turma/ }),
+  );
+  expect(await screen.findByText('Indicar o AO UERJ')).toBeOnTheScreen();
+});
+
+it('says so when the Play Store does not open', async () => {
+  mockListing = {
+    available: true,
+    open: jest.fn(async () => Promise.reject(new Error('sem loja'))),
+  };
+  await renderWithProviders(<AboutPage />);
+  const showError = jest.spyOn(snackbar, 'error');
+  await userEvent
+    .setup()
+    .press(screen.getByRole('link', { name: /^Avaliar na Play Store/ }));
+  expect(showError).toHaveBeenCalledWith(
+    'Não foi possível abrir a Play Store.',
+  );
 });
 
 it('shows the approved copy and the blog link', () => {

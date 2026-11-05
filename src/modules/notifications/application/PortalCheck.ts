@@ -12,6 +12,8 @@ import {
   enrollmentChanges,
   expiringDocuments,
   gradeChanges,
+  hasNewAcceptance,
+  hasNewApproval,
   knowEnrollment,
   knowGrades,
   knowRid,
@@ -202,6 +204,8 @@ export class PortalCheck {
       enrollment: preferences.rid ? (saved?.enrollment ?? {}) : {},
     };
     let outcome: CheckOutcome = 'ok';
+    // vaga confirmada ou aprovação: o app conta como momento bom na abertura
+    let goodNews = false;
     const step = async (operation: () => Promise<void>) => {
       try {
         await operation();
@@ -227,10 +231,12 @@ export class PortalCheck {
           const current = await records.getGrades(options);
           cache.write(account, 'grades', current);
           const seen = previous ? knowGrades(known.grades, previous.data) : {};
-          if (previous)
+          if (previous) {
             gradeChanges(seen, current).forEach(change =>
               messages.push(gradeMessage(change, preferences.gradeValues)),
             );
+            if (hasNewApproval(seen, current)) goodNews = true;
+          }
           known = { ...known, grades: knowGrades(seen, current) };
         });
       if (preferences.rid)
@@ -263,6 +269,7 @@ export class PortalCheck {
             : [];
           if (changes.length)
             messages.push(enrollmentMessage(current.subjects, changes));
+          if (hasNewAcceptance(changes)) goodNews = true;
           known = {
             ...known,
             enrollment: knowEnrollment(seen, current.subjects),
@@ -314,7 +321,7 @@ export class PortalCheck {
 
     return this.finish(
       account,
-      { ...next, known },
+      { ...next, known, goodNewsAt: goodNews ? startedAt : next.goodNewsAt },
       startedAt,
       outcome,
       messages,
