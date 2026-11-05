@@ -17,7 +17,10 @@
         <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
         <key>NSPrivacyAccessedAPITypeReasons</key>
         <array>
+          <!-- os do próprio app -->
           <string>CA92.1</string>
+          <!-- os do App Group, que o widget lê (WidgetStore.swift) -->
+          <string>1C8F.1</string>
         </array>
       </dict>
       <dict>
@@ -29,8 +32,92 @@
         </array>
       </dict>
     </array>
+    <!--
+      O que vai para o servidor do AO UERJ (docs/privacidade.md), ligado ao
+      aluno identificado e só para as funções do app (que, na Apple, incluem
+      segurança e prevenção de fraude). Nada é usado para rastrear.
+    -->
     <key>NSPrivacyCollectedDataTypes</key>
-    <array />
+    <array>
+      <!-- o nome do login no Aluno Online -->
+      <dict>
+        <key>NSPrivacyCollectedDataType</key>
+        <string>NSPrivacyCollectedDataTypeName</string>
+        <key>NSPrivacyCollectedDataTypeLinked</key>
+        <true />
+        <key>NSPrivacyCollectedDataTypeTracking</key>
+        <false />
+        <key>NSPrivacyCollectedDataTypePurposes</key>
+        <array>
+          <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+        </array>
+      </dict>
+      <!-- a matrícula -->
+      <dict>
+        <key>NSPrivacyCollectedDataType</key>
+        <string>NSPrivacyCollectedDataTypeUserID</string>
+        <key>NSPrivacyCollectedDataTypeLinked</key>
+        <true />
+        <key>NSPrivacyCollectedDataTypeTracking</key>
+        <false />
+        <key>NSPrivacyCollectedDataTypePurposes</key>
+        <array>
+          <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+        </array>
+      </dict>
+      <!-- o código da instalação, guardado como HMAC -->
+      <dict>
+        <key>NSPrivacyCollectedDataType</key>
+        <string>NSPrivacyCollectedDataTypeDeviceID</string>
+        <key>NSPrivacyCollectedDataTypeLinked</key>
+        <true />
+        <key>NSPrivacyCollectedDataTypeTracking</key>
+        <false />
+        <key>NSPrivacyCollectedDataTypePurposes</key>
+        <array>
+          <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+        </array>
+      </dict>
+      <!-- mensagens do mural, mesas e grupos da Companhia agora, avisos do Agora no campus, denúncias -->
+      <dict>
+        <key>NSPrivacyCollectedDataType</key>
+        <string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+        <key>NSPrivacyCollectedDataTypeLinked</key>
+        <true />
+        <key>NSPrivacyCollectedDataTypeTracking</key>
+        <false />
+        <key>NSPrivacyCollectedDataTypePurposes</key>
+        <array>
+          <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+        </array>
+      </dict>
+      <!-- os pontos e o nível do Agora no campus e quais avisos o aluno viu -->
+      <dict>
+        <key>NSPrivacyCollectedDataType</key>
+        <string>NSPrivacyCollectedDataTypeProductInteraction</string>
+        <key>NSPrivacyCollectedDataTypeLinked</key>
+        <true />
+        <key>NSPrivacyCollectedDataTypeTracking</key>
+        <false />
+        <key>NSPrivacyCollectedDataTypePurposes</key>
+        <array>
+          <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+        </array>
+      </dict>
+      <!-- o relato de erro: tela, descrição e diagnóstico sem dados do portal -->
+      <dict>
+        <key>NSPrivacyCollectedDataType</key>
+        <string>NSPrivacyCollectedDataTypeOtherDiagnosticData</string>
+        <key>NSPrivacyCollectedDataTypeLinked</key>
+        <true />
+        <key>NSPrivacyCollectedDataTypeTracking</key>
+        <false />
+        <key>NSPrivacyCollectedDataTypePurposes</key>
+        <array>
+          <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+        </array>
+      </dict>
+    </array>
     <key>NSPrivacyTracking</key>
     <false />
   </dict>

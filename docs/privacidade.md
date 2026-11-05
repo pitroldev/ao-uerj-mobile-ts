@@ -2,13 +2,13 @@
 
 **Última atualização:** 5 de novembro de 2026
 
-O AO UERJ é um app não oficial e de código aberto para alunos da UERJ. Ele não tem vínculo com a universidade e usa a sua conta do Aluno Online. Esta política explica o que fica no seu celular, o que vai para o servidor do app, quem vê cada coisa e por quanto tempo. Ela vale para o app no Android, distribuído pela Google Play.
+O AO UERJ é um app não oficial e de código aberto para alunos da UERJ. Ele não tem vínculo com a universidade e usa a sua conta do Aluno Online. Esta política explica o que fica no seu celular, o que vai para o servidor do app, quem vê cada coisa e por quanto tempo. Ela vale para o app no Android, distribuído pela Google Play, e no iPhone.
 
 ## Resumo
 
 - A sua senha do Aluno Online só vai para o portal da UERJ e fica guardada, cifrada, no seu celular.
 - As suas notas, o histórico, a grade e os documentos ficam no seu celular. Eles não vão para o servidor do app.
-- No Android, o app manda ao servidor do AO UERJ a sua **matrícula** e o seu **nome**, para confirmar que você é aluno e moderar o mural, a Companhia agora e o Agora no campus.
+- O app manda ao servidor do AO UERJ a sua **matrícula** e o seu **nome**, para confirmar que você é aluno e moderar o mural, a Companhia agora e o Agora no campus.
 - O app não tem anúncios, não usa ferramentas de análise ou de rastreamento e não vende dados.
 - O app não usa a sua localização, a câmera, o microfone nem os contatos.
 - Você pode pedir acesso, correção ou exclusão dos seus dados pelo e-mail **contato@pitrol.dev**.
@@ -23,13 +23,13 @@ A UERJ não opera o app e não responde por ele. O que acontece dentro do Aluno 
 
 O app entra no Aluno Online direto do seu celular, como um navegador faria. Tudo nesta seção fica no aparelho e não passa pelo servidor do AO UERJ.
 
-- **Login:** a matrícula e a senha ficam no armazenamento seguro do sistema (Android Keystore). A senha e os cookies do portal só vão para o Aluno Online (`alunoonline.uerj.br`).
-- **Dados do portal:** grade, notas, histórico, currículo, Síntese da Formação, RID e disciplinas ficam num cofre cifrado (AES-256-GCM, com a chave no Android Keystore), fora do backup do celular, para o app abrir sem internet ou com o portal fora do ar. Essa cópia vale até 180 dias (o RID e os detalhes de disciplinas, 7 dias).
+- **Login:** a matrícula e a senha ficam no armazenamento seguro do sistema (o Android Keystore ou o Keychain do iPhone). A senha e os cookies do portal só vão para o Aluno Online (`alunoonline.uerj.br`).
+- **Dados do portal:** grade, notas, histórico, currículo, Síntese da Formação, RID e disciplinas ficam num cofre cifrado (no Android, AES-256-GCM com a chave no Android Keystore; no iPhone, com uma chave P-256 no Keychain, só deste aparelho), fora do backup do celular, para o app abrir sem internet ou com o portal fora do ar. Essa cópia vale até 180 dias (o RID e os detalhes de disciplinas, 7 dias).
 - **Documentos:** os PDFs que você escolhe guardar ficam no mesmo cofre, no máximo 5 por conta.
 - **O que você anota:** faltas, provas e trabalhos, o Plano até a formatura e as escolhas dos lembretes e dos avisos.
 - **Lembretes e avisos:** os lembretes de aula e os avisos de nota nova, do RID e da inscrição são montados no celular. Para os avisos, o app consulta o portal em segundo plano, do próprio celular.
 - **Widget "Próxima aula":** guarda a disciplina, o horário e a sala das suas aulas, para aparecer com o app fechado.
-- **Preferências do app:** o tema, os avisos que você dispensou e o histórico de uso que decide quando o app pede uma avaliação na Play Store.
+- **Preferências do app:** o tema, os avisos que você dispensou e o histórico de uso que decide quando o app pede uma avaliação na loja.
 
 Quando você sai da conta, o app apaga do celular o login, os dados do portal, os PDFs, as anotações, os lembretes e o widget dessa conta. As preferências do app ficam até você desinstalá-lo. Desinstalar apaga tudo.
 
@@ -39,14 +39,14 @@ O servidor do app fica em `pitrol.dev`. Toda a comunicação usa HTTPS.
 
 ### Identificação do aluno
 
-Para usar o mural, a busca de docentes, a Companhia agora, o Agora no campus, o relato de erro e o gerador de grades, o app confirma que você é aluno da UERJ. Logo depois do login no Aluno Online, ele manda ao servidor a sua **matrícula** e o seu **nome**, como aparecem no portal, um código desta instalação do app e uma verificação do Google Play (Play Integrity) de que o app é o original, instalado pela Play Store.
+Para usar o mural, a busca de docentes, a Companhia agora, o Agora no campus, o relato de erro e o gerador de grades, o app confirma que você é aluno da UERJ. Logo depois do login no Aluno Online, ele manda ao servidor a sua **matrícula** e o seu **nome**, como aparecem no portal, um código desta instalação do app e uma verificação de que o app é o original: no Android, a do Google Play (Play Integrity), de que ele veio da Play Store; no iPhone, a da Apple (App Attest), de que ele é o app do AO UERJ, num iPhone de verdade.
 
 - **Para que usamos:** para saber quem escreveu cada mensagem do mural, quem mandou cada relato, quem estava em cada mesa ou grupo da Companhia agora e quem mandou cada aviso do Agora no campus. Também para moderar: impedir que a mesma pessoa entre duas vezes e suspender quem for denunciado por assédio, spam ou outro abuso.
 - **Quem vê:** os outros alunos veem só o primeiro nome que você escolher, ou o nome que você assina no mural. A matrícula e o nome completo só aparecem para a moderação do app.
 - **Como guardamos:** a matrícula e o nome ficam cifrados no banco (AES-256-GCM). A busca pela matrícula usa um código derivado dela (HMAC), e não a matrícula em si. Do celular, guardamos só um código derivado do id da instalação.
 - **Sessão:** o app recebe uma sessão, que vence depois de 30 dias sem uso e fica no cofre do celular, fora do backup. Sair da conta encerra a sessão no servidor.
 - **Suspensão:** se a sua conta for suspensa, o app mostra até quando e por quê. A suspensão vale em qualquer aparelho.
-- **Sem a Play Store** (no iPhone ou em aparelhos sem os serviços do Google), o app não faz essa identificação, e as funções entre alunos (o mural, a Companhia agora e o Agora no campus) não abrem. O relato de erro ainda chega, sem dizer quem mandou.
+- **Sem essa verificação** (em aparelhos Android sem os serviços do Google, ou num iPhone que não tenha o App Attest), o app não faz essa identificação, e as funções entre alunos (o mural, a Companhia agora e o Agora no campus) não abrem. O relato de erro ainda chega, sem dizer quem mandou.
 
 ### Mural de mensagens
 
@@ -95,7 +95,8 @@ O servidor do app registra cada pedido sem o IP, sem o User-Agent e sem o conte�
 ## Serviços de outras empresas
 
 - **UERJ (Aluno Online):** o app conversa com o portal em seu nome, com o seu login.
-- **Google:** a Play Integrity confirma que o app é o original. O Google vê que o app pediu a verificação, mas não recebe a sua matrícula nem o seu nome, só um código calculado a partir deles. Atualizar e avaliar o app usam a própria Play Store, sem dados do AO UERJ. Esses serviços seguem a [política de privacidade do Google](https://policies.google.com/privacy).
+- **Google (Android):** a Play Integrity confirma que o app é o original. O Google vê que o app pediu a verificação, mas não recebe a sua matrícula nem o seu nome, só um código calculado a partir deles. Atualizar e avaliar o app usam a própria Play Store, sem dados do AO UERJ. Esses serviços seguem a [política de privacidade do Google](https://policies.google.com/privacy).
+- **Apple (iPhone):** o App Attest confirma que o app é o original. O iPhone cria uma chave nova a cada entrada, e a Apple recebe essa chave e um código calculado a partir do pedido, nunca a sua matrícula nem o seu nome. O serviço segue a [política de privacidade da Apple](https://www.apple.com/br/legal/privacy/).
 - **GitHub (Microsoft):** o app baixa, no máximo a cada 15 minutos, um arquivo de avisos e de configuração deste repositório, em `raw.githubusercontent.com`. O pedido não leva dados seus, mas o GitHub vê o IP, o horário e o User-Agent ([declaração de privacidade do GitHub](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement)).
 - **Oracle Cloud e MongoDB Atlas:** o servidor roda numa máquina da Oracle Cloud, e o banco de dados fica no MongoDB Atlas. Eles guardam os dados em nome do AO UERJ e não os usam para outra coisa. Esses serviços podem ficar fora do Brasil, inclusive nos Estados Unidos.
 - **Links e compartilhamento:** "Como chegar", no mapa, abre o Google Maps só com o destino. Os links do Sobre abrem o GitHub, o LinkedIn e a Play Store. Quando você compartilha a grade ou o convite do app, você escolhe o app de destino (o WhatsApp, por exemplo), e o que você manda segue as regras dele.
@@ -103,7 +104,7 @@ O servidor do app registra cada pedido sem o IP, sem o User-Agent e sem o conte�
 ## O que o app não faz
 
 - Não mostra anúncios.
-- Não usa ferramentas de análise, de rastreamento ou de publicidade, nem o id de publicidade do Android.
+- Não usa ferramentas de análise, de rastreamento ou de publicidade, nem o identificador de publicidade do Android ou do iPhone.
 - Não vende os seus dados nem os compartilha para publicidade.
 - Não pede a localização, a câmera, o microfone, os contatos nem os arquivos do celular.
 - Não manda ao servidor a sua senha, as suas notas, o histórico nem a sua grade.
