@@ -102,6 +102,9 @@ it('opens the support, repository and developer links', async () => {
   await user.press(screen.getByRole('link', { name: /^Ver código no GitHub/ }));
   await user.press(screen.getByRole('link', { name: 'LinkedIn' }));
   await user.press(screen.getByRole('link', { name: 'E-mail' }));
+  await user.press(
+    screen.getByRole('link', { name: /^Política de privacidade/ }),
+  );
   expect(jest.mocked(Linking.openURL).mock.calls.map(c => c[0])).toEqual([
     'https://pitrol.dev/',
     'https://github.com/pitroldev',
@@ -109,7 +112,17 @@ it('opens the support, repository and developer links', async () => {
     'https://github.com/pitroldev/ao-uerj-mobile-ts',
     'https://www.linkedin.com/in/petrocardoso/',
     'mailto:contato@pitrol.dev?subject=AO UERJ',
+    // o endereço da Play Console
+    'https://github.com/pitroldev/ao-uerj-mobile-ts/blob/main/docs/privacidade.md',
   ]);
+});
+
+it('puts the privacy policy under "Seus dados"', () => {
+  // o arquivo em si é conferido em scripts/__tests__/privacy-policy.test.cjs
+  expect(screen.getByRole('header', { name: 'Seus dados' })).toBeOnTheScreen();
+  expect(
+    screen.getByRole('link', { name: /^Política de privacidade/ }),
+  ).toBeOnTheScreen();
 });
 
 it.each(['pitrol.dev', 'GitHub', 'LinkedIn', 'E-mail'])(

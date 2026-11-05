@@ -36,6 +36,8 @@ const GITHUB_PROFILE_URL = 'https://github.com/pitroldev';
 const GITHUB_REPO_URL = 'https://github.com/pitroldev/ao-uerj-mobile-ts';
 const WEBSITE_URL = 'https://pitrol.dev/';
 const CREATOR_EMAIL = 'mailto:contato@pitrol.dev?subject=AO UERJ';
+// o mesmo endereço da Play Console: não mova o arquivo
+const PRIVACY_POLICY_URL = `${GITHUB_REPO_URL}/blob/main/docs/privacidade.md`;
 
 const DEV_LINKS = [
   { label: 'GitHub', icon: 'github', url: GITHUB_PROFILE_URL },
@@ -215,6 +217,22 @@ export const AboutPage = () => {
             accessibilityRole="link"
             accessibilityHint="Abre no navegador"
             onPress={() => openUrl(GITHUB_REPO_URL)}
+          />
+        </SupportList>
+      </Section>
+
+      <Section title="Seus dados">
+        <SupportList bleed={false}>
+          <SupportRow
+            inset={0}
+            leading={<Icon name="lock" size={24} color={theme.colors.accent} />}
+            title="Política de privacidade"
+            titleWeight="medium"
+            meta="O que fica no celular e o que vai para o servidor"
+            external
+            accessibilityRole="link"
+            accessibilityHint="Abre no navegador"
+            onPress={() => openUrl(PRIVACY_POLICY_URL)}
           />
         </SupportList>
       </Section>
