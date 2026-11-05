@@ -28,8 +28,10 @@ jobs:
       - run: bundle exec pod install --project-directory=ios
       # Release, como vai para a loja: o Xcode empacota o JS de iOS (o que só
       # quebra nessa plataforma: resolução de módulos, assets) e o Hermes o
-      # compila. Sem assinatura, o simulador abre o app do mesmo jeito.
-      - name: Build without signing for simulator (Release)
+      # compila. Assinatura local ("Sign to Run Locally", sem conta da Apple):
+      # sem ela o app fica sem os entitlements, e o Keychain do simulador recusa
+      # tudo (-34018), o que o iPhone de verdade não faz.
+      - name: Build for simulator, signed to run locally (Release)
         run: >-
           xcodebuild
           -workspace ios/AOUerjMobile.xcworkspace
@@ -38,10 +40,15 @@ jobs:
           -sdk iphonesimulator
           -destination 'generic/platform=iOS Simulator'
           -derivedDataPath ios/build
-          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGN_STYLE=Manual
+          CODE_SIGN_IDENTITY=-
+          DEVELOPMENT_TEAM=
+          PROVISIONING_PROFILE_SPECIFIER=
           build
       # Abre o app num iPhone simulado e confere que ele não cai (abertura,
-      # tema escuro, link aouerj:// e segunda abertura), com capturas de tela.
+      # tema escuro, link aouerj://, segunda abertura e uma rodada da
+      # verificação em segundo plano, com o React Native aberto sem janela e
+      # reaproveitado pela tela), com capturas de tela.
       - name: Smoke test on the iPhone simulator
         run: |
           app=$(find ios/build/Build/Products/Release-iphonesimulator -maxdepth 1 -name '*.app' | head -1)
