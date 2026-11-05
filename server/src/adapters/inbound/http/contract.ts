@@ -636,16 +636,30 @@ export type StudentChallengeResponse = {
 };
 
 /**
- * `POST /aouerj/v2/students/session`. O app passa à Play Integrity (pedido
- * standard) o `requestHash`: o SHA-256, em hex, de "AO UERJ student session
- * v1", do desafio, da instalação e, com o tamanho (u16) na frente de cada um,
- * da matrícula e do nome, em UTF-8. Bytes em base64url. O servidor tira os
- * espaços das pontas dos dois antes do hash: mande-os já assim.
+ * `POST /aouerj/v2/students/session`. O `requestHash` é o SHA-256 de "AO UERJ
+ * student session v1", do desafio, da instalação e, com o tamanho (u16) na
+ * frente de cada um, da matrícula e do nome, em UTF-8. Bytes em base64url. O
+ * servidor tira os espaços das pontas dos dois antes do hash: mande-os já
+ * assim.
+ *
+ * Vai uma atestação só, conforme o aparelho (as duas, ou nenhuma, é 400
+ * `invalid_request`):
+ * - Android: `integrityToken`, o token da Play Integrity (pedido standard)
+ *   sobre o `requestHash` em hex;
+ * - iPhone: `appAttest`, uma chave nova do App Attest atestada com os 32
+ *   bytes do `requestHash` como `clientDataHash` (os bytes, não o hex). Sem o
+ *   App ID da Apple configurado no servidor, a resposta é 503
+ *   `student_identity_unavailable`, e o Android segue entrando.
+ *
+ * Uma atestação recusada é 403 `attestation_failed` nos dois.
  */
 export type StudentSessionRequest = {
   challenge: string;
   installation: string;
-  integrityToken: string;
+  /** Android: o token da Play Integrity. */
+  integrityToken?: string;
+  /** iPhone: o App Attest (`DCAppAttestService`), em base64 padrão. */
+  appAttest?: StudentAppAttest;
   /** A matrícula do login no Aluno Online (só os dígitos). */
   matricula: string;
   /**
@@ -653,6 +667,18 @@ export type StudentSessionRequest = {
    * juntados num só (o servidor guarda assim).
    */
   name: string;
+};
+
+/**
+ * O App Attest do iPhone: o id da chave (`generateKey`) e o objeto de
+ * atestação (`attestKey`, CBOR), os dois em base64 padrão, com o `=` do fim e
+ * sem quebra de linha (o `base64EncodedString()` sem opções).
+ */
+export type StudentAppAttest = {
+  /** Como o `generateKey` devolve: o SHA-256 da chave pública (32 bytes). */
+  keyId: string;
+  /** O objeto do `attestKey`, até 32 768 caracteres (ele tem uns 5 KB). */
+  attestation: string;
 };
 
 /**

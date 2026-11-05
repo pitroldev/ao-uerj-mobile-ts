@@ -3,7 +3,12 @@ import {
   openIssuanceChallenge,
   usedChallengeId,
 } from '../access/domain.ts';
-import type { AppAttester, SingleUse } from '../access/ports.ts';
+import type {
+  AppAttester,
+  AppAttestVerifier,
+  Attestation,
+  SingleUse,
+} from '../access/ports.ts';
 import { systemClock, type Clock } from '../../shared/clock.ts';
 import { InvalidInputError } from '../../shared/errors.ts';
 import {
@@ -31,6 +36,7 @@ import {
 } from './domain.ts';
 import type {
   Authentication,
+  EnrollmentAttestation,
   StudentIdentity,
   StudentRepository,
   StudentSessionRepository,
@@ -53,14 +59,16 @@ const usedId = (challenge: Buffer) => `student:${usedChallengeId(challenge)}`;
 
 /**
  * A identificação do aluno. O app manda a matrícula e o nome do login no
- * Aluno Online, com a Play Integrity sobre esses campos; a partir daí, cada
- * pedido leva a sessão. A moderação abre matrícula e nome para banir.
+ * Aluno Online, com a atestação sobre esses campos (a Play Integrity no
+ * Android, o App Attest no iPhone); a partir daí, cada pedido leva a sessão.
+ * A moderação abre matrícula e nome para banir.
  */
 export function createStudentIdentity({
   students,
   sessions,
   usedChallenges,
   attester,
+  appAttest = null,
   dataKey,
   onBan = async () => undefined,
   now = systemClock,
@@ -68,8 +76,10 @@ export function createStudentIdentity({
   students: StudentRepository;
   sessions: StudentSessionRepository;
   usedChallenges: SingleUse;
-  /** `null`: sem quem ateste, ninguém entra. */
+  /** A Play Integrity; `null`: o Android não entra. */
   attester: AppAttester | null;
+  /** O App Attest; `null` (sem o App ID da Apple): o iPhone não entra. */
+  appAttest?: AppAttestVerifier | null;
   /** `STUDENT_DATA_KEY`; `null` desliga a identificação (503). */
   dataKey: Buffer | null;
   /** O que mais acontece no banimento (a Companhia tira o aluno das mesas). */
@@ -110,6 +120,27 @@ export function createStudentIdentity({
       if (entry.student === studentId) cache.delete(id);
   };
 
+  /**
+   * Quem confere a atestação deste pedido, já com ela: a Play Integrity
+   * recebe o hash em hex; o App Attest, os 32 bytes dele como
+   * `clientDataHash`. `null` sem quem ateste aquele aparelho.
+   */
+  const attestationOf = (
+    request: EnrollmentAttestation,
+  ): ((requestHash: string) => Promise<Attestation>) | null => {
+    if (request.appAttest !== undefined) {
+      const { appAttest: attested } = request;
+      return appAttest
+        ? requestHash =>
+            appAttest.verify(attested, Buffer.from(requestHash, 'hex'))
+        : null;
+    }
+    const { integrityToken } = request;
+    return attester
+      ? requestHash => attester.verify(integrityToken, requestHash)
+      : null;
+  };
+
   const opened = (stored: StoredStudent): Student => {
     if (!keys) throw new Error('student identity is disabled');
     return {
@@ -125,15 +156,25 @@ export function createStudentIdentity({
 
   return {
     challenge() {
-      if (!keys || !attester) return null;
+      // o mesmo desafio serve aos dois aparelhos: basta um deles entrar
+      if (!keys || (!attester && !appAttest)) return null;
       return issuanceChallenge(
         keys.challenge,
         new Date(now() + STUDENT_CHALLENGE_TTL_MS),
       );
     },
 
-    async enroll({ challenge, installation, integrityToken, matricula, name }) {
-      if (!keys || !attester) return { ok: false, reason: 'unavailable' };
+    async enroll(request) {
+      const { challenge, installation, matricula, name } = request;
+      if (
+        (request.integrityToken === undefined) ===
+        (request.appAttest === undefined)
+      )
+        throw new InvalidInputError(
+          'send either integrityToken (Android) or appAttest (iPhone)',
+        );
+      const verify = attestationOf(request);
+      if (!keys || !verify) return { ok: false, reason: 'unavailable' };
       if (installation.length !== STUDENT_INSTALLATION_BYTES)
         throw new InvalidInputError(
           `installation must have ${STUDENT_INSTALLATION_BYTES} bytes`,
@@ -154,8 +195,7 @@ export function createStudentIdentity({
       if (!(await usedChallenges.spend(usedId(challenge), expiresAt)))
         return { ok: false, reason: 'invalid_challenge' };
 
-      const attestation = await attester.verify(
-        integrityToken,
+      const attestation = await verify(
         // o hash usa a matrícula e o nome como chegaram (o app já os manda
         // limpos, sem espaços nas pontas): é o que ele passou à atestação
         studentSessionRequestHash({ challenge, installation, matricula, name }),

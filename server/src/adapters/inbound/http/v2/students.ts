@@ -3,6 +3,7 @@ import express, {
   type RequestHandler,
   type Response,
 } from 'express';
+import { z } from 'zod';
 
 import { ISSUANCE_CHALLENGE_BYTES } from '../../../../modules/access/domain.ts';
 import {
@@ -11,10 +12,12 @@ import {
   type Ban,
 } from '../../../../modules/students/domain.ts';
 import type {
+  EnrollmentAttestation,
   EnrollmentRefusal,
   StudentActor,
   StudentIdentity,
 } from '../../../../modules/students/ports.ts';
+import { InvalidInputError } from '../../../../shared/errors.ts';
 import type {
   ApiError,
   OkResponse,
@@ -22,11 +25,81 @@ import type {
   StudentChallengeResponse,
   StudentSessionResponse,
 } from '../contract.ts';
-import { body, parse, requiredText } from '../validation.ts';
+import { body, parse, requiredText, stringFor } from '../validation.ts';
 import { base64url, bytesField } from './base64url.ts';
 
 /** Um token de integridade da Play tem uns poucos KB. */
 const INTEGRITY_TOKEN_MAX = 16 * 1024;
+
+/**
+ * O objeto de atestação do App Attest tem uns 5 KB (os dois certificados e o
+ * recibo), uns 7 000 caracteres em base64: o teto fica bem acima.
+ */
+const APP_ATTESTATION_MAX = 32 * 1024;
+
+/** O keyId do App Attest: o SHA-256 da chave, em base64 (44 caracteres). */
+const APP_ATTEST_KEY_ID_BYTES = 32;
+
+/** Base64 padrão, como o iOS escreve: com o `=` do fim e sem quebra de linha. */
+const BASE64 =
+  /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+
+/**
+ * Um campo em base64 padrão, de até `max` caracteres, em bytes. Só a forma
+ * canônica (a que volta igual), para dois textos não darem os mesmos bytes.
+ */
+const base64Field = (
+  field: string,
+  { max, bytes }: { max: number; bytes?: number },
+) =>
+  stringFor(field)
+    .max(max, `${field} must be at most ${max} characters`)
+    .refine(
+      value =>
+        value.length > 0 &&
+        BASE64.test(value) &&
+        Buffer.from(value, 'base64').toString('base64') === value,
+      `${field} must be base64`,
+    )
+    .transform(value => Buffer.from(value, 'base64'))
+    .refine(
+      decoded => bytes === undefined || decoded.length === bytes,
+      `${field} must have ${bytes} bytes`,
+    );
+
+/** Ausente ou `null` é ausente; presente, `schema` confere. */
+const optionalField = <T extends z.ZodType>(schema: T) =>
+  z.preprocess(value => value ?? undefined, schema.optional()).optional();
+
+/** O App Attest do iPhone, como em `StudentAppAttest`. */
+const appAttestSchema = z.object(
+  {
+    keyId: base64Field('keyId', {
+      max: 64,
+      bytes: APP_ATTEST_KEY_ID_BYTES,
+    }),
+    attestation: base64Field('attestation', { max: APP_ATTESTATION_MAX }),
+  },
+  { error: 'appAttest must be an object' },
+);
+
+/**
+ * A atestação do pedido: o token da Play Integrity (Android) ou o App Attest
+ * (iPhone), um dos dois e nunca os dois.
+ */
+function attestationOf({
+  integrityToken,
+  appAttest,
+}: {
+  integrityToken?: string | undefined;
+  appAttest?: { keyId: Buffer; attestation: Buffer } | undefined;
+}): EnrollmentAttestation {
+  if (integrityToken !== undefined && appAttest !== undefined)
+    throw new InvalidInputError('send integrityToken or appAttest, not both');
+  if (integrityToken !== undefined) return { integrityToken };
+  if (appAttest !== undefined) return { appAttest };
+  throw new InvalidInputError('integrityToken or appAttest is required');
+}
 
 /** `Authorization: Student <32 bytes em base64url>`. */
 const STUDENT_AUTHORIZATION = /^Student\s+([A-Za-z0-9_-]{43})=?\s*$/i;
@@ -202,8 +275,9 @@ const REFUSALS: Record<
 
 /**
  * A entrada do aluno: `GET /students/challenge` dá o desafio de uso único;
- * `POST /students/session` troca o desafio, a atestação e a matrícula pela
- * sessão; `POST /students/session/end` encerra a sessão (o logout do app).
+ * `POST /students/session` troca o desafio, a atestação (a Play Integrity no
+ * Android, o App Attest no iPhone) e a matrícula pela sessão;
+ * `POST /students/session/end` encerra a sessão (o logout do app).
  */
 export function studentRoutes({
   identity,
@@ -219,9 +293,11 @@ export function studentRoutes({
   const sessionSchema = body({
     challenge: bytesField('challenge', ISSUANCE_CHALLENGE_BYTES),
     installation: bytesField('installation', STUDENT_INSTALLATION_BYTES),
-    integrityToken: requiredText('integrityToken', {
-      max: INTEGRITY_TOKEN_MAX,
-    }),
+    // um dos dois (o `attestationOf` confere)
+    integrityToken: optionalField(
+      requiredText('integrityToken', { max: INTEGRITY_TOKEN_MAX }),
+    ),
+    appAttest: optionalField(appAttestSchema),
     // sem os espaços das pontas (o app já manda assim): o hash da atestação
     // usa os dois depois dessa limpeza, como em contract.ts
     matricula: requiredText('matricula', { max: 15, numeric: true }),
@@ -242,11 +318,17 @@ export function studentRoutes({
   });
 
   routes.post('/students/session', limit, withDatabase, async (req, res) => {
-    const request = parse(sessionSchema, req.body);
-    const result = await identity.enroll(request);
+    const { integrityToken, appAttest, ...fields } = parse(
+      sessionSchema,
+      req.body,
+    );
+    const attestation = attestationOf({ integrityToken, appAttest });
+    // de qual aparelho, para o log: não identifica ninguém
+    const platform = attestation.appAttest ? 'ios' : 'android';
+    const result = await identity.enroll({ ...fields, ...attestation });
     if (result.ok) {
       // sem o aluno: o log não liga as entradas a ninguém
-      req.log.info('student signed in');
+      req.log.info({ platform }, 'student signed in');
       answer(res, 201, {
         session: result.token.toString('base64url'),
         expiresAt: result.expiresAt.toISOString(),
@@ -263,7 +345,7 @@ export function studentRoutes({
       return;
     }
     req.log.info(
-      { reason: result.reason, detail: result.detail },
+      { reason: result.reason, detail: result.detail, platform },
       'student sign-in refused',
     );
     const refusal =

@@ -92,6 +92,24 @@ export interface AppAttester {
 }
 
 /**
+ * Uma chave do App Attest (o iPhone): o id que o `generateKey` deu (o SHA-256
+ * da chave pública, 32 bytes) e o objeto de atestação do `attestKey` (CBOR).
+ */
+export type AppAttestation = { keyId: Buffer; attestation: Buffer };
+
+/**
+ * Porta de saída: quem confere que a chave saiu do nosso app, num aparelho
+ * da Apple, e foi atestada sobre `clientDataHash` (32 bytes). Não lança: um
+ * objeto malformado também é uma atestação recusada.
+ */
+export interface AppAttestVerifier {
+  verify(
+    attestation: AppAttestation,
+    clientDataHash: Buffer,
+  ): Promise<Attestation>;
+}
+
+/**
  * Porta de saída: o que só vale uma vez (um token gasto, um desafio usado),
  * guardado só como hash.
  */

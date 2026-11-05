@@ -10,6 +10,8 @@ import {
 } from './adapters/inbound/http/app.ts';
 import type { DatabaseHealth } from './adapters/inbound/http/aouerj/status.ts';
 import { repeatEvery } from './adapters/inbound/scheduling/repeat.ts';
+import { createAppAttestVerifier } from './adapters/outbound/attestation/appAttest.ts';
+import { appleAppAttestationRoot } from './adapters/outbound/attestation/appleRoot.ts';
 import { createDevelopmentAttester } from './adapters/outbound/attestation/development.ts';
 import { createPlayIntegrityAttester } from './adapters/outbound/attestation/playIntegrity.ts';
 import { createFileAttachmentStore } from './adapters/outbound/files/attachmentStore.ts';
@@ -21,13 +23,17 @@ import {
 } from './adapters/outbound/mongo/repositories.ts';
 import { createPortalProbe } from './adapters/outbound/portal/probe.ts';
 import { createThreadedSolver } from './adapters/outbound/scheduleSolver/threadedSolver.ts';
-import type { AttestationSettings, Config } from './config.ts';
+import type {
+  AppAttestSettings,
+  AttestationSettings,
+  Config,
+} from './config.ts';
 import {
   createStudentAccess,
   createTokenIssuer,
   ISSUANCE_CHALLENGE_TTL_MS,
 } from './modules/access/application.ts';
-import type { AppAttester } from './modules/access/ports.ts';
+import type { AppAttester, AppAttestVerifier } from './modules/access/ports.ts';
 import { createCampusNow } from './modules/campus-now/application.ts';
 import { createCompanion } from './modules/companion/application.ts';
 import { createMural } from './modules/mural/application.ts';
@@ -57,6 +63,8 @@ export type Overrides = {
   solver?: ScheduleSolver;
   /** Quem atesta o app; `null` desliga a emissão. */
   attester?: AppAttester | null;
+  /** O App Attest do iPhone; `null` desliga a entrada pelo iPhone. */
+  appAttest?: AppAttestVerifier | null;
 };
 
 /** O tempo que as conexões abertas têm para terminar no desligamento. */
@@ -121,6 +129,26 @@ function attesterFor(
     // o token de integridade é pedido depois do desafio
     maxAgeMs: challengeTtlMs + 60 * 1000,
     requireLicensed,
+  });
+}
+
+/**
+ * O App Attest do iPhone, conferido contra a raiz da Apple fixada no código;
+ * sem o App ID (a conta da Apple), `null`, e o iPhone não entra.
+ */
+function appAttestFor(
+  settings: AppAttestSettings | null,
+  logger: Logger,
+): AppAttestVerifier | null {
+  if (!settings) return null;
+  if (settings.environment === 'development')
+    logger.warn(
+      'App Attest also accepts development keys (builds run from Xcode)',
+    );
+  return createAppAttestVerifier({
+    appId: settings.appId,
+    root: appleAppAttestationRoot(),
+    environment: settings.environment,
   });
 }
 
@@ -204,6 +232,10 @@ export function createServer(
               requireLicensed: true,
             })
           : overrides.attester,
+      appAttest:
+        overrides.appAttest === undefined
+          ? appAttestFor(config.students.appAttest, logger)
+          : overrides.appAttest,
       dataKey: config.students.dataKey,
       // o banido sai das mesas na hora, sem esperar ninguém denunciar de
       // novo, e os avisos dele que valem saem do ar

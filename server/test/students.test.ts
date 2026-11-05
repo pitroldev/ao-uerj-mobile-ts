@@ -2,9 +2,17 @@ import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import { after, test } from 'node:test';
 
-import { createServer, type Server } from '../src/composition.ts';
+import {
+  createServer,
+  type Overrides,
+  type Server,
+} from '../src/composition.ts';
 import { createPortalWatch } from '../src/modules/portal/application.ts';
-import type { AppAttester } from '../src/modules/access/ports.ts';
+import type {
+  AppAttestation,
+  AppAttester,
+  AppAttestVerifier,
+} from '../src/modules/access/ports.ts';
 import {
   AUTH_CACHE_MS,
   createStudentIdentity,
@@ -27,6 +35,7 @@ import {
   switchableDatabase,
   testConfig,
 } from './support.ts';
+import { APP_ATTEST, appAttestation } from './appAttest.ts';
 import { mintToken, privateKeyEntry, signingKeys } from './tokens.ts';
 
 const MINUTE = 60 * 1000;
@@ -93,15 +102,50 @@ function hashAttester(): AppAttester & { seen: string[]; trust: boolean } {
   };
 }
 
-function identity() {
+/**
+ * Um App Attest que só confia na atestação feita sobre o `clientDataHash`
+ * esperado: o objeto é "ok:" e os 32 bytes (o de verdade está em
+ * appAttest.test.ts, e o nonce dele não sai de um desafio sorteado).
+ */
+function hashVerifier(): AppAttestVerifier & { seen: Buffer[] } {
+  const seen: Buffer[] = [];
+  return {
+    seen,
+    async verify({ attestation }, clientDataHash) {
+      seen.push(clientDataHash);
+      return attestation.equals(
+        Buffer.concat([Buffer.from('ok:'), clientDataHash]),
+      )
+        ? { trusted: true }
+        : { trusted: false, reason: 'nonce' };
+    },
+  };
+}
+
+/** O App Attest que o `hashVerifier` aceita para este hash (em hex). */
+const iphone = (requestHash: string): AppAttestation => ({
+  keyId: randomBytes(32),
+  attestation: Buffer.concat([
+    Buffer.from('ok:'),
+    Buffer.from(requestHash, 'hex'),
+  ]),
+});
+
+function identity({
+  attester = hashAttester(),
+  appAttest = hashVerifier(),
+}: {
+  attester?: ReturnType<typeof hashAttester> | null;
+  appAttest?: ReturnType<typeof hashVerifier> | null;
+} = {}) {
   const clock = manualClock();
   const people = memoryStudents();
-  const attester = hashAttester();
   const students = createStudentIdentity({
     students: people.studentRepository,
     sessions: people.sessionRepository,
     usedChallenges: memorySingleUse(),
     attester,
+    appAttest,
     dataKey: DATA_KEY,
     now: clock.now,
   });
@@ -126,7 +170,37 @@ function identity() {
       name,
     });
   };
-  return { clock, people, attester, students, enroll };
+  /** A mesma entrada, de um iPhone. */
+  const enrollIphone = async (
+    matricula = '201810012345',
+    installation = randomBytes(32),
+    name = 'MARINA COSTA',
+  ) => {
+    const issued = students.challenge();
+    assert.ok(issued);
+    const requestHash = studentSessionRequestHash({
+      challenge: issued.challenge,
+      installation,
+      matricula,
+      name,
+    });
+    return students.enroll({
+      challenge: issued.challenge,
+      installation,
+      appAttest: iphone(requestHash),
+      matricula,
+      name,
+    });
+  };
+  return {
+    clock,
+    people,
+    attester: attester as ReturnType<typeof hashAttester>,
+    appAttest,
+    students,
+    enroll,
+    enrollIphone,
+  };
 }
 
 test('the app signs in with the matrícula under the attestation, and a second phone is the same student', async () => {
@@ -319,6 +393,120 @@ test('without STUDENT_DATA_KEY or an attester, nobody signs in', async () => {
   assert.equal(!refused.ok && refused.reason, 'unavailable');
 });
 
+test('an iPhone signs in with App Attest over the raw request hash, and is the same student as on Android', async () => {
+  const { people, appAttest, students, enroll, enrollIphone } = identity();
+  const android = await enroll();
+  assert.ok(android.ok);
+  const installation = randomBytes(32);
+  const ios = await enrollIphone('201810012345', installation);
+  assert.ok(ios.ok);
+  assert.equal(ios.studentId, android.studentId);
+  assert.equal(people.students.size, 1);
+  // o clientDataHash é o requestHash em bytes, não o texto em hex
+  assert.equal(appAttest?.seen.length, 1);
+  assert.equal(appAttest?.seen[0]?.length, 32);
+  assert.deepEqual(await students.authenticate(ios.token), {
+    ok: true,
+    studentId: android.studentId,
+  });
+
+  // a atestação de outro pedido não vale, e o desafio fica gasto
+  const issued = students.challenge();
+  assert.ok(issued);
+  const request = {
+    challenge: issued.challenge,
+    installation,
+    matricula: '201810012345',
+    name: 'MARINA COSTA',
+  };
+  const foreign = await students.enroll({
+    ...request,
+    appAttest: iphone(
+      studentSessionRequestHash({ ...request, matricula: '201910099999' }),
+    ),
+  });
+  assert.deepEqual(
+    { ok: foreign.ok, reason: !foreign.ok && foreign.reason },
+    { ok: false, reason: 'attestation_failed' },
+  );
+  assert.equal(!foreign.ok && foreign.detail, 'nonce');
+  const reused = await students.enroll({
+    ...request,
+    appAttest: iphone(studentSessionRequestHash(request)),
+  });
+  assert.equal(!reused.ok && reused.reason, 'invalid_challenge');
+
+  // o banimento vale no iPhone também
+  await students.ban(android.studentId, 7, 'Spam');
+  const banned = await enrollIphone();
+  assert.equal(!banned.ok && banned.reason, 'banned');
+});
+
+test('without the Apple App ID the iPhone is unavailable and Android goes on; with only App Attest, the other way round', async () => {
+  const androidOnly = identity({ appAttest: null });
+  assert.ok(androidOnly.students.challenge());
+  const issued = androidOnly.students.challenge();
+  assert.ok(issued);
+  const installation = randomBytes(32);
+  const request = {
+    challenge: issued.challenge,
+    installation,
+    matricula: '201810012345',
+    name: 'MARINA COSTA',
+  };
+  const requestHash = studentSessionRequestHash(request);
+  const refused = await androidOnly.students.enroll({
+    ...request,
+    appAttest: iphone(requestHash),
+  });
+  assert.equal(!refused.ok && refused.reason, 'unavailable');
+  // a recusa não gastou o desafio
+  const android = await androidOnly.students.enroll({
+    ...request,
+    integrityToken: `ok:${requestHash}`,
+  });
+  assert.equal(android.ok, true);
+
+  const iphoneOnly = identity({ attester: null });
+  assert.ok(iphoneOnly.students.challenge());
+  assert.equal((await iphoneOnly.enrollIphone()).ok, true);
+  const noPlay = await iphoneOnly.enroll();
+  assert.equal(!noPlay.ok && noPlay.reason, 'unavailable');
+
+  // sem nenhum dos dois, não há desafio
+  assert.equal(
+    identity({ attester: null, appAttest: null }).students.challenge(),
+    null,
+  );
+});
+
+test('a sign-in carries exactly one attestation', async () => {
+  const { students } = identity();
+  const issued = students.challenge();
+  assert.ok(issued);
+  const request = {
+    challenge: issued.challenge,
+    installation: randomBytes(32),
+    matricula: '201810012345',
+    name: 'MARINA COSTA',
+  };
+  const both = {
+    ...request,
+    integrityToken: 'x',
+    appAttest: iphone('00'.repeat(32)),
+  };
+  await assert.rejects(
+    // @ts-expect-error: os dois juntos não cabem no tipo
+    students.enroll(both),
+    /integrityToken \(Android\) or appAttest \(iPhone\)/,
+  );
+  await assert.rejects(
+    // @ts-expect-error: nem nenhum
+    students.enroll(request),
+    /integrityToken \(Android\) or appAttest \(iPhone\)/,
+  );
+});
+
 /* -------------------------------------------------------------------- HTTP */
 
 const [key] = signingKeys(1);
@@ -329,7 +517,10 @@ after(async () => {
   await Promise.all(opened.map(server => server.stop()));
 });
 
-async function serve(env: Record<string, string> = {}) {
+async function serve(
+  env: Record<string, string> = {},
+  overrides: Overrides = {},
+) {
   const memory = memoryRepositories();
   const db = switchableDatabase();
   const server = createServer(
@@ -346,6 +537,7 @@ async function serve(env: Record<string, string> = {}) {
       repositories: memory.repositories,
       attachments: memoryAttachments().store,
       portal: createPortalWatch({ probe: async () => 200 }),
+      ...overrides,
     },
   );
   opened.push(server);
@@ -723,6 +915,201 @@ test('without STUDENT_DATA_KEY the sign-in answers 503, and the admin says why',
   const tab = await call('GET', '/aouerj/admin/alunos', { admin: true });
   assert.equal(tab.status, 503);
   assert.match(tab.text, /STUDENT_DATA_KEY/);
+});
+
+/**
+ * O corpo da entrada de um iPhone, como o app manda (base64 padrão), com o
+ * App Attest que o `hashVerifier` aceita para este pedido.
+ */
+function iphoneBody(
+  challenge: string,
+  {
+    matricula = '201810012345',
+    name = 'MARINA COSTA',
+    installation = randomBytes(32),
+  } = {},
+) {
+  const requestHash = studentSessionRequestHash({
+    challenge: Buffer.from(challenge, 'base64url'),
+    installation,
+    matricula,
+    name,
+  });
+  const { keyId, attestation } = iphone(requestHash);
+  return {
+    challenge,
+    installation: installation.toString('base64url'),
+    appAttest: {
+      keyId: keyId.toString('base64'),
+      attestation: attestation.toString('base64'),
+    },
+    matricula,
+    name,
+  };
+}
+
+test('an iPhone signs in with appAttest, gets the same session, and is the same student as on Android', async () => {
+  const verifier = hashVerifier();
+  const { call, signIn, as, memory } = await serve({}, { appAttest: verifier });
+  const challenge = await call('GET', '/aouerj/v2/students/challenge');
+  assert.equal(challenge.status, 200);
+  const body = iphoneBody(challenge.body.challenge);
+  const signed = await call('POST', '/aouerj/v2/students/session', {
+    json: body,
+  });
+  assert.equal(signed.status, 201);
+  assert.match(signed.body.session, /^[A-Za-z0-9_-]{43}$/);
+  assert.equal(signed.response.headers.get('cache-control'), 'no-store');
+  // o clientDataHash que chegou ao App Attest é o requestHash, em bytes
+  assert.equal(verifier.seen.length, 1);
+  assert.equal(
+    verifier.seen[0]?.toString('hex'),
+    studentSessionRequestHash({
+      challenge: Buffer.from(body.challenge, 'base64url'),
+      installation: Buffer.from(body.installation, 'base64url'),
+      matricula: body.matricula,
+      name: body.name,
+    }),
+  );
+  const [stored] = [...memory.data.students.values()];
+  assert.doesNotMatch(JSON.stringify(stored), /201810012345|MARINA/);
+  assert.equal(stored?.devices.length, 1);
+
+  // a sessão abre as rotas de aluno, como a do Android
+  const listed = await call('GET', '/aouerj/v2/teachers', {
+    headers: as(signed.body.session),
+  });
+  assert.equal(listed.status, 200);
+  // a mesma matrícula pelo Android é o mesmo aluno, noutro aparelho
+  const android = await signIn();
+  assert.equal(android.status, 201);
+  assert.equal(android.body.student.id, signed.body.student.id);
+  assert.equal(memory.data.students.size, 1);
+
+  // a atestação de outro pedido: 403 attestation_failed, como no Android
+  const fresh = await call('GET', '/aouerj/v2/students/challenge');
+  const foreign = iphoneBody(fresh.body.challenge, {
+    matricula: '201910099999',
+  });
+  const refused = await call('POST', '/aouerj/v2/students/session', {
+    json: { ...foreign, matricula: '201810012345' },
+  });
+  assert.equal(refused.status, 403);
+  assert.deepEqual(refused.body, {
+    error: 'attestation_failed',
+    message: 'The app, the store install or the device could not be verified',
+  });
+});
+
+test('both, neither or a malformed appAttest is 400, and leaves the challenge unspent', async () => {
+  const { call } = await serve({}, { appAttest: hashVerifier() });
+  const challenge = await call('GET', '/aouerj/v2/students/challenge');
+  const good = iphoneBody(challenge.body.challenge);
+  const appAttest = (change: Record<string, unknown>) => ({
+    ...good,
+    appAttest: { ...good.appAttest, ...change },
+  });
+  // 0xfb… em base64 tem "+" e "/", que o base64url troca
+  const urlSafe = Buffer.alloc(32, 0xfb).toString('base64url');
+  const cases: Array<[object, RegExp]> = [
+    [
+      { ...good, integrityToken: 'development' },
+      /^send integrityToken or appAttest, not both$/,
+    ],
+    [
+      { ...good, appAttest: undefined },
+      /integrityToken or appAttest is required/,
+    ],
+    [{ ...good, appAttest: null }, /integrityToken or appAttest is required/],
+    [{ ...good, appAttest: 'x' }, /appAttest must be an object/],
+    [appAttest({ keyId: undefined }), /keyId is required \(appAttest\.keyId\)/],
+    [appAttest({ keyId: urlSafe }), /keyId must be base64/],
+    [
+      appAttest({ keyId: randomBytes(31).toString('base64') }),
+      /keyId must have 32 bytes/,
+    ],
+    [appAttest({ attestation: 'não é base64' }), /attestation must be base64/],
+    // sem o "=" do fim, ou com bits sobrando no último caractere
+    [appAttest({ attestation: 'QQ' }), /attestation must be base64/],
+    [appAttest({ attestation: 'QR==' }), /attestation must be base64/],
+    [appAttest({ attestation: '' }), /attestation must be base64/],
+    [
+      appAttest({ attestation: 'A'.repeat(32 * 1024 + 4) }),
+      /attestation must be at most 32768 characters/,
+    ],
+  ];
+  for (const [json, message] of cases) {
+    const answer = await call('POST', '/aouerj/v2/students/session', { json });
+    assert.equal(answer.status, 400, String(message));
+    assert.equal(answer.body.error, 'invalid_request');
+    assert.match(answer.body.message, message);
+  }
+  // nada disso gastou o desafio
+  const signed = await call('POST', '/aouerj/v2/students/session', {
+    json: good,
+  });
+  assert.equal(signed.status, 201);
+});
+
+test('without APPLE_APP_ATTEST_APP_ID the iPhone gets 503, and Android signs in as before', async () => {
+  const { call, signIn } = await serve();
+  const challenge = await call('GET', '/aouerj/v2/students/challenge');
+  assert.equal(challenge.status, 200);
+  const ios = await call('POST', '/aouerj/v2/students/session', {
+    json: iphoneBody(challenge.body.challenge),
+  });
+  assert.equal(ios.status, 503);
+  assert.deepEqual(ios.body, {
+    error: 'student_identity_unavailable',
+    message: 'Student sign-in is not available right now',
+  });
+  const android = await signIn();
+  assert.equal(android.status, 201);
+});
+
+test('with APPLE_APP_ATTEST_APP_ID the Apple root checks the iPhone, even without Play Integrity', async () => {
+  const { call } = await serve({
+    TOKEN_ATTESTATION: 'play-integrity',
+    APPLE_APP_ATTEST_APP_ID: APP_ATTEST.appId,
+  });
+  // só o iPhone tem quem ateste, e o desafio sai
+  const challenge = await call('GET', '/aouerj/v2/students/challenge');
+  assert.equal(challenge.status, 200);
+  // a cadeia de mentira não chega à raiz da Apple
+  const { keyId, attestation } = appAttestation('valid');
+  const body = {
+    challenge: challenge.body.challenge,
+    installation: randomBytes(32).toString('base64url'),
+    appAttest: {
+      keyId: keyId.toString('base64'),
+      attestation: attestation.toString('base64'),
+    },
+    matricula: '201810012345',
+    name: 'MARINA COSTA',
+  };
+  const refused = await call('POST', '/aouerj/v2/students/session', {
+    json: body,
+  });
+  assert.equal(refused.status, 403);
+  assert.equal(refused.body.error, 'attestation_failed');
+  const again = await call('POST', '/aouerj/v2/students/session', {
+    json: body,
+  });
+  assert.equal(again.status, 403);
+  assert.equal(again.body.error, 'invalid_challenge');
+  // e o Android, sem a Play Integrity, não entra
+  const fresh = await call('GET', '/aouerj/v2/students/challenge');
+  const android = await call('POST', '/aouerj/v2/students/session', {
+    json: {
+      challenge: fresh.body.challenge,
+      installation: randomBytes(32).toString('base64url'),
+      integrityToken: 'x',
+      matricula: '201810012345',
+      name: 'MARINA COSTA',
+    },
+  });
+  assert.equal(android.status, 503);
+  assert.equal(android.body.error, 'student_identity_unavailable');
 });
 
 test('the same student joining or opening twice at once ends up once', async () => {

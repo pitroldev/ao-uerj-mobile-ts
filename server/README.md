@@ -193,27 +193,75 @@ que chegaram sem a tela aparecem como "Sem tela".
 
 ### Identificação do aluno (v2)
 
-O app identifica o aluno pela matrícula, com a Play Integrity (o módulo
-`modules/students`). As rotas de `/aouerj` continuam iguais, sem nada disso,
-para os apps publicados.
+O app identifica o aluno pela matrícula, com a Play Integrity no Android e o
+App Attest no iPhone (o módulo `modules/students`). As rotas de `/aouerj`
+continuam iguais, sem nada disso, para os apps publicados.
 
 1. **O desafio:** `GET /aouerj/v2/students/challenge` devolve 36 bytes de uso
-   único, válidos por 5 minutos, com um HMAC do servidor.
+   único, válidos por 5 minutos, com um HMAC do servidor. É o mesmo para os
+   dois aparelhos, e sai enquanto um deles tiver quem ateste.
 2. **A entrada:** depois do login no Aluno Online, o app manda a matrícula e
-   o nome do portal em `POST /aouerj/v2/students/session`, com um token da
-   Play Integrity sobre o `requestHash`: o SHA-256 de `AO UERJ student
-session v1`, do desafio, da instalação (32 bytes, os mesmos de sempre no
-   aparelho) e, cada um com o tamanho (u16) na frente, da matrícula e do
-   nome. A atestação vale só para aquela matrícula, naquele aparelho, agora.
-3. **As checagens:** o desafio é nosso, vale e é gasto; o Google decifra o
-   token e o servidor confere o pacote, o `requestHash`, a idade,
+   o nome do portal em `POST /aouerj/v2/students/session`, com a atestação
+   sobre o `requestHash`: o SHA-256 de `AO UERJ student session v1`, do
+   desafio, da instalação (32 bytes, os mesmos de sempre no aparelho) e, cada
+   um com o tamanho (u16) na frente, da matrícula e do nome. O Android manda
+   `integrityToken`, o token da Play Integrity sobre o hash em hex; o iPhone
+   manda `appAttest` (`keyId` e `attestation`, em base64 padrão), uma chave
+   nova do App Attest atestada com os 32 bytes do hash como `clientDataHash`.
+   Um dos dois, nunca os dois (400). A atestação vale só para aquela
+   matrícula, naquele aparelho, agora.
+3. **As checagens:** o desafio é nosso, vale e é gasto; no Android, o Google
+   decifra o token e o servidor confere o pacote, o `requestHash`, a idade,
    `PLAY_RECOGNIZED`, o certificado da Play, `MEETS_DEVICE_INTEGRITY` e o app
-   instalado pela loja (`LICENSED`).
+   instalado pela loja (`LICENSED`); no iPhone, o servidor mesmo confere o
+   App Attest (abaixo).
 4. **A sessão:** 32 bytes ao acaso, em `Authorization: Student <sessão>` em
    cada pedido. Vale 30 dias sem uso (cada uso empurra o prazo, uma vez por
    hora). O banco guarda só o SHA-256 (`studentsessions`, índice TTL). Uma
    sessão desconhecida dá 401 `invalid_session`, e o app entra de novo;
    `POST /students/session/end` é o logout.
+
+**O iPhone (App Attest):** o servidor confere a atestação sozinho, sem falar
+com a Apple (`adapters/outbound/attestation/appAttest.ts`), nos passos de
+"Validating apps that connect to your server":
+
+- **O objeto:** CBOR, `{ fmt: "apple-appattest", attStmt: { x5c, receipt },
+authData }`, lido por um leitor estrito, feito só para ele (bytes, texto,
+  listas e mapas de tamanho definido, sem chave repetida, nada sobrando, até
+  24 KB). O pedido recusa uma `attestation` de mais de 32 768 caracteres e
+  base64 fora da forma padrão (400).
+- **A cadeia:** o credCert foi emitido e assinado pela intermediária, e ela
+  pela Apple App Attestation Root CA, fixada no código (`appleRoot.ts`, com a
+  impressão SHA-256 conferida na partida); os três valem agora.
+- **O pedido:** o SHA-256 do `authData` com o `clientDataHash` (os 32 bytes do
+  `requestHash`, que o servidor refaz como no Android) é o nonce da extensão
+  1.2.840.113635.100.8.2 do credCert.
+- **A chave:** o SHA-256 da chave pública do credCert (o ponto P-256 sem
+  compressão) é o `keyId`, que também é o `credentialId` do `authData`.
+- **O app:** o `rpIdHash` do `authData` é o SHA-256 do
+  `APPLE_APP_ATTEST_APP_ID` (`<Team ID>.<bundle id>`).
+- **Chave nova e ambiente:** o contador é zero e o `aaguid` é o da produção
+  (`appattest` e sete zeros). `APPLE_APP_ATTEST_ENVIRONMENT=development`
+  aceita também o `appattestdevelop` dos builds rodados pelo Xcode (a
+  TestFlight e a App Store são sempre produção), e a partida avisa no log.
+
+O iPhone não tem um `LICENSED` nem um `MEETS_DEVICE_INTEGRITY`: o App Attest
+garante uma chave no Secure Enclave de um aparelho da Apple, no app assinado
+pelo nosso time, mas não diz de onde o app foi instalado. O recibo (a métrica
+de fraude da Apple) não é usado. Uma recusa é 403 `attestation_failed`, como
+no Android, e o motivo vai só para o log. Sem `APPLE_APP_ATTEST_APP_ID` (hoje
+não há conta da Apple), a entrada do iPhone responde 503
+`student_identity_unavailable` e o Android segue igual.
+`TOKEN_ATTESTATION=development` vale só para a Play Integrity: o simulador do
+iPhone não tem App Attest.
+
+- **Testes:** `appAttest.test.ts`, contra uma cadeia de mentira que o
+  `test/fixtures/appAttest.sh` gerou com o OpenSSL (uma raiz e uma
+  intermediária no lugar das da Apple e um credCert por caso; as chaves
+  privadas não ficam no Git): a atestação boa, o nonce de outro pedido, outro
+  `keyId`, outro App ID, o `aaguid` de desenvolvimento ou outro, o contador,
+  a cadeia que não chega à raiz (com uma intermediária impostora de mesmo
+  nome), as datas e o CBOR malformado. As rotas, em `students.test.ts`.
 
 **O aluno no banco** (`students`): um documento por matrícula, achado pelo
 HMAC dela (`lookup`, único). Matrícula e nome ficam cifrados (AES-256-GCM, o
@@ -244,8 +292,9 @@ banimento só fecha tudo com `refuse`.
 As gravações contam por aluno (`COMPANION_MEMBER_LIMIT_PER_MINUTE`). Os
 desafios, as entradas e as saídas contam por IP
 (`STUDENT_RATE_LIMIT_PER_MINUTE`, 120: cada entrada é um desafio e um pedido,
-e cada uma gasta uma decifração da Play Integrity na cota do Google; o
-aluno entra uma vez por mês, então o Wi-Fi da UERJ cabe). O resultado de
+e cada uma do Android gasta uma decifração da Play Integrity na cota do
+Google; a do iPhone é conferida aqui mesmo; o aluno entra uma vez por mês,
+então o Wi-Fi da UERJ cabe). O resultado de
 cada sessão fica 5 minutos no cache do processo (nunca além do fim da
 sessão ou do banimento; banir, desbanir e sair valem na hora), e só sessões
 verdadeiras entram nele, até 20 000. Uma sessão que o cache já conhece
@@ -593,7 +642,10 @@ O que mudou de propósito:
   portal, cifrados, o HMAC da matrícula, os HMACs das instalações e as datas
   de entrada, sem prazo de remoção; as sessões, pelo hash, até vencerem; o id
   do aluno nas mensagens, nos relatos e nas chamadas da v2. Só a aba "Alunos"
-  do admin abre matrícula e nome.
+  do admin abre matrícula e nome. Da atestação, nada: nem o token da Play
+  Integrity, nem a chave, o certificado ou o recibo do App Attest (o iPhone
+  entra com uma chave nova a cada vez, e o aparelho fica só como o HMAC da
+  instalação, como no Android).
 - **O que fica guardado:** as mensagens do mural (com o nome que o aluno
   escolheu), os relatos (página, descrição, e-mail opcional e os anexos em
   `AOreports/`) e as sugestões (nome, texto e e-mail opcional), sem prazo de

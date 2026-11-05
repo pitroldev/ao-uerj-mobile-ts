@@ -1,3 +1,4 @@
+import type { AppAttestation } from '../access/ports.ts';
 import type {
   Ban,
   BanDays,
@@ -6,19 +7,30 @@ import type {
   Student,
 } from './domain.ts';
 
+/**
+ * A atestação do pedido sobre o `studentSessionRequestHash`, conforme o
+ * aparelho: uma, nunca as duas.
+ */
+export type EnrollmentAttestation =
+  /** Android: o token da Play Integrity sobre o hash em hex. */
+  | { integrityToken: string; appAttest?: undefined }
+  /** iPhone: uma chave do App Attest atestada com os 32 bytes do hash. */
+  | { appAttest: AppAttestation; integrityToken?: undefined };
+
 /** O pedido de entrada, já com os tamanhos conferidos. */
 export type EnrollmentRequest = {
   challenge: Buffer;
   /** O id da instalação (32 bytes), o mesmo de sempre naquele aparelho. */
   installation: Buffer;
-  /** A atestação da Play Integrity sobre o `studentSessionRequestHash`. */
-  integrityToken: string;
   matricula: string;
   name: string;
-};
+} & EnrollmentAttestation;
 
 export type EnrollmentRefusal =
-  /** Sem `STUDENT_DATA_KEY` ou sem quem ateste (configuração). */
+  /**
+   * Sem `STUDENT_DATA_KEY` ou sem quem ateste aquele aparelho (configuração:
+   * sem o App ID da Apple, o iPhone não entra, e o Android segue).
+   */
   | 'unavailable'
   /** O desafio não é nosso, venceu ou já foi usado: pedir outro. */
   | 'invalid_challenge'
@@ -48,7 +60,10 @@ export type Authentication =
 
 /** Porta de entrada: a identificação do aluno (a API v2 e a moderação). */
 export interface StudentIdentity {
-  /** Um desafio novo, de uso único; `null` com a identificação desligada. */
+  /**
+   * Um desafio novo, de uso único; `null` com a identificação desligada (sem
+   * a chave ou sem quem ateste nenhum dos dois aparelhos).
+   */
   challenge(): { challenge: Buffer; expiresAt: Date } | null;
   enroll(request: EnrollmentRequest): Promise<Enrollment>;
   /** Confere o token da sessão (com um cache curto) e se o aluno está banido. */

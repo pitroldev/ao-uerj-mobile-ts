@@ -188,6 +188,26 @@ const studentDataKey = z
     return null;
   });
 
+/**
+ * O App ID do App Attest: o Team ID (10 letras e dígitos) e o bundle id, como
+ * o Apple Developer mostra (`ABCDE12345.com.aouerjmobile`). Vazio desliga.
+ */
+const appAttestAppId = z
+  .string()
+  .optional()
+  .transform((value, ctx) => {
+    const appId = value?.trim();
+    if (!appId) return null;
+    if (/^[A-Z0-9]{10}\.[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*$/.test(appId))
+      return appId;
+    ctx.addIssue({
+      code: 'custom',
+      message:
+        'expected <Team ID>.<bundle id>, like ABCDE12345.com.aouerjmobile',
+    });
+    return null;
+  });
+
 const EnvSchema = z
   .object({
     NODE_ENV: z
@@ -273,8 +293,14 @@ const EnvSchema = z
     TOKEN_BATCHES_PER_DAY: z.coerce.number().int().min(1).max(100).default(4),
     TOKEN_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(60),
 
-    /** A identificação do aluno (matrícula pela Play Integrity). */
+    /** A identificação do aluno (matrícula pela Play Integrity ou pelo App Attest). */
     STUDENT_DATA_KEY: studentDataKey,
+    /** O iPhone entra com o App Attest; sem o App ID, não entra (503). */
+    APPLE_APP_ATTEST_APP_ID: appAttestAppId,
+    /** `development` aceita também as chaves dos builds do Xcode. */
+    APPLE_APP_ATTEST_ENVIRONMENT: z
+      .enum(['production', 'development'])
+      .default('production'),
     /**
      * Os tokens anônimos dos apps antigos (2.11.1 a 2.13) nas rotas de aluno:
      * `accept` enquanto eles estiverem por aí; `refuse` exige a sessão.
@@ -392,6 +418,8 @@ export type Config = {
   students: {
     /** `null`: sem `STUDENT_DATA_KEY`, ninguém entra (503). */
     dataKey: Buffer | null;
+    /** `null`: sem `APPLE_APP_ATTEST_APP_ID`, o iPhone não entra (503). */
+    appAttest: AppAttestSettings | null;
     /** Os apps antigos ainda entram com o token anônimo. */
     acceptTokens: boolean;
     /** Por IP, por minuto: os desafios e as entradas, juntos. */
@@ -410,6 +438,14 @@ export type AttestationSettings =
       packageName: string;
       certificateDigests: Buffer[];
     };
+
+/** O App Attest do iPhone na entrada do aluno. */
+export type AppAttestSettings = {
+  /** `<Team ID>.<bundle id>`. */
+  appId: string;
+  /** `development` aceita também as chaves dos builds do Xcode. */
+  environment: 'production' | 'development';
+};
 
 /** O diretório do pacote (server/), onde ficam os anexos por padrão. */
 const SERVER_ROOT = path.resolve(import.meta.dirname, '..');
@@ -469,6 +505,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     },
     students: {
       dataKey: value.STUDENT_DATA_KEY,
+      appAttest: value.APPLE_APP_ATTEST_APP_ID
+        ? {
+            appId: value.APPLE_APP_ATTEST_APP_ID,
+            environment: value.APPLE_APP_ATTEST_ENVIRONMENT,
+          }
+        : null,
       acceptTokens: value.STUDENT_TOKENS === 'accept',
       perMinute: value.STUDENT_RATE_LIMIT_PER_MINUTE,
       sessionPerMinute: value.STUDENT_SESSION_LIMIT_PER_MINUTE,

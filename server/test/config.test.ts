@@ -284,3 +284,42 @@ test('the attestation is Play Integrity with a service account and our certifica
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('the iPhone App Attest needs the App ID, in production by default', () => {
+  // sem a conta da Apple, o iPhone fica de fora
+  assert.equal(loadConfig({}).students.appAttest, null);
+  assert.equal(
+    loadConfig({ APPLE_APP_ATTEST_APP_ID: ' ' }).students.appAttest,
+    null,
+  );
+  assert.deepEqual(
+    loadConfig({ APPLE_APP_ATTEST_APP_ID: ' ABCDE12345.com.aouerjmobile ' })
+      .students.appAttest,
+    { appId: 'ABCDE12345.com.aouerjmobile', environment: 'production' },
+  );
+  assert.deepEqual(
+    loadConfig({
+      NODE_ENV: 'production',
+      APPLE_APP_ATTEST_APP_ID: 'ABCDE12345.com.aouerjmobile',
+      APPLE_APP_ATTEST_ENVIRONMENT: 'development',
+    }).students.appAttest,
+    { appId: 'ABCDE12345.com.aouerjmobile', environment: 'development' },
+  );
+  assert.throws(
+    () =>
+      loadConfig({
+        APPLE_APP_ATTEST_APP_ID: 'com.aouerjmobile',
+        APPLE_APP_ATTEST_ENVIRONMENT: 'sandbox',
+      }),
+    (err: Error) =>
+      /APPLE_APP_ATTEST_APP_ID: expected <Team ID>\.<bundle id>/.test(
+        err.message,
+      ) && /APPLE_APP_ATTEST_ENVIRONMENT/.test(err.message),
+  );
+  // o Team ID tem 10 caracteres, em maiúsculas
+  assert.throws(
+    () =>
+      loadConfig({ APPLE_APP_ATTEST_APP_ID: 'abcde12345.com.aouerjmobile' }),
+    /APPLE_APP_ATTEST_APP_ID/,
+  );
+});
