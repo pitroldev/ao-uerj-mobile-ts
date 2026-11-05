@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.16.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.15.1...v2.16.0) (2026-11-05)
+
+
+### Novidades
+
+* **about:** link the privacy policy under Seus dados ([d96ca65](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/d96ca6587be765ccfae9891312cccbf125e68690))
+
 ## 2.15.1 (2026-11-05)
 
 ### Novidades
