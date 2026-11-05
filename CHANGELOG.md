@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.15.0 (2026-11-04)
+
+### Novidades
+
+- Android: "Indicar o app" no pé do menu, com uma mensagem pronta para mandar no grupo da turma ou um QR para o colega do lado apontar a câmera. Dá para copiar o link ou mandar pelo app que você quiser, e mudar o texto antes.
+- Sobre: "Avaliar na Play Store" e "Indicar para a turma", numa seção nova, "Ajude o app a crescer".
+- A imagem da grade diz "grátis na Play Store" no rodapé, e o texto que vai junto leva o link do app.
+- O mural sem conversas, o Agora no campus sem avisos e a Companhia agora sem mesas mostram um convite curto para chamar a turma.
+- A Play pode pedir sua avaliação também depois de um PDF emitido, da formatura escolhida no plano, de um "Valeu" recebido e de uma vaga confirmada ou aprovação. O pedido nunca aparece por cima do que você está fazendo, e no máximo uma vez a cada 120 dias.
+
+### Correções
+
+- Android: compartilhar a grade volta a contar como momento bom. A biblioteca de compartilhamento não avisava o app quando você escolhia para onde mandar.
+- O pedido de avaliação não trava os próximos quando a Play demora a responder, como logo depois de ligar o celular.
+- Agora no campus busca a lista de novo quando você volta à tela pelo menu.
+
 ## 2.14.0 (2026-11-04)
 
 ### Novidades
