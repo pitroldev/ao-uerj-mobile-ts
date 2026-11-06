@@ -1,0 +1,46 @@
+name: Sugestão
+description: Uma ideia para o app ou algo que falta no Aluno Online.
+title: '[Sugestão] '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Que bom ter a sua ideia! Antes, dê uma olhada nas [issues abertas](https://github.com/pitroldev/ao-uerj-mobile-ts/issues): se já existir uma parecida, comente nela.
+
+        Esta página é **pública**: não coloque matrícula, notas, nomes de colegas nem capturas com dados pessoais.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Qual problema isso resolve?
+      description: Conte a situação do dia a dia na UERJ em que você sentiu falta disso.
+      placeholder: Na época de inscrição, eu não sei quais disciplinas travam as outras.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Como você imagina?
+      description: Do jeito que fizer sentido para você. Não precisa ser técnico.
+    validations:
+      required: true
+  - type: dropdown
+    id: portal
+    attributes:
+      label: O Aluno Online já faz isso?
+      options:
+        - Sim, mas é ruim de usar no celular
+        - Não
+        - Não sei
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Antes de enviar
+      options:
+        - label: Procurei nas issues e não achei uma igual.
+          required: true
+        - label: Esta sugestão não tem dados pessoais.
+          required: true
+        - label: Quero ajudar a fazer (veja o guia de contribuição, CONTRIBUTING.md).

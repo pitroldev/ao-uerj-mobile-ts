@@ -1,0 +1,95 @@
+name: Problema no app
+description: Algo não funciona como deveria.
+title: '[Problema] '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por avisar! Esta página é **pública**: qualquer pessoa na internet pode ler.
+
+        **Não cole aqui** a sua matrícula, a senha, notas, CR, o nome completo, páginas do portal nem capturas de tela com dados pessoais. Se precisar mostrar a tela, esconda esses dados antes.
+
+        Se o problema é numa tela que lê o Aluno Online (notas, grade, histórico, RID, documentos), use também **Sobre > Reportar problema** no app: ele manda um diagnóstico técnico, sem a sua senha nem as páginas do portal.
+
+        Falha de segurança? Não abra issue: escreva para contato@pitrol.dev.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: O que aconteceu?
+      description: Conte o que você viu. Mensagens de erro ajudam muito (sem dados pessoais).
+      placeholder: Ao abrir as notas, a tela fica carregando e não mostra nada.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: O que você esperava?
+      placeholder: Ver as notas do período.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passos para reproduzir
+      description: O caminho até o problema, do jeito mais simples que você conseguir.
+      placeholder: |
+        1. Abri o app
+        2. Toquei em "Notas" no Início
+        3. Puxei para atualizar
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: Versão do app
+      description: Aparece em Sobre, logo abaixo do nome do app.
+      placeholder: '2.15.2'
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Sistema
+      options:
+        - Android
+        - iPhone
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Aparelho e versão do sistema
+      placeholder: Moto G54, Android 14
+    validations:
+      required: true
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Com que frequência acontece?
+      options:
+        - Sempre
+        - Às vezes
+        - Aconteceu uma vez
+    validations:
+      required: true
+  - type: dropdown
+    id: portal
+    attributes:
+      label: O Aluno Online estava funcionando no navegador?
+      options:
+        - Sim
+        - Não
+        - Não sei
+  - type: textarea
+    id: extra
+    attributes:
+      label: Mais alguma coisa?
+      description: Capturas de tela só com os dados pessoais escondidos.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacidade
+      options:
+        - label: Conferi que este relato não tem matrícula, senha, notas nem outros dados pessoais.
+          required: true

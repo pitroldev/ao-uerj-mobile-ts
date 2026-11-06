@@ -38,23 +38,24 @@ Opções: `--adb <caminho>`, `--serial <id>`, `--env-file <arquivo>` e
 O intent-filter fica em `android/app/src/debug/AndroidManifest.xml` e a
 configuração do React Navigation em `src/app/dev/devLinking.ts`.
 
-| Link                                | Abre                                  |
-| ----------------------------------- | ------------------------------------- |
-| `aouerj-dev://inicio`               | Início                                |
-| `aouerj-dev://mapa`                 | Mapa do campus                        |
-| `aouerj-dev://progresso`            | Meu Progresso                         |
-| `aouerj-dev://plano`                | Plano até a formatura                 |
-| `aouerj-dev://documentos`           | Emissão de Documentos                 |
-| `aouerj-dev://gerador`              | Gerador de Grade, quando habilitado   |
-| `aouerj-dev://mural`                | Mural de Mensagens, quando habilitado |
-| `aouerj-dev://realizadas`           | Disciplinas Realizadas                |
-| `aouerj-dev://curriculo`            | Disciplinas do Currículo              |
-| `aouerj-dev://universais`           | Disciplinas Universais                |
-| `aouerj-dev://pesquisa`             | Pesquisa de Disciplinas               |
-| `aouerj-dev://pesquisa/IME02-10892` | Detalhe de uma disciplina             |
-| `aouerj-dev://notificacoes`         | Notificações                          |
-| `aouerj-dev://companhia`            | Companhia agora, quando há tokens     |
-| `aouerj-dev://sobre`                | Sobre                                 |
+| Link                                | Abre                                   |
+| ----------------------------------- | -------------------------------------- |
+| `aouerj-dev://inicio`               | Início                                 |
+| `aouerj-dev://mapa`                 | Mapa do campus                         |
+| `aouerj-dev://progresso`            | Meu Progresso                          |
+| `aouerj-dev://plano`                | Plano até a formatura                  |
+| `aouerj-dev://documentos`           | Emissão de Documentos                  |
+| `aouerj-dev://gerador`              | Gerador de Grade, quando habilitado    |
+| `aouerj-dev://mural`                | Mural de Mensagens, quando habilitado  |
+| `aouerj-dev://realizadas`           | Disciplinas Realizadas                 |
+| `aouerj-dev://curriculo`            | Disciplinas do Currículo               |
+| `aouerj-dev://universais`           | Disciplinas Universais                 |
+| `aouerj-dev://pesquisa`             | Pesquisa de Disciplinas                |
+| `aouerj-dev://pesquisa/IME02-10892` | Detalhe de uma disciplina              |
+| `aouerj-dev://notificacoes`         | Notificações                           |
+| `aouerj-dev://companhia`            | Companhia agora, com a sessão de aluno |
+| `aouerj-dev://campus`               | Agora no campus, com a sessão de aluno |
+| `aouerj-dev://sobre`                | Sobre                                  |
 
 ```sh
 adb shell am start -W -a android.intent.action.VIEW -d "aouerj-dev://documentos" com.aouerjmobile
@@ -115,10 +116,13 @@ Os atalhos do ícone e o toque nos avisos e no widget abrem o app pela ação
 de desenvolvimento. Para testar um destino com o app aberto ou fechado:
 
 ```sh
-adb shell am start -n com.aouerjmobile/.MainActivity \n  -a com.aouerjmobile.notifications.OPEN \n  --es com.aouerjmobile.notifications.TARGET grades
+adb shell am start -n com.aouerjmobile/.MainActivity \
+  -a com.aouerjmobile.notifications.OPEN \
+  --es com.aouerjmobile.notifications.TARGET grades
 ```
 
-Os destinos são `home`, `grades`, `map` e `documents`.
+Os destinos são `home`, `grades`, `map` e `documents` (os dos atalhos) e
+`companion` e `campus` (os dos avisos da Companhia agora e do Agora no campus).
 
 ## Testes E2E (Maestro)
 

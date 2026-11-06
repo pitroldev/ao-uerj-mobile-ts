@@ -6,7 +6,7 @@
  * "Data Storage Location: European Union"), crie um projeto React Native e
  * cole aqui o DSN de "Settings > Projects > Client Keys". O DSN não é segredo
  * (vai dentro do app), mas só aceita eventos: o token de envio de source maps
- * (SENTRY_AUTH_TOKEN) nunca entra no repositório. Veja "Persistência e
- * privacidade" no README.
+ * (SENTRY_AUTH_TOKEN) nunca entra no repositório. Antes de ativar, veja as
+ * pendências em docs/observabilidade.md.
  */
 export const SENTRY_DSN = '';

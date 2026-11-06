@@ -1,0 +1,25 @@
+name: Dúvida
+description: Uma pergunta sobre o código, o ambiente ou como contribuir.
+title: '[Dúvida] '
+labels: ['question']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Não existe pergunta boba. Se a dúvida é sobre o ambiente, veja antes o guia de contribuição (CONTRIBUTING.md) e a pasta `docs/`.
+
+        Esta página é **pública**: não cole o conteúdo do `.env`, a sua matrícula, a senha nem capturas com dados pessoais.
+  - type: textarea
+    id: question
+    attributes:
+      label: Qual é a dúvida?
+      description: Se for um erro no terminal, cole a mensagem e diga o sistema (Windows, Linux ou macOS).
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacidade
+      options:
+        - label: Conferi que não há senha, matrícula, conteúdo do `.env` nem outros dados pessoais aqui.
+          required: true

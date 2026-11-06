@@ -1,434 +1,178 @@
+<div align="center">
+
+<img src="resources/web_hi_res_512.png" alt="Ícone do AO UERJ" width="112">
+
 # AO UERJ
 
-Aplicativo não oficial do Aluno Online da UERJ, em React Native 0.88, React 19.3 e TypeScript. Consulta notas, histórico, currículo, disciplinas, RID e horários e emite documentos. Também oferece progresso acadêmico, plano até a formatura, quanto falta na PF com simulação do CR, controle de faltas, datas de provas e trabalhos com lembretes, geração de grades, mural de mensagens e mapa offline do campus. Tem ainda widget, atalhos e lembretes de aula. No Android, também avisa de nota nova, RID e documento perto de vencer.
+**O Aluno Online da UERJ no seu celular, com o que o portal não tem.**
 
-[Google Play](https://play.google.com/store/apps/details?id=com.aouerjmobile) · [Licença GPLv3](LICENSE)
+App de código aberto, feito por aluno para aluno: notas, grade, documentos e ferramentas para planejar o curso, até sem internet.
 
-## Desenvolvimento
+[![Google Play](https://img.shields.io/badge/Google_Play-baixar-414141?logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=com.aouerjmobile)
+[![Licença GPLv3](https://img.shields.io/badge/licen%C3%A7a-GPLv3-blue)](LICENSE)
+[![Quality](https://img.shields.io/github/actions/workflow/status/pitroldev/ao-uerj-mobile-ts/quality.yml?branch=main&label=Quality&logo=githubactions&logoColor=white)](https://github.com/pitroldev/ao-uerj-mobile-ts/actions/workflows/quality.yml)
+[![Servidor](https://img.shields.io/github/actions/workflow/status/pitroldev/ao-uerj-mobile-ts/server.yml?branch=main&label=Servidor&logo=githubactions&logoColor=white)](https://github.com/pitroldev/ao-uerj-mobile-ts/actions/workflows/server.yml)
+[![iOS](https://img.shields.io/github/actions/workflow/status/pitroldev/ao-uerj-mobile-ts/ios.yml?branch=main&label=iOS&logo=apple&logoColor=white)](https://github.com/pitroldev/ao-uerj-mobile-ts/actions/workflows/ios.yml)
+<br>
+[![Android](https://img.shields.io/badge/Android-na_Play-3DDC84?logo=android&logoColor=white)](https://play.google.com/store/apps/details?id=com.aouerjmobile)
+[![iPhone](https://img.shields.io/badge/iPhone-fora_da_loja-lightgrey?logo=apple&logoColor=white)](docs/ios.md)
+[![React Native 0.88](https://img.shields.io/badge/React_Native-0.88-61DAFB?logo=react&logoColor=black)](https://reactnative.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 
-- Node 22.21.1 (`.node-version`); suportados ^22.13.0, ^24.3.0 ou >=26.0.0 (os mesmos do React Native).
-- pnpm 12.11.2, definido em `packageManager`; as configurações do pnpm ficam em `pnpm-workspace.yaml`.
-- Android: JDK 17, SDK 37, Build Tools 37.0.0 e NDK 27.1.12297006.
-- iOS: macOS, Xcode, Ruby/Bundler e CocoaPods. Não é possível compilar iOS no Windows.
+[Baixar na Play](https://play.google.com/store/apps/details?id=com.aouerjmobile) · [Contribuir](CONTRIBUTING.md) · [Documentação](docs/README.md) · [Privacidade](docs/privacidade.md)
 
-Use pnpm 12.11.2 para instalar dependências (pelo Corepack, é preciso Corepack 0.34.5 ou mais novo: `npm install -g corepack@latest`). Se a versão global for diferente, execute `npx --yes pnpm@12.11.2 install --frozen-lockfile`; o campo `packageManager` registra a versão esperada pelo projeto e pelo CI.
+</div>
 
-```sh
-pnpm install --frozen-lockfile
-pnpm start
-# Em outro terminal, com emulador/dispositivo disponível:
-pnpm android
+> [!NOTE]
+> O AO UERJ é um app **não oficial**, sem vínculo com a UERJ. Ele usa a sua conta do Aluno Online, direto do seu celular.
+
+## O que o app faz
+
+O app está publicado para Android. O código do iPhone existe e compila no CI, mas ainda não está na App Store: a coluna do iPhone mostra o que esse código já faz.
+
+|     | Funcionalidade         | O que faz                                                                                             | Android |              iPhone               |
+| :-: | ---------------------- | ----------------------------------------------------------------------------------------------------- | :-----: | :-------------------------------: |
+| 🏠  | **Início**             | A próxima aula e a sala, a semana, as notas e as próximas provas numa tela só, do seu jeito           |   ✅    |                ✅                 |
+| 📝  | **Notas e PF**         | Quanto falta na PF de cada disciplina e a simulação do CR aproximado                                  |   ✅    |                ✅                 |
+| 🙋  | **Faltas**             | Você marca as faltas e vê quanto ainda pode faltar (fica só no aparelho)                              |   ✅    |                ✅                 |
+| 📌  | **Provas e trabalhos** | As datas anotadas aparecem no Início, na semana e nas notas, com lembretes                            |   ✅    |                ✅                 |
+| 🎓  | **Meu Progresso**      | O avanço no currículo, as horas complementares e o plano até a formatura                              |   ✅    |                ✅                 |
+| 📚  | **Consultas do AO**    | Histórico, currículo, disciplinas universais, pesquisa de disciplinas e RID                           |   ✅    |                ✅                 |
+| 📄  | **Documentos**         | Emite e compartilha os PDFs do portal e guarda até 5 no aparelho                                      |   ✅    |                ✅                 |
+| 🧩  | **Gerador de grades**  | Monta as melhores grades com as turmas e as prioridades que você escolher                             |   ✅    |                ✅                 |
+| 💬  | **Mural da turma**     | Mensagens por turma, com o nome que você escolher                                                     |   ✅    |                ✅                 |
+| 🍽️  | **Companhia agora**    | Uma mesa para almoçar junto ou um grupo para voltar depois da aula da noite                           |   ✅    |        ✅ sem o "Me avise"        |
+| 📢  | **Agora no campus**    | Avisos dos alunos: elevador parado, fila do bandejão, sala trancada                                   |   ✅    | ✅ sem os avisos em segundo plano |
+| 🗺️  | **Mapa do campus**     | O campus e o Pavilhão andar por andar, com as salas, sem internet                                     |   ✅    |                ✅                 |
+| 🔔  | **Lembretes e avisos** | Lembrete de aula e de prova; aviso de nota nova, RID, inscrição, documento vencendo e portal de volta |   ✅    |      ✅ quando o iOS deixar       |
+| 📱  | **Widgets e atalhos**  | "Próxima aula" e "Hoje" na tela inicial e atalhos no ícone                                            |   ✅    |             ✅ e Siri             |
+| 📶  | **Sem internet**       | Abre na hora com os dados salvos, cifrados no aparelho, e avisa quando o portal cai                   |   ✅    |                ✅                 |
+| 🌙  | **Tema escuro**        | Claro, escuro ou o do sistema                                                                         |   ✅    |                ✅                 |
+
+Como cada uma funciona por dentro está em [Funcionalidades](docs/funcionalidades.md).
+
+## Por que contribuir
+
+- 🎯 **Você resolve o seu próprio problema.** Sentiu falta de algo no Aluno Online? Dá para fazer aqui, e os seus colegas usam.
+- 🛠️ **Stack de mercado.** React Native 0.88 (nova arquitetura e React Compiler), React 19.3, TypeScript 7, Kotlin, Swift e um backend em Node com MongoDB.
+- 🏗️ **Projeto de verdade.** Arquitetura hexagonal, testes, CI/CD, publicação na Play e implantação azul/verde. Bom para aprender e para o portfólio.
+- 🤝 **Tem lugar para todo tamanho de ajuda.** Um texto mais claro, um teste, um parser, uma tela nova ou um relato de bug bem feito.
+
+## Comece em 5 passos
+
+> [!TIP]
+> No Windows, use o Git Bash. O passo a passo completo, com os pré-requisitos de cada sistema, está no [guia de contribuição](CONTRIBUTING.md#preparar-o-ambiente).
+
+1. **Instale o básico:** Git, Node 22.21.1 (`.node-version`), JDK 17 e o Android Studio (SDK 37, Build Tools 37.0.0, NDK 27.1.12297006 e um emulador).
+2. **Faça um fork e clone:**
+   ```sh
+   git clone https://github.com/<seu-usuário>/ao-uerj-mobile-ts.git
+   cd ao-uerj-mobile-ts
+   ```
+3. **Instale as dependências** (o app, o servidor e os hooks do Git):
+   ```sh
+   npm install -g corepack@latest
+   corepack enable
+   pnpm install --frozen-lockfile
+   ```
+4. **Rode no Android**, com o emulador aberto:
+   ```sh
+   pnpm start      # o Metro, num terminal
+   pnpm android    # em outro: compila, instala e abre
+   ```
+   Entre com a sua própria conta do Aluno Online: o app lê o portal real, sem conta de demonstração.
+5. **Opcional, o servidor:** os testes não precisam de banco instalado (baixam um mongod próprio na primeira vez).
+   ```sh
+   pnpm test:server
+   pnpm server dev   # precisa de server/.env com um MONGODB_URI
+   ```
+
+Antes de abrir o PR: `pnpm lint`, `pnpm format:check`, `pnpm type-check`, `pnpm knip`, `pnpm test:ci` e `pnpm test:tooling`. O que cada um confere está em [Desenvolvimento](docs/desenvolvimento.md#verificações).
+
+## Como as peças conversam
+
+```mermaid
+flowchart LR
+  app["App AO UERJ<br/>Android e iPhone"]
+  ao["Aluno Online<br/>alunoonline.uerj.br"]
+  server["Servidor próprio<br/>pitrol.dev, em server/"]
+  raw["GitHub raw<br/>config/app-status.json"]
+  lojas["Google Play e Apple<br/>lojas, Play Integrity e App Attest"]
+  gha["GitHub Actions"]
+
+  app -->|"login, notas, grade e documentos"| ao
+  app -->|"mural, Companhia, Agora no campus,<br/>gerador, relatos e situação do portal"| server
+  app -->|"aviso remoto, no máximo a cada 15 min"| raw
+  app -.->|"atestação do aluno"| lojas
+  server -.->|"decifra o token da Play Integrity"| lojas
+  server -->|"confere se o portal está no ar"| ao
+  gha -->|"publica o AAB no teste interno"| lojas
+  gha -->|"implanta, azul/verde"| server
 ```
 
-Configure `JAVA_HOME` para o JDK 17 e `ANDROID_HOME` para o SDK instalado. O SDK também pode ser indicado em `android/local.properties` (arquivo local, não versionado).
+- A senha e os dados do portal só vão do celular para o Aluno Online. O servidor próprio recebe a matrícula e o nome, para identificar o aluno nas funções entre alunos.
+- O [aviso remoto](docs/aviso-remoto.md) liga avisos e desliga telas sem nova versão.
+- Os detalhes estão em [Arquitetura](docs/arquitetura.md) e em [server/README.md](server/README.md).
 
-No macOS, depois de instalar as dependências JavaScript, prepare os módulos nativos do iOS antes de executar o aplicativo:
-
-```sh
-bundle install
-bundle exec pod install --project-directory=ios
-pnpm ios
-```
-
-```sh
-pnpm build:debug
-pnpm build:debug -PreactNativeArchitectures=x86_64
-pnpm lint
-pnpm format:check
-pnpm type-check
-pnpm knip
-pnpm test:ci
-pnpm test:tooling
-```
-
-Os scripts Gradle funcionam no Windows, Linux e macOS. Debug não exige assinatura de publicação. `pnpm build` e `pnpm bundle` exigem `android/keystore.properties` com `keyAlias`, `keyPassword`, `storeFile` e `storePassword`; `storeFile` é relativo a `android/app` ou um caminho absoluto. As variáveis `ANDROID_KEYSTORE_FILE`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` e `ANDROID_KEY_PASSWORD`, quando definidas, têm prioridade sobre o arquivo. Esses segredos ficam fora do Git.
-
-`pnpm type-check` usa o TypeScript 7 nativo (`@typescript/native`). O pacote `typescript` é o alias `@typescript/typescript6`, que mantém a API JS do TypeScript 6 para o editor (o `@styled/typescript-styled-plugin` roda no tsserver). `pnpm lint` roda o Oxlint (`.oxlintrc.json`), com as regras que usam tipos (`oxlint-tsgolint`, sobre o TypeScript 7), e falha com qualquer aviso. A formatação fica só com o Prettier: `pnpm format:check` confere o repositório e `pnpm format` corrige. O CI (`quality.yml`) executa instalação congelada, lint, formatação, TypeScript, Knip (dependências, arquivos e exports sem uso), testes, build debug e AAB release (R8) com uma keystore descartável. Esse AAB serve apenas à validação. O workflow iOS (`ios.yml`) é acionado manualmente em macOS: empacota o JS para iOS em modo release e compila o app para o simulador, sem assinatura. O `server.yml` confere o servidor e o contrato dele com o app e o implanta na VM, azul/verde, a cada push na `main` que mexe nele (ver [a implantação](server/README.md#implantação)).
-
-### iOS
-
-- **Módulos nativos no iPhone:** as specs de `src/specs` têm implementação em `ios/AOUerjMobile/Native/*.mm`, registradas pelo `codegenConfig.ios.modulesProvider` do `package.json`:
-  - `SecureVault`: o cofre cifrado, com ECIES (P-256 no Keychain, só deste aparelho) e arquivos em Application Support fora do backup. Dá o cache de 180 dias e "Guardar no aparelho" nos documentos;
-  - `AppNotifications`: permissão e lembretes de aula no `UNUserNotificationCenter`, como avisos de data única até a validade do plano. O iOS guarda 64 avisos agendados, e o app usa até 60: as provas e trabalhos primeiro (até 20, com o "Já fiz" tratado na `LaunchCenter.swift`) e as aulas com o resto. Sem avaliações anotadas, as aulas ficam com os 60. Também lê o destino das aberturas, guardado pela `LaunchCenter.swift`, e leva a verificação em segundo plano ao `BGTaskScheduler` (ver abaixo);
-  - `HomeWidget`: grava a grade no App Group `group.com.aouerjmobile`, que a extensão `ios/NextClassWidget` (WidgetKit) lê para os widgets "Próxima aula" e "Hoje". A `WidgetStore.swift` (a grade, a regra da próxima aula e os textos) entra nos dois alvos;
-  - `AppAttest`: a sessão de aluno (ver [Servidor próprio](#servidor-próprio-server)), com o App Attest do DeviceCheck no lugar da Play Integrity, mais o SHA-2 do CommonCrypto e o `SecRandomCopyBytes`. O `DeviceCheck.framework` é ligado à mão no alvo, e o entitlement `com.apple.developer.devicecheck.appattest-environment` é `production`. No simulador, o App Attest não existe e o app não entra como aluno.
-- **App Intents:** "Próxima aula" e "Aulas de hoje" respondem pela Siri, pelo app Atalhos e pelo Spotlight com a grade salva, sem abrir o app (`AppShortcuts.swift`, com frases prontas no iOS 17+). "Abrir no AO UERJ" (`OpenAppIntent.swift`, nos dois alvos) abre o Início, as notas, o mapa ou os documentos, e é a ação do controle "Próxima aula" da Central de Controle (iOS 18).
-- **Ciclo de vida com cenas:** como no template do React Native 0.88 (e exigido pelo SDK do iOS 27), a janela fica na `SceneDelegate.swift` (`UIApplicationSceneManifest` no `Info.plist`). O React Native é um só por processo, na `AppReactNative` (no mesmo arquivo), que a cena e a verificação em segundo plano abrem. O `AppDelegate` limpa o `URLCache`, registra o delegate dos avisos e a tarefa do `BGTaskScheduler`.
-- **Verificação em segundo plano:** a verificação no portal e "Avisar quando voltar" usam uma `BGAppRefreshTask` (`com.aouerjmobile.portal-check`, em `BGTaskSchedulerPermittedIdentifiers` e com `fetch` em `UIBackgroundModes` no `Info.plist`), na `BackgroundCheck` do `AppDelegate.swift`. O iOS guarda um só pedido desse tipo por app, então a tarefa leva os dois modos (`check` e `return`), cada um com a próxima vez no UserDefaults. O pedido é a mais próxima, fora das 22h às 7h, refeito a cada rodada e a cada mudança, e cancelado quando nada está ligado.
-  - Numa rodada, antes de abrir o React Native, o app confere o horário, a tela bloqueada (a senha salva no Keychain só abre com o aparelho desbloqueado; a rodada fica para 15 minutos depois) e a permissão de avisos.
-  - Com o app fechado, nenhuma cena se conecta: a `AppReactNative` abre o host sem janela (a categoria `ao_startReactNativeWithoutWindow` do `AppNotificationsModule.mm`, que chama o `initializeReactHostWithLaunchOptions` do `RCTRootViewFactory`). Se o aluno abrir o app em seguida, a cena cria a tela nesse mesmo host, sem um segundo runtime. As opções de abertura da cena (link, atividade) não chegam a esse host; os destinos do app passam pela `LaunchCenter`.
-  - A rodada espera o JS assinar os eventos (`listenBackgroundTasks`) e chega a ele por `onBackgroundTask` (`{ id, modes }`). O JS (`src/app/background/backgroundRounds.ts`) roda a mesma tarefa do Android, com prazo de 25 segundos, e a encerra com `setTaskCompleted`. Quando o tempo do iOS acaba, `onBackgroundTaskExpired` para as consultas (os avisos do que já foi lido saem), e a rodada termina em até 2 segundos, com ou sem o JS.
-  - O iOS decide quando a rodada acontece, a partir do horário pedido: pode levar horas, não acontece com a "Atualização em 2º Plano" desligada nem depois de o aluno fechar o app no seletor de apps (até ele abrir de novo).
-  - O simulador não roda o `BGTaskScheduler`. O `ios-smoke.sh` abre o app com `SIMCTL_CHILD_AO_SMOKE_BACKGROUND_CHECK=1`, que faz o `AppDelegate` seguir o caminho de uma rodada antes de a cena se conectar, e confere no log que o JS a encerrou e que a cena usou o React Native já aberto. Só o `simctl` ou o depurador definem a variável.
-- **Aberturas:** o toque no aviso chega pelo delegate do `UNUserNotificationCenter`; os atalhos do ícone (`UIApplicationShortcutItems` no `Info.plist`, com os mesmos destinos do Android) e o toque no widget (`aouerj://open?target=home`) chegam pela `SceneDelegate`, na abertura (`connectionOptions`) e com o app aberto.
-- **Fora do iPhone:**
-  - as leituras a cada 15 minutos da Companhia agora ("Me avise se abrirem") e do Agora no campus ("ainda está lá?"): o iOS não acorda o app com essa frequência (`frequentWatches` no `NotificationDevicePort`);
-  - atualização e avaliação dentro do app (`InAppUpdates` é da Play).
-- **Sem compilação local:** o código nativo do iOS foi escrito sem Mac. O `ios.yml` (macOS, manual) compila o app e a extensão; rode-o antes de publicar.
-- **Reinstalação:** o Keychain sobrevive à desinstalação. Na primeira abertura de cada instalação, uma conta salva sem nenhum dado no AsyncStorage (cache e preferências) é esquecida, e quem reinstala não volta logado com a senha antiga. A regra está em `persistence/previous-install.ts`.
-- **Testes:** o Jest roda como iOS (`defaultPlatform: 'ios'` no preset do React Native), sem os módulos nativos. Os testes que dependem do sistema trocam `Platform.OS`.
-- **Fontes:** os nomes em `fontFamily` (`Inter-Regular`, `InterDisplay-SemiBold`…) são os nomes PostScript dos arquivos, o que o iOS exige.
-- **Rede:** o portal (TLS 1.2 com ECDHE, certificado SHA-256 de 2048 bits) e o `pitrol.dev` (TLS 1.3) passam no App Transport Security sem exceções.
-
-## Commits, versão e release
-
-- **Commits:** a mensagem é livre, sem prefixo obrigatório. O `pnpm install` instala os hooks do lefthook (`lefthook.yml`): Oxlint e Prettier nos arquivos staged no pre-commit e type-check no pre-push. Prefixos como `feat:` e `fix:` continuam opcionais para que o release-please reconheça mudanças na geração automática da versão e do changelog.
-- **Versão:** o `package.json` é a fonte do Android. O Gradle deriva `versionName` (`vX.Y.Z`) e `versionCode` (`MAJOR × 10⁷ + MINOR × 10⁴ + PATCH`). No iOS, `MARKETING_VERSION` e `CURRENT_PROJECT_VERSION` ficam nas configurações do projeto no `project.pbxproj` (o app e o widget herdam) e são atualizados manualmente antes da publicação; ficam fora do release-please porque o Xcode reescreve esse arquivo.
-- **Release:** a cada push na `main`, o release-please (`release.yml`) mantém um PR com a próxima versão e o `CHANGELOG.md`. O merge cria a tag `vX.Y.Z` e o GitHub Release. O workflow confere a versão e a origem da tag na `main`, roda o Quality no commit exato e só então compila o AAB com a chave de upload no environment `play`. O envio é para o teste interno; a promoção para produção é feita no Play Console. A criação do PR pelo `GITHUB_TOKEN` não dispara CI, mas o gate da publicação sempre executa os checks.
-- **Release manual:** registre a versão no `CHANGELOG.md` e no `.release-please-manifest.json`, crie a tag correspondente na `main` e publique o GitHub Release. Depois acione o workflow Release informando essa tag. O manifest registra a última release e evita que o release-please proponha novamente uma versão já publicada.
-- **Configuração no GitHub:** habilite "Allow GitHub Actions to create and approve pull requests" e crie o environment `play`, com aprovação obrigatória e restrito à `main`, com os secrets:
-  - `ANDROID_KEYSTORE_BASE64`: a keystore de upload em base64 (`base64 -w0 upload.keystore`);
-  - `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` e `ANDROID_KEY_PASSWORD`;
-  - `PLAY_SERVICE_ACCOUNT_JSON`: JSON de uma conta de serviço do Google Cloud com a API Google Play Android Developer ativa e permissão de release no app (Play Console > Usuários e permissões).
-  - Opcional: secret `SENTRY_AUTH_TOKEN` e variáveis `SENTRY_ORG`/`SENTRY_PROJECT`, para enviar source maps à região EU. Sem o token, o envio é pulado.
-- **Retomar publicação:** em Actions > Release > Run workflow, selecione `main` e informe a tag existente, por exemplo `v2.1.0`. O mesmo pode ser feito com `gh workflow run release.yml --ref main -f tag=v2.1.0`. Isso repete os checks e o envio sem criar tag ou aumentar a versão. Use quando a falha ocorreu antes de a Play aceitar o AAB; se o `versionCode` já foi enviado, use o release existente no Console. Tags fora da `main` ou divergentes do `package.json` são recusadas. Secrets ausentes, JSON inválido e erros de keystore/alias/senhas falham antes do build de publicação, sem expor valores.
-- **Dependências:** o Renovate (`.github/renovate.json5`, exige o app do Renovate no repositório) abre PRs agrupados às segundas de madrugada, só para versões publicadas há 3 dias ou mais. Atualizações do núcleo do React Native esperam aprovação no Dependency Dashboard, porque pedem o [Upgrade Helper](https://react-native-community.github.io/upgrade-helper/). As actions ficam fixadas por SHA.
-
-## Arquitetura
-
-Casos de uso dependem de portas. Protocolos, HTML e bibliotecas de fornecedores ficam nos adaptadores; a composição conecta as implementações.
+## Mapa do projeto
 
 ```text
-src/app/                         composição, provedores, QueryClient e splash nativo (splash.ts)
-src/app/observability/           registro de falhas no Sentry (desligado sem DSN)
-src/modules/identity/            identidade pública, login, restauração e logout
-src/modules/academics/           modelos, regras acadêmicas, consultas e compartilhamento
-src/modules/planning/            preparação e geração de grades
-src/modules/community/           mensagens e consulta de professores
-src/modules/support/             relatórios estruturados e sanitização
-src/modules/appearance/          tema do app (Sistema, Claro ou Escuro)
-src/modules/delivery/            aviso remoto, atualização pela loja e pedido de avaliação
-src/modules/notifications/       lembretes de aula e avisos do portal (nota, RID, documento)
-src/modules/widget/              widget "Próxima aula" da tela inicial
-src/modules/attendance/          faltas marcadas pelo aluno, só no aparelho
-src/modules/evaluations/         provas e trabalhos anotados pelo aluno, só no aparelho
-src/modules/graduation/          plano até a formatura (pré-requisitos, carga e prazo)
-src/modules/launch/              aberturas de fora do app (aviso, atalho do ícone, widget)
-src/app/background/              tarefa sem tela da verificação de avisos (WorkManager e BGTaskScheduler)
-src/adapters/outbound/           AO, APIs privadas, aviso remoto, armazenamento e recursos nativos
-src/specs/                       specs do codegen para TurboModules locais (In-App Updates, avisos, widget)
-src/pages/ e src/features/       telas e componentes de apresentação
-src/shared/                      erros compartilhados
-server/                          o backend próprio (mural, docentes, relatos, situação do portal, gerador de grades)
+ao-uerj-mobile-ts/
+├── src/                o app em React Native e TypeScript
+│   ├── pages/          as telas do menu
+│   ├── features/       os blocos das telas (quadro de notas, folhas, Início)
+│   ├── modules/        domínio, casos de uso e apresentação, um módulo por assunto
+│   ├── adapters/       o Aluno Online, o servidor próprio, o armazenamento e o nativo
+│   ├── components/ui/  o design system "Agenda limpa"
+│   └── app/            composição, provedores e tarefas em segundo plano
+├── android/            o projeto Android (cofre, avisos, widgets e atalhos em Kotlin)
+├── ios/                o projeto iOS (Swift e Objective-C++), fora da App Store
+├── server/             o backend de pitrol.dev (Node, Express e MongoDB)
+├── deploy/server/      os scripts da implantação azul/verde na VM
+├── config/             o aviso remoto (app-status.json) e o esquema dele
+├── scripts/            Gradle, diagnósticos, ícones, mapa do campus e ferramentas de dev e de CI
+├── .maestro/           os fluxos E2E do Maestro (manuais, com conta real)
+├── docs/               a documentação
+└── .github/            workflows, Renovate e modelos de issue e de PR
 ```
 
-O Oxlint impede imports de React, SDKs, adaptadores e estado global em domínio/aplicação. As queries acadêmicas usam conta e contexto do portal na chave. Cookies e tokens não participam das chaves. Os componentes não copiam respostas para outro armazenamento de estado.
+## Como contribuir
 
-O coordenador AO centraliza login, token, códigos de requisição e renovação concorrente. Uma consulta expirada permite um único replay; erros transitórios têm repetição limitada nas queries. Parsers diferenciam página vazia reconhecida de estrutura inesperada.
+1. Escolha uma [issue](https://github.com/pitroldev/ao-uerj-mobile-ts/issues) (as marcadas com `good first issue` são um bom começo) ou abra uma contando o que quer fazer.
+2. Crie um branch a partir da `main` no seu fork e faça a mudança, com testes.
+3. Rode as verificações e abra o PR para a `main` deste repositório.
 
-O gerador exige uma ação explícita para enviar a solicitação. Seus detalhes são carregados com concorrência limitada e cancelamento. Mensagens, suporte e geração usam APIs próprias, distintas do portal UERJ.
+O [guia de contribuição](CONTRIBUTING.md) explica o ambiente, as convenções de código e de commit, as regras dos textos do app e as de privacidade.
 
-### Servidor próprio (`server/`)
-
-O backend de `https://pitrol.dev` fica em [`server/`](server/README.md): em `/aouerj`, mural, docentes, relatos de erro, sugestões dos apps antigos e a situação do Aluno Online; em `/schedules`, o gerador de grades. É TypeScript rodado direto pelo Node 22.18+, em arquitetura hexagonal com os nomes do app: cada módulo tem domínio, portas e casos de uso sem framework; os adaptadores de entrada (HTTP, agendador) e de saída (MongoDB, arquivos, portal, threads) ficam nas bordas e só se encontram na raiz de composição. O gerador busca em uma thread à parte, com fila e limite de tempo, e dá as mesmas grades que o serviço antigo.
-
-- **Contrato:** os corpos e respostas da API são tipos em `server/src/adapters/inbound/http/contract.ts`, que os adaptadores do app (`src/adapters/outbound/private-api` e `schedule-generator`) importam: um campo trocado de um lado não passa no `pnpm type-check`.
-- **Pacote à parte:** o servidor tem dependências e lockfile próprios, fora do workspace do app (nada dele entra no `node_modules` do React Native). O `postinstall` da raiz o instala; `pnpm server dev` sobe e `pnpm test:server` testa, sem MongoDB.
-- Lint, formatação e tipos da raiz cobrem o servidor, e o CI roda os testes dele no mesmo job do app.
-- **Sessão de aluno (`/aouerj/v2`):** o lado do app fica em `src/modules/trust` (`StudentSession`) e nos módulos nativos `DeviceTrust` (Play Integrity, SHA-256 e SecureRandom do Android) e `AppAttest` (App Attest, CommonCrypto e `SecRandomCopyBytes` do iPhone); `createDeviceTrust` escolhe pela plataforma. O número do projeto do Google Cloud ligado ao app (`ao-uerj`, 377368074507) fica em `src/adapters/outbound/native/NativeDeviceTrust.ts`; vazio, o app não entra. No iPhone, cada entrada gera uma chave nova do App Attest e a atesta com os 32 bytes do `requestHash` (o hex decodificado) como `clientDataHash`; o pedido leva `appAttest` (`keyId` e `attestation`, em base64 padrão) no lugar do `integrityToken`. As esperas depois de uma recusa (`RETRY_AFTER_MS`) são as mesmas nas duas plataformas. Todo pedido de aluno passa por `createSessionClient`, que manda a sessão, entra de novo uma vez num 401 e transforma o banimento em `STUDENT_BANNED`. O teste de contrato entra, usa o mural, os docentes e a Companhia com dois alunos contra o servidor de verdade, com a atestação de desenvolvimento. Os tokens anônimos dos apps de 2.11.1 a 2.13 continuam só no servidor.
-
-## Persistência e privacidade
-
-A política de privacidade publicada é [`docs/privacidade.md`](docs/privacidade.md): o link da Play Console e o do Sobre apontam para a página dela no GitHub, então o arquivo não muda de caminho. Toda mudança no que o app guarda ou envia (as listas abaixo) entra lá também, com a data do topo, e no formulário "Segurança dos dados" da Play Console.
-
-- Credenciais e identificação da conta ficam no Keychain/Keystore por `react-native-keychain`.
-- Cookies, token e IDs de requisição são efêmeros e pertencem ao adaptador AO.
-- O cache acadêmico persistido tem dono explícito, e a interface conserva a última resposta em falhas de atualização.
-  - Ele fica no cofre do app. No Android: AES-256-GCM, chave não exportável no Android Keystore, arquivos fora do backup (`noBackupFilesDir`). No iPhone: ECIES com chave P-256 no Keychain, só deste aparelho, e arquivos em Application Support fora do backup.
-  - Lá, grade, notas, histórico, currículo, Síntese e disciplinas universais valem 180 dias, e o RID e os detalhes de disciplinas valem 7 dias. A cópia antiga, sem cifra, é lida uma vez na atualização e apagada na primeira gravação.
-  - Sem o cofre (módulo nativo ausente), o cache segue no AsyncStorage, sem criptografia, com validade de sete dias para tudo.
-- Os PDFs que o aluno pede para guardar (ver [Sem internet ou com o portal fora do ar](#sem-internet-ou-com-o-portal-fora-do-ar)) ficam no mesmo cofre, no máximo 5 por conta, e o logout os apaga.
-- Durante uma queda do portal, o app consulta `https://pitrol.dev/aouerj/portal-status`, no máximo a cada 2 minutos. A requisição não leva dados do aluno, mas o servidor vê o IP do aparelho e o horário.
-- O logout invalida resultados tardios, aguarda operações nativas, limpa cookies, credenciais e cache da conta.
-- A migração do antigo Redux persistido transfere credenciais para armazenamento seguro e remove a cópia em texto simples. Se a transferência falhar, um novo login pode ser necessário.
-- Relatórios de suporte enviam diagnóstico estruturado e descrição sanitizada. Não coletam HTML bruto, senha, cookies ou tokens do portal. Com o Sentry ativo, o diagnóstico leva também o id do evento de feedback correspondente.
-- Mensagens enviam nome do autor, turma, disciplina, período escolhido e texto. O gerador envia dados necessários ao cálculo.
-- O que o servidor próprio guarda está em [server/README.md](server/README.md#segurança-e-privacidade): as mensagens, os relatos e as sugestões ficam no MongoDB sem prazo de remoção, e o log não registra IP nem User-Agent. O gerador de grades não guarda nada: calcula e responde.
-- O aviso remoto (ver [Aviso remoto](#aviso-remoto)) está sempre ligado. O app baixa `config/app-status.json` deste repositório em `raw.githubusercontent.com` na abertura, ao voltar ao primeiro plano e, em segundo plano, quando a verificação de avisos vai de fato consultar o portal (antes disso, vale a cópia salva). Faz isso no máximo a cada 15 minutos, inclusive antes do login. A requisição não leva dados do aluno, mas o GitHub (Microsoft, nos EUA) vê o IP do aparelho, o horário e o User-Agent. Os links "Saiba mais" dos avisos só abrem hosts permitidos.
-- Identificação do aluno (no Android, com a Play Integrity; no iPhone, com o App Attest da Apple): o mural, a busca de docentes, a Companhia agora, o Agora no campus, o relato de erro e o gerador de grades falam com o servidor próprio como o aluno identificado.
-  - De 5 a 30 segundos depois do login confirmado no Aluno Online (ou na primeira tela que precisar), o app manda a **matrícula e o nome** do login a `/aouerj/v2/students/session`, com um id da instalação e uma atestação sobre exatamente esses campos.
-  - No Android, a atestação é um token da Play Integrity: o servidor manda o Google decifrar o token para saber se o app é o da loja, instalado pela loja, sem modificação, num aparelho íntegro.
-  - No iPhone, é o App Attest: o app cria uma chave nova no Secure Enclave, e a Apple a atesta sobre o hash desses campos. O servidor confere a cadeia de certificados da Apple para saber se o app é o da loja, sem modificação, num iPhone de verdade.
-  - O servidor guarda a matrícula e o nome cifrados, os aparelhos de onde o aluno entrou (um HMAC do id da instalação) e devolve uma sessão, que vale 30 dias sem uso e vai em cada pedido. A sessão fica no cofre, fora do backup.
-  - Com ela, o servidor sabe quem escreveu cada mensagem do mural, quem mandou cada relato e quem estava em cada mesa ou grupo da Companhia. Os outros alunos continuam vendo só o primeiro nome (ou o nome do mural); só a moderação, no admin, vê matrícula e nome, para banir.
-  - O banimento vale para a conta, em qualquer aparelho: o app mostra até quando e por quê.
-  - O pedido não leva senha nem cookies do portal. O Google vê, pela Play Integrity, que o app pediu um veredito. A Apple vê, pelo App Attest, que o app pediu a atestação de uma chave: recebe a chave pública nova e um hash do pedido, sem a matrícula nem o nome.
-  - O logout encerra a sessão no servidor e a apaga do aparelho; o id da instalação fica.
-  - Sem a Play (aparelhos sem Google) ou sem o App Attest (o simulador do iPhone), essas funções não abrem; o relato de erro ainda chega, pela rota antiga, sem o aluno.
-- Atualização e avaliação usam as APIs da própria loja (In-App Updates e In-App Review da Play), que passam pelo app da loja no aparelho; o app não envia dados próprios nesses fluxos.
-- Tema, última cópia do aviso remoto, avisos dispensados, data do último pedido de atualização e o histórico de uso que decide o pedido de avaliação ficam no AsyncStorage. Valem para o app inteiro e não são apagados no logout.
-- Avisos (ver [Notificações](#notificações)) são opt-in e montados no aparelho; nada passa por servidores próprios. As escolhas, o estado da última verificação e a referência dos avisos (as últimas notas, posições no RID Parcial e resultados da inscrição lidos no período) ficam no AsyncStorage por conta. Os lembretes de aula (disciplina, horário e sala) ficam nas SharedPreferences do Android ou agendados no iOS. No iPhone, a próxima vez da verificação e de "Avisar quando voltar" fica no UserDefaults, sem dados do aluno (só horários e o intervalo), para o app aberto pelo iOS em segundo plano saber o que fazer antes do JS. O logout apaga tudo isso e cancela lembretes e verificações.
-- O widget "Próxima aula" (ver [Widget e atalhos](#widget-e-atalhos)) guarda a grade salva (disciplina, horário e sala) nas SharedPreferences do Android (no iPhone, no App Group) para desenhar com o app fechado. O logout a apaga, e o widget passa a pedir o login.
-- As faltas que o aluno marca (ver [Notas, PF e faltas](#notas-pf-e-faltas)) ficam só no aparelho, no AsyncStorage por conta e por período, e o logout as apaga, inclusive o automático, quando o portal recusa a senha salva. A simulação de PF e CR não grava nada.
-- As provas e trabalhos anotados (ver [Provas e trabalhos](#provas-e-trabalhos)) ficam só no aparelho, no AsyncStorage por conta e por período, com a observação. Os lembretes deles (título e corpo já montados) ficam nas SharedPreferences do Android ou agendados no iOS. O logout apaga tudo isso.
-- Companhia agora (ver [Companhia agora](#companhia-agora)): a mesa ou o grupo para voltar leva o tipo, o horário, o ponto de encontro, o destino genérico, o recado e o primeiro nome; o servidor apaga pouco depois do horário (30 minutos na mesa, 2 horas no grupo). Todo pedido vai com a sessão de aluno, e cada membro guarda o aluno: um aluno abre uma por vez, entra uma vez em cada uma, e quem foi tirado não volta por outro aparelho. Cada participação recebe também uma chave de membro que vale só ali, guardada no cofre. O horário livre é calculado no aparelho, e não há localização ao vivo. O logout sai de tudo, apaga as chaves e encerra a sessão.
-- O Plano até a formatura (ver [Plano até a formatura](#plano-até-a-formatura)) é calculado no aparelho. Os pré-requisitos lidos na Pesquisa de Disciplinas, a carga escolhida e os adiamentos ficam no AsyncStorage por conta, e o logout os apaga.
-
-Quando o AO não informa o semestre, a interface usa "Período atual". O período do mural é um filtro selecionado pelo usuário; não é uma confirmação do calendário acadêmico oficial.
-
-### Sem internet ou com o portal fora do ar
-
-- **Abertura:** com a conta salva, o app abre na hora com os dados salvos e entra no portal por trás ("Entrando no Aluno Online…"). As leituras esperam esse login, sem um segundo login em paralelo. Uma senha recusada nesse login leva ao Login.
-- **Sem internet:** as consultas pausam e voltam com a conexão (como antes).
-- **Portal fora do ar:** com a internet funcionando, uma resposta 502, 503 ou 504, ou duas falhas de rede seguidas, marcam o portal como fora do ar.
-  - Daí em diante, as leituras falham na hora, sem esperar o tempo-limite.
-  - Uma requisição leve à página inicial do portal testa a volta, com espera crescente: 1, 2, 5, 10 e depois 15 minutos. O teste só acontece com o app na tela.
-  - Uma leitura pedida (tela aberta, "Tentar novamente", puxar para atualizar) também dispara o teste, no máximo a cada 30 segundos.
-  - O aviso de cada tela diz desde quando e a próxima tentativa, e oferece "Tentar agora".
-  - Com a situação do nosso servidor (ver acima), o aviso diz se a queda é de todos ou se o problema pode ser a rede do aluno.
-  - Quando o portal volta, o app avisa "O Aluno Online voltou" e atualiza as telas que falharam.
-- **Lentidão:** uma resposta acima de 8 segundos troca a barra de atualização por "O Aluno Online está lento".
-- **Avisar quando voltar:** no aviso da queda, o aluno pede um aviso. Fora do app, uma tarefa do WorkManager testa o portal a cada 15 minutos, com rede e fora das 22h às 7h, avisa uma vez no canal "Aluno Online de volta" e para. O pedido vence em 3 dias e sai no logout.
-  - No iPhone, a mesma tarefa roda quando o iOS deixar, no mínimo 15 minutos depois do pedido ou da rodada anterior (ver [iOS](#ios)), e o aviso de confirmação diz que pode demorar.
-- **Busca antecipada:** com a conta logada, internet, o portal no ar e o app na tela, grade, histórico, currículo e Síntese vencidos são renovados, uma página por vez, no máximo a cada 30 minutos por conta. Notas e RID ficam de fora, porque a verificação de avisos compara com o que o aluno já viu.
-- **Ações que dependem do portal:** emitir e excluir documentos e "Ler os pré-requisitos de novo" ficam desativados sem internet ou com o portal fora do ar.
-- **Documentos guardados:** na folha do PDF, "Guardar no aparelho" mantém o documento cifrado no cofre. A seção "Guardados no aparelho" abre e compartilha o PDF sem internet e sem o portal.
-
-### Notas, PF e faltas
-
-As contas seguem o art. 95 da Deliberação nº 33/CSEPE/1995, que o Aluno Online publica em "Critérios de Avaliação (Crédito)". O regime seriado (Deliberação nº 44/1979) tem outra conta e não é coberto.
-
-- **Quanto preciso na PF:** no quadro de notas do Início, cada disciplina diz o que falta para passar por nota.
-  - A média semestral é a média de P1 e P2. A partir de 7,0, o rótulo é "Dispensado da PF".
-  - Abaixo de 4,0, é "Sem direito à PF": a disciplina reprova mesmo que uma PF apareça lançada.
-  - Entre 4,0 e 7,0, é "Precisa de X na PF", com X = 10 − média, arredondado para cima na primeira casa. Essa nota aparece tracejada na coluna da PF.
-  - Só com uma das provas, o rótulo diz quanto a outra precisa para dispensar a PF ("6,5 na P2 dispensa a PF"). Quando nem 10 dispensa, diz quanto ela precisa para dar direito à PF ("Precisa de 5,0 na P1 para ter PF").
-  - Com a PF lançada ou a média publicada, mostra a média final, (média + PF) ÷ 2, que aprova com 5,0.
-  - As notas aparecem com uma casa, e a segunda só quando existe. Elas são cortadas em vez de arredondadas, e assim nada abaixo de 5 aparece como "5,0".
-- **Simular PF e CR:** a folha começa cada PF na nota mínima, de novo a cada abertura, e muda a nota de 0,5 em 0,5. Mostra a média final de cada disciplina e o CR aproximado de agora e com as notas do período.
-  - Os créditos vêm do histórico, do currículo ou das disciplinas universais. A folha os lê ao abrir, do cache (que vale 24 horas) ou do portal.
-  - O histórico só lista as disciplinas do período depois que ele termina; a partir daí, o período não conta duas vezes.
-  - O CR segue a mesma regra aproximada do Meu Progresso. Atividades sem crédito ficam de fora, e sem nenhuma nota no histórico não há CR atual.
-  - Também ficam de fora as disciplinas sem as duas provas e sem média lançada.
-- **Controle de faltas:** o aluno marca "Faltei" de dois jeitos: tocando numa aula já terminada da agenda da semana, ou em "Faltas", em Disciplinas em Curso, que lista as aulas das últimas 4 semanas e as faltas mais antigas.
-  - O limite é de 25% da carga horária (a frequência mínima é de 75% das horas-aula), contado em tempos de aula de 50 minutos.
-  - A carga horária vem das mesmas fontes dos créditos. Sem ela, não há limite nem barra.
-  - Disciplinas em Curso mostra a barra de cada disciplina: verde abaixo da metade do limite, amarela da metade até o limite e vermelha além dele.
-  - A lista sai da grade e não conhece feriados nem o começo das aulas; nesses dias, basta não marcar.
-  - O portal não mostra a frequência do período em curso, só a do histórico.
-
-### Provas e trabalhos
-
-O aluno anota as datas de P1, P2, PF, trabalhos, seminários e outras avaliações das disciplinas em curso. Não há tela nova: as datas aparecem onde ele já olha. Tudo fica só no aparelho, como as faltas.
-
-- **Onde aparece:**
-  - No Início, "Próximas avaliações" fica logo abaixo da próxima aula, da mais perto para a mais longe, com a contagem ("Hoje", "Amanhã", "Em 4 dias") e a observação. Mostra 3, com "Ver todas".
-  - A próxima aula ganha "P2 nesta aula" quando há prova nela.
-  - Na semana, o dia com avaliação ganha a marca de calendário ao lado do ponto das aulas. No dia, as avaliações aparecem no topo, com "Editar", e a aula da prova troca o turno pelo tipo da prova.
-  - No quadro de notas, enquanto a nota não sai, a célula da P1, da P2 ou da PF mostra a data anotada, tracejada. A célula vazia (e a PF necessária, quando há PF) anota a data daquela prova direto.
-- **A folha** (`features/Evaluations/EvaluationSheet`) abre por "Adicionar", por "Avaliação" num dia da semana, pela célula de nota ou por uma avaliação:
-  - A data parte da grade: as opções são as próximas 4 aulas da disciplina, e o horário vem da aula daquele dia. Trabalhos começam com prazo às 23:59. "Outra data" abre um calendário na própria folha.
-  - Uma P1 (P2, PF) por disciplina: anotar de novo troca a data, com o aviso antes de salvar. Prova com nota lançada não se anota ("P1 · saiu 6,5").
-  - A observação tem até 500 caracteres.
-- **Lembretes:** sete antecedências combináveis em cada avaliação: 1 semana, 3 dias, véspera, no dia, 2 h, 1 h e 30 min antes.
-  - As de dias saem no horário dos avisos de dias antes (20:00 por padrão); "No dia", no horário do dia (7:00). As de horas contam a partir do início.
-  - A folha lista quando cada um chega. Os que já passaram, ou que cairiam depois do início, não se escolhem.
-  - Os padrões das novas avaliações (véspera e no dia) mudam em Notificações, onde uma chave também desliga todos.
-- **A nota manda:** quando a P1, a P2 ou a PF sai no portal, a data some da célula e a avaliação deixa o Início, a semana e os lembretes. A PF anotada sai também quando as notas a dispensam (média 7 ou mais), tiram o direito a ela (abaixo de 4) ou a média final é publicada.
-- **"Já fiz":** os avisos de trabalhos, seminários e outras trazem o botão. Ele para os lembretes que faltam sem abrir o app, e a avaliação sai das próximas na volta ao app. Na folha, "Desfazer" traz de volta.
-
-### Início do seu jeito
-
-No fim do Início, "Personalizar o Início" abre uma folha em que o aluno arruma a tela, e cada toque vale na hora:
-
-- **Seções:** mostrar ou esconder e mudar a ordem da Próxima aula, Companhia agora e Agora no campus (onde existem), Próximas avaliações, Notas e Semana. As setas sobem e descem; o leitor de tela anuncia a nova posição. Com tudo escondido, o Início oferece voltar à folha.
-- **Saudação:** "Olá" e a data, só a data ou nenhuma.
-- **Espaçamento:** normal (o espaço do app) ou compacto, com as seções mais juntas.
-- **Detalhes:** o botão "Ver no mapa" da próxima aula e quantas avaliações aparecem antes de "Ver todas" (1, 3 ou 5).
-- **Restaurar** volta ao Início de sempre. O atalho "Notas" do ícone mostra as notas mesmo escondidas.
-- **Onde fica:** só no aparelho, por conta (`home-layout` nas preferências; o logout apaga). Uma seção nova de uma versão futura entra no lugar dela, visível. O código está em `src/modules/home` e na folha `src/features/HomeLayout`.
-
-### Companhia agora
-
-Encontros de minutos com outros alunos: uma mesa para almoçar junto ou um grupo para voltar depois da última aula da noite. Quem abre diz onde e quando; quem quiser entra. A mesa ou o grupo some sozinho pouco depois do horário. Fica no grupo "No campus" do menu e só existe onde o app entra como aluno identificado (Android da loja).
-
-- **Vocabulário:** o app fala com quem acabou de entrar na faculdade. No almoço é "mesa" ("Abrir mesa", "Sentar junto"); na saída, "grupo para voltar" ("Abrir grupo", "Entrar no grupo", "Grupo para o metrô, 22:15"). Quem cria é "quem abriu". Nunca "chamada", que na faculdade é a lista de presença. No código, o tipo continua `Call` (`lunch` e `home`), e as palavras de cada tipo ficam em `KIND_TEXT`.
-- **O horário livre vem da grade, no aparelho:** livre até a próxima aula, em aula ou a última aula que acabou. A folha de abrir oferece os horários que cabem: a mesa nos quartos de hora (:00, :15, :30, :45), para quem abre na mesma hora cair na mesma mesa, terminando 40 minutos antes da próxima aula; o grupo para voltar parte do fim da última aula do dia, de 5 em 5. "Outro horário" aceita qualquer hora das próximas 3 horas. O servidor recebe só o horário.
-- **Entrar em vez de abrir:** com uma mesa ou um grupo parecido já na lista (o mesmo ponto e, no grupo, o mesmo destino, até 15 minutos de diferença e com vaga), a folha de abrir oferece "Sentar junto" ou "Entrar no grupo", para não haver duas mesas meio vazias.
-- **De olho agora:** a lista diz quantos outros alunos olharam a Companhia nos últimos 15 minutos. O servidor conta cada aluno uma vez, e a lista mostra só o número.
-- **Dois tipos:** "Almoço e pausa" (até 6 pessoas, some 30 minutos depois do horário) e "Voltar junto" (até 8, some 2 horas depois da saída, para dar tempo do "Cheguei em casa"). A lista mostra o que aparece 1 hora antes do horário.
-- **Encontro dentro do campus:** só pontos do Mapa (o RU, o Lago dos Peixinhos, a Concha Acústica, os portões 1 e 5 do lado de dentro). O destino do grupo é genérico: a Estação Maracanã (metrô ou trem) ou o ponto de ônibus da São Francisco Xavier, com a saída pelo portão certo. A tela mostra o encontro, a saída e o destino no desenho do próprio Mapa, e "Ver no Mapa" abre o lugar.
-- **Primeiro nome para os outros, aluno identificado para a moderação:** quem está fora vê o primeiro nome de quem abriu e quantos vão; quem está dentro vê os primeiros nomes. O servidor sabe quem é cada um pela sessão; só a moderação vê matrícula e nome, numa denúncia. O nome é o da conta, ou outro que o aluno escolha (o nome social, um apelido), guardado só no aparelho.
-- **Recados prontos, sem conversa livre:** "Estou indo", "Cheguei no ponto", "Atrasei 5 min" e, no grupo, "Cheguei em casa"; "Não vou mais" sai. O recado de quem abre tem até 80 caracteres e recusa telefone, @ e links, no app e no servidor.
-- **Avisos no aparelho:** 10 minutos antes do encontro e, no grupo para voltar, "Chegou bem?" 40 minutos depois da saída (canal "Companhia agora", tela em Notificações para desligar). Não há push: quem entra e os recados aparecem com o app aberto.
-- **Uma por vez:** abrir outra mesa ou outro grupo encerra o anterior. Quem abriu e sai encerra para todos.
-- **Denúncia sempre à mão:** de dentro ou de fora, com o motivo. Assédio denunciado por quem foi junto tira do ar na hora; outro motivo, com duas pessoas de dentro. De fora, a denúncia vai só para a moderação, que tira do ar pela administração do servidor: ninguém de fora derruba as mesas dos outros. De fora, uma denúncia por aluno em cada mesa ou grupo.
-- **Tirar alguém:** quem abriu vê cada pessoa em "Quem vai" e pode tirá-la, com confirmação. Quem saiu assim deixa de ver os nomes e os recados, fica sabendo e não vê mais o botão de entrar ali.
-- **No Início:** só quando faz sentido, logo abaixo da próxima aula: a mesa ou o grupo em que o aluno está, as mesas abertas no intervalo do almoço ou os grupos para voltar depois da última aula da noite. Com a lista vazia nessa hora, o convite: "Abrir a primeira mesa" (ou "Abrir um grupo para voltar"), que abre a folha já com o horário e o ponto, quantos estão de olho, "Me avise se tiver mesa" (ou "grupo") e "Agora não", que esconde o convite até o fim do dia. Em aula, nada aparece.
-- **Me avise se tiver mesa ou grupo** (Android): para quem não quer abrir, na lista vazia ou no convite do Início. Fora do app, a mesma tarefa do WorkManager do portal lê a lista a cada 15 minutos, com rede, até o fim do horário livre (40 minutos antes da próxima aula na mesa, 40 minutos depois da última aula no grupo), e avisa uma vez no canal "Companhia agora" quando abre uma mesa ou um grupo do tipo pedido, com vaga. Com a tela aberta e a mesa ou o grupo à vista, o pedido termina. Sai no logout.
-- **Código:** domínio e casos de uso em `src/modules/companion`, adaptador em `src/adapters/outbound/private-api/companion.ts`, telas em `src/pages/Companion` e o bloco do Início em `src/features/Companion`. A API está no [README do servidor](server/README.md#companhia-agora).
-
-### Agora no campus
-
-Avisos curtos dos próprios alunos sobre o campus, como um Waze feito por todo mundo (sem rotas): elevadores, fila do bandejão, luz e ar, internet, banheiros e acesso (portão, rampa, sala trancada). Quem está no lugar avisa em dois toques; quem passa por ali confirma ("Continua"), diz que acabou ou agradece ("Valeu"). Tudo some sozinho. Abre o grupo "No campus" do menu e só existe onde o app entra como aluno identificado (Android da loja).
-
-- **Dois toques, sem texto livre:** o que é e como está. O lugar vem da grade, no aparelho (a aula de agora ou a próxima, em até 40 minutos): o andar ou a sala da aula. O elevador é sempre o hall do bloco C, onde ficam os 10 elevadores do Pavilhão, e o bandejão é o RU. "Outro lugar" escolhe o bloco e o andar, a sala ou o portão. Sem foto, sem nome de ninguém, sem crime ou segurança (para isso, os canais oficiais).
-- **Novo até alguém confirmar:** o aviso nasce "novo" (tracejado no mapa) e passa a valer para todos com a confirmação de outro aluno, ou direto se quem avisou tem nível 3 ou mais. Cada "Continua" empurra o fim; três "Acabou" encerram antes, e o "Já resolveu" de quem avisou encerra na hora. Um aviso igual a um que já vale vira a confirmação dele; uma situação nova no mesmo lugar (a fila que cresceu) encerra a anterior.
-- **"Ainda está lá?" sem GPS:** a tela e o Início perguntam do aviso do caminho do aluno, pela grade: os elevadores para quem tem aula do 3º andar para cima, o mesmo andar ou a mesma sala. "Não vou passar por lá" dispensa até o fim do dia.
-- **Pontos e nível na conta, sem placar:** avisar (+10, nos 5 primeiros avisos do dia), o aviso confirmado (+5), responder (+3, nas 10 primeiras respostas do dia) e cada valeu (+1); três "Não é verdade" tiram o aviso do ar e 15 pontos de quem avisou. Níveis: Chegando, Na área, Olho no campus, Guia do campus e Lenda do Pavilhão. "Você ajudou" mostra o nível, a semana (quantas vezes alguém viu um aviso do aluno), os avisos de hoje e as conquistas. Ninguém vê os pontos de ninguém.
-- **Comunidade:** o campus somado, sem ninguém: a semana e o mês (o atual e o anterior), com os problemas que mais se repetem (só avisos confirmados) e "Compartilhar o resumo" em texto, para o CA e o DCE levarem números à administração.
-- **No Início, sempre à vista:** quando o aluno deve estar no campus (de 1 hora antes da primeira aula a 30 minutos depois da última), o "ainda está lá?", respondido ali mesmo, ou até dois avisos confirmados; sem aviso, uma linha só, "Nada no seu caminho", com "Avisar". Fora desse horário, ou sem resposta do servidor, a linha diz para que serve, sem consultar nada. Na primeira vez, uma apresentação curta ("Conhecer" ou "Agora não") toma o lugar da linha. A seção entra em "Personalizar o Início".
-- **No celular** (Android): a tarefa do WorkManager no modo `campus`, a cada 15 minutos e fora das 22h às 7h, só busca a lista quando há aula por perto ou um aviso do aluno em aberto. Avisa no canal "Agora no campus": "ainda está lá?" de um aviso confirmado no caminho (até 3 por dia, uma vez por aviso), o aviso do aluno confirmado, quantos agradeceram quando ele acaba e o nível novo. Liga depois da primeira visita à tela; a chave fica em Notificações. A tarefa não entra no portal: as salas da grade ficam guardadas na preferência `campus-now` da conta (o logout apaga).
-- **Carga:** com mais de 10 mil alunos, a lista anda a cada 30 s só com a tela na frente e a cada minuto no Início; "quantos viram" vai em lotes de até 50, uma vez por aviso. O aviso remoto desliga tudo com `disabledFeatures: ["campus"]`.
-- **Código:** domínio e casos de uso em `src/modules/campus-now`, adaptador em `src/adapters/outbound/private-api/campusNow.ts`, telas em `src/pages/CampusNow` e o bloco do Início em `src/features/CampusNow`. A API e a moderação estão no [README do servidor](server/README.md#agora-no-campus).
-
-### Plano até a formatura
-
-Em Meu Progresso, o cartão "Plano até a formatura" abre a tela do plano: as obrigatórias que faltam distribuídas pelos próximos períodos, com os pré-requisitos, os gargalos e o prazo máximo do curso.
-
-- **Fontes:**
-  - O currículo e o histórico dizem o que falta. As disciplinas da grade do período contam como aprovadas.
-  - A Síntese da Formação dá a versão curricular, os créditos que faltam em cada grupo e o prazo. Os períodos restantes são o máximo, mais os extras, menos os utilizados (os cursados e o inscrito).
-  - Em Meu Progresso, os créditos exigidos de cada grupo de eletivas também vêm da Síntese, e esses grupos não se configuram à mão. Os que ela não informa, ou todos quando ela não carrega ou o regime é seriado, usam os créditos configurados. Um grupo com 0 crédito exigido aparece como "Não exigida".
-  - Os pré-requisitos vêm da Pesquisa de Disciplinas, uma página por disciplina que falta, duas por vez. Na primeira abertura, a tela mostra o progresso da leitura. As leituras ficam guardadas por versão curricular, e as aberturas seguintes não consultam o portal. Uma leitura interrompida continua de onde parou.
-  - A leitura para em bloqueio, limite de acessos, portal fora do ar, falta de rede ou sessão perdida. O plano usa o que já foi lido e oferece "Tentar novamente". "Ler os pré-requisitos de novo" esquece as leituras e consulta tudo outra vez, sem o cache das páginas.
-- **Regras:**
-  - Cada grupo de pré-requisitos é um "ou", e todos os grupos valem. Um grupo com uma só alternativa entre as que faltam vira dependência.
-  - Gargalo é a disciplina que trava, direta ou indiretamente, ao menos 3 outras. A cadeia mais longa de dependências é o mínimo de períodos possível.
-  - A trava de créditos ("60 Créditos Obrigatórios") conta os créditos obrigatórios aprovados, com os do período em curso.
-  - A carga é contada em disciplinas por período, com no mínimo 2, o piso da inscrição. "Quando formar" lista as formaturas possíveis, cada uma com a menor carga que chega lá. O padrão é a mais cedo, e uma carga maior que não adianta a data não vira opção.
-  - Cada período recebe, até a carga, primeiro as disciplinas que travam outras; depois, pelo período recomendado no currículo. Um período fica com 1 disciplina só quando não há outra disponível, e o cartão avisa que ele está abaixo do mínimo da inscrição.
-  - As eletivas entram como vagas "a escolher", no tamanho mais comum das disciplinas do grupo.
-  - "Adiar um período", na folha da disciplina, guarda o período a partir do qual ela pode entrar. Antes, a folha mostra o efeito na formatura. "Restaurar o plano" desfaz todos os adiamentos.
-- **Limites:**
-  - O plano não conhece vagas, horários, a oferta de cada período nem correquisitos. A inscrição de verdade pode mudar.
-  - Sem a Síntese, não há prazo, e os créditos exigidos das eletivas são os configurados em Meu Progresso.
-  - Uma disciplina sem os pré-requisitos lidos entra como livre, com aviso. Uma que depende de disciplina fora das que faltam fica fora do plano, também com aviso.
-- Para desligar a tela sem nova versão, inclua `graduation-plan` em `disabledFeatures` do aviso remoto.
-
-### Atividades complementares
-
-Em Meu Progresso, a seção "Atividades complementares" mostra as horas que contam e, ao tocar num tipo de atividade, as atividades dele.
-
-- **Fonte:** as duas tabelas que "Disciplinas Realizadas" só traz para quem tem atividades registradas (`parsers/ComplementaryActivities.ts`):
-  - a das atividades (período, tipo, horas e descrição);
-  - o "Resumo por Tipo de Atividade", em que cada tipo conta só até um teto (CH Máxima); o que passa dele é excedente e não conta.
-- **Leitura:** a mesma página do histórico. O adaptador compartilha por 15 segundos a requisição dessa página, então o histórico e as atividades pedidos juntos saem de uma requisição só.
-- **Carga exigida:** a página não a informa. Ela aparece ("120 de 200 h · faltam 80") só quando a Síntese da Formação traz um requisito de atividades complementares; senão, a seção mostra o total que conta.
-- Sem atividades nem exigência, a seção não aparece.
-
-### Notificações
-
-A tela **Notificações** liga cada aviso separadamente; o Início convida uma vez a ligar o lembrete de aula. No iPhone, ela diz que é o iOS quem escolhe quando o app olha o portal, que o aviso pode chegar horas depois e que a "Atualização em 2º Plano" precisa estar ligada (ver [iOS](#ios)).
-
-- **Lembrete antes da aula:** 10, 15 ou 30 minutos antes, a partir da grade salva, sem consultar o portal.
-  - O `AlarmManager` repete cada aula toda semana e refaz os alarmes depois de reiniciar o aparelho, atualizar o app ou mudar o relógio.
-  - Enquanto houver lembretes, o WorkManager também os refaz a cada 6 horas, sem rede e sem abrir o app. Assim, retirar "Alarmes e lembretes" pausa os lembretes por no máximo esse tempo.
-  - Sem "Alarmes e lembretes" liberado (Android 12+), o sistema entrega o lembrete numa janela de até 10 minutos antes do horário. Se o app reagenda dentro dessa janela, o lembrete sai na hora. Com o celular parado (Doze), pode atrasar.
-  - Um lembrete que chegaria depois do início da aula é descartado. Uma aula já avisada não é avisada de novo, nem ao mudar a antecedência.
-  - Os lembretes param 21 dias depois da última leitura da grade e não conhecem feriados. Sem a grade salva (o cache em disco perdeu a validade ou foi apagado), os lembretes já agendados continuam até essa validade.
-- **Lembretes de avaliações:** os das provas e trabalhos anotados (ver [Provas e trabalhos](#provas-e-trabalhos)), no canal "Avaliações", com a mesma permissão. Ligados por padrão: quem escolhe é cada avaliação, e a primeira com lembrete pede a permissão.
-  - Cada lembrete é um alarme de data única (`EvaluationReminders.kt`), mostrado uma vez só. Os alarmes voltam depois de reiniciar, atualizar ou mudar o relógio, e o WorkManager dos lembretes de aula também os refaz.
-  - Atrasado (aparelho desligado, ou o Doze segurando o alarme sem "Alarmes e lembretes"), o lembrete ainda sai enquanto o título vale: "Amanhã" e "Em 3 dias" até o fim daquele dia, "Hoje, 8:00" até o início e "Em 1 hora" por 15 minutos. Depois disso, ou depois do início da avaliação, é descartado.
-  - Os horários vão também como hora local: numa viagem com outro fuso, a prova das 8h continua lembrada às 7h da hora local, mesmo sem abrir o app.
-    - Um aviso por avaliação: o seguinte substitui o anterior na barra. Na tela de bloqueio que oculta conteúdo, aparece só o título; a observação fica escondida.
-- **Avisos do Aluno Online:** nota nova ou alterada, posição ou situação nova no RID Parcial, resultado da inscrição (aceitas e não aceitas, com o motivo) e documento emitido a até 3 dias de vencer.
-  - O WorkManager roda a verificação em JS sem tela (`src/app/background`) a cada 4 horas, com rede e bateria não baixa. Das 22h às 7h, ou com as notificações desligadas no sistema, nem inicia o app.
-  - No iPhone, o `BGTaskScheduler` roda a mesma verificação quando o iOS deixar, no mínimo 4 horas depois da anterior (a primeira, uma hora depois de ligar), com uns 30 segundos: o JS para em 25 segundos, com o que já leu. Das 22h às 7h, com a tela bloqueada ou com as notificações desligadas, nem inicia o React Native.
-  - Antes de qualquer acesso à rede, a verificação decide com o que está no aparelho: horário, pausa, avisos ligados da conta salva e a cópia salva do aviso remoto. Só então busca o aviso remoto e entra no portal.
-  - Cada rodada faz uma autenticação e consulta só as páginas dos avisos ligados. Os documentos e a grade são consultados no máximo uma vez a cada 20 horas; a grade, só com o lembrete de aula ligado.
-  - Se o login falha, a rodada para. Uma página fora do menu da conta, como o RID fora da época de inscrição, não interrompe as outras.
-  - Pausa por 12 horas depois de um bloqueio ou limite de consultas do portal, de um login que o portal não abre (HTTP 4xx ou página desconhecida) ou de senha recusada. Com o app na tela, não roda.
-- A verificação compara cada aviso com uma referência: o que o app mostrou (o cache) mais o que a própria verificação já leu no período.
-  - A primeira leitura vira referência, sem aviso, e o que o aluno já viu no app não volta como aviso.
-  - Uma leitura vazia ou em branco não apaga a referência: um dado que some e volta igual não avisa de novo.
-  - Os documentos são a exceção: avisam pelo prazo já na primeira verificação, uma vez por via.
-- Com o app em segundo plano, a volta da rede não recarrega os dados. Eles atualizam quando o app volta à tela, e a verificação não perde a mudança.
-- O texto da nota só leva o valor se o aluno pedir. Na tela de bloqueio que oculta conteúdo sensível, os avisos mostram uma versão genérica.
-- O logout, a troca de conta e o logout automático por senha recusada tiram da barra os avisos já mostrados e cancelam os lembretes.
-- Para desligar tudo sem nova versão, inclua `notifications` em `disabledFeatures` do aviso remoto. A tela fica indisponível, e os lembretes e a verificação são cancelados na abertura do app ou na próxima verificação em segundo plano.
-  - Só com o lembrete de aula ligado não há verificação em segundo plano, e o cancelamento espera a abertura do app.
-  - Eles voltam quando o aluno abre o app depois da correção.
-
-### Widget e atalhos
-
-Sem acesso ao portal. No iPhone, os mesmos widgets ficam na extensão `ios/NextClassWidget` (ver [iOS](#ios)).
-
-- **Widget "Próxima aula"** (4×1, redimensionável): a próxima aula da grade salva, pela mesma regra do card do Início.
-  - Um bloco à esquerda traz o dia ("Agora", "Hoje" ou o dia da semana) e o horário de início, em azul cheio quando a aula é hoje. Ao lado vêm a disciplina, o fim da aula com os tempos e a sala, e o local.
-  - O texto do bloco tem tamanho fixo e não cresce com a fonte do sistema. O leitor de tela lê o dia e o horário pela descrição do widget.
-  - O app envia a grade ao widget sempre que ela muda, com o app aberto. Em segundo plano, isso só acontece quando a verificação de avisos relê a grade; ver [Notificações](#notificações). Sem avisos ligados, o widget se atualiza ao abrir o app.
-  - O widget se redesenha quando a aula mostrada começa ou termina, à meia-noite e depois de mudar o relógio, reiniciar ou atualizar o app. O alarme nunca acorda o aparelho. Com "Alarmes e lembretes" liberado (a permissão dos lembretes), chega no minuto certo; sem ela, pode atrasar até 10 minutos.
-  - Depois do logout, pede o login. Pede para abrir o app em dois casos: antes de receber a primeira grade (widget posto antes de abrir o app) ou com a conta sem grade lida, e com a grade parada há mais de 21 dias.
-  - Sem nenhuma disciplina em curso com horário, mostra "Sem aulas na grade". O toque abre o Início.
-- **Widget "Hoje"** (4×2, redimensionável, `TodayWidget.kt`): todas as aulas do dia, com o início, o fim, a disciplina e a sala. A aula em andamento ganha o fundo azul suave e as que já terminaram ficam esmaecidas; cabem 6 linhas, e o resto vira "mais N aulas hoje".
-  - Usa a mesma grade e a mesma política de alarmes do "Próxima aula": redesenha em cada início e fim de aula do dia e à meia-noite.
-  - Sem aulas no dia, mostra a próxima ("Sem aulas hoje. Próxima: Segunda, 17:00 · …"). Os avisos de login, grade não lida e grade parada são os do "Próxima aula".
-- **Ícone temático** (Material You, Android 13+): o ícone é adaptativo, com a arte de sempre na frente (`drawable-nodpi/ic_launcher_art.png`) e o logo AO na camada `monochrome`, que o sistema pinta com as cores do tema. O vetor sai de `src/assets/AO_Logo.svg` por `node scripts/generate-icons.cjs --logo`.
-- **Atalhos do ícone** (tocar e segurar): Próxima aula, Notas, Mapa e Documentos ([shortcuts.xml](android/app/src/main/res/xml/shortcuts.xml)).
-  - O Android abre atalhos limpando a tarefa. Por isso eles passam pela `ShortcutActivity`, sem tela, que repassa o destino à `MainActivity` pelo mesmo caminho do toque nos avisos e no widget. Com o app aberto, a tela atual fica.
-  - Não há esquema de deep link público, mas a `MainActivity` é exportada: outro app pode abri-la com a mesma ação. O JS só aceita os quatro destinos.
-  - O Mapa abre mesmo sem login; as outras telas esperam a conta.
-  - "Notas" abre o Início no quadro de notas. Quando as notas carregam e o período não tem nenhuma, avisa que ainda não há notas.
-
-### Registro de falhas (Sentry)
-
-O app envia falhas ao [Sentry](https://sentry.io) para que quebras de parser e erros de tela apareçam sem depender de relato. A configuração fica em `src/app/observability/`. O SDK só é iniciado em builds de release e com o DSN de `src/app/observability/config.ts` preenchido; o DSN é vazio por padrão, e nesse caso nada é enviado.
-
-- **O que é enviado:**
-  - tipo, mensagem e pilha do erro, simbolizada pelos source maps do build;
-  - versão do app, modelo e sistema do aparelho;
-  - sessões, para a taxa de uso sem falhas por versão;
-  - rastros com o nome das telas visitadas e o ciclo de vida do app;
-  - um identificador aleatório da instalação, criado pelo SDK, que conta quantas instalações uma falha atinge.
-- **Mudança no portal:** `AppError('PORTAL_LAYOUT_CHANGED')` vai como erro tratado, agrupado pela operação (`grades`, `login`…), uma vez por operação a cada abertura do app. Erros de query que não são `AppError` (defeitos do app) também vão, rotulados só pelo recurso (`academics/grades`).
-- **Relato em “Sobre”:** gera um feedback no Sentry com mensagem fixa, a tela e a categoria escolhidas, ligado ao último erro enviado. A descrição vai só para o servidor do relato.
-- **O que não é enviado:** matrícula, nome, notas, senha, cookies, tokens, HTML do portal e a descrição do relato. Também ficam de fora URLs com parâmetros, corpo de requisições e IP informado pelo SDK (`sendDefaultPii: false`, sem `setUser`).
-- **O que não é coletado:** rastros de rede (XHR/fetch), console, toques, capturas de tela, hierarquia de views, tracing, profiling e Session Replay.
-- **Descartes no aparelho:** erros esperados não viram evento (rede, portal fora do ar, limite de requisições, sessão expirada, cancelamento, login recusado, entrada inválida). Um filtro final tira query strings, dados de requisição e rastros fora da lista de qualquer evento, inclusive dos que o SDK nativo mescla.
-- **Onde:** organização na região UE (Frankfurt, `de.sentry.io`). O plano gratuito guarda os eventos por 30 dias.
-
-Source maps e símbolos: no Android, o `sentry.gradle` (em `android/app/build.gradle`) envia os source maps do Hermes no `pnpm bundle`/`pnpm build` só quando `SENTRY_AUTH_TOKEN` existe; sem o token, ou com `SENTRY_DISABLE_AUTO_UPLOAD=true`, o build segue sem envio. O `sentry-cli` lê `SENTRY_ORG`, `SENTRY_PROJECT` e `SENTRY_URL=https://de.sentry.io/`. No GitHub, o job `play` usa o secret `SENTRY_AUTH_TOKEN` e as variáveis `SENTRY_ORG` e `SENTRY_PROJECT` do environment `play`. No iOS, as fases do Xcode seguem a mesma regra.
-
-Pendências do responsável antes de preencher o DSN:
-
-1. Criar a organização na região UE e um projeto React Native, e colar o DSN em `config.ts`.
-2. No projeto, em Settings > Security & Privacy:
-   - ativar “Prevent Storing of IP Addresses”;
-   - manter ligados o Data Scrubber e os scrubbers padrão, e incluir `senha`, `matricula` e `_token` em “Additional Sensitive Fields”.
-3. Limitar o volume para caber na cota gratuita (5 mil erros por mês): rate limit da chave em Client Keys e Spike Protection.
-4. Criar um token de organização para o envio de source maps e configurar `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` e `SENTRY_PROJECT` no environment `play`.
-5. Atualizar a [política de privacidade](docs/privacidade.md), que hoje diz que o app não usa ferramenta de análise, com:
-   - registros de falhas e diagnóstico;
-   - o Sentry como operador;
-   - a região, a retenção e o vínculo do relato.
-6. Atualizar o formulário Data safety da Play: registros de falhas, diagnóstico e o ID da instalação (“IDs do dispositivo ou outros”), coletados e não compartilhados.
-7. LGPD:
-   - definir e registrar a base legal do registro de falhas;
-   - formalizar a transferência internacional: conferir se o DPA do Sentry adota as cláusulas-padrão da ANPD (Resolução CD/ANPD nº 19/2024, exigidas desde 23/08/2025) ou firmá-las.
-
-## Aviso remoto
-
-O `config/app-status.json` da `main` chega a todos os apps instalados em até 15 minutos, sem release nem revisão da Play. O formato está em `config/app-status.schema.json` e a validação no app em `src/modules/delivery/domain/appStatus.ts`. Um documento inválido é ignorado, e o app segue com a última cópia válida.
-
-- **Avisos:** `notices` aceita até 10 avisos no topo do Início, cada um com `id`, `level` (`info`, `warning` ou `critical`), `title` e `message`. Opcionais: `url` do “Saiba mais”, `until` (data em que o aviso some) e `platforms`. O aluno pode dispensar cada aviso; para mostrá-lo de novo, troque o `id`.
-- **Telas desativadas:** `disabledFeatures` marca telas do menu como indisponíveis (`notifications`, `progress`, `graduation-plan`, `schedule-generator`, `message-board`, `subjects-taken`, `curriculum-subjects`, `universal-subjects`, `subject-search`, `teacher-search`, `documents` e `companion`). `notifications` também cancela os lembretes de aula e para a verificação no portal.
-- **Versão mínima:** abaixo de `minSupportedVersion`, o app fica na tela de bloqueio com “Atualizar”, mesmo sem rede, porque a cópia fica salva. Só suba o valor para uma versão que já esteja em produção na Play com rollout de 100%; antes disso, parte dos usuários fica bloqueada sem ter o que instalar.
-- **Chaves dos tokens:** `tokenKeys` lista os ids (o SHA-256 do SPKI, em hex) das chaves do emissor dos tokens anônimos de aluno, que só os apps de 2.11.1 a 2.13 usam (o atual entra com a sessão de aluno). Esses apps só pedem tokens a uma chave da lista e, sem ela, não pedem nenhum. Na troca de chave, publique o id da nova antes de o servidor emitir com ela (sem isso, a reposição espera e tenta de novo depois de uma hora), e tire o da antiga quando ela vencer: os tokens dela saem do estoque.
-- **Endereço fixo:** o URL está embutido em todo binário publicado (`src/adapters/outbound/delivery/remoteAppStatus.ts`). Não renomeie, transfira nem apague a conta `pitroldev` ou este repositório enquanto houver versões com esse endereço em uso.
-- **Pendência do responsável:** a busca já está ativa, sem depender do DSN do Sentry. O GitHub já está na [política de privacidade](docs/privacidade.md); falta incluí-lo na formalização da transferência internacional da LGPD.
-
-## Diagnóstico do portal real
-
-Os testes comuns usam dados sintéticos e não acessam contas reais. Para o diagnóstico opcional, copie `.env.example` para `.env` e preencha `AO_MATRICULA` e `AO_PASSWORD` apenas nesse arquivo local, que é ignorado pelo Git:
-
-```sh
-pnpm diagnose:ao
-pnpm diagnose:ao --expire-session
-```
-
-O script compõe o mesmo adaptador e parsers com transporte e cookies em memória no Node. O segundo comando simula perda de sessão e verifica a recuperação, inclusive de IDs derivados. A saída contém etapas, contagens e códigos de erro, sem credenciais ou HTML. Essa checagem não substitui a jornada no transporte nativo.
-
-## Licença e atribuições
-
-O código do projeto é distribuído sob a [GPLv3](LICENSE). Fontes, ícones, dados e marcas de terceiros conservam suas próprias condições, descritas em [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt), com os textos das licenças e links de origem. A licença do código não concede direitos sobre símbolos ou marcas da UERJ e de outros titulares. O AO UERJ é um aplicativo não oficial, sem vínculo com a universidade.
+> [!WARNING]
+> Nunca commite nem cole em issues e PRs a sua matrícula, senha, notas, páginas do portal ou capturas de tela com dados pessoais. Os testes usam só dados inventados.
 
 ## Documentação
 
-- [Contexto de produto e design](PRODUCT.md)
-- [Design system “Agenda limpa”: tokens e componentes](src/components/ui/README.md)
-- [Ferramentas de desenvolvimento: conta real, deep links, capturas e E2E](scripts/dev/README.md)
-- [Servidor próprio: API, arquitetura e implantação](server/README.md)
-- [Direção do redesenho visual](docs/design-brief.md)
+| Documento                                              | Para quê                                                        |
+| ------------------------------------------------------ | --------------------------------------------------------------- |
+| [Guia de contribuição](CONTRIBUTING.md)                | Ambiente, fluxo de PR, convenções, textos e privacidade         |
+| [Índice da documentação](docs/README.md)               | Todos os documentos, por assunto                                |
+| [Desenvolvimento](docs/desenvolvimento.md)             | Versões, scripts, verificações, CI e diagnóstico do portal real |
+| [Arquitetura](docs/arquitetura.md)                     | Camadas, módulos, Aluno Online, servidor e sessão de aluno      |
+| [Funcionalidades](docs/funcionalidades.md)             | Sem internet, notas e PF, provas, Início, plano até a formatura |
+| [No campus](docs/no-campus.md)                         | Companhia agora e Agora no campus                               |
+| [Notificações e widget](docs/notificacoes-e-widget.md) | Lembretes, avisos do portal, widgets e atalhos                  |
+| [Dados e armazenamento](docs/dados-e-armazenamento.md) | O que fica no aparelho e o que sai dele, no código              |
+| [Aviso remoto](docs/aviso-remoto.md)                   | O `config/app-status.json`                                      |
+| [iOS](docs/ios.md)                                     | O estado do iPhone e o workflow manual                          |
+| [Release](docs/release.md)                             | Versão, tags e publicação na Play (mantenedores)                |
+| [Observabilidade](docs/observabilidade.md)             | O Sentry, hoje desligado                                        |
+| [Design system](src/components/ui/README.md)           | Tokens e componentes da "Agenda limpa"                          |
+| [Servidor](server/README.md)                           | API, arquitetura e implantação do backend                       |
+| [Política de privacidade](docs/privacidade.md)         | O texto publicado para os alunos                                |
 
-Alterações no portal podem exigir atualização dos parsers. O app preserva dados já carregados e informa falhas de atualização; use o relatório em “Sobre” para descrever problemas persistentes.
+## Privacidade
+
+O app não tem anúncios nem rastreamento. A senha, as notas e a grade ficam no celular; o servidor do app recebe a matrícula e o nome, para identificar o aluno nas funções entre alunos, e o que você publica nelas. Tudo está na [política de privacidade](docs/privacidade.md).
+
+## Licença
+
+O código é distribuído sob a [GPLv3](LICENSE). Fontes, ícones, dados e marcas de terceiros conservam suas próprias condições, descritas em [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt), com os textos das licenças e links de origem. A licença do código não concede direitos sobre símbolos ou marcas da UERJ e de outros titulares.
+
+O AO UERJ é um aplicativo não oficial, sem vínculo com a universidade. Mantido por [Petro Cardoso](https://pitrol.dev) e por quem contribui.

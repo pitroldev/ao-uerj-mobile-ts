@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Falha de segurança
+    url: https://github.com/pitroldev/ao-uerj-mobile-ts/blob/main/CONTRIBUTING.md#reportar-bugs-com-segurança
+    about: Não abra issue pública. Escreva para contato@pitrol.dev.
+  - name: Pedidos sobre os seus dados
+    url: https://github.com/pitroldev/ao-uerj-mobile-ts/blob/main/docs/privacidade.md#seus-direitos
+    about: Acesso, correção ou exclusão dos seus dados, pela política de privacidade.
+  - name: Guia de contribuição
+    url: https://github.com/pitroldev/ao-uerj-mobile-ts/blob/main/CONTRIBUTING.md
+    about: Como preparar o ambiente, as convenções e o fluxo de PR.

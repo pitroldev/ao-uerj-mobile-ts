@@ -6,11 +6,22 @@ O backend próprio do app, servido em `https://pitrol.dev`:
   relatos de erro, as sugestões dos apps antigos e a situação do Aluno Online
   vista do servidor. Veio da parte da UERJ do `server-pitroldev`; as rotas de
   rede (`/api/vpn`, `/api/isPortReachable`) e o site do pitrol.dev ficaram lá;
+- em `/aouerj/v2`, a [identificação do aluno](#identificação-do-aluno-v2), a
+  [Companhia agora](#companhia-agora) e o [Agora no campus](#agora-no-campus);
 - em `/schedules`, o gerador de grades, que veio do `class-schedule-generator`.
 
 Node 22.18 ou mais novo roda o TypeScript direto, sem etapa de build. Express
 5, MongoDB (Mongoose 9), zod, pino, helmet, express-rate-limit e
 `worker_threads` para o gerador.
+
+> [!TIP]
+> **Para quem chega:** o app sempre fala com `https://pitrol.dev`; rodar o
+> servidor na sua máquina serve para mexer nele. O `pnpm install` da raiz já o
+> instala, e o `pnpm test:server` roda os testes sem banco instalado. Boas
+> portas de entrada são o domínio e os casos de uso de cada módulo
+> (`domain.ts` e `application.ts`), testados com os repositórios em memória.
+> O resto da documentação está em [docs/README.md](../docs/README.md), e o
+> guia de contribuição, em [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Desenvolvimento
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /*
  * Capturas de tela do app (build de DEBUG) em um emulador/dispositivo Android,
- * usando a conta real do .env e os deep links aouerj-dev://. Ver README.md.
+ * usando a conta real do .env e os deep links aouerj-dev://. Ver
+ * scripts/dev/README.md.
  *
  *   node scripts/dev/screenshots.cjs [opções] [rota | nome=caminho ...]
  */
@@ -166,7 +167,7 @@ async function main(argv) {
     ).includes('package:')
   )
     throw new Error(
-      `${PACKAGE} não está instalado em ${serial}. Instale o build de debug (ver README).`,
+      `${PACKAGE} não está instalado em ${serial}. Instale o build de debug (ver scripts/dev/README.md).`,
     );
   if (options.reverse) adb.run(['reverse', 'tcp:8081', 'tcp:8081']);
 
