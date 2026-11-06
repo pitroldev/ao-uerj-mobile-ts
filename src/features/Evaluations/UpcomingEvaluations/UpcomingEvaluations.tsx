@@ -183,7 +183,7 @@ export function UpcomingEvaluations({
               );
             })}
           </List>
-          {list.length > SHOWN ? (
+          {list.length > limit ? (
             <Button
               variant="link"
               label={all ? 'Mostrar menos' : `Ver todas (${list.length})`}
