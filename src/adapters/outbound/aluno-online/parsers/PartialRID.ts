@@ -5,15 +5,19 @@ import { PartialRID } from '@root/modules/academics/domain/models';
 
 import { parseSubjectName, parseSubjectID } from './values';
 
+/**
+ * As mensagens do portal para "ainda não há RID": fora da inscrição e, desde
+ * a atualização de novembro de 2026, antes do primeiro processamento do dia
+ * ("ainda não há registro de processamento provisório para visualização ou
+ * houve alteração do conjunto de inscrição…").
+ */
+const NO_RESULT =
+  /não há (?:resultado (?:provisório disponível|parcial a ser apresentado)|registro de processamento provisório)/i;
+
 export function parsePartialRID($: CheerioAPI) {
   const hasResultTable = $('table.reportTable').length > 0;
   const pageText = $.root().text().replace(/\s+/g, ' ').trim();
-  requireStructure(
-    hasResultTable ||
-      /não há resultado (?:provisório disponível|parcial a ser apresentado)/i.test(
-        pageText,
-      ),
-  );
+  requireStructure(hasResultTable || NO_RESULT.test(pageText));
   const subjects: PartialRID[] = [];
   if (!hasResultTable) {
     return { subjects, updatedAt: '' };

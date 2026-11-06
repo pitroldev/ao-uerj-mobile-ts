@@ -11,6 +11,39 @@ import {
   AttendedClassesSchedule,
 } from '@root/modules/academics/domain/models';
 
+/**
+ * As tabelas da página, achadas pelo conteúdo: a das disciplinas pelo
+ * cabeçalho ("Disciplina" e "Turma") e a grade pela linha com `id` onde os
+ * horários começam. A página de novembro de 2026 põe um aviso ("Não constam
+ * disciplinas inscritas ou canceladas.") antes delas, e um aviso desses
+ * desloca as posições que os seletores antigos usavam; sem achar pelo
+ * conteúdo, ficam os de sempre.
+ */
+function subjectRows($: CheerioAPI) {
+  const table = $('.divContentBoxBody table')
+    .filter((_index, element) => {
+      const first = $(element).find('tr').first().text();
+      return (
+        /disciplina/i.test(first) &&
+        /turma/i.test(first) &&
+        $(element).find('tr[id]').length === 0
+      );
+    })
+    .first();
+  return table.length
+    ? table.find('tr')
+    : $('.divContentBoxBody div:nth-child(1) table tr');
+}
+
+function gridRows($: CheerioAPI) {
+  const table = $('.divContentBoxBody table')
+    .filter((_index, element) => $(element).find('tr[id]').length > 0)
+    .first();
+  return table.length
+    ? table.find('tr')
+    : $('.divContentBoxBody div+ div table tr');
+}
+
 function getSubjectsInfo($: CheerioAPI) {
   const rawSubjects: Partial<RawSubjectInfo>[] = [];
 
@@ -22,7 +55,7 @@ function getSubjectsInfo($: CheerioAPI) {
     'uerjLocationOrStatus',
   ];
 
-  $('.divContentBoxBody div:nth-child(1) table tr').each((rowIndex, row) => {
+  subjectRows($).each((rowIndex, row) => {
     const isHeader = rowIndex === 0;
     const hasEnoughChildrens = $(row).children('td').length >= 5;
     if (isHeader || !hasEnoughChildrens) {
@@ -95,7 +128,7 @@ function getFragmentedSchedule($: CheerioAPI) {
 
   const fragmentedSchedule: ScheduleInfo[] = [];
   let begin = false;
-  $('.divContentBoxBody div+ div table tr').each((rowIndex, row) => {
+  gridRows($).each((rowIndex, row) => {
     const hasId = row.attribs.id;
     if (hasId) {
       begin = true;

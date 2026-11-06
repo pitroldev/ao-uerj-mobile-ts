@@ -455,6 +455,54 @@ it('keeps disjoint schedule intervals separate while merging adjacent slots', ()
   expect(result[0].endTimeAlias).toBe('8:40');
 });
 
+it.each([
+  ['with', '<div class="divContentBoxMessage">Aviso do portal.</div>'],
+  ['without', ''],
+])(
+  'reads the November 2026 page %s a notice before the tables',
+  (_label, notice) => {
+    // como o portal desenha: a tabela das disciplinas num divCenterContent e a
+    // grade com a linha de cabeçalho `id_th`, cada tempo seguido de uma linha vazia
+    const subjects = `<div class="divCenterContent"><table class="reportTable">
+      <tbody><tr><th></th><th>Disciplina</th><th>Turma</th><th>Local AVA</th>
+        <th>Local de Aula</th></tr>
+      ${cells(['1', 'ABC01-12345 ÁLGEBRA', '1', '', 'Sala 1'])}</tbody></table></div>`;
+    const slot = (alias: string, monday: string) =>
+      `<tr><th>${alias}<font>(00:00 - 00:00)</font></th><td>${monday}</td>` +
+      '<td></td><td></td><td></td><td></td><td></td></tr><tr></tr>';
+    const grid = `<div><table class="table"><tbody><tr id="id_th">
+      <th>Tempo</th><th>Segunda</th><th>Terça</th><th>Quarta</th>
+      <th>Quinta</th><th>Sexta</th><th>Sábado</th></tr>
+      ${slot('M1', 'ABC01-12345')}${slot('M2', 'ABC01-12345')}${slot('M3', '')}
+      </tbody></table></div>`;
+
+    const result = parseSchedule(content(`${notice}${subjects}${grid}`));
+
+    expect(
+      result.map(item => [
+        item.subject_id,
+        item.dayNumber,
+        item.start_time_in_minutes,
+        item.end_time_in_minutes,
+      ]),
+    ).toEqual([['ABC01-12345', 1, 420, 520]]);
+    expect(result[0].class).toMatchObject({ name: 'Álgebra', class: '1' });
+  },
+);
+
+it('reads an empty November 2026 page as no classes', () => {
+  const html = content(
+    `<div class="divContentBoxMessage">Não constam disciplinas inscritas ou canceladas.</div>
+    <div class="divCenterContent"><table class="reportTable"><tbody><tr>
+      <th></th><th>Disciplina</th><th>Turma</th><th>Local AVA</th>
+      <th>Local de Aula</th></tr></tbody></table></div>
+    <div><table class="table"><tbody><tr id="id_th"><th>Tempo</th>
+      <th>Segunda</th></tr><tr><th>M1<font>(07:00 - 07:50)</font></th>
+      <td></td></tr><tr></tr></tbody></table></div>`,
+  );
+  expect(parseSchedule(html)).toEqual([]);
+});
+
 it('keeps subjects without a time in the grid, after the classes', () => {
   const subjects = table(
     ['Índice', 'Disciplina', 'Turma', 'AVA', 'Local'],

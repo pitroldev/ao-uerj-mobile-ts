@@ -144,6 +144,16 @@ describe('parsePartialRID', () => {
     '<div><div>não há resultado parcial a ser apresentado</div></div>',
     '<div><div>Não&nbsp;há resultado\n <span>provisório</span> disponível</div></div>',
     '<div><div>NÃO&nbsp;HÁ resultado\n <span>parcial</span> a ser apresentado</div></div>',
+    // a página de novembro de 2026, na inscrição, antes do primeiro processamento
+    `<table><tr><td><font>Prezado Aluno,<br><br>ainda não há registro de
+      processamento provisório para visualização ou houve alteração do conjunto
+      de inscrição antes da finalização do processamento. <b>Verifique na
+      consulta SID: Consultar Inscrição o último conjunto solicitado.<br><br>
+      Diariamente ao final da manhã, durante o período de Solicitação de
+      Inscrição em Disciplinas, será disponibilizado um posicionamento
+      provisório das suas solicitações.</b></font></td></tr></table>
+      <form name="form_retorno"><button type="button" name="Retornar">
+      </button></form>`,
   ])('returns an empty result for a recognized portal message: %s', html => {
     expect(parsePartialRID(html)).toEqual({ subjects: [], updatedAt: '' });
   });
@@ -165,6 +175,7 @@ describe('parsePartialRID', () => {
 
   it.each([
     '<div>Não há resultado por um motivo desconhecido</div>',
+    '<div>Não há registro de matrícula</div>',
     '<div>Portal temporariamente indisponível</div>',
     registrationReceipt,
   ])(
