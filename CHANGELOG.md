@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.16.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.15.2...v2.16.0) (2026-11-06)
+
+
+### Novidades
+
+* **ios:** student features and portal alerts on the iPhone ([dc5d961](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/dc5d9613fd9f6f63f194ff1fc6be6d1b3c4bde76))
+* **server:** let the iPhone sign in as a student with App Attest ([3fa90c6](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/3fa90c68e5e2e3134e4c0471903a02c00398e421))
+
+
+### Correções
+
+* **home:** show "Ver todas" by the chosen number of evaluations ([b0bbf4a](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/b0bbf4a1cca9a36472828901431dfa63c6c5bb0d))
+* **ios:** make the widget compile and guard the shortcuts and reminders ([5c03ab5](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/5c03ab5d7770d20174eac96db767dfecfacf21cf))
+
 ## 2.15.2 (2026-11-05)
 
 ### Novidades
