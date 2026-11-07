@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.16.0 (2026-11-07)
+
+### Novidades
+
+- Atualizações pelo ar: as correções do app, como quando o Aluno Online muda, chegam na próxima vez que você abre o app, sem esperar uma versão nova na Play. O app só aceita código assinado pelo AO UERJ, e o Sobre mostra quando você está numa atualização.
+- iPhone (ainda fora da App Store): o mural, a Companhia agora e o Agora no campus, com a identificação pela Apple (App Attest), e os avisos de nota nova, RID, inscrição e "Avisar quando voltar" em segundo plano, quando o iOS deixa.
+- Servidor: as atualizações pelo ar (`/aouerj/ota`), com a publicação autenticada pela assinatura, e a entrada do iPhone com o App Attest.
+
+### Correções
+
+- Início: na época de inscrição, o RID parcial não mostra mais "Ops, … erro". O Aluno Online mudou a mensagem de "ainda sem resultado".
+- Grade: a leitura da página nova do Aluno Online não depende mais da posição das tabelas.
+- Início: "Ver todas" nas próximas provas segue o número que você escolheu em Personalizar o Início.
+- iPhone: o widget volta a compilar, um lembrete com data inválida não derruba mais o app e os atalhos da Siri valem a partir do iOS 16. O app pede o iOS 16.4 ou mais novo.
+- React Native 0.88.1, a versão para a qual o Expo SDK 58 foi feito.
+
 ## 2.15.2 (2026-11-05)
 
 ### Novidades
