@@ -39,6 +39,7 @@ Chegou agora? Comece pelo [README](../README.md) e pelo [guia de contribuição]
 | Documento                                                                      | O que tem                                                 |
 | ------------------------------------------------------------------------------ | --------------------------------------------------------- |
 | [Release](release.md)                                                          | Versão, tags, release-please e publicação na Play         |
+| [Atualizações OTA](ota.md)                                                     | O que vai sem a loja, como publicar, voltar e conferir    |
 | [Observabilidade](observabilidade.md)                                          | O Sentry, hoje desligado, e o que falta para ligá-lo      |
 | [Receptor de compartilhamento](../scripts/qa/android-share-receiver/README.md) | Um app auxiliar para testar o compartilhamento no Android |
 | [Histórico de versões](../CHANGELOG.md)                                        | O que mudou em cada versão (escrito pelo release-please)  |

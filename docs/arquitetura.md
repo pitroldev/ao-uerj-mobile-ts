@@ -62,7 +62,7 @@ Cada módulo de `src/modules/<nome>/` tem até três pastas:
 | `notifications` | Lembretes de aula e de avaliações e avisos do portal (nota, RID, inscrição, documento), da volta do portal, da Companhia e do Agora no campus |
 | `widget`        | Widgets "Próxima aula" e "Hoje" da tela inicial                                                                                               |
 | `launch`        | Aberturas de fora do app (aviso, atalho do ícone, widget)                                                                                     |
-| `delivery`      | Aviso remoto, atualização pela loja e pedido de avaliação                                                                                     |
+| `delivery`      | Aviso remoto, atualização pela loja, a atualização OTA em uso e pedido de avaliação                                                           |
 | `appearance`    | Tema do app (Sistema, Claro ou Escuro)                                                                                                        |
 | `support`       | Relatórios estruturados e sanitização                                                                                                         |
 
@@ -78,6 +78,18 @@ O `scripts/__tests__/architecture.test.cjs` (no `pnpm test:tooling`) confere que
 ## Composição
 
 `src/app/composition/createAppServices.ts` monta os serviços do app: liga cada porta a um adaptador (o portal, o cofre, o servidor, os módulos nativos) e entrega tudo às telas pelo `AppServicesProvider`. É o único lugar que conhece os dois lados. Os módulos que dependem de recursos de uma plataforma (a sessão de aluno, a Companhia agora, o Agora no campus, os avisos) dizem se estão disponíveis, e o menu esconde o que não está.
+
+## Atualizações OTA
+
+O JavaScript pode mudar sem a loja: o `expo-updates` (Expo SDK 58, com os módulos do Expo num React Native sem o resto do Expo) busca no servidor próprio, a cada abertura a frio, uma atualização para o runtime version da build. Como publicar, voltar atrás e o que pode ir por OTA está em [Atualizações OTA](ota.md); aqui ficam os pontos de integração.
+
+- **Na abertura:** a busca não segura o app (`checkOnLaunch` `ALWAYS`, espera 0). Ele abre com o JS que já tem (o da instalação ou o último baixado), e a atualização nova vale na abertura seguinte. Uma atualização que derruba o app antes da primeira tela volta sozinha ao JS anterior (a recuperação de erros do `expo-updates`). No debug, o `expo-updates` fica desligado e o JS vem do Metro.
+- **Assinatura:** todo manifesto vem assinado (`rsa-v1_5-sha256`, keyid `main`). O certificado público é o `config/ota/certificate.pem`: o Gradle o lê no build, e o `Expo.plist` do iPhone leva uma cópia, conferida pelo `pnpm test:tooling`. A chave privada nunca entra no repositório.
+- **Runtime version:** a impressão digital do lado nativo (política `fingerprint` no `app.json`, pelo `@expo/fingerprint`). O build a calcula e a grava no app (`file:fingerprint`), e `node scripts/ota/runtime-version.cjs <android|ios>` dá o mesmo valor, porque roda o mesmo passo do build. Entram `android/` ou `ios/`, as versões dos módulos nativos e do React Native, os `patches/`, as specs do codegen (`src/specs` e o `codegenConfig`) e o certificado. Ficam de fora o JS, os arquivos locais fora do Git e os CR do Git para Windows (`fingerprint.config.js`). No Android, a tarefa do `expo-updates` que grava o valor roda em todo build (`app/build.gradle`): ela não declara os arquivos do hash, e o Gradle a pularia num build incremental. O `scripts/__tests__/ota-runtime.test.cjs` guarda esse contrato.
+- **Imagens:** o `metro.config.js` usa o `hashAssetFiles` do `expo-asset`, como o `expo/metro-config`. Sem o hash, o manifesto embutido e o `expo export` deixam as imagens de fora.
+- **Android:** a `MainApplication` usa o host do Expo (`ExpoReactHostFactory`, com os pacotes locais) e o `ApplicationLifecycleDispatcher`. A `MainActivity` usa o `ReactActivityDelegateWrapper`, que só carrega o JS depois de o `expo-updates` escolher o pacote, fora da thread principal. A tarefa sem tela (`PortalCheckWorker`) abre o mesmo host e roda o mesmo pacote. A configuração fica no `AndroidManifest.xml`, com o endereço e o liga/desliga (só o release) vindos do `app/build.gradle`.
+- **iPhone:** o início próprio, com e sem janela, está em [iOS](ios.md#atualizações-ota).
+- **No JS:** a tela Sobre mostra o dia da atualização em uso ao lado da versão ("Versão 2.16.0 · atualização de 06/11"), só quando não é o JS da instalação. O `expo-updates` é lido pelo adaptador `src/adapters/outbound/delivery/runningUpdate.ts` (o `runningUpdate` da entrega, em `useRunningUpdate`). Nos testes do Jest, o `jest/setup-expo-updates.js` simula o JS da instalação.
 
 ## Aluno Online
 

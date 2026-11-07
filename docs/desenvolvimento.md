@@ -60,6 +60,22 @@ O release também gera os símbolos nativos (`debugSymbolLevel 'SYMBOL_TABLE'`) 
 
 A versão do Android vem do `package.json`; ver [Release](release.md#versão).
 
+### Atualizações OTA num build local
+
+O release procura atualizações em `https://pitrol.dev/aouerj/ota/manifest` a cada abertura a frio, e o debug não procura (o JS vem do Metro). Para testar as atualizações no emulador contra um servidor da sua máquina, faça um release de QA apontando para ele:
+
+```sh
+pnpm build -PreactNativeArchitectures=x86_64 -PotaUpdateUrl=http://localhost:3000/aouerj/ota/manifest
+adb reverse tcp:3000 tcp:3000
+```
+
+- **Endereço:** o `-PotaUpdateUrl` troca só o endereço (`android/app/build.gradle`), e o Gradle avisa no log que é um build de QA. Com o `adb reverse`, o `localhost` do emulador é o do computador; sem ele, use `http://10.0.2.2:<porta>`.
+- **HTTP:** só com a opção, o release leva a configuração de rede do debug (`src/debug/res/xml/network_security_config.xml`), que libera HTTP para `localhost`, `127.0.0.1`, `10.0.2.2` e `10.0.3.2`. O build normal continua só com HTTPS.
+- **Runtime version:** publique para o valor que `node scripts/ota/runtime-version.cjs android` imprime nesta mesma cópia, o que o build embute. Os CR do Windows não contam, então o mesmo commit dá o mesmo valor aqui e no CI; um arquivo nativo alterado ou um certificado trocado (a chave de teste, ver [Atualizações OTA](ota.md#conferir)) dão outro.
+- **Nunca publique** um build de QA: ele aceita atualizações de outro servidor. O release da Play sai do CI, sem a opção.
+
+O release sai assinado com a chave de upload (`keystore.properties`). Para instalá-lo por cima do app de debug, sem perder os dados, reassine uma cópia com o `android/app/debug.keystore`.
+
 ## iOS
 
 No macOS, depois de instalar as dependências JavaScript, prepare os módulos nativos do iOS antes de executar o app:
@@ -82,7 +98,7 @@ O estado do iOS, o workflow manual e o que existe só no Android estão em [iOS]
 | `pnpm knip`                                    | Dependências, arquivos e exports sem uso                                                                                                                                                                          |
 | `pnpm test`                                    | Jest, em dois projetos: `unit` (`*.test.ts`, ambiente Node) e `native` (`*.test.tsx`, preset do React Native)                                                                                                     |
 | `pnpm test:ci`                                 | O mesmo Jest em série (`--runInBand --ci`), como no CI. Inclui o teste de contrato com o servidor                                                                                                                 |
-| `pnpm test:tooling`                            | `node --test` dos scripts (`scripts/__tests__`): Gradle, ferramentas de dev, projeto iOS, endereço da política de privacidade, release, arquitetura, ícones e mapa                                                |
+| `pnpm test:tooling`                            | `node --test` dos scripts (`scripts/__tests__`): Gradle, ferramentas de dev, projeto iOS, endereço da política de privacidade, release, OTA, arquitetura, ícones e mapa                                           |
 | `pnpm test:server`                             | Os testes do servidor, com um mongod próprio; ver [server/README.md](../server/README.md#arquitetura)                                                                                                             |
 | `pnpm test:deploy`                             | Os scripts de implantação (`deploy/server`), só no Linux                                                                                                                                                          |
 | `node scripts/generate-campus-map.cjs --check` | O atlas do mapa offline está em dia com as fontes; ver [scripts/campus-map/README.md](../scripts/campus-map/README.md)                                                                                            |
@@ -112,6 +128,7 @@ Não há hook de mensagem de commit; a convenção está no [guia de contribuiç
 | [iOS simulator build](../.github/workflows/ios.yml) | Só manual                                                  | Compila o app em Release para o simulador e roda o teste de fumaça; ver [iOS](ios.md#o-workflow-iosyml)                                                                                                                                      |
 | [E2E](../.github/workflows/e2e.yml)                 | Só manual, com a opção `run_real_account`                  | Os fluxos do Maestro com uma conta real; ver [scripts/dev/README.md](../scripts/dev/README.md#testes-e2e-maestro)                                                                                                                            |
 | [Release](../.github/workflows/release.yml)         | Push na `main`; manual com uma tag                         | Tag dos bumps à mão, PR do release-please e publicação no teste interno da Play; ver [Release](release.md)                                                                                                                                   |
+| [OTA](../.github/workflows/ota.yml)                 | Só manual, na `main`                                       | Publica o JavaScript deste commit (ou a volta ao da loja) no servidor, com o Quality verde e o mesmo runtime e versão da última build na loja; ver [Atualizações OTA](ota.md)                                                                |
 
 ## Dependências
 

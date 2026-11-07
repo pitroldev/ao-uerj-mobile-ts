@@ -1,6 +1,6 @@
 # Política de privacidade do AO UERJ
 
-**Última atualização:** 5 de novembro de 2026
+**Última atualização:** 6 de novembro de 2026
 
 O AO UERJ é um app não oficial e de código aberto para alunos da UERJ. Ele não tem vínculo com a universidade e usa a sua conta do Aluno Online. Esta política explica o que fica no seu celular, o que vai para o servidor do app, quem vê cada coisa e por quanto tempo. Ela vale para o app no Android, distribuído pela Google Play, e no iPhone.
 
@@ -87,6 +87,10 @@ Os relatos das versões 1.x do app levavam a página do portal em que o erro aco
 ### Situação do portal
 
 Quando o Aluno Online cai, o app pergunta ao servidor se o portal voltou, no máximo a cada 2 minutos. Esse pedido não leva dados seus.
+
+### Atualizações do app
+
+Ao abrir, o app pergunta ao servidor do AO UERJ se há uma atualização do código dele, para receber correções (por exemplo, quando o Aluno Online muda) sem esperar uma versão nova na loja. O pedido leva o sistema (Android ou iPhone), a versão do app, a atualização que está instalada e um código aleatório desta instalação, criado pela biblioteca de atualização, que não diz quem você é. O servidor não guarda esse código nem liga o pedido à sua conta. A atualização vem assinada pelo AO UERJ, e o app recusa qualquer código que não tenha essa assinatura. Ela usa a biblioteca `expo-updates`, mas não passa pelos servidores da Expo.
 
 ### Registros técnicos
 

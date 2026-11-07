@@ -12,8 +12,11 @@ flowchart LR
   prepare --> quality["Quality no commit exato"]
   quality --> play["play: AAB assinado"]
   play --> internal["Teste interno da Play"]
+  play --> runtime["runtime-version: runtime no GitHub Release"]
   internal -->|"à mão, no Play Console"| prod["Produção"]
 ```
+
+Uma correção só do JavaScript pode sair sem a loja, por OTA, e um OTA não é bump: ver [Atualizações OTA](ota.md).
 
 ## Versão
 
@@ -64,6 +67,13 @@ gh workflow run release.yml --ref main -f tag=v2.1.0
 
 O job `play` guarda no artefato do run o AAB, o `mapping.txt` e, quando existe, o `native-debug-symbols.zip`. Os símbolos nativos também vão dentro do AAB (`ndk.debugSymbolLevel`), onde a Play os lê.
 
+## Runtime da build
+
+Antes do Gradle, o job `play` calcula o runtime version que a build embute (`node scripts/ci/ota-check.cjs runtime android`). Depois que a Play aceita o AAB, o job `runtime-version` o grava no GitHub Release da versão, como o asset `runtime-version-android.txt`. É por ele que o [OTA](ota.md#a-regra-de-compatibilidade) sabe para qual build pode publicar.
+
+- Uma falha no cálculo não barra a publicação: a versão sai na Play sem o registro, o job `runtime-version` falha, e o OTA recusa essa versão.
+- Sem o GitHub Release (num bump à mão), o registro falha: crie-o com `gh release create vX.Y.Z --verify-tag` e use "Re-run failed jobs", que não envia o AAB de novo.
+
 ## Configuração no GitHub
 
 Habilite "Allow GitHub Actions to create and approve pull requests" e crie o environment `play`, com aprovação obrigatória e restrito à `main`, com os secrets:
@@ -71,6 +81,7 @@ Habilite "Allow GitHub Actions to create and approve pull requests" e crie o env
 - `ANDROID_KEYSTORE_BASE64`: a keystore de upload em base64 (`base64 -w0 upload.keystore`);
 - `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` e `ANDROID_KEY_PASSWORD`;
 - `PLAY_SERVICE_ACCOUNT_JSON`: o JSON de uma conta de serviço do Google Cloud com a API Google Play Android Developer ativa e permissão de release no app (Play Console > Usuários e permissões);
-- opcional: o secret `SENTRY_AUTH_TOKEN` e as variáveis `SENTRY_ORG` e `SENTRY_PROJECT`, para enviar os source maps à região UE. Sem o token, o envio é pulado (ver [Observabilidade](observabilidade.md#source-maps-e-símbolos)).
+- opcional: o secret `SENTRY_AUTH_TOKEN` e as variáveis `SENTRY_ORG` e `SENTRY_PROJECT`, para enviar os source maps à região UE. Sem o token, o envio é pulado (ver [Observabilidade](observabilidade.md#source-maps-e-símbolos));
+- `OTA_SIGNING_KEY`: a chave privada dos updates OTA, em PEM, usada só pelo workflow OTA (ver [Chave e certificado](ota.md#chave-e-certificado)).
 
 A implantação do servidor usa outro environment, o `production`; ver [server/README.md](../server/README.md#implantação).
