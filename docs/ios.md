@@ -26,7 +26,7 @@ No Windows e no Linux, não há como compilar o iOS: use o `ios.yml`.
 
 ## O workflow `ios.yml`
 
-Roda só por `workflow_dispatch`, num runner `macos-15` (Actions > iOS simulator build > Run workflow).
+Roda só por `workflow_dispatch`, num runner `macos-15` (Actions > iOS simulator build > Run workflow), com o Xcode 26 mais novo da imagem: o Expo SDK 58 pede o Swift 6.2, e o Xcode padrão do runner ainda é o 16.4. No Mac, use também o Xcode 26.
 
 1. Instala as dependências (`pnpm install --frozen-lockfile` e `pod install`). Antes do `pod install`, calcula o runtime version das atualizações OTA (`node scripts/ota/runtime-version.cjs ios`) e o passa ao build pelo `EXPO_UPDATES_FINGERPRINT_OVERRIDE` (ver [Atualizações OTA](#atualizações-ota)).
 2. Compila em **Release**, como vai para a loja: o Xcode empacota o JS de iOS (o que só quebra nessa plataforma: resolução de módulos, assets) e o Hermes o compila.
