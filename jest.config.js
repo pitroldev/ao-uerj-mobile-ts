@@ -5,7 +5,10 @@ module.exports = {
       testEnvironment: 'node',
       testMatch: ['<rootDir>/src/**/*.test.ts'],
       transform: { '^.+\\.[jt]sx?$': 'babel-jest' },
-      setupFilesAfterEnv: ['<rootDir>/jest/setup-sentry.js'],
+      setupFilesAfterEnv: [
+        '<rootDir>/jest/setup-sentry.js',
+        '<rootDir>/jest/setup-expo-updates.js',
+      ],
       clearMocks: true,
     },
     {
@@ -21,6 +24,7 @@ module.exports = {
         '<rootDir>/jest/setup-gesture-handler.js',
         '<rootDir>/jest/setup-bootsplash.js',
         '<rootDir>/jest/setup-clipboard.js',
+        '<rootDir>/jest/setup-expo-updates.js',
       ],
       // ESM-only packages that still need Babel.
       transformIgnorePatterns: [

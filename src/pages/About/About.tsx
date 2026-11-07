@@ -5,7 +5,11 @@ import { useTheme } from 'styled-components/native';
 import { ErrorReportModal } from '@features/ErrorReport/ErrorReportModal';
 import { AoLogo, Icon, Section, Text, snackbar } from '@components/ui';
 import { ScreenPanel } from '@templates/ScreenPanel';
-import { useStoreListing } from '@root/modules/delivery/presentation/DeliveryProvider';
+import type { RunningUpdate } from '@root/modules/delivery/application/ports';
+import {
+  useRunningUpdate,
+  useStoreListing,
+} from '@root/modules/delivery/presentation/DeliveryProvider';
 import { InviteSheet } from '@root/modules/delivery/presentation/InviteSheet';
 import {
   appInvite,
@@ -45,12 +49,21 @@ const DEV_LINKS = [
   { label: 'E-mail', icon: 'mail', url: CREATOR_EMAIL },
 ] as const;
 
+/** "Versão 2.16.0"; com uma atualização OTA em uso, também o dia dela. */
+function versionLabel(update: RunningUpdate | null) {
+  if (!update) return `Versão ${version}`;
+  const day = String(update.createdAt.getDate()).padStart(2, '0');
+  const month = String(update.createdAt.getMonth() + 1).padStart(2, '0');
+  return `Versão ${version} · atualização de ${day}/${month}`;
+}
+
 export const AboutPage = () => {
   const theme = useTheme();
   const { fontScale } = useWindowDimensions();
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
   // avaliar e indicar só onde o app está numa loja (o Android)
   const store = useStoreListing();
+  const update = useRunningUpdate();
   const [invite, setInvite] = useState<Invite | null>(null);
 
   const openUrl = (url: string) => {
@@ -83,7 +96,7 @@ export const AboutPage = () => {
           AO UERJ
         </AppName>
         <Version variant="meta" tone="muted" align="center">
-          Versão {version}
+          {versionLabel(update)}
         </Version>
       </Hero>
 

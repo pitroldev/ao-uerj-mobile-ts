@@ -1,3 +1,5 @@
+internal import EXUpdates
+internal import Expo
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
@@ -9,6 +11,11 @@ import UIKit
 /// aberturas que, com cenas, não passam mais pelo `AppDelegate`: o atalho
 /// do ícone e o toque no widget, na abertura e com o app aberto. O React
 /// Native fica na `AppReactNative`: a cena só lhe dá a janela.
+///
+/// É a cena própria do app, e não a `ExpoAppSceneDelegate` do template do
+/// Expo: o React Native pode já estar aberto sem janela (a verificação em
+/// segundo plano) e espera o expo-updates escolher o pacote JS. Nenhum módulo
+/// do Expo instalado depende dos eventos de cena que aquela classe repassa.
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
   var window: UIWindow?
 
@@ -29,6 +36,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     let window = UIWindow(windowScene: windowScene)
     self.window = window
+    // como a ExpoAppSceneDelegate: quem procura a janela no delegate do app a acha
+    (UIApplication.shared.delegate as? AppDelegate)?.window = window
     AppReactNative.shared.start(in: window, connectionOptions: connectionOptions)
   }
 
@@ -78,31 +87,93 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 /// tela nele em vez de abrir um segundo: o mesmo runtime, a mesma sessão do
 /// portal e o mesmo cache. As opções de abertura da cena (link, atividade)
 /// não chegam a esse host; os destinos do app passam pela `LaunchCenter`.
-final class AppReactNative: RCTDefaultReactNativeFactoryDelegate {
+///
+/// Atualizações OTA (expo-updates, com o início próprio: `EX_UPDATES_CUSTOM_INIT`
+/// no Podfile). Na abertura, `prepare` cria a fábrica do Expo e pede ao
+/// expo-updates o pacote JS: o da instalação ou a última atualização baixada.
+/// Ele escolhe em milissegundos, sem esperar a rede (a busca por uma
+/// atualização nova segue em paralelo e vale na abertura seguinte), e só então
+/// o host abre, com a janela ou sem ela: os dois caminhos usam o mesmo pacote
+/// (`bundleURL`). No debug o expo-updates fica desligado e o JS vem do Metro.
+final class AppReactNative: ExpoReactNativeFactoryDelegate, AppControllerDelegate {
   static let shared = AppReactNative()
 
-  private var factory: RCTReactNativeFactory?
+  /// O nome registrado no JS (`name` do app.json).
+  static let moduleName = "aouerjmobile"
+
+  /// A fábrica do processo, criada na abertura (`prepare`).
+  private(set) var factory: RCTReactNativeFactory?
   /// O host já começou, com a janela ou sem ela.
   private var started = false
+  /// O expo-updates já escolheu o pacote JS (ou está desligado).
+  private var bundleReady = false
+  /// O que pediu o React Native antes da escolha do pacote.
+  private var pendingWithoutWindow = false
+  private var pendingWindow: (window: UIWindow, options: UIScene.ConnectionOptions)?
 
   private func sharedFactory() -> RCTReactNativeFactory {
     if let existing = factory {
       return existing
     }
     dependencyProvider = RCTAppDependencyProvider()
-    let created = RCTReactNativeFactory(delegate: self)
+    let created = ExpoReactNativeFactory(delegate: self)
     factory = created
     return created
   }
 
+  /// No `didFinishLaunching`, antes de qualquer host: o handler do expo-updates
+  /// lê o pacote do `AppController`, que precisa existir.
+  func prepare() {
+    _ = sharedFactory()
+    AppController.initializeWithoutStarting()
+    let controller = AppController.sharedInstance
+    guard controller.isActiveController else {
+      // debug (Metro) ou expo-updates desligado: vale o bundleURL de sempre
+      bundleReady = true
+      return
+    }
+    controller.delegate = self
+    controller.start()
+  }
+
+  /// O expo-updates escolheu o pacote (na thread principal). Sem sucesso, o
+  /// `bundleURL` cai no pacote da instalação.
+  func appController(_ appController: any AppControllerInterface, didStartWithSuccess success: Bool) {
+    bundleReady = true
+    if !success {
+      BackgroundCheck.trace("o expo-updates não escolheu um pacote: vale o da instalação")
+    }
+    // na ordem dos pedidos: a rodada sem janela vem antes da cena que se conectou depois
+    if pendingWithoutWindow {
+      pendingWithoutWindow = false
+      startHostWithoutWindow()
+    }
+    if let pending = pendingWindow {
+      pendingWindow = nil
+      startScreen(in: pending.window, connectionOptions: pending.options)
+    }
+  }
+
   /// A tela, na janela da cena; com o host já aberto, nele.
   func start(in window: UIWindow, connectionOptions: UIScene.ConnectionOptions) {
+    guard bundleReady else {
+      // até a escolha do pacote, a mesma tela de abertura
+      window.rootViewController = UIStoryboard(name: "BootSplash", bundle: nil)
+        .instantiateInitialViewController()
+      window.makeKeyAndVisible()
+      pendingWindow = (window, connectionOptions)
+      return
+    }
+    startScreen(in: window, connectionOptions: connectionOptions)
+  }
+
+  private func startScreen(in window: UIWindow, connectionOptions: UIScene.ConnectionOptions) {
     if started {
       BackgroundCheck.trace("cena conectada: usa o React Native já aberto")
     }
     started = true
     sharedFactory().startReactNative(
-      withModuleName: "aouerjmobile",
+      withModuleName: Self.moduleName,
       in: window,
       connectionOptions: connectionOptions
     )
@@ -112,6 +183,15 @@ final class AppReactNative: RCTDefaultReactNativeFactoryDelegate {
   /// `ao_startReactNativeWithoutWindow` do AppNotificationsModule.mm, chamada
   /// pelo nome: o método da fábrica usa tipos que o Swift não enxerga.
   func startWithoutWindow() {
+    guard !started else { return }
+    guard bundleReady else {
+      pendingWithoutWindow = true
+      return
+    }
+    startHostWithoutWindow()
+  }
+
+  private func startHostWithoutWindow() {
     guard !started else { return }
     let factory = sharedFactory()
     let selector = NSSelectorFromString("ao_startReactNativeWithoutWindow")
@@ -125,7 +205,7 @@ final class AppReactNative: RCTDefaultReactNativeFactoryDelegate {
   }
 
   // Mantém o BootSplash.storyboard sobre a view raiz até o JS chamar BootSplash.hide().
-  override func customize(_ rootView: RCTRootView) {
+  override func customize(_ rootView: UIView) {
     super.customize(rootView)
     RNBootSplash.initWithStoryboard("BootSplash", rootView: rootView)
   }
@@ -134,7 +214,9 @@ final class AppReactNative: RCTDefaultReactNativeFactoryDelegate {
 #if DEBUG
     RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
 #else
-    Bundle.main.url(forResource: "main", withExtension: "jsbundle")
+    // o pacote que o expo-updates escolheu; antes da escolha, o da instalação
+    (AppController.isInitialized() ? AppController.sharedInstance.launchAssetUrl() : nil)
+      ?? Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #endif
   }
 }

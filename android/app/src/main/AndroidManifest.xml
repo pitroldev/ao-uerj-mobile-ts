@@ -20,6 +20,34 @@
     android:theme="@style/AppTheme"
     android:supportsRtl="true">
     <!--
+      Atualizações OTA (expo-updates), só no release: o endereço e o certificado vêm do
+      app/build.gradle (config/ota/certificate.pem). A cada abertura a frio o app procura uma
+      atualização sem esperar por ela (LAUNCH_WAIT_MS 0), e a baixada vale na abertura seguinte.
+      O runtime version é a impressão digital do código nativo, que o build grava nos assets
+      (scripts/ota/runtime-version.cjs dá o mesmo valor).
+    -->
+    <meta-data
+      android:name="expo.modules.updates.ENABLED"
+      android:value="${otaEnabled}" />
+    <meta-data
+      android:name="expo.modules.updates.EXPO_UPDATE_URL"
+      android:value="${otaUpdateUrl}" />
+    <meta-data
+      android:name="expo.modules.updates.EXPO_RUNTIME_VERSION"
+      android:value="file:fingerprint" />
+    <meta-data
+      android:name="expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH"
+      android:value="ALWAYS" />
+    <meta-data
+      android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS"
+      android:value="0" />
+    <meta-data
+      android:name="expo.modules.updates.CODE_SIGNING_CERTIFICATE"
+      android:value="@string/ota_code_signing_certificate" />
+    <meta-data
+      android:name="expo.modules.updates.CODE_SIGNING_METADATA"
+      android:value="{&quot;keyid&quot;:&quot;main&quot;,&quot;alg&quot;:&quot;rsa-v1_5-sha256&quot;}" />
+    <!--
       O react-native-share declara o próprio provider com esta mesma authority e
       caminhos mais amplos (Download/ do armazenamento externo). Só um provider por
       authority é registrado; o dele sai para que valha sempre o @xml/filepaths.

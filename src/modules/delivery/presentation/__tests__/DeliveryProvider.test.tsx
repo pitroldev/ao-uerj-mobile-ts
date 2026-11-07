@@ -70,6 +70,7 @@ function createDelivery({
     updates: new AppUpdates({ updates: port, storeListing, store, now }),
     review,
     storeListing,
+    runningUpdate: null,
   };
   return { delivery, store, port, storeListing, review };
 }

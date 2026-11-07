@@ -1,0 +1,17 @@
+diff --git a/android/src/main/java/expo/modules/updates/errorrecovery/ErrorRecovery.kt b/android/src/main/java/expo/modules/updates/errorrecovery/ErrorRecovery.kt
+index c216e1cfaff3b6c0bcae4f0fd68f02cadac7aabd..71b0988d19edcfbd0432b6446e9f055b1728c5a1 100644
+--- a/android/src/main/java/expo/modules/updates/errorrecovery/ErrorRecovery.kt
++++ b/android/src/main/java/expo/modules/updates/errorrecovery/ErrorRecovery.kt
+@@ -49,6 +49,12 @@ class ErrorRecovery(
+   internal fun onReactInstanceException(exception: Exception) {
+     if (shouldHandleReactInstanceException) {
+       handleException(exception)
++    } else {
++      // AO UERJ: fora da janela da recuperação, o ExpoReactHostFactory engole a
++      // exceção (ele só relança quando não há nenhum handler), e o app fica em
++      // branco, sem relatório na Play. Relançar devolve o comportamento do
++      // React Native sem o Expo (DefaultReactHostDelegate: throw).
++      throw exception
+     }
+   }
+ 

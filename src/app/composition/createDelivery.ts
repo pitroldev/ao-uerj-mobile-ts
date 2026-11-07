@@ -1,6 +1,7 @@
 import { AppState } from 'react-native';
 import { createAppKeyValueStore } from '@root/adapters/outbound/delivery/appStore';
 import { createRemoteAppStatusSource } from '@root/adapters/outbound/delivery/remoteAppStatus';
+import { readRunningUpdate } from '@root/adapters/outbound/delivery/runningUpdate';
 import { createNativeAppUpdates } from '@root/adapters/outbound/native/NativeAppUpdates';
 import {
   nativeReviewPrompt,
@@ -13,8 +14,9 @@ import type { IdentityController } from '@root/modules/identity/application/Iden
 import type { PreferencesStore } from '@root/modules/identity/application/PreferencesStore';
 
 /**
- * Entrega: aviso remoto, atualização pela loja e pedido de avaliação. Usa as
- * preferências globais: valem para o app, não para a conta.
+ * Entrega: aviso remoto, atualização pela loja, a atualização OTA em uso e
+ * pedido de avaliação. Usa as preferências globais: valem para o app, não
+ * para a conta.
  */
 export function createDelivery({
   appVersion,
@@ -54,5 +56,6 @@ export function createDelivery({
     }),
     review,
     storeListing: nativeStoreListing,
+    runningUpdate: readRunningUpdate(),
   };
 }

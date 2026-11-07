@@ -14,7 +14,7 @@ import type {
   RemoteStatus,
   RemoteStatusSnapshot,
 } from '../application/RemoteStatus';
-import type { StoreListingPort } from '../application/ports';
+import type { RunningUpdate, StoreListingPort } from '../application/ports';
 import type { ReviewPrompter } from '../application/ReviewPrompter';
 import { isVersionSupported, visibleNotices } from '../domain/appStatus';
 import { UpdateRequired } from './UpdateRequired';
@@ -26,6 +26,8 @@ export type Delivery = {
   review: Pick<ReviewPrompter, 'notePositiveMoment'>;
   /** A página do app na loja: "Avaliar na Play Store" e os convites. */
   storeListing: StoreListingPort;
+  /** A atualização OTA em uso; `null` com o JS da instalação. */
+  runningUpdate: RunningUpdate | null;
 };
 
 /** Sem provedor (testes de telas, Storybook) tudo fica inerte: sem avisos nem bloqueios. */
@@ -200,6 +202,11 @@ export function usePositiveMoment(): () => void {
 /** A página do app na loja; `null` sem provedor (testes de telas). */
 export function useStoreListing(): StoreListingPort | null {
   return useDelivery()?.storeListing ?? null;
+}
+
+/** A atualização OTA em uso; `null` com o JS da instalação e sem provedor. */
+export function useRunningUpdate(): RunningUpdate | null {
+  return useDelivery()?.runningUpdate ?? null;
 }
 
 /**

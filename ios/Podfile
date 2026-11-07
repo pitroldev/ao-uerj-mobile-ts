@@ -4,9 +4,23 @@ require Pod::Executable.execute_command('node', ['-p',
     "react-native/scripts/react_native_pods.rb",
     {paths: [process.argv[1]]},
   )', __dir__]).strip
+# Os módulos do Expo (o expo-updates e o que o pacote expo traz), pelo
+# autolinking do pacote expo.
+require File.join(File.dirname(Pod::Executable.execute_command('node', ['-p',
+  'require.resolve(
+    "expo/package.json",
+    {paths: [process.argv[1]]},
+  )', __dir__]).strip), 'scripts/autolinking')
 
-platform :ios, min_ios_version_supported
+# O mínimo dos módulos do Expo SDK 58 (o do React Native 0.88 é o 15.1).
+platform :ios, '16.4'
 prepare_react_native_project!
+
+# expo-updates com o início próprio do app (AppReactNative, em
+# SceneDelegate.swift): o app decide quando abrir o React Native, com a janela
+# ou sem ela, e só depois de o expo-updates escolher o pacote JS. Vale só com
+# os módulos compilados do código-fonte (sem EXPO_USE_PRECOMPILED_MODULES=1).
+ENV['EX_UPDATES_CUSTOM_INIT'] = '1'
 
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
@@ -15,6 +29,7 @@ if linkage != nil
 end
 
 target 'aouerjmobile' do
+  use_expo_modules!
   config = use_native_modules!
 
   use_react_native!(

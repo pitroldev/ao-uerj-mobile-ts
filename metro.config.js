@@ -1,7 +1,20 @@
-const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
-const { withSentryConfig } = require('@sentry/react-native/metro');
+const { mergeConfig } = require('@react-native/metro-config');
+const { getSentryExpoConfig } = require('@sentry/react-native/metro');
 
-const defaultConfig = getDefaultConfig(__dirname);
+/**
+ * A configuração do Expo (`expo/metro-config`), com o Sentry por cima. O
+ * `expo export` das atualizações OTA (scripts/ota/publish.cjs) exige o
+ * serializer do Expo, e o `withSentryConfig` trocava o serializer: o export
+ * parava em "Serializer did not return expected format". Ela também põe o
+ * hash de cada imagem (fileHashes), sem o qual o manifesto embutido do
+ * expo-updates e os updates OTA saem sem as imagens. O Debug ID do Sentry
+ * continua no bundle e no source map, para simbolizar o Hermes. As opções do
+ * SDK ficam no código (src/app/observability), sem sentry.options.json.
+ */
+const defaultConfig = getSentryExpoConfig(__dirname, {
+  optionsFile: false,
+  enableSourceContextInDevelopment: false,
+});
 
 /**
  * Metro configuration
@@ -42,9 +55,4 @@ const config = {
   },
 };
 
-// Debug ID no bundle e no source map, para o Sentry simbolizar o Hermes. As
-// opções do SDK ficam no código (src/app/observability), sem sentry.options.json.
-module.exports = withSentryConfig(mergeConfig(defaultConfig, config), {
-  optionsFile: false,
-  enableSourceContextInDevelopment: false,
-});
+module.exports = mergeConfig(defaultConfig, config);

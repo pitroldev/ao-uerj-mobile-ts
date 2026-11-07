@@ -25,7 +25,25 @@ jobs:
           ruby-version: '3.3'
           bundler-cache: true
       - run: pnpm install --frozen-lockfile
+      # O runtime version das atualizações OTA sai do código como está no Git,
+      # antes do pod install, que mexe no projeto do Xcode: é o valor que o
+      # publicador calcula (scripts/ota/runtime-version.cjs). O build o grava
+      # no app pelo EXPO_UPDATES_FINGERPRINT_OVERRIDE.
+      - name: OTA runtime version (before pod install)
+        run: |
+          runtime=$(node scripts/ota/runtime-version.cjs ios)
+          echo "runtime version: $runtime"
+          echo "EXPO_UPDATES_FINGERPRINT_OVERRIDE=$runtime" >> "$GITHUB_ENV"
       - run: bundle exec pod install --project-directory=ios
+      # Só informa: o que o pod install mudou em ios/ (o que, sem o override,
+      # mudaria o runtime version de um build feito à mão no Mac).
+      - name: What pod install changed in ios/
+        run: |
+          git status --porcelain -- ios
+          after=$(EXPO_UPDATES_FINGERPRINT_OVERRIDE= node scripts/ota/runtime-version.cjs ios)
+          if [ "$after" != "$EXPO_UPDATES_FINGERPRINT_OVERRIDE" ]; then
+            echo "::notice::o pod install muda o runtime version ($after); o build usa o de antes ($EXPO_UPDATES_FINGERPRINT_OVERRIDE)"
+          fi
       # Release, como vai para a loja: o Xcode empacota o JS de iOS (o que só
       # quebra nessa plataforma: resolução de módulos, assets) e o Hermes o
       # compila. Assinatura local ("Sign to Run Locally", sem conta da Apple):
@@ -45,6 +63,26 @@ jobs:
           DEVELOPMENT_TEAM=
           PROVISIONING_PROFILE_SPECIFIER=
           build
+      # O app leva a configuração do expo-updates (Expo.plist), o runtime
+      # version calculado antes do pod install e o manifesto do pacote
+      # embutido (EXUpdates.bundle, gerado no build).
+      - name: The app embeds the OTA runtime version and configuration
+        run: |
+          app=$(find ios/build/Build/Products/Release-iphonesimulator -maxdepth 1 -name '*.app' | head -1)
+          fingerprint=$(find "$app" -path '*EXUpdates.bundle/fingerprint' | head -1)
+          manifest=$(find "$app" -path '*EXUpdates.bundle/app.manifest' | head -1)
+          if [ -z "$fingerprint" ] || [ -z "$manifest" ]; then
+            echo "::error::falta o EXUpdates.bundle (fingerprint e app.manifest) no app"
+            exit 1
+          fi
+          embedded=$(cat "$fingerprint")
+          echo "runtime version embutido: $embedded"
+          if [ "$embedded" != "$EXPO_UPDATES_FINGERPRINT_OVERRIDE" ]; then
+            echo "::error::o app embute $embedded, mas o publicador calcula $EXPO_UPDATES_FINGERPRINT_OVERRIDE"
+            exit 1
+          fi
+          test "$(plutil -extract EXUpdatesURL raw "$app/Expo.plist")" = "https://pitrol.dev/aouerj/ota/manifest"
+          test "$(plutil -extract EXUpdatesRuntimeVersion raw "$app/Expo.plist")" = "file:fingerprint"
       # Abre o app num iPhone simulado e confere que ele não cai (abertura,
       # tema escuro, link aouerj://, segunda abertura e uma rodada da
       # verificação em segundo plano, com o React Native aberto sem janela e

@@ -1,6 +1,7 @@
 package com.aouerjmobile
 
 import android.app.Application
+import android.content.res.Configuration
 import com.aouerjmobile.notifications.AppNotificationsPackage
 import com.aouerjmobile.trust.DeviceTrustPackage
 import com.aouerjmobile.updates.InAppUpdatesPackage
@@ -10,13 +11,19 @@ import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
-import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.modules.network.OkHttpClientProvider
+import expo.modules.ApplicationLifecycleDispatcher
+import expo.modules.ExpoReactHostFactory
 
 class MainApplication : Application(), ReactApplication {
 
+  /**
+   * O host do Expo: liga os módulos do Expo e o expo-updates, que escolhe o pacote JS (o da
+   * instalação ou a última atualização baixada) para a tela e para a tarefa sem tela
+   * (PortalCheckWorker), que usam este mesmo host.
+   */
   override val reactHost: ReactHost by lazy {
-    getDefaultReactHost(
+    ExpoReactHostFactory.getDefaultReactHost(
       context = applicationContext,
       packageList =
         PackageList(this).packages.apply {
@@ -27,6 +34,9 @@ class MainApplication : Application(), ReactApplication {
           add(SecureVaultPackage())
           add(DeviceTrustPackage())
         },
+      // No debug, o Metro do React Native CLI (pnpm start) serve o index.js; o padrão do Expo é
+      // a entrada do `expo start`.
+      jsMainModulePath = "index",
     )
   }
 
@@ -39,5 +49,11 @@ class MainApplication : Application(), ReactApplication {
       cache.evictAll()
     }
     loadReactNative(this)
+    ApplicationLifecycleDispatcher.onApplicationCreate(this)
+  }
+
+  override fun onConfigurationChanged(newConfig: Configuration) {
+    super.onConfigurationChanged(newConfig)
+    ApplicationLifecycleDispatcher.onConfigurationChanged(this, newConfig)
   }
 }

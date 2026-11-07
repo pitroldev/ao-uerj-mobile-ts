@@ -14,13 +14,17 @@ jest.mock('@features/ErrorReport/ErrorReportModal', () => ({
 }));
 // sem loja (o iPhone, os testes sem provedor) até um teste pôr a Play
 let mockListing: { available: boolean; open: jest.Mock } | null = null;
+// o JS da instalação até um teste pôr uma atualização OTA
+let mockUpdate: { id: string; createdAt: Date } | null = null;
 jest.mock('@root/modules/delivery/presentation/DeliveryProvider', () => ({
   ...jest.requireActual('@root/modules/delivery/presentation/DeliveryProvider'),
   useStoreListing: () => mockListing,
+  useRunningUpdate: () => mockUpdate,
 }));
 
 beforeEach(async () => {
   mockListing = null;
+  mockUpdate = null;
   jest.mocked(Linking.openURL).mockReset().mockResolvedValue(undefined);
   await renderWithProviders(<AboutPage />);
 });
@@ -80,6 +84,15 @@ it('shows the approved copy and the blog link', () => {
     ),
   ).toBeOnTheScreen();
   expect(screen.getByRole('link', { name: 'pitrol.dev' })).toBeOnTheScreen();
+});
+
+it('shows the day of the OTA update next to the version only while one runs', async () => {
+  expect(screen.queryByText(/atualização de/)).toBeNull();
+  mockUpdate = { id: 'u-1', createdAt: new Date(2026, 10, 6, 21, 30) };
+  await renderWithProviders(<AboutPage />);
+  expect(
+    screen.getByText(/^Versão \d+\.\d+\.\d+ · atualização de 06\/11$/),
+  ).toBeOnTheScreen();
 });
 
 it('opens the report sheet from "Reportar problema"', async () => {

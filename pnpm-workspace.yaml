@@ -24,5 +24,9 @@ overrides:
 # react-native-share (Android): the "target chosen" broadcast named the runtime
 # receiver as an explicit component, which only reaches manifest receivers, so
 # Share.open never reported a share as done (only the chosen app's result).
+# expo-updates (Android): after its startup recovery window, a fatal JS error
+# was swallowed (ExpoReactHostFactory only rethrows with no host handlers), so
+# the app froze blank with no Play crash report; it now rethrows, as plain RN.
 patchedDependencies:
+  expo-updates@58.0.21: patches/expo-updates@58.0.21.patch
   react-native-share@12.3.1: patches/react-native-share@12.3.1.patch

@@ -92,9 +92,16 @@ test('App Attest has its entitlement and DeviceCheck linked into the app', () =>
 
 test('native module name agrees with JavaScript registration', () => {
   const { name } = JSON.parse(read('app.json'));
-  // React Native starts in the scene delegate (UIScene life cycle, RN 0.88)
+  // React Native starts in the scene delegate (UIScene life cycle, RN 0.88),
+  // and AppDelegate hands the same name to Expo (ExpoReactNativeFactoryProvider)
   const delegate = read('ios/AOUerjMobile/SceneDelegate.swift');
-  assert.ok(delegate.includes(`withModuleName: "${name}"`));
+  assert.ok(delegate.includes(`static let moduleName = "${name}"`));
+  assert.ok(delegate.includes('withModuleName: Self.moduleName'));
+  assert.ok(
+    read('ios/AOUerjMobile/AppDelegate.swift').includes(
+      'AppReactNative.moduleName',
+    ),
+  );
 });
 
 test('the background check task is permitted in Info.plist, with background fetch', () => {

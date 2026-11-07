@@ -1,4 +1,7 @@
 import BackgroundTasks
+internal import Expo
+import React
+import React_RCTAppDelegate
 import UIKit
 import UserNotifications
 import os
@@ -7,9 +10,25 @@ import os
 /// UIApplicationSceneManifest), como no template do React Native 0.88, e o
 /// React Native na `AppReactNative` (SceneDelegate.swift), que a verificação
 /// em segundo plano também abre, sem janela.
+///
+/// Como no template do Expo SDK 58 (ciclo de vida com cenas), o `AppDelegate`
+/// é um `ExpoAppDelegate`, que repassa os eventos do app aos módulos do Expo,
+/// e entrega a fábrica do React Native criada na abertura
+/// (`ExpoReactNativeFactoryProvider`).
 @main
-class AppDelegate: UIResponder, UIApplicationDelegate {
-  func application(
+class AppDelegate: ExpoAppDelegate, ExpoReactNativeFactoryProvider {
+  /// A janela da cena, espelhada aqui para quem a procura no delegate do app.
+  var window: UIWindow?
+
+  var reactNativeFactory: RCTReactNativeFactory? {
+    AppReactNative.shared.factory
+  }
+
+  var reactNativeFactoryModuleName: String {
+    AppReactNative.moduleName
+  }
+
+  override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
@@ -23,13 +42,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     // também antes de terminar a abertura, como o BGTaskScheduler exige
     BackgroundCheck.shared.register()
 
+    // a fábrica do React Native e o expo-updates, que começa a escolher o
+    // pacote JS antes de a cena se conectar
+    AppReactNative.shared.prepare()
+
+    let launched = super.application(application, didFinishLaunchingWithOptions: launchOptions)
+
     // Teste do CI (scripts/ci/ios-smoke.sh): uma rodada pelo mesmo caminho,
     // sem o BGTaskScheduler, que o simulador não roda.
     if BackgroundCheck.smokeRun {
       BackgroundCheck.shared.runSmokeRound()
     }
 
-    return true
+    return launched
   }
 }
 

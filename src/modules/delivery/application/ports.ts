@@ -34,6 +34,16 @@ export interface AppUpdatesPort {
   onInstallProgress(listener: (progress: InstallProgress) => void): () => void;
 }
 
+/**
+ * A atualização OTA (expo-updates) que o app roda: o JS publicado depois da
+ * versão da loja, baixado numa abertura e em uso desde a seguinte.
+ */
+export type RunningUpdate = {
+  id: string;
+  /** Quando foi publicada. */
+  createdAt: Date;
+};
+
 /** Página do app na loja. */
 export interface StoreListingPort {
   readonly available: boolean;

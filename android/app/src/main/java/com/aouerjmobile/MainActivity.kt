@@ -12,6 +12,7 @@ import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultReactActivityDelegate
 import com.facebook.react.views.view.isEdgeToEdgeFeatureFlagOn
 import com.zoontek.rnbootsplash.RNBootSplash
+import expo.modules.ReactActivityDelegateWrapper
 
 /** Scrims React Native paints behind the navigation bar below Android 10 (WindowUtil.kt). */
 private val LIGHT_NAVIGATION_BAR = Color.argb(0xe6, 0xFF, 0xFF, 0xFF)
@@ -83,7 +84,12 @@ class MainActivity : ReactActivity() {
     WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightNavigationBars = !night
   }
 
-  /** Returns the instance of the [ReactActivityDelegate] (New Architecture is always on). */
+  /**
+   * Returns the instance of the [ReactActivityDelegate] (New Architecture is always on). O
+   * envoltório do Expo repassa o ciclo de vida aos módulos do Expo e, no release, só carrega o JS
+   * quando o expo-updates escolheu o pacote, fora da thread principal.
+   */
   override fun createReactActivityDelegate(): ReactActivityDelegate =
-      DefaultReactActivityDelegate(this, mainComponentName)
+      ReactActivityDelegateWrapper(
+          this, object : DefaultReactActivityDelegate(this, mainComponentName) {})
 }

@@ -85,6 +85,32 @@ if (versionMajor < 1 || versionMinor > 999 || versionPatch > 9999) {
 }
 def appVersionCode = versionMajor * 10_000_000 + versionMinor * 10_000 + versionPatch
 
+// Atualizações OTA (expo-updates; ver docs/arquitetura.md). O endereço é o contrato com o
+// servidor. Num build de QA local, -PotaUpdateUrl=... aponta o release para outro servidor
+// (ver docs/desenvolvimento.md); nunca publique um build assim.
+def otaProductionUrl = "https://pitrol.dev/aouerj/ota/manifest"
+def otaUpdateUrl = (findProperty("otaUpdateUrl") ?: otaProductionUrl).toString().trim()
+def otaLocalQa = otaUpdateUrl != otaProductionUrl
+if (otaLocalQa) {
+    // em inglês, como as outras mensagens do Gradle: o console do Windows estraga os acentos
+    logger.warn("expo-updates: OTA updates from ${otaUpdateUrl} (local QA build, do not publish it)")
+}
+// O certificado público que confere a assinatura das atualizações sai sempre deste arquivo,
+// sem cópia à mão (a chave privada fica fora do repositório). No recurso de texto, cada quebra
+// de linha vira \n, que o aapt2 devolve como quebra.
+def otaCertificate = rootProject.file("../config/ota/certificate.pem").getText("UTF-8")
+    .replace("\r", "").trim()
+if (!otaCertificate.startsWith("-----BEGIN CERTIFICATE-----")) {
+    throw new GradleException("config/ota/certificate.pem must hold the PEM certificate of the OTA updates.")
+}
+
+// O expo-updates-gradle-plugin grava o runtime version (o arquivo `fingerprint` dos assets) numa
+// tarefa que não declara os arquivos que entram no hash: o Gradle a daria como em dia, e um build
+// incremental embutiria o valor de antes da mudança nativa. Ela roda em todo build.
+tasks.matching { it.name ==~ /create\w+UpdatesResources/ }.configureEach {
+    outputs.upToDateWhen { false }
+}
+
 def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
 if (keystorePropertiesFile.exists()) {
@@ -154,6 +180,9 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode appVersionCode
         versionName "v${appVersion}"
+        // expo-updates (src/main/AndroidManifest.xml): desligado fora do release, que usa o Metro.
+        manifestPlaceholders = [otaEnabled: "false", otaUpdateUrl: otaUpdateUrl]
+        resValue "string", "ota_code_signing_certificate", otaCertificate.replace("\n", "\\n")
         externalNativeBuild {
             cmake {
                 // On Windows, ninja fails past MAX_PATH (260) on the deep codegen
@@ -190,6 +219,7 @@ android {
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.
             signingConfig signingConfigs.release
+            manifestPlaceholders = [otaEnabled: "true"]
             minifyEnabled enableProguardInReleaseBuilds
             shrinkResources enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
@@ -208,6 +238,15 @@ android {
         // aouerj-dev:// scheme. With setRoot, a src/debugOptimized folder would be ignored.
         debugOptimized {
             setRoot "src/debug"
+        }
+        // QA local das atualizações (-PotaUpdateUrl): o servidor do computador responde por
+        // HTTP, que o release bloqueia. O build de QA leva a configuração de rede do debug
+        // (HTTP só para localhost, 127.0.0.1, 10.0.2.2 e 10.0.3.2), que tem precedência sobre a
+        // de src/main.
+        if (otaLocalQa) {
+            release {
+                res.srcDirs += ["src/debug/res"]
+            }
         }
     }
 

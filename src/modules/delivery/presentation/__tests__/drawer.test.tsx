@@ -73,6 +73,7 @@ async function mount({
     updates: new AppUpdates({ updates: null, storeListing, store, now }),
     review: { notePositiveMoment: jest.fn() },
     storeListing,
+    runningUpdate: null,
   };
   const navigation = { navigate: jest.fn(), closeDrawer: jest.fn() };
   await renderWithProviders(

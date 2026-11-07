@@ -18,5 +18,8 @@ buildscript {
     }
 }
 
+// Os padrões do Expo para os módulos (versões do SDK, NDK, lint dos módulos de node_modules);
+// as versões acima continuam valendo.
+apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"
 
