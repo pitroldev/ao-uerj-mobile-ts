@@ -127,6 +127,8 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
+    outputs:
+      runtime_version: ${{ steps.runtime.outputs.runtime }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -200,6 +202,15 @@ jobs:
           cache-disabled: true
       - run: sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0' 'ndk;27.1.12297006' 'cmake;3.22.1'
       - run: pnpm install --frozen-lockfile
+      # O runtime version que esta build embute, calculado como no ota.yml (checkout
+      # limpo e instalação congelada, antes do Gradle). O job runtime-version o grava no
+      # GitHub Release depois que a Play aceita o AAB. Uma falha aqui não barra a
+      # publicação: só deixa a versão sem OTA, e aquele job acusa.
+      - id: runtime
+        name: Runtime version da build (para o OTA)
+        continue-on-error: true
+        timeout-minutes: 5
+        run: node scripts/ci/ota-check.cjs runtime android
       - name: AAB assinado
         run: pnpm bundle --no-daemon
         env:
@@ -235,3 +246,32 @@ jobs:
       - name: Remover chave temporária
         if: always()
         run: rm -f -- "$RUNNER_TEMP/upload.keystore"
+
+  # O runtime da build que a Play aceitou, como asset runtime-version-android.txt do
+  # GitHub Release: o ota.yml só publica para o runtime da última build na loja (ver
+  # docs/ota.md). Num job à parte, para o `play`, que tem as chaves, ficar só com leitura.
+  runtime-version:
+    needs: [prepare, play]
+    if: always() && !cancelled() && needs.play.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Registrar o runtime no GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          RUNTIME: ${{ needs.play.outputs.runtime_version }}
+        run: |
+          if [ -z "$RUNTIME" ]; then
+            echo "::error::A $TAG foi para a Play sem o runtime version (passo \"Runtime version da build\" do job play). Sem o registro, o OTA recusa esta versão (docs/ota.md)."
+            exit 1
+          fi
+          file="$RUNNER_TEMP/runtime-version-android.txt"
+          printf '%s\n' "$RUNTIME" > "$file"
+          if ! gh release upload "$TAG" "$file" --clobber --repo "$GITHUB_REPOSITORY"; then
+            echo "::error::Não deu para anexar o runtime ao GitHub Release $TAG. Se ele não existe, crie-o (gh release create $TAG --verify-tag) e use \"Re-run failed jobs\": o AAB não é enviado de novo."
+            exit 1
+          fi
+          echo "Runtime de android da $TAG: $RUNTIME"

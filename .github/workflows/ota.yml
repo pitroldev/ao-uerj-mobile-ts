@@ -1,0 +1,112 @@
+name: OTA
+
+# Publica um update OTA (o JavaScript e os assets deste commit) no servidor de
+# pitrol.dev, ou a volta ao JS que veio na build da loja. O código nativo não
+# vai por aqui, e um OTA não é bump: ver docs/ota.md.
+#
+# O job `check`, sem segredos, confere a main, o Quality verde neste commit e
+# a última build na loja (versão e runtime). Só então o `publish` pede a
+# aprovação do environment `play` e assina com o secret OTA_SIGNING_KEY.
+
+run-name: >-
+  OTA ${{ inputs.rollback && 'rollback' || 'update' }} (${{ inputs.platform }}):
+  ${{ inputs.message }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Plataforma
+        type: choice
+        options: [android, ios, both]
+        default: android
+      message:
+        description: O que muda, numa frase (vai para o nome do run e o resumo)
+        required: true
+        type: string
+      rollback:
+        description: Voltar ao JS da build da loja, em vez de publicar este commit
+        type: boolean
+        default: false
+
+permissions: {}
+
+# Um OTA de cada vez, e nenhum é cancelado no meio.
+concurrency:
+  group: ota
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      android: ${{ steps.check.outputs.android }}
+      ios: ${{ steps.check.outputs.ios }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # v6.1.0 ou mais nova: a v6.0.x não tem suporte nativo ao pnpm 12 (pnpm/action-setup#289).
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            server/pnpm-lock.yaml
+      # o runtime version deste código; a volta usa o da loja e não precisa dele
+      - if: ${{ !inputs.rollback }}
+        run: pnpm install --frozen-lockfile
+      - id: check
+        name: Conferir main, Quality e a build na loja
+        run: node scripts/ci/ota-check.cjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PLATFORM: ${{ inputs.platform }}
+          ROLLBACK: ${{ inputs.rollback }}
+
+  publish:
+    needs: check
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: play
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - if: ${{ !inputs.rollback }}
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      # Sem caches neste job: ele tem a chave de assinatura, e um cache envenenado
+      # entraria no bundle.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+      - if: ${{ !inputs.rollback }}
+        run: pnpm install --frozen-lockfile
+      # O publish.cjs lê a chave, confere-a contra o config/ota/certificate.pem (o
+      # que o app embute), tira-a do ambiente do `expo export` e confere de novo o
+      # runtime deste código contra o da loja. Os valores vêm por env, nunca direto
+      # no script: a mensagem é texto livre.
+      - name: Exportar, assinar e publicar
+        env:
+          OTA_SIGNING_KEY: ${{ secrets.OTA_SIGNING_KEY }}
+          PLATFORM: ${{ inputs.platform }}
+          MESSAGE: ${{ inputs.message }}
+          ROLLBACK: ${{ inputs.rollback }}
+          ANDROID_RUNTIME: ${{ needs.check.outputs.android }}
+          IOS_RUNTIME: ${{ needs.check.outputs.ios }}
+        run: |
+          set -- "--platform=$PLATFORM" "--message=$MESSAGE"
+          [ -z "$ANDROID_RUNTIME" ] || set -- "$@" "--runtime-version=android=$ANDROID_RUNTIME"
+          [ -z "$IOS_RUNTIME" ] || set -- "$@" "--runtime-version=ios=$IOS_RUNTIME"
+          [ "$ROLLBACK" != true ] || set -- "$@" --rollback
+          node scripts/ota/publish.cjs "$@"
