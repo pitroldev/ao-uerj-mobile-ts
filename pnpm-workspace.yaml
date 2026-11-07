@@ -27,6 +27,10 @@ overrides:
 # expo-updates (Android): after its startup recovery window, a fatal JS error
 # was swallowed (ExpoReactHostFactory only rethrows with no host handlers), so
 # the app froze blank with no Play crash report; it now rethrows, as plain RN.
+# expo-modules-jsi (iOS): the Swift in Xcode 26.3 rejected capturing a
+# non-Sendable pointer in a JavaScriptActor closure ("sending 'slot' risks
+# causing data races"); the address crosses as a UInt instead.
 patchedDependencies:
+  expo-modules-jsi@58.0.22: patches/expo-modules-jsi@58.0.22.patch
   expo-updates@58.0.21: patches/expo-updates@58.0.21.patch
   react-native-share@12.3.1: patches/react-native-share@12.3.1.patch
