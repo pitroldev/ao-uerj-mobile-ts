@@ -25,6 +25,24 @@ after(async () => {
   await mongo.stop();
 });
 
+/**
+ * O começo do relógio: agora, ou 3 horas depois se faltarem menos de 2 para a
+ * meia-noite de São Paulo (o dia das contagens). Os testes avançam o relógio
+ * uns 30 minutos e conferem as contagens "de hoje"; perto da meia-noite, parte
+ * delas caía no dia seguinte (o CI falhou assim às 23h50). Para a frente, e não
+ * para trás, para os índices TTL do Mongo não apagarem nada no meio do teste.
+ */
+function clockStart(now = Date.now()) {
+  const hour = Number(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Sao_Paulo',
+      hour: 'numeric',
+      hourCycle: 'h23',
+    }).format(now),
+  );
+  return hour >= 22 ? now + 3 * 60 * 60 * 1000 : now;
+}
+
 async function open() {
   const db = createDatabase({
     uri: mongo.getUri(`ao-uerj-companion-${++sequence}`),
@@ -36,7 +54,7 @@ async function open() {
   const models = defineModels(db.connection);
   await Promise.all(Object.values(models).map(model => model.init()));
   const repositories = createMongoRepositories(models);
-  const clock = manualClock(Date.now());
+  const clock = manualClock(clockStart());
   const companion = createCompanion({
     calls: repositories.companionCalls,
     reports: repositories.companionReports,
