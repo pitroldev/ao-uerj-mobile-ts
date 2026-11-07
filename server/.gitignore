@@ -1,0 +1,3 @@
+# The OTA update files of a local server (OTA_DIR defaults to server/ota,
+# next to server/AOreports); in production they live in shared/ota.
+/ota/

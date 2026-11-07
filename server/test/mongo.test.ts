@@ -90,6 +90,7 @@ test('the connection opens on the old collections, with the indexes the queries 
       'errorreports',
       'issuancecounters',
       'muralmessages',
+      'otaentries',
       'spenttokens',
       'students',
       'studentsessions',
@@ -126,6 +127,14 @@ test('the connection opens on the old collections, with the indexes the queries 
   assert.deepEqual(await indexesOf(models.campusDays), [
     { purgeAt: 1 },
     { day: 1 },
+  ]);
+  // as atualizações pelo ar: a mais recente de cada runtime, o mesmo texto e o
+  // mesmo update uma vez só, e o bundle de cada plataforma
+  assert.deepEqual(await indexesOf(models.otaEntries), [
+    { platform: 1, runtimeVersion: 1, publishedAt: -1 },
+    { platform: 1, runtimeVersion: 1, bodyHash: 1 },
+    { platform: 1, runtimeVersion: 1, updateId: 1 },
+    { launchAsset: 1 },
   ]);
 
   await db.disconnect();

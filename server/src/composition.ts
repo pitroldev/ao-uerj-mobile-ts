@@ -1,3 +1,4 @@
+import { X509Certificate } from 'node:crypto';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 
@@ -15,12 +16,18 @@ import { appleAppAttestationRoot } from './adapters/outbound/attestation/appleRo
 import { createDevelopmentAttester } from './adapters/outbound/attestation/development.ts';
 import { createPlayIntegrityAttester } from './adapters/outbound/attestation/playIntegrity.ts';
 import { createFileAttachmentStore } from './adapters/outbound/files/attachmentStore.ts';
+import { createFileOtaAssetStore } from './adapters/outbound/files/otaAssetStore.ts';
 import { createDatabase } from './adapters/outbound/mongo/connection.ts';
 import { defineModels } from './adapters/outbound/mongo/models.ts';
 import {
   createMongoRepositories,
   type Repositories,
 } from './adapters/outbound/mongo/repositories.ts';
+import {
+  OTA_NO_UPDATE_AVAILABLE_SIGNATURE,
+  otaCodeSigningCertificate,
+} from './adapters/outbound/ota/certificate.ts';
+import { createOtaSignatureVerifier } from './adapters/outbound/ota/signature.ts';
 import { createPortalProbe } from './adapters/outbound/portal/probe.ts';
 import { createThreadedSolver } from './adapters/outbound/scheduleSolver/threadedSolver.ts';
 import type {
@@ -37,6 +44,8 @@ import type { AppAttester, AppAttestVerifier } from './modules/access/ports.ts';
 import { createCampusNow } from './modules/campus-now/application.ts';
 import { createCompanion } from './modules/companion/application.ts';
 import { createMural } from './modules/mural/application.ts';
+import { createOtaUpdates } from './modules/ota/application.ts';
+import type { OtaAssetStore, OtaUpdates } from './modules/ota/ports.ts';
 import { createPortalWatch } from './modules/portal/application.ts';
 import type { PortalWatch } from './modules/portal/ports.ts';
 import { createErrorReports } from './modules/reports/application.ts';
@@ -65,6 +74,16 @@ export type Overrides = {
   attester?: AppAttester | null;
   /** O App Attest do iPhone; `null` desliga a entrada pelo iPhone. */
   appAttest?: AppAttestVerifier | null;
+  /**
+   * As atualizações pelo ar: o certificado do code signing (`null` desliga
+   * as publicações), a assinatura pronta do "nada novo" e os arquivos. Com
+   * outro certificado, a assinatura embutida não vale (padrão `null`).
+   */
+  ota?: {
+    certificate?: string | null;
+    noUpdateSignature?: string | null;
+    assets?: OtaAssetStore;
+  };
 };
 
 /** O tempo que as conexões abertas têm para terminar no desligamento. */
@@ -102,7 +121,53 @@ function httpSettingsOf(config: Config): HttpSettings {
     studentSessionRequestsPerMinute: config.students.sessionPerMinute,
     acceptStudentTokens: config.students.acceptTokens,
     release: config.release,
+    ota: {
+      assetLimitBytes: config.ota.assetLimitBytes,
+      publishPerMinute: config.ota.publishPerMinute,
+      manifestPerMinute: config.ota.manifestPerMinute,
+    },
   };
+}
+
+/**
+ * As atualizações pelo ar, com o certificado embutido (o mesmo do app) e os
+ * arquivos em `OTA_DIR`. A assinatura pronta do "nada novo" é conferida com
+ * o certificado aqui, na partida.
+ */
+function otaFor(
+  config: Config,
+  logger: Logger,
+  repositories: Repositories,
+  overrides: Overrides['ota'] = {},
+): OtaUpdates {
+  const pem = overrides.certificate;
+  const certificate =
+    pem === undefined
+      ? otaCodeSigningCertificate()
+      : pem === null
+        ? null
+        : new X509Certificate(pem);
+  const noUpdateSignature =
+    overrides.noUpdateSignature !== undefined
+      ? overrides.noUpdateSignature
+      : pem === undefined
+        ? OTA_NO_UPDATE_AVAILABLE_SIGNATURE
+        : null;
+  if (!certificate)
+    logger.warn('OTA publishing is off: no code signing certificate');
+  else if (Date.parse(certificate.validTo) < Date.now())
+    logger.warn(
+      { validTo: certificate.validTo },
+      'the OTA code signing certificate expired: the apps refuse its signatures',
+    );
+  return createOtaUpdates({
+    entries: repositories.otaEntries,
+    assets: overrides.assets ?? createFileOtaAssetStore(config.ota.dir),
+    verifier: certificate ? createOtaSignatureVerifier(certificate) : null,
+    noUpdateSignature,
+    assetOrigin: config.ota.assetOrigin,
+    onCleanupError: err => logger.warn({ err }, 'OTA cleanup failed'),
+  });
 }
 
 /**
@@ -244,6 +309,7 @@ export function createServer(
         await campusNow.dropStudent(studentId);
       },
     }),
+    ota: otaFor(config, logger, repositories, overrides.ota),
   };
 
   const app = createHttpApp({

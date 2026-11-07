@@ -9,12 +9,14 @@ import type {
 } from '../../../modules/access/ports.ts';
 import type { CampusNow } from '../../../modules/campus-now/ports.ts';
 import type { Companion } from '../../../modules/companion/ports.ts';
+import type { OtaUpdates } from '../../../modules/ota/ports.ts';
 import type { ScheduleGenerator } from '../../../modules/schedules/ports.ts';
 import type { StudentIdentity } from '../../../modules/students/ports.ts';
 import { createAoUerjRouter, type AoUerjServices } from './aouerj/router.ts';
 import type { DatabaseHealth, Release } from './aouerj/status.ts';
 import { handleError, notFound } from './errors.ts';
 import { forceHttps, perKeyLimit, requestLog } from './middleware.ts';
+import { createOtaRouter } from './ota/router.ts';
 import { createSchedulesRouter } from './schedules/router.ts';
 import { createV2Router } from './v2/router.ts';
 import { actorOf, identifyStudent } from './v2/students.ts';
@@ -32,6 +34,8 @@ export type Services = AoUerjServices & {
   campusNow: CampusNow;
   /** A identificação do aluno (v2) e a moderação dos alunos. */
   students: StudentIdentity;
+  /** As atualizações pelo ar (expo-updates). */
+  ota: OtaUpdates;
 };
 
 /** O que o HTTP precisa da configuração. */
@@ -68,6 +72,15 @@ export type HttpSettings = {
   acceptStudentTokens: boolean;
   /** A versão no ar, para o `GET /aouerj/status`. */
   release: Release;
+  /**
+   * As atualizações pelo ar: o maior arquivo de um envio e, por IP, por
+   * minuto, as publicações do CI e as perguntas pelo manifesto.
+   */
+  ota: {
+    assetLimitBytes: number;
+    publishPerMinute: number;
+    manifestPerMinute: number;
+  };
 };
 
 /** O servidor HTTP do AO UERJ: as rotas em `/aouerj` e o gerador em `/schedules`. */
@@ -97,8 +110,16 @@ export function createHttpApp({
   if (settings.forceHttps && settings.publicUrl)
     app.use(forceHttps(settings.publicUrl));
 
-  // cada parte com o próprio limite de corpo; a v2 antes de /aouerj, que
-  // continua igual para os apps publicados
+  // cada parte com o próprio limite de corpo; as atualizações pelo ar e a v2
+  // antes de /aouerj, que continua igual para os apps publicados
+  app.use(
+    '/aouerj/ota',
+    createOtaRouter({
+      ota: services.ota,
+      database,
+      ...settings.ota,
+    }),
+  );
   app.use(
     '/aouerj/v2',
     express.json({ limit: settings.jsonLimit }),

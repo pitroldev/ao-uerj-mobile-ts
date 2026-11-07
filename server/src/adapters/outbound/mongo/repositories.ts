@@ -15,6 +15,7 @@ import type {
   WatcherRepository,
 } from '../../../modules/companion/ports.ts';
 import type { MessageRepository } from '../../../modules/mural/ports.ts';
+import type { OtaEntryRepository } from '../../../modules/ota/ports.ts';
 import type {
   StudentRepository,
   StudentSessionRepository,
@@ -38,6 +39,7 @@ import { createErrorReportRepository } from './errorReportRepository.ts';
 import { createIssuanceCounterRepository } from './issuanceCounterRepository.ts';
 import { createMessageRepository } from './messageRepository.ts';
 import type { Models } from './models.ts';
+import { createOtaEntryRepository } from './otaEntryRepository.ts';
 import { createSingleUseRepository } from './singleUseRepository.ts';
 import {
   createStudentRepository,
@@ -65,6 +67,7 @@ export type Repositories = {
   campusAnswers: AnswerRepository;
   campusPeople: ContributorRepository;
   campusDays: DayRepository;
+  otaEntries: OtaEntryRepository;
 };
 
 export function createMongoRepositories(models: Models): Repositories {
@@ -86,5 +89,6 @@ export function createMongoRepositories(models: Models): Repositories {
     campusAnswers: createAnswerRepository(models.campusAnswers),
     campusPeople: createContributorRepository(models.campusPeople),
     campusDays: createDayRepository(models.campusDays),
+    otaEntries: createOtaEntryRepository(models.otaEntries),
   };
 }

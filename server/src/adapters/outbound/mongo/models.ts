@@ -391,6 +391,44 @@ const campusDaySchema = new mongoose.Schema(
 campusDaySchema.index({ purgeAt: 1 }, { expireAfterSeconds: 0 });
 campusDaySchema.index({ day: 1 });
 
+/**
+ * As publicações das atualizações pelo ar: cada manifesto ou diretiva como o
+ * CI assinou (o texto exato e a assinatura), sem prazo. Os arquivos ficam em
+ * disco (`OTA_DIR`); aqui só os hashes, para a limpeza saber quais guardar.
+ */
+const otaEntrySchema = new mongoose.Schema(
+  {
+    platform: { required: true, type: String },
+    runtimeVersion: { required: true, type: String },
+    kind: { required: true, type: String },
+    body: { required: true, type: String },
+    signature: { required: true, type: String },
+    bodyHash: { required: true, type: String },
+    updateId: { default: null, type: String },
+    commitTime: { required: true, type: Date },
+    launchAsset: { default: null, type: String },
+    assets: { default: [], type: [String] },
+    publishedAt: { required: true, type: Date },
+  },
+  { versionKey: false, bufferCommands: false },
+);
+// a mais recente de cada plataforma e runtime: a pergunta de todo app
+otaEntrySchema.index({ platform: 1, runtimeVersion: 1, publishedAt: -1 });
+// o mesmo texto e o mesmo update entram uma vez só, mesmo com dois envios juntos
+otaEntrySchema.index(
+  { platform: 1, runtimeVersion: 1, bodyHash: 1 },
+  { unique: true },
+);
+otaEntrySchema.index(
+  { platform: 1, runtimeVersion: 1, updateId: 1 },
+  { unique: true, partialFilterExpression: { updateId: { $type: 'string' } } },
+);
+// o bundle de uma plataforma não vira o de outra
+otaEntrySchema.index(
+  { launchAsset: 1 },
+  { partialFilterExpression: { launchAsset: { $type: 'string' } } },
+);
+
 /** Os modelos registrados numa conexão. */
 export function defineModels(connection: Connection) {
   return {
@@ -436,6 +474,7 @@ export function defineModels(connection: Connection) {
       'campuspeople',
     ),
     campusDays: connection.model('CampusDays', campusDaySchema, 'campusdays'),
+    otaEntries: connection.model('OtaEntries', otaEntrySchema, 'otaentries'),
   };
 }
 

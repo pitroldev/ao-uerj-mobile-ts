@@ -318,6 +318,17 @@ const EnvSchema = z
       .int()
       .min(1)
       .default(300),
+
+    /** As atualizações pelo ar: a pasta dos arquivos (fora de cada versão). */
+    OTA_DIR: z.string().min(1).optional(),
+    /** O maior arquivo de um envio, em MB (o bundle tem uns poucos). */
+    OTA_ASSET_LIMIT_MB: z.coerce.number().int().min(1).max(512).default(32),
+    // os envios e as publicações do CI por IP: uma publicação manda cada
+    // arquivo (com repetição em falha) e um manifesto por plataforma
+    OTA_PUBLISH_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(600),
+    // as perguntas pelo manifesto por IP: cada app pergunta ao abrir, e o
+    // Wi-Fi da UERJ põe muitos alunos num IP só
+    OTA_MANIFEST_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(1200),
   })
   // o emulador e o debug não passam na Play Integrity; a produção, sim
   .refine(
@@ -427,6 +438,21 @@ export type Config = {
     /** Por aluno, por minuto: os pedidos com uma sessão que o cache conhece. */
     sessionPerMinute: number;
   };
+  /** As atualizações pelo ar (o protocolo 1 do expo-updates). */
+  ota: {
+    /** A pasta dos arquivos; por padrão, ao lado da dos anexos. */
+    dir: string;
+    /**
+     * A origem das URLs dos arquivos nos manifestos; `null` aceita qualquer
+     * uma (fora da produção, para o QA com um servidor local).
+     */
+    assetOrigin: string | null;
+    assetLimitBytes: number;
+    /** Por IP, por minuto: os envios e as publicações do CI, juntos. */
+    publishPerMinute: number;
+    /** Por IP, por minuto: as perguntas pelo manifesto. */
+    manifestPerMinute: number;
+  };
 };
 
 /** Quem atesta o app na emissão dos tokens. */
@@ -450,6 +476,9 @@ export type AppAttestSettings = {
 /** O diretório do pacote (server/), onde ficam os anexos por padrão. */
 const SERVER_ROOT = path.resolve(import.meta.dirname, '..');
 
+/** A origem do app: as URLs dos arquivos das atualizações apontam para ela. */
+const APP_ORIGIN = 'https://pitrol.dev';
+
 /**
  * Lê o ambiente. Um valor inválido para a partida com a lista do que está
  * errado: melhor que descobrir numa requisição.
@@ -463,6 +492,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new Error(`Invalid configuration: ${problems}`);
   }
   const value = parsed.data;
+  const reportsDir = value.REPORTS_DIR ?? path.join(SERVER_ROOT, 'AOreports');
   return {
     env: value.NODE_ENV,
     port: value.PORT,
@@ -488,7 +518,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       adminToken: value.ADMIN_TOKEN,
     },
     teachersCacheMs: value.CACHE_TTL_MS,
-    reportsDir: value.REPORTS_DIR ?? path.join(SERVER_ROOT, 'AOreports'),
+    reportsDir,
     portalMonitor: {
       enabled: value.PORTAL_MONITOR === 'on' && value.NODE_ENV !== 'test',
       intervalMs: value.PORTAL_MONITOR_INTERVAL_MS,
@@ -525,6 +555,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
         batchesPerDay: value.TOKEN_BATCHES_PER_DAY,
         perMinute: value.TOKEN_RATE_LIMIT_PER_MINUTE,
       },
+    },
+    ota: {
+      // ao lado dos anexos: na VM, ~/ao-uerj-server/shared/ota, que fica de
+      // uma implantação para a outra, como o shared/AOreports
+      dir: value.OTA_DIR ?? path.join(path.dirname(reportsDir), 'ota'),
+      assetOrigin:
+        value.NODE_ENV === 'production'
+          ? new URL(value.PUBLIC_URL ?? APP_ORIGIN).origin
+          : null,
+      assetLimitBytes: value.OTA_ASSET_LIMIT_MB * 1024 * 1024,
+      publishPerMinute: value.OTA_PUBLISH_LIMIT_PER_MINUTE,
+      manifestPerMinute: value.OTA_MANIFEST_LIMIT_PER_MINUTE,
     },
   };
 }

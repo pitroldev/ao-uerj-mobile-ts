@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { createServer, type Server } from '../src/composition.ts';
 import { createPortalWatch } from '../src/modules/portal/application.ts';
+import { noUpdateSignatureOf, otaSigningKeys } from './ota.ts';
 import {
   memoryAttachments,
   memoryRepositories,
@@ -42,6 +43,8 @@ function smoke(args: string[]): Promise<{ code: number; output: string }> {
 }
 
 const opened: Server[] = [];
+// o "nada novo" das atualizações pelo ar, assinado com uma chave descartável
+const otaKeys = otaSigningKeys();
 
 /** Um servidor com o banco em memória, ligado ou não. */
 async function serve(port = 0) {
@@ -57,6 +60,10 @@ async function serve(port = 0) {
       repositories: memory.repositories,
       attachments: memoryAttachments().store,
       portal,
+      ota: {
+        certificate: otaKeys.certificate,
+        noUpdateSignature: noUpdateSignatureOf(otaKeys),
+      },
     },
   );
   opened.push(server);
@@ -89,11 +96,15 @@ test('the smoke passes against a healthy server, checks the commit and writes no
   ]);
   assert.equal(code, 0, output);
   assert.match(output, /tudo certo/);
-  // as doze conferências, com o banco
-  assert.equal(output.match(/^ {2}ok {2}/gm)?.length, 12, output);
+  // as treze conferências, com o banco
+  assert.equal(output.match(/^ {2}ok {2}/gm)?.length, 13, output);
   assert.match(
     output,
     /ok {2}GET \/aouerj\/v2\/tokens\/challenge \(emissão desligada\)/,
+  );
+  assert.match(
+    output,
+    /ok {2}GET \/aouerj\/ota\/manifest \(runtime sem publicação\) \(noUpdateAvailable assinado\)/,
   );
   assert.match(output, /ok {2}GET \/aouerj\/status \(0123456 green\)/);
   // só lê: nada chegou ao mural, aos relatos nem às sugestões
@@ -124,9 +135,18 @@ test('without the database, the smoke fails only when the database is required',
   );
   assert.match(required.output, /ERRO GET \/aouerj\/docentes: status 503/);
 
+  assert.match(
+    required.output,
+    /ERRO GET \/aouerj\/ota\/manifest \(runtime sem publicação\): status 503/,
+  );
+
   // sem exigir o banco, o 503 do status vale (a instância está de pé)
   const lenient = await smoke([offline.base]);
   assert.equal(lenient.code, 0, lenient.output);
+  assert.match(
+    lenient.output,
+    /ok {2}GET \/aouerj\/ota\/manifest \(runtime sem publicação\) \(sem o banco\)/,
+  );
 });
 
 /** Uma porta livre agora (para o servidor subir nela depois). */

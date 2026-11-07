@@ -8,6 +8,8 @@ O backend próprio do app, servido em `https://pitrol.dev`:
   rede (`/api/vpn`, `/api/isPortReachable`) e o site do pitrol.dev ficaram lá;
 - em `/aouerj/v2`, a [identificação do aluno](#identificação-do-aluno-v2), a
   [Companhia agora](#companhia-agora) e o [Agora no campus](#agora-no-campus);
+- em `/aouerj/ota`, as [atualizações pelo ar](#atualizações-pelo-ar-ota): o
+  JavaScript novo que o `expo-updates` do app baixa sem passar pela loja;
 - em `/schedules`, o gerador de grades, que veio do `class-schedule-generator`.
 
 Node 22.18 ou mais novo roda o TypeScript direto, sem etapa de build. Express
@@ -59,12 +61,14 @@ src/
     inbound/          quem chama os casos de uso
       http/           Express: app, middlewares, erros, validação, contrato
         aouerj/       uma feature por arquivo: esquema, JSON e rotas
+        ota/          o protocolo do expo-updates: as rotas e o multipart
         schedules/    o pedido antigo → domínio (camada anticorrupção),
                       a resposta e as rotas
       scheduling/     o agendador que dispara a consulta ao portal
     outbound/         o que implementa as portas de saída
       mongo/          conexão, modelos e um repositório por agregado
-      files/          anexos dos relatos em arquivo
+      files/          anexos dos relatos e arquivos das atualizações
+      ota/            o certificado do code signing e a conferência
       portal/         a consulta à página inicial do Aluno Online
       scheduleSolver/ a busca numa thread (com fila e prazo) ou na mesma
     logging.ts        o log em JSON
@@ -105,6 +109,8 @@ Os testes:
 | `smoke.test.ts`           | O `deploy/server/smoke.mjs` contra o servidor, como o deploy o roda              |
 | `campusNow.test.ts`       | Agora no campus: as regras, os casos de uso, as rotas e a aba do admin           |
 | `campusNow.mongo.test.ts` | Agora no campus num mongod: o lugar guardado e as gravações de uma vez só        |
+| `ota.test.ts`             | Atualizações pelo ar: o protocolo, os arquivos, as recusas e a limpeza           |
+| `ota.mongo.test.ts`       | Atualizações pelo ar num mongod: a ordem, os índices únicos e o que fica         |
 
 O mongod vem do `mongodb-memory-server`, na versão de produção
 (`test/mongo.ts`). A primeira execução baixa o binário para
@@ -554,6 +560,167 @@ pontos, os limites e a moderação; os outros alunos nunca veem.
 Sem a sessão, 401; sem o aviso (acabou, saiu do ar, nunca existiu), 404
 `notice_not_found`. Os tipos estão em `contract.ts`.
 
+### Atualizações pelo ar (OTA)
+
+O app (`expo-updates`, com code signing) pergunta ao abrir se há JavaScript
+novo para a build dele, e o CI (`.github/workflows/ota.yml`, com
+`scripts/ota/publish.cjs`) publica. O servidor segue o
+[protocolo 1 do expo-updates](https://docs.expo.dev/technical-specs/expo-updates-1/),
+conferido também no código do cliente (`expo-updates` 58) e no
+[servidor de exemplo da Expo](https://github.com/expo/custom-expo-updates-server).
+Um canal só, sem o EAS (o módulo `modules/ota`).
+
+| Rota                           | Quem | O que faz                                                |
+| ------------------------------ | ---- | -------------------------------------------------------- |
+| `GET /aouerj/ota/manifest`     | app  | A resposta do protocolo 1 para a plataforma e o runtime  |
+| `GET /aouerj/ota/assets/:hash` | app  | O arquivo pelo SHA-256 (base64url, sem `=`); `HEAD` vale |
+| `PUT /aouerj/ota/assets/:hash` | CI   | Envia um arquivo (201; 200 se ele já estava lá)          |
+| `POST /aouerj/ota/updates`     | CI   | Publica um manifesto (201; 200 se ele já estava lá)      |
+| `POST /aouerj/ota/directives`  | CI   | Publica a volta ao JS da build da loja                   |
+
+**O pedido do app:** `expo-protocol-version: 1`, `expo-platform` (`android` ou
+`ios`), `expo-runtime-version`, `accept` com `multipart/mixed`,
+`expo-expect-signature` e, quando há, `expo-current-update-id` e
+`expo-embedded-update-id`. Outro protocolo, ou um `accept` sem
+`multipart/mixed`, é 406; outra plataforma ou o runtime faltando, 400
+`invalid_request`.
+
+**A resposta** leva sempre `expo-protocol-version: 1`, `expo-sfv-version: 0` e
+`cache-control: private, max-age=0`, até nos erros. Vale a última publicação
+da plataforma e do runtime, pela hora da publicação:
+
+- **um manifesto:** 200, `multipart/mixed; boundary=…`, com a parte
+  `manifest` (`content-type: application/json` e
+  `expo-signature: sig="<base64>", keyid="main"`; o corpo é o texto que o CI
+  assinou, byte a byte) e a parte `extensions` (`{"assetRequestHeaders":{}}`).
+  Quem já roda esse update (o `expo-current-update-id`, em qualquer caixa)
+  recebe "nada novo";
+- **a volta ao JS da loja** (`rollBackToEmbedded`): a parte `directive`,
+  assinada, para todo aparelho, mesmo o que já roda o JS da loja. O servidor
+  de exemplo responde "nada novo" a esse, mas um update baixado e ainda não
+  aberto ganharia do JS da loja na próxima abertura; o app ignora a mesma
+  volta repetida (o `commitTime` dela não é mais novo que o do que ele roda);
+- **nada novo** (nada publicado, ou o app já na mais recente): a parte
+  `directive` com `{"type":"noUpdateAvailable"}`, assinada. Sem a assinatura
+  pronta (abaixo), um 204 sem corpo, que o protocolo 1 aceita como "nada a
+  fazer" e o `expo-updates` trata igual (`noUpdateAvailableOnServer`), sem
+  nada a assinar;
+- **sem o banco:** 503 `database_unavailable`. O app trata como uma consulta
+  que falhou e segue com o JS que tem; um "nada novo" daria o mesmo no
+  aparelho, mas diria que está tudo em dia sem saber, e precisaria da
+  assinatura.
+
+As partes vão com CRLF e os cabeçalhos em minúsculas: o cliente do iPhone
+procura o `expo-signature` sem ignorar a caixa. A última publicação de cada
+runtime fica 10 segundos no processo (todo app pergunta ao abrir), e publicar
+a esquece na hora. As perguntas têm um teto por IP
+(`OTA_MANIFEST_LIMIT_PER_MINUTE`, 1200), folgado pelo Wi-Fi da UERJ.
+
+**Os arquivos** vão com o `content-type` do envio (sem charset a mais),
+`cache-control: public, max-age=31536000, immutable`, `etag` e
+`content-security-policy: default-src 'none'; sandbox` (um arquivo é dado, não
+página). O envio guarda também as versões em Brotli e gzip, quando economizam
+10%, servidas pelo `accept-encoding` (o Android manda `zstd, br, gzip`; sem o
+cabeçalho, o original). O app confere o SHA-256 do que baixou. Sem limite por
+IP e sem o banco: uma atualização baixa vários de uma vez.
+
+#### Publicar (o CI)
+
+A credencial é a própria assinatura do code signing (RSA PKCS #1 v1.5 com
+SHA-256, `rsa-v1_5-sha256`), da chave que só o CI tem (o secret
+`OTA_SIGNING_KEY`), conferida com o certificado que o app embute. Não há
+token nem variável nova no servidor.
+
+1. **Os arquivos:** `PUT /aouerj/ota/assets/<hash>` com o arquivo cru, o
+   `content-type` dele e `expo-ota-signature: <base64>`, a assinatura do hash
+   em ASCII. O servidor confere a assinatura e o tipo antes de ler o corpo, e
+   depois o SHA-256 e o tamanho (`OTA_ASSET_LIMIT_MB`, 32; 413 acima). O mesmo
+   arquivo de novo é 200 `exists` e não muda nada (fica o tipo do primeiro
+   envio).
+2. **O manifesto:** `POST /aouerj/ota/updates` com
+   `{ platform, runtimeVersion, manifest, signature }`, o manifesto em texto (o
+   que vai ao app) e a assinatura dele. O servidor confere a assinatura e o
+   que o app precisa: `id` UUID, `createdAt` com os milissegundos
+   (`2026-11-06T12:00:00.000Z`: sem eles, o Android usa a hora do aparelho e a
+   ordem se perde), o `runtimeVersion` do pedido, a `fileExtension` de cada
+   arquivo (o Android pula o que vem sem), a `key` sem barra, a URL de cada um
+   em `<origem>/aouerj/ota/assets/<hash>` do próprio arquivo (na produção, a
+   origem é `PUBLIC_URL` ou `https://pitrol.dev`; fora dela, qualquer uma, para
+   o QA com um servidor local) e todos os arquivos já enviados.
+3. **A volta:** `POST /aouerj/ota/directives` com
+   `{ platform, runtimeVersion, directive, signature }`, só
+   `{"type":"rollBackToEmbedded","parameters":{"commitTime":"…"}}`. A volta
+   vale até um update com `createdAt` depois do `commitTime`.
+
+Um texto assinado é público (o app o recebe), então a assinatura sozinha não
+basta contra quem o repete:
+
+- a mesma publicação de novo é 200 `already_published` e não muda nada, nem
+  volta a ser a mais recente;
+- nada com a data (`createdAt` ou `commitTime`) igual ou anterior à da
+  última publicação do runtime entra (409 `not_newer`): o app também a
+  ignoraria;
+- o bundle de uma plataforma não vira o da outra (422 `platform_mismatch`): o
+  manifesto não diz a plataforma, mas o arquivo de entrada de um do Android
+  nunca é o de um do iPhone;
+- uma data mais de uma hora à frente é recusada: travaria as publicações
+  seguintes.
+
+As recusas: 400 `invalid_request` (o corpo ou o cabeçalho); 403
+`invalid_signature`; 422 `hash_mismatch`, `invalid_manifest`,
+`invalid_directive`, `runtime_mismatch`, `unknown_asset` e
+`platform_mismatch`; 409 `not_newer` e `update_conflict` (o mesmo `id` com
+outro manifesto); 413; 429 `rate_limited` (`OTA_PUBLISH_LIMIT_PER_MINUTE`,
+600 por IP, os envios e as publicações juntos); 503 `database_unavailable`
+(as publicações; os envios não usam o banco) e `ota_publishing_unavailable`,
+sem o certificado.
+
+**O certificado:** a cópia canônica é `config/ota/certificate.pem`. A
+implantação só leva `server/` e `deploy/`, então ele também está em
+`src/adapters/outbound/ota/certificate.ts`, com a impressão SHA-256
+conferida na partida, e o `ota.test.ts` falha se os dois diferirem. Trocar a
+chave é trocar os dois e publicar uma build na loja: os apps instalados só
+aceitam a chave antiga.
+
+**A assinatura do "nada novo":** o servidor não tem a chave privada, então a
+diretiva `{"type":"noUpdateAvailable"}` é assinada uma vez por quem a tem (a
+RSA PKCS #1 v1.5 dá sempre a mesma assinatura para o mesmo texto) e colada em
+`OTA_NO_UPDATE_AVAILABLE_SIGNATURE`, no mesmo arquivo. A partida a confere
+com o certificado; enquanto ela não estiver lá, "nada novo" é o 204.
+
+```sh
+printf '%s' '{"type":"noUpdateAvailable"}' |
+  openssl dgst -sha256 -sign private-key.pem | openssl base64 -A
+```
+
+**O que fica guardado:** no MongoDB (`otaentries`), cada publicação: a
+plataforma, o runtime, o tipo (`manifest` ou `directive`), o texto exato, a
+assinatura, o SHA-256 do texto, o `id` do update, a data dele, os hashes dos
+arquivos e a hora da publicação, sem prazo (são poucas). Os arquivos ficam em
+disco, em `OTA_DIR`: por padrão, a pasta `ota` ao lado de `REPORTS_DIR` (na
+VM, `~/ao-uerj-server/shared/ota`, que fica de uma implantação para a outra,
+como o `shared/AOreports`; na sua máquina, `server/ota`, fora do Git). Cada
+um pelo SHA-256 em hex, com as versões comprimidas e um `.json` com o tipo e
+os tamanhos, gravado por último (com fsync e renomeação: ninguém lê um
+arquivo pela metade).
+
+**A limpeza:** o protocolo pede que um arquivo nunca saia da URL, mas o app
+só baixa os arquivos do manifesto que acabou de receber, sempre um dos
+últimos. Depois de cada publicação, saem os arquivos que não estão nos 3
+manifestos mais recentes de nenhuma plataforma e runtime (um runtime antigo,
+de quem não atualizou o app na loja, guarda os seus; uma volta não conta) e
+que não foram enviados, reenviados nem citados num manifesto nos últimos 7
+dias (o CI manda os arquivos antes do manifesto e reenvia os que já estão
+lá). Uma falha na limpeza vai para o log e não desfaz a publicação.
+
+- **Testes:** `ota.test.ts`, com uma chave descartável gerada a cada execução
+  e um certificado autoassinado montado em DER no próprio teste (nenhuma chave
+  privada no Git): a escolha da publicação, o "nada novo" (assinado e o 204),
+  a volta, o formato do multipart e do `expo-signature`, os arquivos (hash,
+  tipo, Brotli e gzip, 304), cada recusa, o reenvio, os limites, o log e a
+  limpeza; também que o certificado embutido é o de `config/ota`.
+  `ota.mongo.test.ts`, as publicações num mongod.
+
 ### Consultar o que está no ar
 
 ```sh
@@ -662,6 +829,10 @@ O que mudou de propósito:
   `AOreports/`) e as sugestões (nome, texto e e-mail opcional), sem prazo de
   remoção. Os anexos dos relatos da 1.x trazem a página do portal, com dados
   pessoais: a pasta fica fora do Git e só se lê no servidor.
+- **O que fica guardado das atualizações pelo ar:** só o que o CI publica
+  (os textos assinados e os arquivos do app, que já são públicos). A pergunta
+  do app não grava nada: a plataforma, o runtime e o update dele vão nos
+  cabeçalhos, que o log não guarda.
 - **Quem posta:** na v2, só o aluno com a sessão, e o servidor sabe quem foi;
   o nome mostrado continua o que o app manda. As rotas de `/aouerj` dos apps
   antigos aceitam qualquer nome.
@@ -727,6 +898,14 @@ Depois do cutover, cada push implanta sozinho.
   nada (o ensaio contra o banco de produção usa assim).
 - Os anexos dos relatos ficam em `~/ao-uerj-server/shared/AOreports` (só o
   dono lê): o servidor não depende mais da pasta do `server-pitroldev`.
+- Os arquivos das atualizações pelo ar ficam em `~/ao-uerj-server/shared/ota`,
+  que o servidor cria no primeiro envio (sem `OTA_DIR` no `shared/.env`, ao
+  lado do `REPORTS_DIR`).
+- **O corpo dos envios no nginx:** o padrão do nginx é 1 MB
+  (`client_max_body_size`), e o bundle passa disso. Se o bloco do
+  `pitrol.dev` não muda o padrão, o envio do bundle dá 413 do próprio nginx;
+  o `location` de `/aouerj/ota/assets/` precisa de um limite pelo menos do
+  tamanho de `OTA_ASSET_LIMIT_MB` (32 MB), que o servidor confere de novo.
 - **Memória:** a VM tem 1 GB. Cada instância usa uns 150 MB; durante a
   implantação, as duas cores rodam juntas por alguns segundos. O cutover
   devolve uns 120 MB ao aposentar os processos antigos.

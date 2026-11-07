@@ -34,6 +34,8 @@ import type {
 } from '../src/modules/campus-now/ports.ts';
 import type { Message } from '../src/modules/mural/domain.ts';
 import type { MessageRepository } from '../src/modules/mural/ports.ts';
+import type { OtaEntry } from '../src/modules/ota/domain.ts';
+import type { OtaEntryRepository } from '../src/modules/ota/ports.ts';
 import type {
   ErrorReport,
   ReviewFilter,
@@ -194,6 +196,7 @@ export function memoryRepositories(clock = manualClock()) {
   const companion = memoryCompanion();
   const people = memoryStudents();
   const campus = memoryCampusNow();
+  const ota = memoryOtaEntries();
 
   return {
     data: {
@@ -213,6 +216,7 @@ export function memoryRepositories(clock = manualClock()) {
       campusNotices: campus.notices,
       campusAnswers: campus.answers,
       campusPeople: campus.people,
+      otaEntries: ota.entries,
     },
     repositories: {
       messages: messageRepository,
@@ -232,8 +236,75 @@ export function memoryRepositories(clock = manualClock()) {
       campusDays: campus.dayRepository,
       students: people.studentRepository,
       studentSessions: people.sessionRepository,
+      otaEntries: ota.repository,
     },
   };
+}
+
+/** As publicações das atualizações pelo ar, como no MongoDB (os índices únicos inclusive). */
+export function memoryOtaEntries() {
+  const entries: OtaEntry[] = [];
+  let sequence = 0;
+  const of = (platform: string, runtimeVersion: string) =>
+    entries.filter(
+      entry =>
+        entry.platform === platform && entry.runtimeVersion === runtimeVersion,
+    );
+  const newestFirst = (list: OtaEntry[]) =>
+    [...list].sort(
+      (a, b) =>
+        b.publishedAt.getTime() - a.publishedAt.getTime() ||
+        Number(b.id) - Number(a.id),
+    );
+  const copy = (entry: OtaEntry | undefined) =>
+    entry ? structuredClone(entry) : null;
+
+  const repository: OtaEntryRepository = {
+    async latest(platform, runtimeVersion) {
+      return copy(newestFirst(of(platform, runtimeVersion))[0]);
+    },
+    async findByUpdateId(platform, runtimeVersion, updateId) {
+      return copy(
+        of(platform, runtimeVersion).find(entry => entry.updateId === updateId),
+      );
+    },
+    async findByBodyHash(platform, runtimeVersion, bodyHash) {
+      return copy(
+        of(platform, runtimeVersion).find(entry => entry.bodyHash === bodyHash),
+      );
+    },
+    async isLaunchAssetOfOtherPlatform(hash, platform) {
+      return entries.some(
+        entry => entry.launchAsset === hash && entry.platform !== platform,
+      );
+    },
+    async create(entry) {
+      const same = of(entry.platform, entry.runtimeVersion).some(
+        stored =>
+          stored.bodyHash === entry.bodyHash ||
+          (entry.updateId !== null && stored.updateId === entry.updateId),
+      );
+      if (same) return null;
+      const created = { ...structuredClone(entry), id: String(++sequence) };
+      entries.push(created);
+      return copy(created);
+    },
+    async keptAssets(perRuntime) {
+      const groups = new Map<string, OtaEntry[]>();
+      for (const entry of entries.filter(item => item.kind === 'manifest')) {
+        const key = `${entry.platform}\n${entry.runtimeVersion}`;
+        groups.set(key, [...(groups.get(key) ?? []), entry]);
+      }
+      return new Set(
+        [...groups.values()].flatMap(group =>
+          newestFirst(group)
+            .slice(0, perRuntime)
+            .flatMap(entry => entry.assets),
+        ),
+      );
+    },
+  };
+  return { entries, repository };
 }
 
 /** As chamadas e as denúncias da Companhia agora, como no MongoDB. */

@@ -33,8 +33,11 @@ const requireDatabase = flag('--require-database');
 const via = option('--via');
 const expectedCommit = option('--expect-commit');
 
-/** Uma requisição com o corpo em JSON; devolve o status e o corpo lido. */
-function call(method, path, body) {
+/**
+ * Uma requisição com o corpo em JSON (e outros cabeçalhos, se pedidos);
+ * devolve o status, os cabeçalhos e o corpo lido, em texto e em JSON.
+ */
+function call(method, path, body, extraHeaders = {}) {
   const url = new URL(path, base);
   const transport = url.protocol === 'https:' ? https : http;
   const payload = body === undefined ? undefined : JSON.stringify(body);
@@ -57,6 +60,7 @@ function call(method, path, body) {
                 'content-length': Buffer.byteLength(payload),
               }
             : {}),
+          ...extraHeaders,
         },
         timeout: 20000,
       },
@@ -71,7 +75,12 @@ function call(method, path, body) {
           } catch {
             json = undefined;
           }
-          resolve({ status: response.statusCode ?? 0, json });
+          resolve({
+            status: response.statusCode ?? 0,
+            headers: response.headers,
+            text,
+            json,
+          });
         });
       },
     );
@@ -244,6 +253,75 @@ await check('GET /aouerj/v2/tokens/challenge', async () => {
     'resposta sem o desafio e a chave',
   );
   return 'emissão ligada';
+});
+
+// O app pergunta pelo update OTA ao abrir (protocolo 1 do expo-updates). Um
+// runtime que nunca teve publicação recebe "nada novo": a diretiva
+// noUpdateAvailable assinada ou, sem a assinatura pronta, um 204.
+await check('GET /aouerj/ota/manifest (runtime sem publicação)', async () => {
+  const { status, headers, text } = await call(
+    'GET',
+    '/aouerj/ota/manifest',
+    undefined,
+    {
+      accept: 'multipart/mixed,application/expo+json,application/json',
+      'expo-protocol-version': '1',
+      'expo-platform': 'android',
+      'expo-runtime-version': 'ao-uerj-smoke-sem-publicacao',
+      'expo-expect-signature': 'sig, keyid="main", alg="rsa-v1_5-sha256"',
+    },
+  );
+  // sem o banco é 503 (o app segue com o JS que tem), e só vale se o banco
+  // não for exigido
+  if (status === 503 && !requireDatabase) return 'sem o banco';
+  expect(
+    headers['expo-protocol-version'] === '1' &&
+      headers['expo-sfv-version'] === '0',
+    'sem os cabeçalhos do protocolo 1',
+  );
+  expect(
+    headers['cache-control'] === 'private, max-age=0',
+    `cache-control ${headers['cache-control']}`,
+  );
+  if (status === 204) return '204, sem a assinatura pronta';
+  expect(status === 200, `status ${status}`);
+  const boundary = /^multipart\/mixed; boundary=([A-Za-z0-9-]+)$/.exec(
+    headers['content-type'] ?? '',
+  )?.[1];
+  expect(boundary, `content-type ${headers['content-type']}`);
+  const open = `--${boundary}\r\n`;
+  const close = `\r\n--${boundary}--\r\n`;
+  expect(
+    text.startsWith(open) && text.endsWith(close),
+    'o corpo não abre e fecha com o delimitador',
+  );
+  const parts = text
+    .slice(open.length, -close.length)
+    .split(`\r\n--${boundary}\r\n`);
+  expect(parts.length === 1, `${parts.length} partes`);
+  const [head, ...rest] = parts[0].split('\r\n\r\n');
+  const fields = Object.fromEntries(
+    head.split('\r\n').map(line => {
+      const at = line.indexOf(': ');
+      return [line.slice(0, at), line.slice(at + 2)];
+    }),
+  );
+  expect(
+    fields['content-disposition'] === 'form-data; name="directive"' &&
+      fields['content-type'] === 'application/json',
+    'a parte não é a diretiva em JSON',
+  );
+  expect(
+    /^sig="[A-Za-z0-9+/]+={0,2}", keyid="main"$/.test(
+      fields['expo-signature'] ?? '',
+    ),
+    'diretiva sem a assinatura',
+  );
+  expect(
+    rest.join('\r\n\r\n') === '{"type":"noUpdateAvailable"}',
+    'não é a diretiva noUpdateAvailable',
+  );
+  return 'noUpdateAvailable assinado';
 });
 
 await check('GET /schedules/health', async () => {
