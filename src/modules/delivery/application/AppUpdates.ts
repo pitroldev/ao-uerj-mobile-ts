@@ -3,6 +3,12 @@ import {
   FLEXIBLE_PROMPT_INTERVAL,
   type AppUpdate,
 } from '../domain/updatePolicy';
+import {
+  IDLE_DOWNLOAD,
+  updateDownload,
+  type DownloadEvent,
+  type UpdateDownload,
+} from '../domain/updateDownload';
 import type {
   AppKeyValueStore,
   AppUpdatesPort,
@@ -13,11 +19,7 @@ import type {
 
 export const FLEXIBLE_PROMPT_KEY = 'flexible-update-prompted-at';
 
-export type UpdateSnapshot = {
-  /** `downloaded`: a flexível terminou de baixar e espera o reinício. */
-  phase: 'idle' | 'downloading' | 'downloaded';
-  /** De 0 a 1 durante o download, quando a loja informa o tamanho. */
-  progress: number | null;
+export type UpdateSnapshot = UpdateDownload & {
   /**
    * A loja respondeu que não há versão mais nova para este aparelho (rollout
    * parcial, versão ainda não promovida para produção, aparelho fora dos
@@ -41,11 +43,6 @@ type UpdateNowStep =
   | { kind: 'flow'; result: Promise<UpdateFlowResult> }
   | { kind: 'storeListing' };
 
-const IDLE: Pick<UpdateSnapshot, 'phase' | 'progress'> = {
-  phase: 'idle',
-  progress: null,
-};
-
 const isUpToDate = (update: AppUpdate) =>
   update.availability === 'none' && update.installStatus !== 'downloaded';
 
@@ -54,7 +51,9 @@ const isUpToDate = (update: AppUpdate) =>
  * emulador) ou no iOS ela simplesmente não encontra nada.
  */
 export class AppUpdates {
-  private snapshot: UpdateSnapshot = { ...IDLE, storeUpToDate: false };
+  private snapshot: UpdateSnapshot = { ...IDLE_DOWNLOAD, storeUpToDate: false };
+  /** Eventos da loja invalidam respostas atrasadas da tela de consentimento. */
+  private downloadRevision = 0;
   private listeners = new Set<() => void>();
   private checks: Promise<unknown> = Promise.resolve();
   private flexibleAsked = false;
@@ -81,12 +80,15 @@ export class AppUpdates {
     };
   };
 
-  private publish(changes: Partial<UpdateSnapshot>) {
-    const next = { ...this.snapshot, ...changes };
+  private publish(next: UpdateSnapshot) {
     const keys = Object.keys(next) as (keyof UpdateSnapshot)[];
     if (keys.every(key => next[key] === this.snapshot[key])) return;
     this.snapshot = next;
     this.listeners.forEach(listener => listener());
+  }
+
+  private transition(event: DownloadEvent) {
+    this.publish({ ...this.snapshot, ...updateDownload(this.snapshot, event) });
   }
 
   /** Acompanha o download da flexível; devolve a função que para. */
@@ -98,17 +100,9 @@ export class AppUpdates {
     );
   }
 
-  private onProgress({ status, bytesDownloaded, totalBytes }: InstallProgress) {
-    if (status === 'downloaded') {
-      this.publish({ phase: 'downloaded', progress: 1 });
-    } else if (status === 'pending' || status === 'downloading') {
-      this.publish({
-        phase: 'downloading',
-        progress: totalBytes > 0 ? bytesDownloaded / totalBytes : null,
-      });
-    } else if (status !== 'installing' && status !== 'unknown') {
-      this.publish(IDLE);
-    }
+  private onProgress(progress: InstallProgress) {
+    if (progress.status !== 'unknown') this.downloadRevision += 1;
+    this.transition({ type: 'progress', ...progress });
   }
 
   /**
@@ -138,9 +132,13 @@ export class AppUpdates {
     const { updates, store, now } = this.dependencies;
     const update = await updates?.check().catch(() => null);
     if (!updates || !update) return;
-    this.publish({ storeUpToDate: isUpToDate(update) });
+    this.publish({ ...this.snapshot, storeUpToDate: isUpToDate(update) });
     if (update.installStatus === 'downloaded') {
-      this.publish({ phase: 'downloaded', progress: 1 });
+      this.onProgress({
+        status: 'downloaded',
+        bytesDownloaded: 1,
+        totalBytes: 1,
+      });
       return;
     }
     const type = chooseUpdate(update, { required });
@@ -157,9 +155,10 @@ export class AppUpdates {
       if (typeof last === 'number' && now() - last < FLEXIBLE_PROMPT_INTERVAL)
         return;
       await store.write(FLEXIBLE_PROMPT_KEY, now()).catch(() => undefined);
+      const revision = this.downloadRevision;
       void this.start('flexible').then(result => {
-        if (result === 'accepted')
-          this.publish({ phase: 'downloading', progress: null });
+        if (result === 'accepted' && revision === this.downloadRevision)
+          this.transition({ type: 'accepted' });
       });
     }
   }
@@ -202,7 +201,7 @@ export class AppUpdates {
     const step = await this.enqueue(async (): Promise<UpdateNowStep> => {
       const update = await updates?.check().catch(() => null);
       if (!update) return { kind: 'storeListing' };
-      this.publish({ storeUpToDate: isUpToDate(update) });
+      this.publish({ ...this.snapshot, storeUpToDate: isUpToDate(update) });
       if (update.installStatus === 'downloaded') return { kind: 'install' };
       // um check que já estava na fila pode ter aberto a imediata depois do toque
       const opened = this.lastImmediate;
@@ -229,7 +228,10 @@ export class AppUpdates {
   async restart(): Promise<boolean> {
     if (await this.install()) return true;
     const update = await this.dependencies.updates?.check().catch(() => null);
-    if (update?.installStatus !== 'downloaded') this.publish(IDLE);
+    if (update?.installStatus !== 'downloaded') {
+      this.downloadRevision += 1;
+      this.transition({ type: 'reset' });
+    }
     return false;
   }
 }

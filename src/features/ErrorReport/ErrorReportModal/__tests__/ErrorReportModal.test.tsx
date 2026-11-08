@@ -1,5 +1,5 @@
 import React from 'react';
-import { screen, userEvent } from '@testing-library/react-native';
+import { act, screen, userEvent } from '@testing-library/react-native';
 import { useAppServices } from '@root/app/providers/AppServicesProvider';
 import { renderWithProviders } from '@root/test-utils/render';
 import { ErrorReportModal } from '../ErrorReportModal';
@@ -103,5 +103,80 @@ describe('support submission', () => {
       subjectCode: 'IME02-01388',
       description: 'Turmas vazias.',
     });
+  });
+
+  it('ignores a previous submission after the sheet has been reopened', async () => {
+    let finish!: () => void;
+    execute.mockReturnValueOnce(
+      new Promise<void>(resolve => {
+        finish = resolve;
+      }),
+    );
+    await selectFeature();
+    await describeProblem('Primeiro relato.');
+    await press('Enviar relato');
+    await screen.rerender(
+      <ErrorReportModal visible={false} setVisibility={setVisibility} />,
+    );
+    await screen.rerender(
+      <ErrorReportModal visible setVisibility={setVisibility} />,
+    );
+    await selectFeature();
+    await describeProblem('Novo relato.');
+    await act(async () => {
+      finish();
+    });
+    expect(setVisibility).not.toHaveBeenCalled();
+    expect(screen.queryByText('Relato enviado. Obrigado!')).toBeNull();
+    expect(screen.getByLabelText(DESCRIPTION)).toHaveDisplayValue(
+      'Novo relato.',
+    );
+  });
+
+  it('keeps submission locked until it finishes and does not send a completed draft twice', async () => {
+    let finish!: () => void;
+    execute.mockReturnValueOnce(
+      new Promise<void>(resolve => {
+        finish = resolve;
+      }),
+    );
+    await selectFeature();
+    await describeProblem('Notas não aparecem.');
+    await press('Enviar relato');
+    expect(button('Enviando…')).toBeBusy();
+    expect(button('Voltar')).toBeDisabled();
+    expect(screen.getByLabelText(DESCRIPTION)).toBeDisabled();
+    expect(button('Enviando…')).toBeDisabled();
+    expect(execute).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      finish();
+    });
+    // O pai ainda não confirmou o fechamento: o estado terminal bloqueia novo envio.
+    expect(button('Enviar relato')).toBeDisabled();
+    expect(execute).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores failures from an unmounted form', async () => {
+    let fail!: (error: Error) => void;
+    execute.mockReturnValueOnce(
+      new Promise<void>((_resolve, reject) => {
+        fail = reject;
+      }),
+    );
+    await selectFeature();
+    await describeProblem('Notas não aparecem.');
+    await press('Enviar relato');
+    await screen.unmount();
+    await act(async () => {
+      fail(new Error('offline'));
+    });
+    expect(setVisibility).not.toHaveBeenCalled();
+    // Um novo host não pode receber o aviso da folha que já deixou de existir.
+    await renderWithProviders(
+      <ErrorReportModal visible setVisibility={setVisibility} />,
+    );
+    expect(
+      screen.queryByText('Não foi possível concluir. Tente novamente.'),
+    ).toBeNull();
   });
 });

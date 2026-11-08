@@ -110,6 +110,7 @@ it('aborts in-flight work and drops its result when the account changes', async 
   const signal = mockDocuments.issue.mock.calls[0][1].signal as AbortSignal;
   mockIdentity = {
     ...mockIdentity,
+    status: 'signedIn',
     account: { ...mockIdentity.account!, scope: 'b' },
   };
   await rerender({});
@@ -223,6 +224,7 @@ it("does not let a stale share completion unlock another account's pending reque
 
   mockIdentity = {
     ...mockIdentity,
+    status: 'signedIn',
     account: { ...mockIdentity.account!, scope: 'b' },
   };
   await rerender({});

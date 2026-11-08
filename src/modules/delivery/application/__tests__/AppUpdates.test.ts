@@ -152,6 +152,45 @@ it('does not track a download the student declined', async () => {
   expect(updates.getSnapshot().phase).toBe('idle');
 });
 
+it.each(['downloading', 'downloaded', 'failed', 'canceled'] as const)(
+  'keeps the newer %s event when a flexible prompt answers late',
+  async status => {
+    const { port, updates } = setup();
+    let accept!: (result: UpdateFlowResult) => void;
+    port.start.mockReturnValueOnce(
+      new Promise(resolve => {
+        accept = resolve;
+      }),
+    );
+    updates.listen();
+    await updates.check({ required: false });
+    port.emit({ status, bytesDownloaded: 50, totalBytes: 100 });
+    const observed = updates.getSnapshot();
+    accept('accepted');
+    await flush();
+    expect(updates.getSnapshot()).toEqual(observed);
+  },
+);
+
+it('keeps a download discovered by a check before the prompt answers', async () => {
+  const { port, updates } = setup();
+  let accept!: (result: UpdateFlowResult) => void;
+  port.start.mockReturnValueOnce(
+    new Promise(resolve => {
+      accept = resolve;
+    }),
+  );
+  await updates.check({ required: false });
+  port.check.mockResolvedValueOnce(appUpdate({ installStatus: 'downloaded' }));
+  await updates.check({ required: false });
+  accept('accepted');
+  await flush();
+  expect(updates.getSnapshot()).toMatchObject({
+    phase: 'downloaded',
+    progress: 1,
+  });
+});
+
 it('waits for a fresh update before asking for the flexible one', async () => {
   const port = createUpdatesPort(appUpdate({ stalenessDays: 1 }));
   const { updates } = setup({ port });

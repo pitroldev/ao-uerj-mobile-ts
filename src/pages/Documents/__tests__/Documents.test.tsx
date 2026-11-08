@@ -375,7 +375,16 @@ it('offers to keep PDFs only where the device can encrypt them', async () => {
   ).not.toBeOnTheScreen();
 });
 
-const SIGNED_IN = { status: 'signedIn' as const, account: null, error: null };
+const SIGNED_IN = {
+  status: 'signedIn' as const,
+  account: {
+    scope: 'test',
+    matricula: 'synthetic',
+    name: 'Estudante',
+    period: '2026.2',
+  },
+  error: null,
+};
 
 it('holds issuing and deleting while the portal is down', async () => {
   const monitor = new PortalMonitor({

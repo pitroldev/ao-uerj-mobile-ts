@@ -98,7 +98,11 @@ it('does not request academic data without an authenticated account', async () =
 
 it('uses one account and period cache across mounts and silent session refresh', async () => {
   await renderHistory();
-  mockIdentity = { ...mockIdentity, status: 'refreshing' };
+  mockIdentity = {
+    status: 'refreshing',
+    account: account('account-a'),
+    error: null,
+  };
   await history.rerender(undefined);
   await settle();
   expect(mockRecords.getHistory).toHaveBeenCalledTimes(1);
@@ -124,7 +128,11 @@ it('never displays account A cached data in account B and forwards cancellation'
     },
   );
   await renderHistory();
-  mockIdentity = { ...mockIdentity, account: account('account-b') };
+  mockIdentity = {
+    status: 'signedIn',
+    account: account('account-b'),
+    error: null,
+  };
   await history.rerender(undefined);
   await settle();
   expect(requestSignal?.aborted).toBe(true);

@@ -24,7 +24,7 @@ export function useDocuments() {
   const client = useQueryClient();
   const enabled =
     Boolean(account) && (status === 'signedIn' || status === 'refreshing');
-  const owner = enabled ? `${account!.scope}:${account!.period}` : 'signed-out';
+  const owner = enabled ? `${account.scope}:${account.period}` : 'signed-out';
   const key = [
     'documents',
     account?.scope ?? 'signed-out',

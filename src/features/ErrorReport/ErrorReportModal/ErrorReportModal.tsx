@@ -1,19 +1,22 @@
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useReducer, useRef, useState } from 'react';
 
 import { useAppServices } from '@root/app/providers/AppServicesProvider';
 import { errorMessage } from '@root/shared/errors/AppError';
-import type { ErrorReportDraft } from '@root/modules/support/application/ports';
 import { BottomSheet, Button, snackbar } from '@components/ui';
 
 import { FeatureSelectionStep } from '../FeatureSelectionStep';
 import { ExplanationStep } from '../ExplanationStep';
-import { SUBJECT_PAGE, isValidSubjectCode } from '../reportPages';
+import {
+  canExplain,
+  INITIAL_REPORT,
+  reportDraft,
+  reportFlow,
+} from './reportFlow';
 
 type Props = {
   visible: boolean;
   setVisibility: React.Dispatch<React.SetStateAction<boolean>>;
 };
-const emptyDraft = (): ErrorReportDraft => ({ page: '', description: '' });
 
 /**
  * Folha "Reportar problema" em 2 passos: onde o erro aconteceu (com o código
@@ -21,53 +24,64 @@ const emptyDraft = (): ErrorReportDraft => ({ page: '', description: '' });
  * o rascunho completo; uma falha mantém o texto para tentar de novo.
  */
 export const ErrorReportModal = ({ visible, setVisibility }: Props) => {
-  const { support } = useAppServices();
-  const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(0);
-  const [body, setBody] = useState(emptyDraft);
-  const [page, setPage] = useState('');
-  const [subjectCode, setSubjectCode] = useState('');
-  const [description, setDescription] = useState('');
-  // Cada abertura começa um relato novo; o ajuste é feito no render.
-  const [wasVisible, setWasVisible] = useState(visible);
-  if (visible !== wasVisible) {
-    setWasVisible(visible);
-    if (visible) {
-      setLoading(false);
-      setStep(0);
-      setBody(emptyDraft());
-      setPage('');
-      setSubjectCode('');
-      setDescription('');
-    }
+  const [session, setSession] = useState({ visible, id: 0 });
+  if (session.visible !== visible) {
+    setSession({ visible, id: session.id + (visible ? 1 : 0) });
   }
-  // Sem `finally`: o React Compiler 1.0 não compila try/finally, e o catch
-  // já trata qualquer falha.
-  const sendReport = async (draft: ErrorReportDraft) => {
-    setLoading(true);
+  // A nova abertura desmonta o formulário antigo e invalida seus callbacks.
+  return (
+    <ReportForm
+      key={session.id}
+      visible={visible}
+      setVisibility={setVisibility}
+    />
+  );
+};
+
+function ReportForm({ visible, setVisibility }: Props) {
+  const { support } = useAppServices();
+  const [state, dispatch] = useReducer(reportFlow, INITIAL_REPORT);
+  const { page, subjectCode, description } = state.fields;
+  const step = state.phase === 'selecting' ? 0 : 1;
+  const loading = state.phase === 'submitting';
+  const locked = loading || state.phase === 'submitted';
+  const pending = useRef<object | null>(null);
+  const active = useRef(false);
+  useLayoutEffect(() => {
+    active.current = visible;
+    return () => {
+      active.current = false;
+      pending.current = null;
+    };
+  }, [visible]);
+
+  const sendReport = async () => {
+    if (
+      !active.current ||
+      pending.current ||
+      reportFlow(state, { type: 'submit' }) === state
+    )
+      return;
+    const request = {};
+    pending.current = request;
+    dispatch({ type: 'submit' });
     try {
-      await support.execute(draft);
+      await support.execute(reportDraft(state));
+      if (!active.current || pending.current !== request) return;
+      dispatch({ type: 'sent' });
       setVisibility(false);
       snackbar.success('Relato enviado. Obrigado!');
     } catch (error) {
+      if (!active.current || pending.current !== request) return;
+      dispatch({ type: 'failed' });
       snackbar.error(errorMessage(error));
     }
-    setLoading(false);
-  };
-  const nextStep = (updates: Partial<ErrorReportDraft>) => {
-    const draft = { ...body, ...updates };
-    setBody(draft);
-    if (step === 0) setStep(1);
-    else if (!loading) void sendReport(draft);
+    pending.current = null;
   };
   const close = () => {
-    if (!loading) setVisibility(false);
+    if (!pending.current) setVisibility(false);
   };
-
-  const withCodeInput = page === SUBJECT_PAGE;
-  const canAdvance =
-    Boolean(page) && (!withCodeInput || isValidSubjectCode(subjectCode));
-  const code = withCodeInput ? subjectCode.trim().toUpperCase() : undefined;
+  const draft = reportDraft(state);
 
   const footer =
     step === 0
@@ -77,8 +91,8 @@ export const ErrorReportModal = ({ visible, setVisibility }: Props) => {
             label="Próximo"
             icon="arrow_forward"
             iconPosition="end"
-            disabled={!canAdvance}
-            onPress={() => nextStep({ page, subjectCode: code })}
+            disabled={!canExplain(state)}
+            onPress={() => dispatch({ type: 'next' })}
           />,
         ]
       : [
@@ -87,8 +101,8 @@ export const ErrorReportModal = ({ visible, setVisibility }: Props) => {
             variant="outline"
             label="Voltar"
             icon="arrow_back"
-            disabled={loading}
-            onPress={() => setStep(0)}
+            disabled={locked}
+            onPress={() => dispatch({ type: 'back' })}
           />,
           <Button
             key="send"
@@ -96,8 +110,10 @@ export const ErrorReportModal = ({ visible, setVisibility }: Props) => {
             icon="send"
             loading={loading}
             loadingLabel="Enviando…"
-            disabled={!description.trim()}
-            onPress={() => nextStep({ description })}
+            disabled={locked || !description.trim()}
+            onPress={() => {
+              void sendReport();
+            }}
           />,
         ];
 
@@ -114,18 +130,24 @@ export const ErrorReportModal = ({ visible, setVisibility }: Props) => {
         <FeatureSelectionStep
           page={page}
           subjectCode={subjectCode}
-          onChangePage={setPage}
-          onChangeSubjectCode={setSubjectCode}
+          onChangePage={value =>
+            dispatch({ type: 'edit', field: 'page', value })
+          }
+          onChangeSubjectCode={value =>
+            dispatch({ type: 'edit', field: 'subjectCode', value })
+          }
         />
       ) : (
         <ExplanationStep
-          page={body.page}
-          subjectCode={body.subjectCode}
+          page={draft.page}
+          subjectCode={draft.subjectCode}
           description={description}
-          onChangeDescription={setDescription}
-          editable={!loading}
+          onChangeDescription={value =>
+            dispatch({ type: 'edit', field: 'description', value })
+          }
+          editable={!locked}
         />
       )}
     </BottomSheet>
   );
-};
+}

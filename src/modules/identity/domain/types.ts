@@ -10,17 +10,22 @@ export type StudentProfile = {
 
 export type Account = StudentProfile & { scope: string };
 
-export type IdentityState = {
-  /**
-   * `restoring` com `account`: a conta salva já aparece (com o cache) e o
-   * login da abertura ainda corre; sem `account`, ainda nem foi lida.
-   */
-  status: 'restoring' | 'signedIn' | 'refreshing' | 'signedOut';
-  account: Account | null;
+type IdentityFailure = {
   error: string | null;
   /** Code of the failure described by `error`, when it was an `AppError`. */
   errorCode?: ErrorCode;
 };
+
+/**
+ * `restoring` com `account`: a conta salva já aparece (com o cache) e o
+ * login da abertura ainda corre; sem `account`, ainda nem foi lida.
+ */
+export type IdentityState = IdentityFailure &
+  (
+    | { status: 'restoring'; account: Account | null }
+    | { status: 'signedIn' | 'refreshing'; account: Account }
+    | { status: 'signedOut'; account: null }
+  );
 
 export type SavedAccount = {
   credentials: Credentials;

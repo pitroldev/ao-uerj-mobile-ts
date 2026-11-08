@@ -306,6 +306,8 @@ describe('MainRoutes authorization', () => {
     await act(() => navigation.navigate('Meu Progresso'));
     expect(screen.getByText('Tela: Meu Progresso')).toBeOnTheScreen();
 
+    // Defesa em runtime contra um produtor inválido, além do contrato de tipos.
+    // @ts-expect-error Uma identidade logada exige uma conta.
     await changeIdentity({ ...signedOut, status: 'signedIn' });
     expect(navigation.getRootState()?.routeNames).toEqual(['Login', 'Mapa']);
     expect(navigation.getCurrentRoute()?.name).toBe('Login');

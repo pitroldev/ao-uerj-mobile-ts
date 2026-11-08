@@ -17,10 +17,17 @@ const StepsContext = createContext<StepsContextType>({
 export const useStepsContext = () => useContext(StepsContext);
 
 export const useSteps = ({ initialStep = 0, maxStep = 0 }) => {
-  const [step, setStep] = useState(initialStep);
+  const last = Number.isFinite(maxStep) ? Math.max(0, Math.trunc(maxStep)) : 0;
+  const bounded = (value: number) =>
+    Number.isFinite(value) ? Math.min(last, Math.max(0, Math.trunc(value))) : 0;
+  const [storedStep, updateStep] = useState(() => bounded(initialStep));
+  const step = bounded(storedStep);
+  // Um limite menor não pode deixar a tela sem passo, nem ressuscitar o antigo.
+  if (step !== storedStep) updateStep(step);
 
-  const nextStep = () => setStep(s => Math.min(s + 1, maxStep));
-  const prevStep = () => setStep(s => Math.max(s - 1, 0));
+  const setStep = (value: number) => updateStep(bounded(value));
+  const nextStep = () => updateStep(s => bounded(s + 1));
+  const prevStep = () => updateStep(s => bounded(s - 1));
 
   return { step, nextStep, prevStep, setStep };
 };
