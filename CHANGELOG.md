@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.16.1 (2026-11-08)
+
+### Correções
+
+- Atualizações pela Play: uma resposta atrasada da loja não faz mais um download concluído voltar a aparecer como "baixando", nem apaga o progresso já recebido.
+- Reportar problema: um envio antigo não fecha mais um formulário reaberto. O envio fica protegido contra duplicidade, e uma falha mantém o texto para tentar de novo.
+- Gerador de grades: os passos ficam sempre dentro dos limites, evitando uma tela vazia ao receber um índice inválido.
+
 ## 2.16.0 (2026-11-07)
 
 ### Novidades
