@@ -102,6 +102,41 @@ describe('approximate CR policy', () => {
 });
 
 describe('curriculum progress', () => {
+  it('classifies completed subjects by the current curriculum, keeping earned credits and the total completed count', () => {
+    const progress = calculateAcademicProgress(
+      [course(), course({ id: 'IME01-12346', type: 'DEFINED', credits: 3 })],
+      [
+        curriculumCourse({ type: 'DEFINED' }),
+        curriculumCourse({ id: 'IME01-12346' }),
+        curriculumCourse({ id: 'IME01-12347' }),
+      ],
+      { ...defaultElectiveCredits, DEFINED: 8 },
+    );
+    expect(progress.approvedCount).toBe(2);
+    expect(progress.byType.completed.MANDATORY).toBe(1);
+    expect(progress.byType.remaining.MANDATORY).toBe(1);
+    expect(progress.byType.completedCredits.MANDATORY).toBe(3);
+    expect(progress.byType.completed.DEFINED).toBe(1);
+    expect(progress.byType.completedCredits.DEFINED).toBe(4);
+  });
+
+  it('does not use an approved subject outside the current curriculum to complete another mandatory subject', () => {
+    const history = [course({ id: 'IME01-99999' })];
+    const progress = calculateAcademicProgress(
+      history,
+      [curriculumCourse()],
+      defaultElectiveCredits,
+    );
+    expect(progress.approvedCount).toBe(1);
+    expect(progress.byType.completed.MANDATORY).toBe(0);
+    expect(progress.byType.remaining.MANDATORY).toBe(1);
+    expect(progress.byType.completedCredits.MANDATORY).toBe(4);
+    expect(
+      calculateAcademicProgress(history, [], defaultElectiveCredits).byType
+        .completed.MANDATORY,
+    ).toBe(1);
+  });
+
   it('counts a completion confirmed by the curriculum without inventing historical credits or a grade', () => {
     const progress = calculateAcademicProgress(
       [],

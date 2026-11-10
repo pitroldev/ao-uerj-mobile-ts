@@ -179,9 +179,10 @@ export function calculateAcademicProgress(
   const completedCredits = emptyTotals();
   const validCredits = (credits: number | null) =>
     credits !== null && Number.isFinite(credits) ? Math.max(0, credits) : 0;
-  for (const subject of new Map(
+  const curriculumById = new Map(
     curriculum.map(item => [normalizeSubjectId(item.id), item]),
-  ).values()) {
+  );
+  for (const subject of curriculumById.values()) {
     if (!subjectTypes.includes(subject.type)) continue;
     totals[subject.type] += 1;
     totalCredits[subject.type] += validCredits(subject.credits);
@@ -207,10 +208,19 @@ export function calculateAcademicProgress(
       });
     }
   }
-  for (const subject of approved.values()) {
-    const type = subject.type as SubjectType;
+  for (const [id, subject] of approved) {
+    // O histórico conserva o tipo da época em que a disciplina foi cursada.
+    // O progresso acompanha sua classificação no currículo atual.
+    const current = curriculumById.get(id);
+    const type = (current?.type ?? subject.type) as SubjectType;
+    // Uma obrigatória de outro currículo não completa uma das atuais.
+    // Sem currículo disponível, a tela ainda pode mostrar o histórico.
     if (!subjectTypes.includes(type)) continue;
-    completed[type] += 1;
+    if (type !== 'MANDATORY' || !curriculumById.size || current) {
+      completed[type] += 1;
+    }
+    // Os créditos efetivamente cursados continuam no histórico, inclusive
+    // quando não há uma linha no currículo para reclassificá-los.
     completedCredits[type] += validCredits(subject.credits);
   }
   const required = normalizeElectiveCredits(config);

@@ -95,7 +95,7 @@ No fim do Início, "Personalizar o Início" abre uma folha em que o aluno arruma
 Em Meu Progresso, o cartão "Plano até a formatura" abre a tela do plano: as obrigatórias que faltam distribuídas pelos próximos períodos, com os pré-requisitos, os gargalos e o prazo máximo do curso. O código fica em `src/modules/graduation` e `src/pages/GraduationPlan`.
 
 - **Fontes:**
-  - O currículo e o histórico dizem o que falta. As disciplinas da grade do período contam como aprovadas.
+  - O currículo e o histórico dizem o que falta. Meu Progresso usa a classificação do currículo atual: uma disciplina que era obrigatória e passou a eletiva não abate outra obrigatória pendente. O plano considera as disciplinas da grade do período como aprovadas.
   - A Síntese da Formação dá a versão curricular, os créditos que faltam em cada grupo e o prazo. Os períodos restantes são o máximo, mais os extras, menos os utilizados (os cursados e o inscrito).
   - "Período em curso" mostra a base da previsão. Se a matrícula do portal estiver adiantada em relação às aulas, o aluno pode ajustar esse período no plano. A escolha fica no aparelho, por conta, vale também no cartão de Meu Progresso e volta ao automático quando o portal avança de período. O plano começa no semestre seguinte ao escolhido; o prazo máximo continua ancorado na Síntese.
   - Em Meu Progresso, os créditos exigidos de cada grupo de eletivas também vêm da Síntese, e esses grupos não se configuram à mão. Os que ela não informa, ou todos quando ela não carrega ou o regime é seriado, usam os créditos configurados. Um grupo com 0 crédito exigido aparece como "Não exigida".
@@ -104,7 +104,7 @@ Em Meu Progresso, o cartão "Plano até a formatura" abre a tela do plano: as ob
 - **Regras:**
   - Cada grupo de pré-requisitos é um "ou", e todos os grupos valem. Um grupo com uma só alternativa entre as que faltam vira dependência.
   - Gargalo é a disciplina que trava, direta ou indiretamente, ao menos 3 outras. A cadeia mais longa de dependências é o mínimo de períodos possível.
-  - A trava de créditos ("60 Créditos Obrigatórios") conta os créditos obrigatórios aprovados, com os do período em curso.
+  - A trava de créditos usa o mínimo informado no currículo da conta, inclusive quando é zero. Só na ausência desse valor usa a Pesquisa de Disciplinas, que pode listar outras ramificações; não escolhe o maior entre as duas fontes. A comparação conta os créditos obrigatórios aprovados, com os do período em curso.
   - A carga é contada em disciplinas por período, com no mínimo 2, o piso da inscrição. "Quando formar" lista as formaturas possíveis, cada uma com a menor carga que chega lá. O padrão é a mais cedo, e uma carga maior que não adianta a data não vira opção.
   - Cada período recebe, até a carga, primeiro as disciplinas que travam outras; depois, pelo período recomendado no currículo. Um período fica com 1 disciplina só quando não há outra disponível, e o cartão avisa que ele está abaixo do mínimo da inscrição.
   - As eletivas entram como vagas "a escolher", no tamanho mais comum das disciplinas do grupo.

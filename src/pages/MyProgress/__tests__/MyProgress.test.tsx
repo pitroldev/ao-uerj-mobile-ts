@@ -201,6 +201,27 @@ it('keeps a known denominator and progress when saved curriculum data survives a
   expect(progressBars()[0]).toHaveAccessibilityValue({ now: 50 });
 });
 
+it('shows seven pending mandatory subjects when five approved subjects changed to defined electives', async () => {
+  const subjects: CurriculumSubject[] = Array.from(
+    { length: 13 },
+    (_, index) => ({
+      ...curriculum[0],
+      id: `IME01-${10000 + index}`,
+      type: index < 8 ? 'MANDATORY' : 'DEFINED',
+    }),
+  );
+  mockCurriculum = makeQuery(subjects);
+  mockHistory = makeQuery(
+    [subjects[0], ...subjects.slice(8)].map(item => ({
+      ...history[0],
+      id: item.id,
+    })),
+  );
+  await renderPage();
+  expect(screen.getByText('1 de 8 disciplinas · faltam 7')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Disciplinas concluídas: 6')).toBeOnTheScreen();
+});
+
 it('does not show a ratio or percentage for a successful empty curriculum', async () => {
   mockCurriculum = makeQuery<CurriculumSubject[]>([]);
   await renderPage();

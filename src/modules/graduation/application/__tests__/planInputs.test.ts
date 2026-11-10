@@ -3,7 +3,10 @@ import type {
   GraduationSynthesis,
   SubjectsTaken,
 } from '@root/modules/academics/domain/models';
-import { defaultElectiveCredits } from '@root/modules/academics/domain/rules/progress';
+import {
+  calculateAcademicProgress,
+  defaultElectiveCredits,
+} from '@root/modules/academics/domain/rules/progress';
 import {
   planInputs,
   planSubject,
@@ -11,6 +14,7 @@ import {
   postponementIndexes,
   type PlanSources,
 } from '../planInputs';
+import { buildGraduationPlan } from '../../domain/plan';
 
 const listed = (
   id: string,
@@ -71,6 +75,28 @@ const sources = (fields: Partial<PlanSources> = {}): PlanSources => ({
 });
 
 describe('plan inputs', () => {
+  it('agrees with Meu Progresso when five historical mandatory subjects are now defined electives', () => {
+    const curriculum = Array.from({ length: 13 }, (_, index) =>
+      listed(`IME01-${10000 + index}`, {
+        type: index < 8 ? 'MANDATORY' : 'DEFINED',
+      }),
+    );
+    const history = [curriculum[0], ...curriculum.slice(8)].map(item =>
+      taken(item.id),
+    );
+    const progress = calculateAcademicProgress(
+      history,
+      curriculum,
+      defaultElectiveCredits,
+    );
+    const inputs = planInputs(sources({ curriculum, history, inProgress: [] }));
+    expect(inputs.remaining).toHaveLength(7);
+    expect(progress.byType.remaining.MANDATORY).toBe(inputs.remaining.length);
+    expect(progress.byType.completed.MANDATORY).toBe(1);
+    expect(progress.byType.completed.DEFINED).toBe(5);
+    expect(progress.approvedCount).toBe(6);
+  });
+
   it('plans the mandatory subjects still missing, counting the current ones as passed', () => {
     const inputs = planInputs(sources());
     expect(inputs.remaining.map(item => item.id)).toEqual([
@@ -166,19 +192,40 @@ describe('plan inputs', () => {
 });
 
 describe('plan subjects', () => {
-  it('joins the curriculum with the prerequisites read, keeping the highest lock', () => {
+  it('uses the current curriculum lock over a higher cached lock from another branch', () => {
     const subject = planSubject(
-      listed('FEN04-00004', { minimum_credits: 100 }),
+      listed('IME04-10845', { minimum_credits: 118 }),
       {
-        '4': { groups: [['2']], creditLock: 120 },
+        '10845': { groups: [['2']], creditLock: 137 },
       },
     );
     expect(subject).toMatchObject({
-      key: '4',
-      minimumCredits: 120,
+      key: '10845',
+      minimumCredits: 118,
       prerequisites: [['2']],
     });
+    const options = { completed: new Set(['2']), maxSubjects: 2 };
+    expect(
+      buildGraduationPlan([subject], { ...options, credits: 118 }).periodOf.get(
+        '10845',
+      ),
+    ).toBe(0);
+    expect(
+      buildGraduationPlan([subject], {
+        ...options,
+        credits: 117,
+      }).unplanned.map(item => item.key),
+    ).toEqual(['10845']);
     expect(planSubject(listed('FEN04-00002'), {}).prerequisites).toBeNull();
+  });
+
+  it('respects an explicit zero lock and falls back to the details only when the curriculum lock is unknown', () => {
+    const entries = { '4': { groups: [], creditLock: 60 } };
+    expect(
+      planSubject(listed('FEN04-00004', { minimum_credits: 0 }), entries)
+        .minimumCredits,
+    ).toBe(0);
+    expect(planSubject(listed('FEN04-00004'), entries).minimumCredits).toBe(60);
   });
 });
 

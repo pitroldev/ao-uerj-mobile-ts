@@ -204,6 +204,16 @@ export function planSubject(
 ): PlanSubject {
   const key = keyOf(item.id) ?? item.id;
   const entry = entries[key];
+  // O currículo é da conta/ramificação atual. A Pesquisa pode listar travas
+  // de várias ramificações (inclusive obsoletas), também no cache já salvo.
+  // Zero é uma trava conhecida; só um valor ausente/inválido usa a Pesquisa.
+  const curriculumLock = item.minimum_credits;
+  const minimumCredits =
+    typeof curriculumLock === 'number' &&
+    Number.isFinite(curriculumLock) &&
+    curriculumLock >= 0
+      ? curriculumLock
+      : positive(entry?.creditLock);
   return {
     key,
     id: item.id,
@@ -212,10 +222,7 @@ export function planSubject(
     workload: item.workload,
     kind: 'MANDATORY',
     recommendedPeriod: item.period ?? null,
-    minimumCredits: Math.max(
-      positive(item.minimum_credits),
-      positive(entry?.creditLock),
-    ),
+    minimumCredits,
     prerequisites: entry ? entry.groups : null,
     placeholder: false,
   };
