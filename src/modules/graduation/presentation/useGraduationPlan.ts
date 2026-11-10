@@ -40,6 +40,7 @@ import {
   planScenarios,
 } from '../domain/plan';
 import { periodAfter } from '../domain/periods';
+import { planCalendar } from '../application/planCalendar';
 
 const DETAILS_STALE = 6 * 60 * 60 * 1000;
 const NO_ENTRIES: PrerequisiteEntries = {};
@@ -76,7 +77,11 @@ function usePlanPreferences() {
     },
     [graduation, identity, queryClient, queryKey, scope],
   );
-  return { preferences: query.data ?? DEFAULT_PLAN_PREFERENCES, change };
+  return {
+    preferences: query.data ?? DEFAULT_PLAN_PREFERENCES,
+    loading: query.isLoading,
+    change,
+  };
 }
 
 type CatalogState = Omit<CatalogProgress, 'entries'> & { loading: boolean };
@@ -259,7 +264,11 @@ export function useGraduationPlan({ load }: { load: boolean }) {
   const scheduleQuery = useSchedule();
   const synthesisQuery = useSynthesis();
   const { config: electiveCredits } = useElectiveCreditsConfig();
-  const { preferences, change } = usePlanPreferences();
+  const {
+    preferences,
+    loading: loadingPreferences,
+    change,
+  } = usePlanPreferences();
 
   const curriculum = curriculumQuery.data;
   const history = historyQuery.data;
@@ -268,11 +277,27 @@ export function useGraduationPlan({ load }: { load: boolean }) {
     synthesisQuery.data !== undefined ||
     synthesisQuery.isError ||
     synthesisQuery.isPaused;
-  const accountPeriod =
-    account?.period && /^\d{4}\.[12]$/.test(account.period)
-      ? account.period
-      : null;
-  const current = synthesis?.currentPeriod ?? accountPeriod;
+  const {
+    current,
+    detected,
+    adjusted: periodAdjusted,
+    deadline: deadlinePeriod,
+    remaining,
+  } = useMemo(
+    () =>
+      planCalendar({
+        synthesisPeriod: synthesis?.currentPeriod,
+        accountPeriod: account?.period,
+        correction: preferences.currentPeriod,
+        remaining: synthesis?.periods.remaining ?? null,
+      }),
+    [
+      account?.period,
+      preferences.currentPeriod,
+      synthesis?.currentPeriod,
+      synthesis?.periods.remaining,
+    ],
+  );
 
   const inProgress = useMemo(
     () =>
@@ -362,7 +387,6 @@ export function useGraduationPlan({ load }: { load: boolean }) {
       `${index + 1}º período do plano`,
     [current],
   );
-  const remaining = synthesis?.periods.remaining ?? null;
   const slack = deadlineSlack(plan, remaining);
   const loadOptions = scenarios.map(item => {
     const periods = item.plan.periods.length;
@@ -411,6 +435,20 @@ export function useGraduationPlan({ load }: { load: boolean }) {
       change(currentChoices => ({ ...currentChoices, load: value })),
     [change],
   );
+  const setCurrentPeriod = useCallback(
+    (period: string | null) => {
+      if (period !== null && (!detected || !/^\d{4}\.[12]$/.test(period)))
+        return;
+      return change(choices => ({
+        ...choices,
+        currentPeriod:
+          period === null || period === detected
+            ? undefined
+            : { period, detected: detected! },
+      }));
+    },
+    [change, detected],
+  );
   /** Adia uma disciplina para depois do período em que ela está no plano. */
   const postpone = useCallback(
     (key: string) => {
@@ -458,7 +496,8 @@ export function useGraduationPlan({ load }: { load: boolean }) {
     (curriculumQuery.isLoading && !curriculum) ||
     (historyQuery.isLoading && !history);
   let status: 'loading' | 'error' | 'done' | 'reading' | 'ready' = 'ready';
-  if (loadingSources || (inputs && !synthesisSettled)) status = 'loading';
+  if (loadingSources || loadingPreferences || (inputs && !synthesisSettled))
+    status = 'loading';
   else if (!inputs) status = 'error';
   else if (!subjects.length) status = 'done';
   else if (catalog.loading) status = load ? 'reading' : 'loading';
@@ -472,6 +511,9 @@ export function useGraduationPlan({ load }: { load: boolean }) {
     inProgress: inProgressKeys,
     label,
     current,
+    detectedPeriod: detected,
+    periodAdjusted,
+    setCurrentPeriod,
     /** Disciplinas por período do plano mostrado. */
     load: perPeriod,
     loadOptions,
@@ -484,7 +526,7 @@ export function useGraduationPlan({ load }: { load: boolean }) {
             remaining,
             slack: slack as number,
             level: deadlineLevel!,
-            last: current ? periodAfter(current, remaining) : null,
+            last: deadlinePeriod,
           },
     unread,
     catalog: {

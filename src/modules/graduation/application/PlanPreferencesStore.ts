@@ -17,6 +17,8 @@ export type PlanPreferences = {
    */
   load: number | null;
   postponed: Readonly<Record<string, Postponement>>;
+  /** Correção do calendário, válida até o portal avançar além de `detected`. */
+  currentPeriod?: { period: string; detected: string };
 };
 
 export const DEFAULT_PLAN_PREFERENCES: PlanPreferences = {
@@ -60,7 +62,16 @@ export function normalizePlanPreferences(raw: unknown): PlanPreferences {
           ),
         )
       : {};
-  return { load, postponed };
+  const correction = stored.currentPeriod;
+  const currentPeriod =
+    correction &&
+    typeof correction.period === 'string' &&
+    /^\d{4}\.[12]$/.test(correction.period) &&
+    typeof correction.detected === 'string' &&
+    /^\d{4}\.[12]$/.test(correction.detected)
+      ? { period: correction.period, detected: correction.detected }
+      : undefined;
+  return { load, postponed, ...(currentPeriod ? { currentPeriod } : {}) };
 }
 
 /** Carga e adiamentos do plano, por conta (saem com o logout). */

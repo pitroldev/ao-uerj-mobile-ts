@@ -404,6 +404,77 @@ it('plans without the Síntese, from the account period', async () => {
   expect(screen.queryByText(/^até /)).not.toBeOnTheScreen();
 });
 
+it('corrects a delayed academic period in the plan and card, keeping the official deadline', async () => {
+  mockSynthesis = makeQuery({ ...planSynthesis(), currentPeriod: '2017.1' });
+  await renderWithProviders(
+    <>
+      <GraduationPlanCard />
+      <GraduationPlanPage />
+    </>,
+    { queryClient },
+  );
+  await planReady();
+  expect(screen.getByLabelText('Formatura prevista: 2018.2')).toBeOnTheScreen();
+  expect(screen.getByText('até 2020.1')).toBeOnTheScreen();
+
+  await user().press(
+    screen.getByRole('button', { name: /Período em curso: 2017.1/ }),
+  );
+  await user().press(screen.getByRole('radio', { name: '2016.2' }));
+
+  await planReady('Cabe no prazo, com 4 períodos de folga');
+  expect(screen.getByLabelText('Formatura prevista: 2018.1')).toBeOnTheScreen();
+  expect(screen.getByText('até 2020.1')).toBeOnTheScreen();
+  expect(
+    screen.getByText('O plano começa em 2017.1, após as disciplinas em curso.'),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText(
+      'Formatura prevista em 2018.1, em 3 períodos. 1 disciplina trava outras.',
+    ),
+  ).toBeOnTheScreen();
+  expect(storedChoices()).toMatchObject({
+    currentPeriod: { period: '2016.2', detected: '2017.1' },
+  });
+
+  // A correção persiste ao reabrir, inclusive sem rede.
+  await act(async () => screen.unmount());
+  queryClient = createTestQueryClient();
+  await act(() => onlineManager.setOnline(false));
+  try {
+    await renderPage();
+    await planReady('Cabe no prazo, com 4 períodos de folga');
+    expect(
+      screen.getByLabelText('Formatura prevista: 2018.1'),
+    ).toBeOnTheScreen();
+    await user().press(
+      screen.getByRole('button', { name: /Período em curso: 2016.2/ }),
+    );
+    await user().press(screen.getByRole('radio', { name: /Automático/ }));
+    await planReady();
+    expect(
+      screen.getByLabelText('Formatura prevista: 2018.2'),
+    ).toBeOnTheScreen();
+  } finally {
+    await act(() => onlineManager.setOnline(true));
+  }
+});
+
+it('stops applying a period correction when the portal advances to a new semester', async () => {
+  stores.data.set(`s:${PLAN_PREFERENCES_KEY}`, {
+    load: null,
+    postponed: {},
+    currentPeriod: { period: '2016.2', detected: '2017.1' },
+  });
+  mockSynthesis = makeQuery({ ...planSynthesis(), currentPeriod: '2017.2' });
+  await renderPage();
+  await planReady();
+  expect(screen.getByLabelText('Formatura prevista: 2019.1')).toBeOnTheScreen();
+  expect(
+    screen.getByRole('button', { name: /Período em curso: 2017.2/ }),
+  ).toBeOnTheScreen();
+});
+
 it('warns when the plan does not fit the deadline', async () => {
   mockSynthesis = makeQuery(planSynthesis({ remaining: 2 }));
   await renderPage();

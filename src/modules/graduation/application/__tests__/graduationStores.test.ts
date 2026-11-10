@@ -160,6 +160,24 @@ describe('prerequisite catalog', () => {
 });
 
 describe('plan preferences', () => {
+  it('keeps calendar corrections scoped to the account and validates stored periods', async () => {
+    const { store } = memoryStore();
+    const preferences = new PlanPreferencesStore(store);
+    const currentPeriod = { period: '2016.2', detected: '2017.1' };
+    await preferences.change('a', current => ({ ...current, currentPeriod }));
+    expect((await preferences.read('a')).currentPeriod).toEqual(currentPeriod);
+    expect((await preferences.read('b')).currentPeriod).toBeUndefined();
+    expect(
+      normalizePlanPreferences({
+        currentPeriod: { period: '2016.3', detected: '2017.1' },
+      }).currentPeriod,
+    ).toBeUndefined();
+    expect(
+      normalizePlanPreferences({ currentPeriod: { period: '2016.2' } })
+        .currentPeriod,
+    ).toBeUndefined();
+  });
+
   it('ignores malformed choices', () => {
     expect(
       normalizePlanPreferences({

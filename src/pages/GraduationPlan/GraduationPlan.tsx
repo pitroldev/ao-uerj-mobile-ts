@@ -18,6 +18,7 @@ import {
   ProgressBar,
   Radio,
   Section,
+  SelectField,
   Skeleton,
   StatGroup,
   StatusLabel,
@@ -33,6 +34,7 @@ import {
   MIN_SUBJECTS_PER_PERIOD,
   type PlannedPeriod,
 } from '@root/modules/graduation/domain/plan';
+import { periodAfter } from '@root/modules/graduation/domain/periods';
 import {
   useGraduationPlan,
   type GraduationPlanView,
@@ -218,6 +220,19 @@ function Plan({
     catalog.failed.some(id => id === item.id),
   );
   const used = synthesis?.periods.used ?? 0;
+  const periodOptions = view.detectedPeriod
+    ? [
+        ...new Set([
+          ...[-2, -1, 0, 1, 2].map(offset =>
+            periodAfter(view.detectedPeriod!, offset),
+          ),
+          view.current,
+        ]),
+      ]
+        .filter((period): period is string => period !== null)
+        .sort()
+        .map(period => ({ value: period, label: period }))
+    : [];
 
   return (
     <>
@@ -227,6 +242,41 @@ function Plan({
           { value: String(length), label: 'Períodos no plano' },
         ]}
       />
+
+      <Block>
+        <SelectField
+          label="Período em curso"
+          valueLabel={view.current ?? 'Não informado'}
+          value={view.periodAdjusted ? view.current : 'automatic'}
+          aside={view.periodAdjusted ? 'Ajustado' : undefined}
+          disabled={!view.detectedPeriod && !view.periodAdjusted}
+          options={[
+            {
+              value: 'automatic',
+              label: 'Automático',
+              description: view.detectedPeriod
+                ? `${view.detectedPeriod} no Aluno Online`
+                : 'O Aluno Online não informou o período.',
+            },
+            ...periodOptions,
+          ]}
+          onChange={value => {
+            void view.setCurrentPeriod(value === 'automatic' ? null : value);
+          }}
+        />
+        <Status>
+          <Text variant="meta" tone="muted">
+            {view.current
+              ? `O plano começa em ${label(0)}, após as disciplinas em curso.`
+              : 'O plano usa períodos numerados até o Aluno Online informar o período em curso.'}
+          </Text>
+          <Text variant="meta" tone="muted">
+            {view.periodAdjusted
+              ? 'Ajuste salvo neste aparelho. Volta ao automático quando o Aluno Online avançar de período.'
+              : 'Calendário atrasado? Escolha o período que você está cursando.'}
+          </Text>
+        </Status>
+      </Block>
 
       {deadline ? (
         <Section title="Prazo">
@@ -274,7 +324,7 @@ function Plan({
               </Fact>
               <Fact>
                 <Text variant="caption" tone="muted">
-                  Restantes
+                  {view.periodAdjusted ? 'Até o prazo' : 'Restantes'}
                 </Text>
                 <Text weight="semibold" tabular>
                   {deadline.remaining}
