@@ -129,6 +129,72 @@ describe.each(['signIn', 'refresh'] as const)('%s bootstrap recovery', mode => {
     return { app, authenticate, previousLogins };
   }
 
+  it('restarts an expired login bootstrap before parsing its form', async () => {
+    const { app, authenticate, previousLogins } = await prepare();
+    const request = jest.mocked(app.transport.request);
+    const original = request.getMockImplementation()!;
+    let bootstraps = 0;
+    request.mockImplementation(input => {
+      if (input.path === '/requisicaoaluno/' && !input.params) {
+        bootstraps += 1;
+        if (bootstraps === 1) return Promise.resolve(response(expired));
+      }
+      return original(input);
+    });
+    await expect(authenticate()).resolves.toMatchObject({
+      matricula: credentials.matricula,
+    });
+    expect(bootstraps).toBe(2);
+    expect(app.loginCount()).toBe(previousLogins + 1);
+    await app.records.getGrades();
+    expect(app.operations[0].params).toMatchObject({
+      requisicao: key('grades', previousLogins + 1),
+      _token: `token-${previousLogins + 1}`,
+    });
+  });
+
+  it('stops after two expired bootstrap pages without sending credentials', async () => {
+    const { app, authenticate, previousLogins } = await prepare();
+    const request = jest.mocked(app.transport.request);
+    const original = request.getMockImplementation()!;
+    let bootstraps = 0;
+    request.mockImplementation(input => {
+      if (input.path === '/requisicaoaluno/' && !input.params) {
+        bootstraps += 1;
+        return Promise.resolve(response(expired));
+      }
+      return original(input);
+    });
+    await expect(authenticate()).rejects.toMatchObject({
+      code: 'SESSION_EXPIRED',
+    });
+    expect(bootstraps).toBe(2);
+    expect(app.loginCount()).toBe(previousLogins);
+  });
+
+  it('does not retry a login form missing its token as an expired session', async () => {
+    const { app, authenticate, previousLogins } = await prepare();
+    const request = jest.mocked(app.transport.request);
+    const original = request.getMockImplementation()!;
+    let bootstraps = 0;
+    request.mockImplementation(input => {
+      if (input.path === '/requisicaoaluno/' && !input.params) {
+        bootstraps += 1;
+        return Promise.resolve(
+          response(
+            '<input name="matricula"><input name="senha"><input name="requisicao" value="login">',
+          ),
+        );
+      }
+      return original(input);
+    });
+    await expect(authenticate()).rejects.toMatchObject({
+      code: 'PORTAL_LAYOUT_CHANGED',
+    });
+    expect(bootstraps).toBe(1);
+    expect(app.loginCount()).toBe(previousLogins);
+  });
+
   it('retries one expired authentication with a new coherent bootstrap', async () => {
     const { app, authenticate, previousLogins } = await prepare();
     app.setLoginSequence(loginPage, undefined);

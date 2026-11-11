@@ -203,9 +203,18 @@ export function createAlunoOnlineAdapter({
     checkStatus(root);
     const loginPage = await request(identity, '/requisicaoaluno/');
     checkStatus(loginPage);
+    const loginForm = loadHtml(loginPage.body);
+    // The anonymous bootstrap can expire before the login form is returned.
+    // A normal login form is expected here; only the portal's session error
+    // (or an empty response) uses the existing bounded authentication retry.
+    if (
+      !loginForm('input[name="matricula"], input[name="senha"]').length &&
+      isSessionExpiredResponse(loginPage.body, loginForm)
+    )
+      throw new AppError('SESSION_EXPIRED');
     let login: { loginReqId: string; _token: string };
     try {
-      login = await parseLoginReqId(loadHtml(loginPage.body));
+      login = await parseLoginReqId(loginForm);
     } catch {
       throw new AppError('PORTAL_LAYOUT_CHANGED');
     }
