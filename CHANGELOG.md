@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.16.2](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.16.1...v2.16.2) (2026-11-11)
+
+
+### Correções
+
+* **auth:** recover expired portal login bootstrap ([da17648](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/da17648c8e97107cb66f902a13d77a739d852633))
+* **graduation:** allow correcting the current academic period ([e3c26b6](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/e3c26b627003ffec735ba3892b50813631c91a41))
+* **graduation:** respect current curriculum classifications and credit locks ([f0acbc3](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/f0acbc3f1d1898244648966036165c6649f6c7be))
+
 ## 2.16.1 (2026-11-08)
 
 ### Correções
