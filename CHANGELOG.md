@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.17.0 (2026-11-13)
+
+### Novidades
+
+- Gerador de grades em 3 passos (Disciplinas, Horários e Grades): marcar uma disciplina já busca as turmas e diz se ela não pode entrar e por quê. As grades saem sozinhas, mudam a cada ajuste e dizem por que uma disciplina ficou de fora.
+- Horário de almoço: um ou dois tempos livres entre 11:30 e 14:10 em todo dia com aula, com a janela pintada na tabela de horários.
+- Eletivas universais no gerador, num filtro próprio, com departamento e busca.
+- Compartilhar a grade gerada como imagem, para salvar ou mandar para a turma.
+- Reportar problema: o relato leva a atualização pelo ar em uso e, no gerador, um resumo só com números da última tentativa.
+- Servidor: o gerador guarda o horário de almoço, e o admin dos relatos mostra a atualização pelo ar e a tentativa no gerador.
+
+### Correções
+
+- Gerador: os atalhos Manhã, Tarde e Noite marcam só de segunda a sexta, e o sábado ganhou botão próprio. Antes, eles tiravam sem aviso as turmas da noite com aula no sábado, comuns na FFP.
+
 ## [2.16.2](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.16.1...v2.16.2) (2026-11-11)
 
 
