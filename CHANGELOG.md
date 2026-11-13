@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.17.0](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.16.2...v2.17.0) (2026-11-13)
+
+
+### Novidades
+
+* **generator:** three steps, lunch break, universal electives and sharing ([db3cf0c](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/db3cf0c62adf9453ef870334b25645f436a97b6b))
+* **server:** keep a lunch break in generated schedules ([a678984](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/a6789846f48d239b759c5d7da278da5e620258f6))
+
 ## [2.16.2](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.16.1...v2.16.2) (2026-11-11)
 
 
