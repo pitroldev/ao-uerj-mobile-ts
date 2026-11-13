@@ -113,6 +113,35 @@ const intervals = (field: string, max: number) =>
       .max(max, `${field} must have at most ${max} entries`),
   );
 
+/** Horário de almoço: ausente (ou nulo) sem restrição; os três números quando o objeto vem. */
+const lunchBreak = z
+  .preprocess(
+    value => value ?? undefined,
+    z
+      .object(
+        {
+          start_time_in_minutes: minute('start_time_in_minutes'),
+          end_time_in_minutes: minute('end_time_in_minutes'),
+          minimum_minutes: z
+            .number({ error: 'minimum_minutes must be a number of minutes' })
+            .min(1, 'minimum_minutes must be at least 1'),
+        },
+        { error: 'lunch_break must be an object' },
+      )
+      .refine(
+        value => value.start_time_in_minutes < value.end_time_in_minutes,
+        'lunch_break must end after it starts',
+      )
+      .refine(
+        value =>
+          value.minimum_minutes <=
+          value.end_time_in_minutes - value.start_time_in_minutes,
+        'minimum_minutes must fit within the lunch break',
+      )
+      .optional(),
+  )
+  .optional();
+
 const subject = z.looseObject(
   {
     id: requiredText('id', { max: LIMIT.id, numeric: true }),
@@ -172,6 +201,7 @@ const generationBody = body({
       min_subject_amount: subjectAmount('min_subject_amount'),
       max_subject_amount: subjectAmount('max_subject_amount'),
       busy_schedules: intervals('busy_schedules', LIMIT.busyIntervals),
+      lunch_break: lunchBreak,
       // uma prioridade desconhecida não muda a ordem, como antes
       priority: z
         .preprocess(
@@ -223,6 +253,11 @@ function toGenerationRequest(wire: GenerationBody): GenerationRequest {
     maxSubjects: wire.preferences.max_subject_amount,
     busy: wire.preferences.busy_schedules.map(toInterval),
     priorities: wire.preferences.priority,
+    lunch: wire.preferences.lunch_break && {
+      start: wire.preferences.lunch_break.start_time_in_minutes,
+      end: wire.preferences.lunch_break.end_time_in_minutes,
+      minutes: wire.preferences.lunch_break.minimum_minutes,
+    },
   };
 }
 

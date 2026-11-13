@@ -1,9 +1,15 @@
 import {
   canShareSchedule,
   fitsAvailability,
+  freeWithinWindow,
+  lunchDaysOf,
+  type LunchDay,
   type PlacedClass,
 } from './compatibility.ts';
-import type { GenerationRequest, Interval } from './model.ts';
+import type { GenerationRequest, Interval, LunchBreak } from './model.ts';
+
+/** Nenhuma aula na janela do almoço: o compartilhado para quem não a usa. */
+const NO_LUNCH_DAYS: readonly LunchDay[] = [];
 
 /** Uma turma que pode entrar em alguma grade. */
 export type Candidate = PlacedClass & {
@@ -15,6 +21,8 @@ export type Candidate = PlacedClass & {
   subjectIndex: number;
   /** A turma na identidade da grade. */
   key: string;
+  /** As aulas que tocam a janela do almoço, por dia; `[]` sem a regra. */
+  lunchDays: readonly LunchDay[];
 };
 
 /**
@@ -42,6 +50,11 @@ export type Catalog = {
   compatible(a: number, b: number): boolean;
   /** Quantas disciplinas há da posição `from` em diante: o máximo que um ramo dali ainda soma. */
   subjectsFrom(from: number): number;
+  /**
+   * A turma na posição `position` ainda deixa o horário de almoço em cada dia
+   * que ela toca, junto com as já escolhidas. `true` sem a regra.
+   */
+  keepsLunchBreak(chosen: readonly Candidate[], position: number): boolean;
 };
 
 /**
@@ -50,6 +63,7 @@ export type Catalog = {
  * ocupado. A compatibilidade entre cada par fica calculada de antemão.
  */
 export function buildCatalog(request: GenerationRequest): Catalog {
+  const lunch = request.lunch;
   const subjectIndexById = new Map<string, number>();
   request.subjects.forEach((subject, index) => {
     if (!subjectIndexById.has(subject.id))
@@ -61,6 +75,11 @@ export function buildCatalog(request: GenerationRequest): Catalog {
     const subjectIndex = subjectIndexById.get(option.subjectId);
     if (subjectIndex === undefined) return;
     if (!fitsAvailability(option, request.busy)) return;
+    // uma turma que sozinha já cobre a janela não entra em grade nenhuma
+    const lunchDays = lunch
+      ? lunchDaysOf(lunch, option.intervals)
+      : NO_LUNCH_DAYS;
+    if (lunch && coversLunch(lunch, lunchDays)) return;
     candidates.push({
       position: candidates.length,
       classIndex,
@@ -68,6 +87,7 @@ export function buildCatalog(request: GenerationRequest): Catalog {
       subject: request.subjects[subjectIndex],
       intervals: option.intervals,
       key: classKey(option.subjectId, option.intervals),
+      lunchDays,
     });
   });
 
@@ -91,5 +111,36 @@ export function buildCatalog(request: GenerationRequest): Catalog {
     candidates,
     compatible: (a, b) => clashes[a * size + b] === 0,
     subjectsFrom: from => subjectsFrom[from],
+    keepsLunchBreak: (chosen, position) =>
+      !lunch || keepsLunch(lunch, chosen, candidates[position]),
   };
+}
+
+/** Algum dia da turma, sozinha, não deixa o trecho livre exigido. */
+function coversLunch(
+  lunch: LunchBreak,
+  lunchDays: readonly LunchDay[],
+): boolean {
+  return lunchDays.some(
+    ({ intervals }) => freeWithinWindow(lunch, intervals) < lunch.minutes,
+  );
+}
+
+/**
+ * A turma, com as já escolhidas, ainda deixa o trecho livre em cada dia que
+ * ela toca. Só esses dias mudam: a regra é monótona e o resto já valia.
+ */
+function keepsLunch(
+  lunch: LunchBreak,
+  chosen: readonly Candidate[],
+  added: Candidate,
+): boolean {
+  for (const { day, intervals } of added.lunchDays) {
+    const ofDay: Interval[] = [...intervals];
+    for (const option of chosen)
+      for (const other of option.lunchDays)
+        if (other.day === day) ofDay.push(...other.intervals);
+    if (freeWithinWindow(lunch, ofDay) < lunch.minutes) return false;
+  }
+  return true;
 }

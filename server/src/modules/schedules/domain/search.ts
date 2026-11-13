@@ -36,6 +36,7 @@ export function generateSchedules(
 ): GenerationResult {
   const minimum = minimumOf(request);
   const maximum = request.maxSubjects;
+  const hasLunch = request.lunch !== undefined;
   const catalog = buildCatalog(request);
   const { candidates } = catalog;
   if (!candidates.length || maximum < minimum) return noSchedules();
@@ -83,6 +84,7 @@ export function generateSchedules(
     for (let next = from; next < candidates.length; next++) {
       if (stopped || !promising(next)) return;
       if (!fitsChosen(next)) continue;
+      if (hasLunch && !catalog.keepsLunchBreak(chosen, next)) continue;
       chosen.push(candidates[next]);
       visit(next + 1);
       chosen.pop();

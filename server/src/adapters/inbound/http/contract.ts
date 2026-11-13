@@ -193,6 +193,12 @@ export type GenerateSchedulesRequest = {
     priority: SchedulePriority[];
     /** Horários em que o aluno não pode. */
     busy_schedules?: ScheduleInterval[];
+    /** Horário de almoço: um trecho livre de `minimum_minutes` dentro da janela, em cada dia com aula. */
+    lunch_break?: {
+      start_time_in_minutes: number;
+      end_time_in_minutes: number;
+      minimum_minutes: number;
+    };
   };
   classes: GeneratorClass[];
   subjects: GeneratorSubject[];

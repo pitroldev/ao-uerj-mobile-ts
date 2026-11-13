@@ -15,6 +15,7 @@ import {
 import type {
   Diagnostic,
   ErrorReport,
+  GeneratorRun,
   ReviewFilter,
   ReviewStatus,
 } from '../../../../../modules/reports/domain.ts';
@@ -444,15 +445,87 @@ function description(text: string | undefined) {
 const kib = (bytes: number) =>
   `${Math.max(1, Math.round(bytes / 1024)).toLocaleString('pt-BR')} KB`;
 
+const GENERATOR_OUTCOMES: Record<string, string> = {
+  NOT_RUN: 'não chegou a gerar',
+  SCHEDULES: 'gerou grades',
+  EMPTY: 'nenhuma grade',
+  SHORTFALL_ROUTINE: 'nenhuma disciplina cabe na rotina (ocupados e almoço)',
+  SHORTFALL_SUBJECTS: 'nenhuma disciplina escolhida pode entrar',
+  SHORTFALL_SELECTION: 'o aluno tirou todas as turmas',
+  TOO_MANY_CLASSES: 'turmas demais para combinar',
+};
+
+const GENERATOR_GOALS: Record<string, string> = {
+  COMPACT: 'menos intervalos',
+  FEW_DAYS: 'menos dias na UERJ',
+  LIGHT_DAYS: 'dias mais leves',
+  ADVANCE: 'adiantar o curso',
+};
+
+/** Os passos do gerador do app (2.17 em diante). */
+const GENERATOR_STEPS = ['Disciplinas', 'Horários', 'Grades'];
+
+const amount = (n: number, one: string, many: string) =>
+  `${n} ${n === 1 ? one : many}`;
+
+/**
+ * "Passo 3 de 3 (Grades) · 7 escolhidas, 7 podem entrar, 1 com turma livre ·
+ * 77 tempos ocupados (17 no sábado) · almoço de 50 min · menos intervalos ·
+ * nenhuma disciplina cabe na rotina (ocupados e almoço)"
+ */
+export function generatorSummary(run: GeneratorRun): string {
+  const stepName = GENERATOR_STEPS[run.step];
+  const step = stepName
+    ? `Passo ${run.step + 1} de ${GENERATOR_STEPS.length} (${stepName})`
+    : `Passo ${run.step + 1}`;
+  const subjects = [
+    run.chosenSubjects === undefined
+      ? null
+      : `${amount(run.chosenSubjects, 'escolhida', 'escolhidas')}${run.universalSubjects ? ` (${amount(run.universalSubjects, 'universal', 'universais')})` : ''}`,
+    run.eligibleSubjects === undefined
+      ? null
+      : amount(run.eligibleSubjects, 'pode entrar', 'podem entrar'),
+    run.subjectsWithFreeClass === undefined
+      ? null
+      : `${run.subjectsWithFreeClass} com turma livre`,
+    run.maximumSubjects === undefined ? null : `até ${run.maximumSubjects}`,
+  ]
+    .filter(Boolean)
+    .join(', ');
+  const classes =
+    run.classes === undefined
+      ? null
+      : `${run.freeClasses ?? '?'} de ${amount(run.classes, 'turma livre', 'turmas livres')}${run.removedClasses ? `, ${amount(run.removedClasses, 'tirada', 'tiradas')}` : ''}`;
+  const busy =
+    run.busySlots === undefined
+      ? null
+      : `${amount(run.busySlots, 'tempo ocupado', 'tempos ocupados')}${run.saturdayBusySlots ? ` (${run.saturdayBusySlots} no sábado)` : ''}`;
+  const lunch = run.lunchMinutes ? `almoço de ${run.lunchMinutes} min` : null;
+  const goal = run.goal ? (GENERATOR_GOALS[run.goal] ?? run.goal) : null;
+  const outcome =
+    run.outcome === 'SCHEDULES' && run.schedules !== undefined
+      ? `gerou ${amount(run.schedules, 'grade', 'grades')} (a maior com ${run.largestSchedule ?? '?'})`
+      : (GENERATOR_OUTCOMES[run.outcome] ?? run.outcome);
+  return [step, subjects || null, classes, busy, lunch, goal, outcome]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+/** O começo do id da OTA ("0195f2a1…"), que já a distingue das outras. */
+const shortId = (id: string) => (id.length > 12 ? `${id.slice(0, 8)}…` : id);
+
 function diagnosticFacts(diagnostic: Diagnostic) {
   const facts: Array<[string, string]> = [
     ['App', diagnostic.appVersion],
     ['Leitura do portal', diagnostic.parserVersion],
     ['Tipo', diagnostic.category],
   ];
+  if (diagnostic.updateId) facts.push(['OTA', shortId(diagnostic.updateId)]);
   if (diagnostic.subjectCode)
     facts.push(['Disciplina', diagnostic.subjectCode]);
   if (diagnostic.eventId) facts.push(['Sentry', diagnostic.eventId]);
+  if (diagnostic.generator)
+    facts.push(['Gerador', generatorSummary(diagnostic.generator)]);
   return html`<dl class="facts">
     ${facts.map(
       ([term, value]) =>
@@ -1432,12 +1505,18 @@ export function diagnosticPage({
     ['Tela', report.page],
     ['Enviado em', stampFormat.format(report.createdAt)],
     ['Versão do app', diagnostic.appVersion],
+    [
+      'Atualização (OTA)',
+      diagnostic.updateId ?? 'nenhuma informada (JS da loja ou app antigo)',
+    ],
     ['Leitura do portal', diagnostic.parserVersion],
     ['Tipo', diagnostic.category],
     ['Operação', diagnostic.operation],
   ];
   if (diagnostic.subjectCode) rows.push(['Disciplina', diagnostic.subjectCode]);
   if (diagnostic.eventId) rows.push(['Evento no Sentry', diagnostic.eventId]);
+  if (diagnostic.generator)
+    rows.push(['Gerador de grade', generatorSummary(diagnostic.generator)]);
   return layout({
     base,
     title: 'Diagnóstico',

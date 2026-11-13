@@ -146,6 +146,49 @@ test('only a JSON of schema 1 with the expected fields is a diagnostic', () => {
       eventId: 'abc',
     },
   );
+  // desde a 2.16.2: a OTA em uso e, no relato do gerador, as contagens
+  assert.deepEqual(
+    parseDiagnostic(
+      JSON.stringify({
+        ...valid,
+        updateId: '0195f2a1-7c1e-7d3a-9b2f-1a2b3c4d5e6f',
+        generator: {
+          step: 2,
+          outcome: 'SHORTFALL_ROUTINE',
+          goal: 'COMPACT',
+          lunchMinutes: 50,
+          busySlots: 72,
+          classes: -1,
+          schedules: 1.5,
+          subjects: ['FFP04-09770'],
+        },
+      }),
+    ),
+    {
+      operation: 'Notas',
+      category: 'USER_REPORT',
+      appVersion: '2.10.0',
+      parserVersion: '2026.10.2',
+      updateId: '0195f2a1-7c1e-7d3a-9b2f-1a2b3c4d5e6f',
+      generator: {
+        step: 2,
+        outcome: 'SHORTFALL_ROUTINE',
+        goal: 'COMPACT',
+        busySlots: 72,
+        lunchMinutes: 50,
+      },
+    },
+  );
+  // um resumo do gerador sem passo ou com um resultado fora do formato some
+  for (const generator of [
+    { outcome: 'EMPTY' },
+    { step: 2, outcome: 'falhou' },
+    'texto',
+  ])
+    assert.equal(
+      parseDiagnostic(JSON.stringify({ ...valid, generator }))?.generator,
+      undefined,
+    );
   for (const content of [
     '<html><body>página do portal</body></html>',
     '{quebrado',

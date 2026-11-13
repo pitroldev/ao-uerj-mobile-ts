@@ -748,6 +748,10 @@ permitido valendo nas duas ordens). As regras:
   permita;
 - duas grades com as mesmas disciplinas nos mesmos horários são uma só: fica
   a turma que veio antes no pedido;
+- com `lunch_break`, uma grade só vale se, em cada dia com aula, sobra um
+  trecho contínuo de pelo menos `minimum_minutes` dentro de
+  `[start_time_in_minutes, end_time_in_minutes)` sem aula (a turma que sozinha
+  já cobre a janela nem entra); ausente ou `null`, sem restrição;
 - mais disciplinas primeiro, depois as prioridades do aluno na ordem dada; no
   empate, a encontrada antes.
 

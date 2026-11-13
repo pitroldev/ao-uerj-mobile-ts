@@ -375,3 +375,58 @@ test('the suggestions tab lists them escaped, and the pages say when the databas
   assert.equal(out.status, 503);
   assert.match(out.text, /Banco fora do ar/);
 });
+
+test('the review shows the OTA update and a generator summary from the diagnostic', async () => {
+  const app = await serve();
+  await app.report({
+    page: 'Gerador de Grade',
+    html: [
+      diagnostic({
+        operation: 'Gerador de Grade',
+        appVersion: '2.16.2',
+        updateId: '0195f2a1-7c1e-7d3a-9b2f-1a2b3c4d5e6f',
+        generator: {
+          step: 2,
+          outcome: 'SHORTFALL_ROUTINE',
+          goal: 'COMPACT',
+          chosenSubjects: 7,
+          universalSubjects: 1,
+          eligibleSubjects: 7,
+          subjectsWithFreeClass: 1,
+          classes: 7,
+          freeClasses: 1,
+          busySlots: 77,
+          saturdayBusySlots: 17,
+          lunchMinutes: 50,
+        },
+      }),
+    ],
+  });
+  await app.report({ page: 'Notas', html: [diagnostic()] });
+  await app.signIn();
+  const summary =
+    'Passo 3 de 3 (Grades) · 7 escolhidas (1 universal), 7 podem entrar, 1 com turma livre · 1 de 7 turmas livres · 77 tempos ocupados (17 no sábado) · almoço de 50 min · menos intervalos · nenhuma disciplina cabe na rotina (ocupados e almoço)';
+
+  const list = await app.call('/aouerj/admin');
+  assert.equal(list.status, 200);
+  assert.match(list.text, /<dt>OTA<\/dt>\s*<dd>0195f2a1…<\/dd>/);
+  assert.ok(list.text.includes(summary), 'resumo do gerador na lista');
+
+  const report = app.memory.data.reports.find(
+    item => item.page === 'Gerador de Grade',
+  )!;
+  const shown = await app.call(
+    `/aouerj/admin/relatos/${report.id}/anexos/${report.attachmentIds[0]}`,
+  );
+  assert.ok(shown.text.includes('0195f2a1-7c1e-7d3a-9b2f-1a2b3c4d5e6f'));
+  assert.ok(shown.text.includes(summary), 'resumo do gerador no diagnóstico');
+
+  // sem OTA, a página do diagnóstico diz que não veio
+  const other = app.memory.data.reports.find(item => item.page === 'Notas')!;
+  const plain = await app.call(
+    `/aouerj/admin/relatos/${other.id}/anexos/${other.attachmentIds[0]}`,
+  );
+  assert.ok(
+    plain.text.includes('nenhuma informada (JS da loja ou app antigo)'),
+  );
+});

@@ -13,7 +13,15 @@ import { toGenerationResponse } from '../src/adapters/inbound/http/schedules/res
 import { parse } from '../src/adapters/inbound/http/validation.ts';
 import { createInlineSolver } from '../src/adapters/outbound/scheduleSolver/inlineSolver.ts';
 import { createScheduleGenerator } from '../src/modules/schedules/application.ts';
+import {
+  respectsLunchBreak,
+  type PlacedClass,
+} from '../src/modules/schedules/domain/compatibility.ts';
 import { createLeaderboard } from '../src/modules/schedules/domain/leaderboard.ts';
+import type {
+  Interval,
+  Subject,
+} from '../src/modules/schedules/domain/model.ts';
 import {
   CRITERIA,
   createRanking,
@@ -386,4 +394,182 @@ test('the inline solver honors its time budget', async () => {
   assert.equal(result.exhaustive, false);
   assert.equal(result.schedules.length, 5);
   assert.ok(performance.now() - started < 2000);
+});
+
+/* --------------------------------------------------- Horário de almoço */
+
+const anySubject: Subject = {
+  id: 'X',
+  credits: 0,
+  workload: 0,
+  mandatory: false,
+  allowsConflict: false,
+  criticality: 0,
+  blocks: 0,
+};
+const span = (day: number, start: number, end: number): Interval => ({
+  day,
+  start,
+  end,
+});
+const classAt = (
+  intervals: Interval[],
+  allowsConflict = false,
+): PlacedClass => ({
+  subject: allowsConflict
+    ? { ...anySubject, allowsConflict: true }
+    : anySubject,
+  intervals,
+});
+
+test('the lunch break leaves a continuous free slot in the window on every day with class', () => {
+  const lunch = { start: 690, end: 850, minutes: 50 };
+  // 690–740 e 800–850 deixam 740–800 (60) livre
+  assert.equal(
+    respectsLunchBreak(
+      [classAt([span(0, 690, 740)]), classAt([span(0, 800, 850)])],
+      lunch,
+    ),
+    true,
+  );
+  // 690–740, 740–800 e 800–850 não deixam nada
+  assert.equal(
+    respectsLunchBreak(
+      [
+        classAt([span(0, 690, 740)]),
+        classAt([span(0, 740, 800)]),
+        classAt([span(0, 800, 850)]),
+      ],
+      lunch,
+    ),
+    false,
+  );
+  // só aula de manhã até 740 deixa 740–850 livre
+  assert.equal(respectsLunchBreak([classAt([span(0, 600, 740)])], lunch), true);
+  // um dia só à noite (fora da janela) e a grade vazia passam
+  assert.equal(
+    respectsLunchBreak([classAt([span(0, 900, 1000)])], lunch),
+    true,
+  );
+  assert.equal(respectsLunchBreak([], lunch), true);
+});
+
+test('a long lunch break needs two free periods in a row, and overlapping classes both count', () => {
+  const wide = { start: 690, end: 850, minutes: 100 };
+  // janela inteira livre (160) dá os 100 seguidos
+  assert.equal(respectsLunchBreak([], wide), true);
+  // uma aula de 50 no meio parte a janela em 50 e 60: não há 100 seguidos
+  assert.equal(respectsLunchBreak([classAt([span(0, 740, 790)])], wide), false);
+  // duas aulas sobrepostas (uma com choque permitido) cobrem a janela
+  const lunch = { start: 690, end: 850, minutes: 50 };
+  assert.equal(
+    respectsLunchBreak(
+      [classAt([span(0, 690, 800)]), classAt([span(0, 750, 850)], true)],
+      lunch,
+    ),
+    false,
+  );
+});
+
+const WINDOW = {
+  start_time_in_minutes: 690,
+  end_time_in_minutes: 850,
+  minimum_minutes: 50,
+};
+
+/** Um pedido com uma turma por `[disciplina, dia, início, fim]`. */
+function lunchRequest(
+  specs: Array<[string, number, number, number]>,
+): GenerateSchedulesRequest {
+  const ids = [...new Set(specs.map(([id]) => id))];
+  return {
+    preferences: {
+      min_subject_amount: 1,
+      max_subject_amount: ids.length,
+      priority: ['MAX_CREDITS'],
+    },
+    subjects: ids.map(id => ({
+      id,
+      name: id,
+      type: 'MANDATORY',
+      credits: 4,
+      total_workload: 60,
+      prerequisites: [],
+      allow_conflict: false,
+    })),
+    classes: specs.map(([id, day, start, end], index) => ({
+      id: String(index + 1),
+      name: id,
+      type: 'REGULAR',
+      teachers: [],
+      vacancies_amount: 10,
+      subject_id: id,
+      schedules: [
+        {
+          week_day: day,
+          start_time_in_minutes: start,
+          end_time_in_minutes: end,
+        },
+      ],
+    })),
+  };
+}
+
+test('the lunch break drops a subject when a day fills the window, and leaves the rest untouched', () => {
+  const body = lunchRequest([
+    ['A', 0, 690, 740],
+    ['B', 0, 740, 800],
+    ['C', 0, 800, 850],
+  ]);
+  // sem almoço, as três seguidas são a melhor grade (três disciplinas)
+  assert.equal(generate(body).data[0].schedule.length, 3);
+  // com o almoço, a janela não cabe as três: no máximo duas
+  body.preferences.lunch_break = WINDOW;
+  const withLunch = generate(body);
+  assert.equal(withLunch.data[0].schedule.length, 2);
+  assert.ok(
+    withLunch.data.every(
+      (s: { schedule: unknown[] }) => s.schedule.length <= 2,
+    ),
+  );
+});
+
+test('with the lunch break, a minimum no valid schedule can reach is empty', () => {
+  const body = lunchRequest([
+    ['A', 0, 690, 740],
+    ['B', 0, 740, 800],
+    ['C', 0, 800, 850],
+  ]);
+  body.preferences.min_subject_amount = 3;
+  body.preferences.max_subject_amount = 3;
+  // sem almoço, as três seguidas formam a única grade
+  assert.equal(generate(body).data.length, 1);
+  body.preferences.lunch_break = WINDOW;
+  assert.deepEqual(generate(body).data, []);
+});
+
+test('a class that fills the whole lunch window never enters a schedule', () => {
+  // D cobre a janela inteira no dia 0; E é livre no dia 1
+  const body = lunchRequest([
+    ['D', 0, 690, 850],
+    ['E', 1, 100, 200],
+  ]);
+  // sem almoço, D e E cabem juntas
+  assert.ok(
+    generate(body).data.some(
+      (s: { schedule: unknown[] }) => s.schedule.length === 2,
+    ),
+  );
+  body.preferences.lunch_break = WINDOW;
+  const limited = generate(body);
+  // D sai do catálogo (cobre a janela sozinha): sobra só E
+  assert.ok(
+    limited.data.every((s: { schedule: { subject_id: string }[] }) =>
+      s.schedule.every(c => c.subject_id !== 'D'),
+    ),
+  );
+  assert.deepEqual(
+    limited.data.map((s: { schedule: unknown[] }) => s.schedule.length),
+    [1],
+  );
 });

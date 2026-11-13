@@ -819,6 +819,98 @@ test('a malformed generation request is a 400 that says where', async () => {
   }
 });
 
+const windowed = () => [
+  group('A', [interval(0, 690, 740)]),
+  group('B', [interval(0, 740, 800)]),
+  group('C', [interval(0, 800, 850)]),
+];
+
+test('the lunch break keeps a free slot in the window, and null means none', async () => {
+  // sem a regra, as três seguidas são a melhor grade (três disciplinas)
+  const open = await generate(generation(windowed()));
+  assert.equal(open[0].schedule.length, 3);
+  // null vale ausente: nada muda
+  const nulled = await generate(generation(windowed(), { lunch_break: null }));
+  assert.equal(nulled[0].schedule.length, 3);
+  // com 50 min livres entre 690 e 850, não cabem as três
+  const lunched = await generate(
+    generation(windowed(), {
+      lunch_break: {
+        start_time_in_minutes: 690,
+        end_time_in_minutes: 850,
+        minimum_minutes: 50,
+      },
+    }),
+  );
+  assert.equal(lunched[0].schedule.length, 2);
+  assert.ok(lunched.every(s => s.schedule.length <= 2));
+});
+
+test('a malformed lunch break is a 400 that says where', async () => {
+  const cases: [Record<string, unknown>, string][] = [
+    [
+      { end_time_in_minutes: 850, minimum_minutes: 50 },
+      'start_time_in_minutes must be a number of minutes (preferences.lunch_break.start_time_in_minutes)',
+    ],
+    [
+      { start_time_in_minutes: 690, minimum_minutes: 50 },
+      'end_time_in_minutes must be a number of minutes (preferences.lunch_break.end_time_in_minutes)',
+    ],
+    [
+      { start_time_in_minutes: 690, end_time_in_minutes: 850 },
+      'minimum_minutes must be a number of minutes (preferences.lunch_break.minimum_minutes)',
+    ],
+    [
+      {
+        start_time_in_minutes: -1,
+        end_time_in_minutes: 850,
+        minimum_minutes: 50,
+      },
+      'start_time_in_minutes must be between 0 and 1440 (preferences.lunch_break.start_time_in_minutes)',
+    ],
+    [
+      {
+        start_time_in_minutes: 690,
+        end_time_in_minutes: 1441,
+        minimum_minutes: 50,
+      },
+      'end_time_in_minutes must be between 0 and 1440 (preferences.lunch_break.end_time_in_minutes)',
+    ],
+    [
+      {
+        start_time_in_minutes: 690,
+        end_time_in_minutes: 850,
+        minimum_minutes: 0,
+      },
+      'minimum_minutes must be at least 1 (preferences.lunch_break.minimum_minutes)',
+    ],
+    [
+      {
+        start_time_in_minutes: 850,
+        end_time_in_minutes: 690,
+        minimum_minutes: 50,
+      },
+      'lunch_break must end after it starts (preferences.lunch_break)',
+    ],
+    [
+      {
+        start_time_in_minutes: 690,
+        end_time_in_minutes: 850,
+        minimum_minutes: 200,
+      },
+      'minimum_minutes must fit within the lunch break (preferences.lunch_break)',
+    ],
+  ];
+  for (const [lunch_break, message] of cases) {
+    const refused = await app.call('/schedules/generate', {
+      method: 'POST',
+      body: generation(windowed(), { lunch_break }),
+    });
+    assert.equal(refused.status, 400);
+    assert.deepEqual(refused.body, { error: 'invalid_request', message });
+  }
+});
+
 test('the generator health shows its load, and generations are limited per minute', async () => {
   const health = await app.call('/schedules/health');
   assert.equal(health.status, 200);

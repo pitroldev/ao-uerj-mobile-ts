@@ -25,6 +25,13 @@ export type Subject = {
 export type ClassOption = { subjectId: string; intervals: Interval[] };
 
 /**
+ * Horário de almoço: um trecho contínuo livre de pelo menos `minutes` minutos
+ * dentro de `[start, end)` (minutos desde a meia-noite, `end` exclusivo) em
+ * cada dia com aula.
+ */
+export type LunchBreak = { start: number; end: number; minutes: number };
+
+/**
  * As prioridades que o aluno escolhe, nos nomes do servidor antigo. A
  * primeira da grade é sempre `MOST_SUBJECTS_POSSIBLE`.
  */
@@ -56,6 +63,8 @@ export type GenerationRequest = {
   /** Horários em que o aluno não pode; nem o choque permitido passa por cima. */
   busy: Interval[];
   priorities: Priority[];
+  /** Horário de almoço exigido; ausente, sem restrição. */
+  lunch?: LunchBreak;
 };
 
 /** Uma turma escolhida: as posições em `request.classes` e `request.subjects`. */
