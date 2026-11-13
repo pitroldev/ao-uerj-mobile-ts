@@ -39,7 +39,7 @@ O app está publicado para Android. O código do iPhone existe e compila no CI, 
 | 🎓  | **Meu Progresso**      | O avanço no currículo, as horas complementares e o plano até a formatura                              |   ✅    |                ✅                 |
 | 📚  | **Consultas do AO**    | Histórico, currículo, disciplinas universais, pesquisa de disciplinas e RID                           |   ✅    |                ✅                 |
 | 📄  | **Documentos**         | Emite e compartilha os PDFs do portal e guarda até 5 no aparelho                                      |   ✅    |                ✅                 |
-| 🧩  | **Gerador de grades**  | Monta as melhores grades com as turmas e as prioridades que você escolher                             |   ✅    |                ✅                 |
+| 🧩  | **Gerador de grades**  | Monta grades com os horários livres e o almoço que você escolher e manda a melhor para a turma        |   ✅    |                ✅                 |
 | 💬  | **Mural da turma**     | Mensagens por turma, com o nome que você escolher                                                     |   ✅    |                ✅                 |
 | 🍽️  | **Companhia agora**    | Uma mesa para almoçar junto ou um grupo para voltar depois da aula da noite                           |   ✅    |        ✅ sem o "Me avise"        |
 | 📢  | **Agora no campus**    | Avisos dos alunos: elevador parado, fila do bandejão, sala trancada                                   |   ✅    | ✅ sem os avisos em segundo plano |

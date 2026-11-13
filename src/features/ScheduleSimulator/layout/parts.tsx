@@ -2,7 +2,7 @@ import React from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import styled, { useTheme } from 'styled-components/native';
 
-import { Text } from '@components/ui';
+import { Icon, Text, type IconName } from '@components/ui';
 
 /* ---------------------------------------------------------------- StepIntro */
 
@@ -133,4 +133,74 @@ export function useStepListStyle(): ViewStyle {
     paddingTop: theme.layout.panelPaddingTop,
     paddingBottom: theme.layout.panelPaddingBottom,
   };
+}
+
+/* ------------------------------------------------------------- FooterStatus */
+
+const StatusRow = styled.Pressable`
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  margin: -4px 0px;
+`;
+
+const StatusText = styled(Text)`
+  flex: 1;
+`;
+
+const STATUS_HIT_SLOP = { top: 8, bottom: 8 };
+
+/**
+ * Linha de situação do rodapé: o efeito das escolhas do passo ("3 escolhidas
+ * · 12 créditos", "2 de 7 disciplinas ficam sem turma"). Com `onPress`, a
+ * linha inteira é um botão que abre o detalhe.
+ */
+export function FooterStatus({
+  text,
+  tone = 'muted',
+  icon,
+  onPress,
+  actionLabel,
+}: {
+  text: string;
+  tone?: 'muted' | 'bad' | 'good';
+  icon?: IconName;
+  onPress?: () => void;
+  /** O que o toque faz, para o leitor de tela ("Ver as disciplinas escolhidas"). */
+  actionLabel?: string;
+}) {
+  const theme = useTheme();
+  const ink =
+    tone === 'bad'
+      ? theme.status.bad.ink
+      : tone === 'good'
+        ? theme.status.good.ink
+        : theme.colors.inkMuted;
+  return (
+    <StatusRow
+      disabled={!onPress}
+      onPress={onPress}
+      hitSlop={STATUS_HIT_SLOP}
+      accessibilityRole={onPress ? 'button' : 'text'}
+      accessibilityLabel={
+        onPress && actionLabel ? `${text}. ${actionLabel}` : text
+      }
+      accessibilityLiveRegion="polite"
+    >
+      {icon ? (
+        <Icon name={icon} size={theme.sizes.icon.sm} color={ink} />
+      ) : null}
+      <StatusText variant="meta" weight="medium" color={ink}>
+        {text}
+      </StatusText>
+      {onPress ? (
+        <Icon
+          name="expand_less"
+          size={theme.sizes.icon.lg}
+          color={theme.colors.accent}
+        />
+      ) : null}
+    </StatusRow>
+  );
 }

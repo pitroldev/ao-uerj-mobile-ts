@@ -1,2 +1,2 @@
 export { UniversalSubjectRow } from './UniversalSubjectRow';
-export { buildDepartmentOptions } from './departments';
+export { buildDepartmentOptions, departmentOf } from './departments';

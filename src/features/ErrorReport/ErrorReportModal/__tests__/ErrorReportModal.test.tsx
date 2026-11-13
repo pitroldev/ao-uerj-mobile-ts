@@ -6,7 +6,17 @@ import { ErrorReportModal } from '../ErrorReportModal';
 
 jest.mock('@root/app/providers/AppServicesProvider', () => ({
   useAppServices: jest.fn(),
+  useIdentity: () => ({ account: { scope: 'conta-1' } }),
 }));
+
+/** A última tentativa no gerador, como o `GeneratorRunLog` devolve. */
+const LAST_RUN = {
+  step: 2,
+  outcome: 'SHORTFALL_ROUTINE',
+  busySlots: 72,
+  lunchMinutes: 50,
+  subjectsWithFreeClass: 1,
+};
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
@@ -17,6 +27,7 @@ const SUBJECT_CODE = 'Insira o código da disciplina';
 describe('support submission', () => {
   const execute = jest.fn();
   const setVisibility = jest.fn();
+  const read = jest.fn();
   let user: ReturnType<typeof userEvent.setup>;
 
   const button = (label: string) => screen.getByRole('button', { name: label });
@@ -28,11 +39,11 @@ describe('support submission', () => {
     jest.useFakeTimers();
     jest.clearAllMocks();
     execute.mockResolvedValue(undefined);
-    jest
-      .mocked(useAppServices)
-      .mockReturnValue({ support: { execute } } as unknown as ReturnType<
-        typeof useAppServices
-      >);
+    read.mockReturnValue(LAST_RUN);
+    jest.mocked(useAppServices).mockReturnValue({
+      support: { execute },
+      generatorRuns: { read },
+    } as unknown as ReturnType<typeof useAppServices>);
     user = userEvent.setup();
     await renderWithProviders(
       <ErrorReportModal visible setVisibility={setVisibility} />,
@@ -66,6 +77,26 @@ describe('support submission', () => {
     expect(
       await screen.findByText('Relato enviado. Obrigado!'),
     ).toBeOnTheScreen();
+  });
+
+  it('sends the counts of the last generator attempt only with a generator report, and says so', async () => {
+    // a mesma tentativa guardada não vai no relato do Quadro de Notas (teste
+    // acima); a folha a lê da conta atual
+    expect(read).toHaveBeenCalledWith('conta-1');
+    await user.press(screen.getByRole('radio', { name: 'Gerador de Grade' }));
+    await press('Próximo');
+    expect(
+      screen.getByText(
+        'Junto vai um resumo da sua última tentativa no gerador, só com números: quantas disciplinas, turmas e horários ocupados, e o resultado.',
+      ),
+    ).toBeOnTheScreen();
+    await describeProblem('Não gera com 6 disciplinas.');
+    await press('Enviar relato');
+    expect(execute).toHaveBeenCalledWith({
+      page: 'Gerador de Grade',
+      description: 'Não gera com 6 disciplinas.',
+      generator: LAST_RUN,
+    });
   });
 
   it('preserves the report and leaves loading after a failed submission', async () => {

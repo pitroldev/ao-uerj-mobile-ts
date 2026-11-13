@@ -49,3 +49,7 @@ export const inviteMessage = (invite: Invite): string =>
 /** A legenda que vai junto com a imagem da grade. */
 export const scheduleCaption = (period?: string | null): string =>
   `Minha grade${period ? ` de ${period}` : ''}, feita no app AO UERJ: ${inviteLink('grade')}`;
+
+/** A legenda da grade planejada no Gerador de Grade. */
+export const plannedScheduleCaption = (): string =>
+  `Minha grade planejada no gerador do app AO UERJ: ${inviteLink('gerador')}`;

@@ -8,7 +8,7 @@ import styled, { useTheme } from 'styled-components/native';
 
 import { Button, type IconName } from '@components/ui';
 
-export type StepAction = {
+type StepAction = {
   label: string;
   icon?: IconName;
   iconPosition?: 'start' | 'end';
@@ -16,15 +16,26 @@ export type StepAction = {
   disabled?: boolean;
   loading?: boolean;
   loadingLabel?: string;
+  /** `outline` para a ação que não é o caminho principal ("Começar de novo"). */
+  variant?: 'primary' | 'outline';
 };
 
 export type StepFooterProps = {
-  /** Sem `onPrev` (passo 1), "Anterior" fica desabilitado. */
+  /** Sem `onPrev` (primeiro passo), só a ação principal, na largura toda. */
   onPrev?: () => void;
   prevDisabled?: boolean;
-  /** Ação principal à direita (Próximo, Gerar grades, Gerar outra grade). */
+  /** Ação principal à direita (Próximo, Ver grades, Começar de novo). */
   next: StepAction;
+  /**
+   * Linha acima dos botões (`FooterStatus`): o efeito das escolhas do passo,
+   * sempre à vista enquanto a lista ou a tabela rolam.
+   */
+  status?: React.ReactNode;
 };
+
+const Column = styled.View`
+  gap: ${({ theme }) => theme.spacing.sm}px;
+`;
 
 const Row = styled.View`
   flex-direction: row;
@@ -87,12 +98,13 @@ function FooterRow({ onPrev, prevDisabled, next }: StepFooterProps) {
           icon="arrow_back"
           label={compact ? undefined : 'Anterior'}
           accessibilityLabel="Anterior"
-          disabled={prevDisabled || !onPrev}
+          disabled={prevDisabled}
           onPress={onPrev}
         />
       </Slot>
       <Slot style={slotStyle(1)} onLayout={onSlotLayout(1)}>
         <Button
+          variant={next.variant}
           label={next.label}
           icon={next.icon}
           iconPosition={next.iconPosition}
@@ -106,17 +118,41 @@ function FooterRow({ onPrev, prevDisabled, next }: StepFooterProps) {
   );
 }
 
-/** Rodapé fixo do gerador: "Anterior" e a ação do passo. */
+/**
+ * Rodapé fixo do gerador: a situação das escolhas (opcional), "Anterior" e a
+ * ação do passo. No primeiro passo, só a ação, na largura toda.
+ */
 export function StepFooter(props: StepFooterProps) {
   const { fontScale } = useWindowDimensions();
+  const { next, onPrev, status } = props;
   // mede de novo quando o rótulo ou o tamanho da fonte mudam
   const key = [
-    props.next.label,
-    props.next.loading ? props.next.loadingLabel : '',
-    props.next.icon,
+    next.label,
+    next.loading ? next.loadingLabel : '',
+    next.icon,
+    next.variant,
     fontScale,
   ].join('|');
-  return <FooterRow key={key} {...props} />;
+  return (
+    <Column>
+      {status}
+      {onPrev ? (
+        <FooterRow key={key} {...props} />
+      ) : (
+        <Button
+          block
+          variant={next.variant}
+          label={next.label}
+          icon={next.icon}
+          iconPosition={next.iconPosition}
+          disabled={next.disabled}
+          loading={next.loading}
+          loadingLabel={next.loadingLabel}
+          onPress={next.onPress}
+        />
+      )}
+    </Column>
+  );
 }
 
 const styles = StyleSheet.create({

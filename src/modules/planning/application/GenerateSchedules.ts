@@ -2,9 +2,10 @@ import { AppError } from '@root/shared/errors/AppError';
 import { ScheduleCreationParams } from '../domain/models';
 import {
   MAX_CLASSES_AMOUNT,
-  hasScheduleConflict,
-  scheduleIntervals,
+  TooManyClasses,
+  classBlock,
   subjectEligibility,
+  subjectShortfall,
 } from '../domain/rules';
 import { GenerationOptions, ScheduleGeneratorPort } from './ports';
 
@@ -30,11 +31,6 @@ export class GenerateSchedules {
         'INVALID_INPUT',
         'Informe quantidades de disciplinas entre 1 e 12, com mínimo menor ou igual ao máximo.',
       );
-    if (
-      !form.selectedClasses.length ||
-      form.selectedClasses.length > MAX_CLASSES_AMOUNT
-    )
-      throw new AppError('INVALID_INPUT', 'Selecione entre 1 e 30 turmas.');
     const subjects = form.subjects.map(details => {
       const curriculum = form.selectedSubjects.find(
         subject => subject.id === details.id,
@@ -66,28 +62,23 @@ export class GenerateSchedules {
         'INVALID_INPUT',
         'Há turmas que não pertencem às disciplinas selecionadas.',
       );
-    if (
-      new Set(form.selectedClasses.map(group => group.subject_id)).size <
-      minimumSubjects
-    )
-      throw new AppError(
-        'INVALID_INPUT',
-        'Selecione turmas de disciplinas suficientes para atingir o mínimo.',
-      );
-    // Busy hours are enforced here too (the server also filters them): a
-    // class the student reselected by hand never reaches the request.
+    const lunch = form.lunch ?? null;
+    // The routine is enforced here too (the server also filters it): a class
+    // the student reselected by hand never reaches the request. Short of the
+    // minimum, the error says why (routine, choices or selection).
+    const shortfall = subjectShortfall({
+      minimum: minimumSubjects,
+      subjects: form.subjects,
+      selectedClasses: form.selectedClasses,
+      busy: form.busy_schedules,
+      lunch,
+    });
+    if (shortfall) throw shortfall;
     const compatibleClasses = form.selectedClasses.filter(
-      group =>
-        !hasScheduleConflict(
-          scheduleIntervals(group.schedule ?? []),
-          form.busy_schedules,
-        ),
+      group => !classBlock(group, form.busy_schedules, lunch),
     );
-    if (
-      new Set(compatibleClasses.map(group => group.subject_id)).size <
-      minimumSubjects
-    )
-      return [];
+    if (compatibleClasses.length > MAX_CLASSES_AMOUNT)
+      throw new TooManyClasses(compatibleClasses.length);
     return this.generator.generate(
       {
         preferences: {
@@ -95,6 +86,7 @@ export class GenerateSchedules {
           maximumSubjects,
           priorities: form.priority,
           busyIntervals: form.busy_schedules,
+          ...(lunch ? { lunch } : {}),
         },
         subjects,
         classes: compatibleClasses,

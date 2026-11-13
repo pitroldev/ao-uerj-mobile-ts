@@ -64,6 +64,29 @@ it('sends the expected legacy DTO only at the adapter boundary', async () => {
   );
 });
 
+it('sends the lunch break in the names of the wire, and nothing without it', async () => {
+  const transport = {
+    post: jest.fn().mockResolvedValue({ data: { data: [] } }),
+  };
+  const generate = (lunch: ScheduleCreationParams['lunch']) =>
+    new GenerateSchedules(createScheduleGeneratorAdapter(transport)).execute({
+      ...form,
+      lunch,
+    });
+  await generate({ start: 690, end: 850, minutes: 50 });
+  expect(transport.post.mock.calls[0][1].preferences).toMatchObject({
+    lunch_break: {
+      start_time_in_minutes: 690,
+      end_time_in_minutes: 850,
+      minimum_minutes: 50,
+    },
+  });
+  await generate(null);
+  expect(transport.post.mock.calls[1][1].preferences).not.toHaveProperty(
+    'lunch_break',
+  );
+});
+
 it('sends the criticality CRITICAL_FIRST ranks by, and nothing without it', async () => {
   const transport = {
     post: jest.fn().mockResolvedValue({ data: { data: [] } }),

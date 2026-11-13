@@ -4,37 +4,27 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { StepsProvider, useSteps } from '@hooks/useSteps';
 
 import {
-  ScheduleCreationParams,
-  createScheduleDraft,
+  GeneratorDraft,
+  createGeneratorDraft,
 } from '@root/modules/planning/domain/models';
 
-import { SubjectAmountStep } from '@features/ScheduleSimulator/steps/SubjectAmountStep';
-import { BusyHoursStep } from '@features/ScheduleSimulator/steps/BusyHoursStep';
-import { PriorityStep } from '@features/ScheduleSimulator/steps/PriorityStep';
 import { SubjectsStep } from '@features/ScheduleSimulator/steps/SubjectsStep';
-import { FetchDataStep } from '@features/ScheduleSimulator/steps/FetchDataStep';
-import { ClassesStep } from '@features/ScheduleSimulator/steps/ClassesStep';
-import { GenerationStep } from '@features/ScheduleSimulator/steps/GenerationStep';
+import { RoutineStep } from '@features/ScheduleSimulator/steps/RoutineStep';
+import { ResultsStep } from '@features/ScheduleSimulator/steps/ResultsStep';
 import { CriticalityProvider } from '@features/ScheduleSimulator/criticality/CriticalityProvider';
+import { GeneratorRunRecorder } from '@features/ScheduleSimulator/GeneratorRunRecorder';
 
 /**
- * Cada passo desenha o próprio painel (`GeneratorStep`): trilho de passos no
- * topo, conteúdo e rodapé Anterior/Próximo.
+ * O gerador em três passos: o que cursar, quando não pode ter aula e as
+ * grades. Cada passo desenha o próprio painel (`GeneratorStep`): trilho de
+ * passos no topo, conteúdo e rodapé.
  */
-const steps = [
-  SubjectAmountStep,
-  BusyHoursStep,
-  PriorityStep,
-  SubjectsStep,
-  FetchDataStep,
-  ClassesStep,
-  GenerationStep,
-];
+const steps = [SubjectsStep, RoutineStep, ResultsStep];
 
 export const ScheduleCreationPage = () => {
-  const methods = useForm<ScheduleCreationParams>({
+  const methods = useForm<GeneratorDraft>({
     mode: 'all',
-    defaultValues: createScheduleDraft(),
+    defaultValues: createGeneratorDraft(),
   });
 
   const { step, nextStep, prevStep, setStep } = useSteps({
@@ -49,6 +39,7 @@ export const ScheduleCreationPage = () => {
       {/* aqui, e não no passo: a leitura dos pré-requisitos segue entre os passos */}
       <CriticalityProvider>
         <StepsProvider values={{ step, nextStep, prevStep, setStep }}>
+          <GeneratorRunRecorder step={step} />
           {CurrentStep && <CurrentStep />}
         </StepsProvider>
       </CriticalityProvider>

@@ -12,17 +12,27 @@ export type FilterChipProps = {
   onPress?: () => void;
   /** Ícone à esquerda quando desmarcado (marcado mostra o "check"). */
   icon?: IconName;
+  /**
+   * Chip que abre uma escolha numa folha ("Até 7 disciplinas"): seta à
+   * direita e papel de botão, sem estado marcado.
+   */
+  menu?: boolean;
   disabled?: boolean;
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
 };
 
-const Chip = styled.Pressable<{ $selected: boolean; $icon: boolean }>`
+const Chip = styled.Pressable<{
+  $selected: boolean;
+  $icon: boolean;
+  $menu: boolean;
+}>`
   flex-direction: row;
   align-items: center;
   gap: 6px;
   min-height: ${({ theme }) => theme.sizes.chip}px;
-  padding: 0px 14px 0px ${({ $icon }) => ($icon ? 10 : 14)}px;
+  padding: 0px ${({ $menu }) => ($menu ? 8 : 14)}px 0px
+    ${({ $icon }) => ($icon ? 10 : 14)}px;
   border-width: ${({ theme }) => theme.borders.hairline}px;
   border-color: ${({ theme, $selected }) =>
     $selected ? theme.colors.accentLine : theme.colors.ruleStrong};
@@ -44,6 +54,7 @@ export function FilterChip({
   selected = false,
   onPress,
   icon,
+  menu = false,
   disabled = false,
   accessibilityLabel,
   style,
@@ -56,12 +67,13 @@ export function FilterChip({
     <Chip
       $selected={selected}
       $icon={Boolean(glyph)}
+      $menu={menu}
       onPress={onPress}
       disabled={disabled}
       hitSlop={HIT_SLOP}
-      accessibilityRole="togglebutton"
+      accessibilityRole={menu ? 'button' : 'togglebutton'}
       accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityState={{ checked: selected, disabled }}
+      accessibilityState={menu ? { disabled } : { checked: selected, disabled }}
       style={({ pressed }) => [
         pressed && !selected && { backgroundColor: c.surfacePressed },
         style,
@@ -73,6 +85,9 @@ export function FilterChip({
       <Text weight="medium" color={fg} numberOfLines={1}>
         {label}
       </Text>
+      {menu ? (
+        <Icon name="expand_more" size={theme.sizes.icon.md} color={fg} />
+      ) : null}
     </Chip>
   );
 }

@@ -24,7 +24,7 @@ Não é o app da UERJ; é o app que os alunos gostariam que a UERJ tivesse feito
 - Vocabulário próprio da UERJ que deve permanecer intacto: tempos M1–M6, T1–T6, N1–N5; períodos no formato 2025.1; P1, P2, PF e Média; RID parcial (vagas solicitadas/oferecidas e posição na fila); disciplina Obrigatória, Eletiva Restrita, Eletiva Definida e Universal; códigos de disciplina como IME02-01388; ementa no ementário da UERJ.
 - O portal fica bloqueado ou instável com frequência; o app deve mostrar dados salvos, avisar que estão desatualizados e permitir tentar de novo.
 - Mural: mensagens por disciplina, turma e período, com nome do autor, para trocar links de grupos, materiais e datas de prova.
-- Gerador de grade em 7 passos: quantidade de disciplinas, horários ocupados, prioridades, seleção de disciplinas, carregamento de dados, escolha de turmas e geração.
+- Gerador de grade em 3 passos: disciplinas (do currículo e eletivas universais, com as turmas buscadas ao marcar), horários (os ocupados e o horário de almoço) e grades (geradas ao chegar, com os ajustes de limite de disciplinas, do que mais importa e das turmas, e compartilhadas como imagem, o mesmo pôster da grade do período).
 
 ## Capabilities and Constraints
 
@@ -56,7 +56,7 @@ Não é o app da UERJ; é o app que os alunos gostariam que a UERJ tivesse feito
 1. A resposta vem antes da navegação: a informação do momento (próxima aula, nota nova, posição no RID) aparece sem toques extras.
 2. Dado salvo é melhor do que tela vazia; a idade do dado fica sempre visível.
 3. Fala a língua da UERJ: tempos, períodos, códigos e tipos de disciplina aparecem como o aluno já conhece.
-4. Planejar é uma conversa: o gerador guia passo a passo e explica cada escolha.
+4. Planejar é uma conversa: o gerador guia em poucos passos, mostra o efeito de cada escolha na hora e diz por que uma disciplina ficou de fora.
 5. Honestidade sobre a origem: não oficial, CR aproximado, falhas do portal assumidas com clareza.
 
 ## Accessibility & Inclusion

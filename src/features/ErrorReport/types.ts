@@ -10,6 +10,8 @@ export type FeatureStepProps = {
 export type ExplanationStepProps = {
   page: string;
   subjectCode?: string;
+  /** O relato leva as contagens da última tentativa no gerador. */
+  withGeneratorSummary?: boolean;
   description: string;
   onChangeDescription: (description: string) => void;
   editable?: boolean;

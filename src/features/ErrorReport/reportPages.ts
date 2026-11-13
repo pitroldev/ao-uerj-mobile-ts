@@ -20,6 +20,9 @@ export const FEATURES = [
 /** Opção que pede o código da disciplina. */
 export const SUBJECT_PAGE = 'Informações de uma disciplina específica';
 
+/** Opção que leva junto as contagens da última tentativa no gerador. */
+export const GENERATOR_PAGE = 'Gerador de Grade';
+
 export function isValidSubjectCode(code: string): boolean {
   return /^[A-Z][A-Z0-9]{1,7}-\d{3,8}$/.test(code.trim().toUpperCase());
 }

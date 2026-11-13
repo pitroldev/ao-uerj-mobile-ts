@@ -10,6 +10,7 @@ import path from 'node:path';
 import { createInterface } from 'node:readline';
 
 import { GenerateSchedules } from '@root/modules/planning/application/GenerateSchedules';
+import { lunchBreak } from '@root/modules/planning/domain/lunch';
 import {
   curriculum,
   details,
@@ -216,7 +217,6 @@ it('generates schedules the app accepts, with the most subjects first', async ()
     min_subject_amount: 1,
     max_subject_amount: 3,
     priority: ['MIN_GAPS', 'MAX_CREDITS'],
-    subjectsToTake: subjects.map(entry => entry.curriculum),
     selectedSubjects: subjects.map(entry => entry.curriculum),
     subjects: subjects.map(entry => entry.details),
     selectedClasses: subjects.map(entry => ({
@@ -242,6 +242,56 @@ it('generates schedules the app accepts, with the most subjects first', async ()
     ).toBe(schedule.schedule.length);
 });
 
+it('leaves a free slot for lunch when the student asks for it', async () => {
+  const subject = (id: string, slots: Array<'M6' | 'T1' | 'T2'>) => ({
+    curriculum: { ...curriculum, id },
+    details: {
+      ...details,
+      id,
+      classes: [{ ...details.classes![0], schedule: [{ Segunda: [slots] }] }],
+    },
+  });
+  // segunda, uma atrás da outra: M6 (11:30), T1 (12:20) e T2 (13:20)
+  const subjects = [
+    subject('IME01-10001', ['M6']),
+    subject('IME01-10002', ['T1']),
+    subject('IME01-10003', ['T2']),
+  ];
+  const request: ScheduleCreationParams = {
+    ...form,
+    min_subject_amount: 1,
+    max_subject_amount: 3,
+    priority: ['MIN_GAPS'],
+    selectedSubjects: subjects.map(entry => entry.curriculum),
+    subjects: subjects.map(entry => entry.details),
+    selectedClasses: subjects.map(entry => ({
+      ...entry.details.classes[0],
+      subject_id: entry.curriculum.id,
+    })),
+  };
+  const generate = (lunch: ScheduleCreationParams['lunch']) =>
+    new GenerateSchedules(
+      createScheduleGeneratorAdapter(
+        createGeneratorTransport(`${base}/schedules`),
+      ),
+    ).execute({ ...request, lunch });
+
+  // sem o almoço, as três cabem e tomam a janela inteira
+  expect((await generate(null))[0].schedule).toHaveLength(3);
+  // com um tempo livre, nenhuma grade passa de duas
+  const oneSlot = await generate(lunchBreak(50));
+  expect(oneSlot.length).toBeGreaterThan(0);
+  for (const schedule of oneSlot)
+    expect(schedule.schedule.length).toBeLessThanOrEqual(2);
+  expect(oneSlot[0].schedule).toHaveLength(2);
+  // com dois tempos seguidos, só cabe uma, numa das pontas
+  const twoSlots = await generate(lunchBreak(100));
+  expect(twoSlots[0].schedule).toHaveLength(1);
+  expect(
+    twoSlots.map(schedule => schedule.schedule[0].subject_id).sort(),
+  ).toEqual(['IME01-10001', 'IME01-10003']);
+});
+
 it('puts the subject that locks more pending subjects first with CRITICAL_FIRST', async () => {
   const subject = (id: string, day: string) => ({
     curriculum: { ...curriculum, id },
@@ -264,7 +314,6 @@ it('puts the subject that locks more pending subjects first with CRITICAL_FIRST'
     min_subject_amount: 2,
     max_subject_amount: 2,
     priority: ['CRITICAL_FIRST'],
-    subjectsToTake: subjects.map(entry => entry.curriculum),
     selectedSubjects: subjects.map(entry => entry.curriculum),
     subjects: subjects.map(entry => entry.details),
     selectedClasses: subjects.map(entry => ({

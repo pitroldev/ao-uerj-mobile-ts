@@ -9,14 +9,22 @@ import {
   type PlanSubject,
 } from '@root/modules/graduation/domain/plan';
 import {
-  createScheduleDraft,
+  assembleGeneration,
+  type SubjectAvailability,
+} from '@root/modules/planning/domain/availability';
+import {
+  GOALS,
+  createGeneratorDraft,
+  type GeneratorDraft,
   type ScheduleCreationParams,
 } from '@root/modules/planning/domain/models';
-import type { SubjectInfo } from '@root/modules/academics/domain/models';
+import type {
+  CurriculumSubject,
+  SubjectInfo,
+} from '@root/modules/academics/domain/models';
 
 import { CriticalityProvider } from '../criticality/CriticalityProvider';
-import { PriorityStep } from '../steps/PriorityStep';
-import { GenerationStep } from '../steps/GenerationStep';
+import { ResultsStep } from '../steps/ResultsStep';
 
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -28,15 +36,44 @@ jest.mock('@root/modules/graduation/presentation/useGraduationPlan', () => ({
 }));
 
 const mockGeneration = {
-  isIdle: true,
   isPending: false,
   isSuccess: false,
-  data: undefined,
+  data: undefined as unknown[] | undefined,
   error: null,
+  variables: undefined as ScheduleCreationParams | undefined,
   mutate: jest.fn(),
 };
 jest.mock('@root/modules/planning/presentation/useGenerateSchedules', () => ({
   useGenerateSchedules: () => mockGeneration,
+}));
+// o hook de verdade puxa o AppServicesProvider, e com ele o NetInfo nativo
+jest.mock('@root/modules/planning/presentation/useGeneratorRun', () => ({
+  useGeneratorRunNote: () => () => undefined,
+  useGeneratorRunStart: () => () => undefined,
+}));
+// o compartilhamento da grade também puxa o AppServicesProvider
+jest.mock('@root/modules/academics/presentation/useScheduleSharing', () => ({
+  useScheduleSharing: () => ({
+    share: jest.fn(),
+    exporting: false,
+    SvgRenderer: () => null,
+  }),
+}));
+jest.mock('@root/modules/delivery/presentation/DeliveryProvider', () => ({
+  ...jest.requireActual('@root/modules/delivery/presentation/DeliveryProvider'),
+  useCanInvite: () => false,
+}));
+
+const mockCatalog = {
+  availability: new Map<string, SubjectAvailability>(),
+  loading: 0,
+  failed: 0,
+  retry: jest.fn(),
+  history: { data: [] },
+  curriculum: { data: undefined },
+};
+jest.mock('@root/modules/planning/presentation/usePlanningCatalog', () => ({
+  usePlanningCatalog: () => mockCatalog,
 }));
 
 /* --------------------------------------------------------------- fixtures */
@@ -88,45 +125,55 @@ const view = (
   },
 });
 
-const details = (key: string): SubjectInfo => ({
+const curriculum = (key: string): CurriculumSubject => ({
   id: `IME02-${key}`,
   name: `Disciplina ${key}`,
-  classes: [],
+  type: 'MANDATORY',
+  credits: 4,
+  workload: 60,
+  minimum_credits: null,
 });
+const details = (key: string, day: 'Segunda' | 'Terça'): SubjectInfo => ({
+  id: `IME02-${key}`,
+  name: `Disciplina ${key}`,
+  classes: [
+    {
+      classNumber: 1,
+      schedule: [{ [day]: [['M1', 'M2']] }],
+      vacancies: { uerj: {}, freshman: {} },
+    },
+  ],
+});
+const CHOSEN = [curriculum('10871'), curriculum('10880')];
+const ADVANCE = [...GOALS.ADVANCE];
 
 /* ---------------------------------------------------------------- harness */
 
 const steps = { nextStep: jest.fn(), prevStep: jest.fn(), setStep: jest.fn() };
 
 function Harness({
-  step,
   values,
   children,
 }: {
-  step: number;
-  values: Partial<ScheduleCreationParams>;
+  values: Partial<GeneratorDraft>;
   children: React.ReactNode;
 }) {
-  const form = useForm<ScheduleCreationParams>({
-    defaultValues: { ...createScheduleDraft(), ...values },
+  const form = useForm<GeneratorDraft>({
+    defaultValues: { ...createGeneratorDraft(), ...values },
   });
   return (
     <FormProvider {...form}>
       <CriticalityProvider>
-        <StepsProvider values={{ step, ...steps }}>{children}</StepsProvider>
+        <StepsProvider values={{ step: 2, ...steps }}>{children}</StepsProvider>
       </CriticalityProvider>
     </FormProvider>
   );
 }
 
-const renderStep = (
-  node: React.ReactElement,
-  step: number,
-  values: Partial<ScheduleCreationParams> = {},
-) =>
-  renderWithProviders(node, {
+const renderResults = (values: Partial<GeneratorDraft> = {}) =>
+  renderWithProviders(<ResultsStep />, {
     wrapper: ({ children }) => (
-      <Harness step={step} values={values}>
+      <Harness values={{ selectedSubjects: CHOSEN, ...values }}>
         {children}
       </Harness>
     ),
@@ -139,50 +186,51 @@ beforeEach(() => {
   mockPlan.mockReset();
   retry.mockReset();
   mockGeneration.mutate.mockReset();
+  mockCatalog.availability = new Map<string, SubjectAvailability>([
+    ['IME02-10871', { status: 'ready', details: details('10871', 'Segunda') }],
+    ['IME02-10880', { status: 'ready', details: details('10880', 'Terça') }],
+  ]);
 });
 afterEach(() => {
   jest.useRealTimers();
 });
 
-const button = (name: string) => screen.getByRole('button', { name });
-const critical = () =>
-  screen.getByRole('switch', {
-    name: 'Matérias críticas (que travam outras matérias)',
-  });
+const button = (name: string | RegExp) => screen.getByRole('button', { name });
+const openGoals = () => user.press(button(/^O que mais importa: /));
 
 /* ------------------------------------------------------------------ tests */
 
-describe('Matérias críticas nas prioridades', () => {
+describe('"Adiantar o curso" na folha do que mais importa', () => {
   // o hook de verdade memoriza o grafo; um novo a cada chamada nunca assentaria
   const answer =
     (stored: ReturnType<typeof view>, loading: ReturnType<typeof view>) =>
     ({ load }: { load: boolean }) =>
       load ? loading : stored;
 
-  it('reads nothing while off, then offers to read the prerequisites and reads on request', async () => {
+  it('reads nothing with another goal, then offers to read the prerequisites and reads on request', async () => {
     mockPlan.mockImplementation(
       answer(
         view(UNREAD),
         view(UNREAD, { status: 'reading', catalog: { done: 1, total: 3 } }),
       ),
     );
-    await renderStep(<PriorityStep />, 2);
+    await renderResults();
     expect(mockPlan).not.toHaveBeenCalled();
 
-    await user.press(critical());
+    await openGoals();
+    await user.press(screen.getByRole('radio', { name: /^Adiantar o curso/ }));
     expect(
-      screen.getByText(
+      screen.getAllByText(
         /o app lê no Aluno Online os pré-requisitos das 3 obrigatórias que faltam/,
-      ),
-    ).toBeOnTheScreen();
+      ).length,
+    ).toBeGreaterThan(0);
 
-    await user.press(button('Ler os pré-requisitos'));
+    await user.press(
+      screen.getAllByRole('button', { name: 'Ler os pré-requisitos' })[0],
+    );
     expect(mockPlan).toHaveBeenLastCalledWith({ load: true });
     expect(
       screen.getByText(/^Lendo os pré-requisitos: 1 de 3\. Pode seguir/),
-    ).toBeOnTheScreen();
-    expect(
-      screen.getByLabelText('Pré-requisitos lidos: 1 de 3'),
     ).toBeOnTheScreen();
   });
 
@@ -195,59 +243,53 @@ describe('Matérias críticas nas prioridades', () => {
         }),
       ),
     );
-    await renderStep(<PriorityStep />, 2, { priority: ['CRITICAL_FIRST'] });
-    await user.press(button('Ler os pré-requisitos'));
+    await renderResults({ priority: ADVANCE });
+    await openGoals();
+    await user.press(
+      screen.getAllByRole('button', { name: 'Ler os pré-requisitos' })[0],
+    );
     expect(
-      screen.getByText(/^A leitura dos pré-requisitos parou/),
-    ).toBeOnTheScreen();
+      screen.getAllByText(/^A leitura dos pré-requisitos parou/).length,
+    ).toBeGreaterThan(0);
 
-    await user.press(button('Tentar novamente'));
+    await user.press(
+      screen.getAllByRole('button', { name: 'Tentar novamente' })[0],
+    );
     expect(retry).toHaveBeenCalled();
   });
 
   it('confirms when everything is read and explains when it cannot know', async () => {
     mockPlan.mockReturnValue(view(READ));
-    await renderStep(<PriorityStep />, 2, { priority: ['CRITICAL_FIRST'] });
+    await renderResults({ priority: ADVANCE });
+    await openGoals();
     expect(screen.getByText(/^Pré-requisitos lidos/)).toBeOnTheScreen();
     await screen.unmount();
 
     mockPlan.mockReturnValue(view(READ, { status: 'error' }));
-    await renderStep(<PriorityStep />, 2, { priority: ['CRITICAL_FIRST'] });
+    await renderResults({ priority: ADVANCE });
     expect(
       screen.getByText(/esta prioridade não muda a ordem das grades/),
     ).toBeOnTheScreen();
   });
 });
 
-describe('Matérias críticas ao gerar', () => {
-  const values = {
-    min_subject_amount: 1,
-    max_subject_amount: 2,
-    subjects: [details('10871'), details('10880')],
-  };
-
+describe('"Adiantar o curso" ao gerar', () => {
   it('sends how many pending subjects each chosen one locks', async () => {
     mockPlan.mockReturnValue(view(READ));
-    await renderStep(<GenerationStep />, 6, {
-      ...values,
-      priority: ['CRITICAL_FIRST'],
-    });
-    await user.press(button('Gerar grades'));
-    expect(mockGeneration.mutate).toHaveBeenCalledWith(
+    await renderResults({ priority: ADVANCE });
+    expect(mockGeneration.mutate).toHaveBeenLastCalledWith(
       expect.objectContaining({
+        priority: ADVANCE,
         criticality: { 'IME02-10871': 2, 'IME02-10880': 1 },
       }),
     );
   });
 
-  it('warns that generating while reading uses what was read', async () => {
+  it('warns that the schedules use what was read so far', async () => {
     mockPlan.mockReturnValue(
       view(READ, { status: 'reading', catalog: { done: 2, total: 3 } }),
     );
-    await renderStep(<GenerationStep />, 6, {
-      ...values,
-      priority: ['CRITICAL_FIRST'],
-    });
+    await renderResults({ priority: ADVANCE });
     expect(
       screen.getByText(
         'Ainda lendo os pré-requisitos (2 de 3). Gerar agora usa o que já foi lido.',
@@ -255,15 +297,16 @@ describe('Matérias críticas ao gerar', () => {
     ).toBeOnTheScreen();
   });
 
-  it('sends no count without the priority', async () => {
-    await renderStep(<GenerationStep />, 6, {
-      ...values,
-      priority: ['MIN_GAPS'],
-    });
-    await user.press(button('Gerar grades'));
-    expect(mockPlan).not.toHaveBeenCalled();
-    expect(mockGeneration.mutate.mock.calls[0][0]).not.toHaveProperty(
-      'criticality',
+  it('does not send the count with another goal', async () => {
+    mockPlan.mockReturnValue(view(READ));
+    await renderResults();
+    expect(mockGeneration.mutate).toHaveBeenCalledWith(
+      assembleGeneration({
+        draft: { ...createGeneratorDraft(), selectedSubjects: CHOSEN },
+        availability: mockCatalog.availability,
+        history: [],
+      }),
     );
+    expect(mockPlan).not.toHaveBeenCalled();
   });
 });

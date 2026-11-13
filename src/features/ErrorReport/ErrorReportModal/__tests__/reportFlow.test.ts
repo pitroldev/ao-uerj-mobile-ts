@@ -56,3 +56,23 @@ it('omits the previous subject code after changing to a different feature', () =
     description: 'Falha.',
   });
 });
+
+it('carries the generator counts only in a generator report', () => {
+  const run = { step: 4, outcome: 'NOT_RUN', busySlots: 10 };
+  const state = {
+    ...INITIAL_REPORT,
+    fields: { page: 'Gerador de Grade', subjectCode: '', description: 'x' },
+  };
+  expect(reportDraft(state, run)).toEqual({
+    page: 'Gerador de Grade',
+    description: 'x',
+    generator: run,
+  });
+  expect(reportDraft(state, null)).not.toHaveProperty('generator');
+  expect(
+    reportDraft(
+      reportFlow(state, { type: 'edit', field: 'page', value: 'Sobre' }),
+      run,
+    ),
+  ).not.toHaveProperty('generator');
+});

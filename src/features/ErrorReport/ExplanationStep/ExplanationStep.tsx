@@ -11,6 +11,7 @@ const QUESTION = 'Descreva o que aconteceu e o resultado esperado';
 export const ExplanationStep = ({
   page,
   subjectCode,
+  withGeneratorSummary,
   description,
   onChangeDescription,
   editable = true,
@@ -23,6 +24,12 @@ export const ExplanationStep = ({
       Tela: {page}
       {subjectCode ? ` · ${subjectCode}` : ''}
     </Description>
+    {withGeneratorSummary ? (
+      <Description tone="muted">
+        Junto vai um resumo da sua última tentativa no gerador, só com números:
+        quantas disciplinas, turmas e horários ocupados, e o resultado.
+      </Description>
+    ) : null}
     <TextField
       multiline
       value={description}

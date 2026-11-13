@@ -1,5 +1,12 @@
-import type { ErrorReportDraft } from '@root/modules/support/application/ports';
-import { SUBJECT_PAGE, isValidSubjectCode } from '../reportPages';
+import type {
+  ErrorReportDraft,
+  GeneratorDiagnostic,
+} from '@root/modules/support/application/ports';
+import {
+  GENERATOR_PAGE,
+  SUBJECT_PAGE,
+  isValidSubjectCode,
+} from '../reportPages';
 
 type Fields = { page: string; subjectCode: string; description: string };
 type ReportFlow = {
@@ -22,14 +29,21 @@ export function canExplain({ fields }: ReportFlow): boolean {
   );
 }
 
-/** Um único rascunho: voltar e trocar a página nunca conserva um código oculto no envio. */
-export function reportDraft({ fields }: ReportFlow): ErrorReportDraft {
+/**
+ * Um único rascunho: voltar e trocar a página nunca conserva um código oculto
+ * no envio. As contagens do gerador só vão no relato do gerador.
+ */
+export function reportDraft(
+  { fields }: ReportFlow,
+  generator?: GeneratorDiagnostic | null,
+): ErrorReportDraft {
   return {
     page: fields.page,
     description: fields.description,
     ...(fields.page === SUBJECT_PAGE
       ? { subjectCode: fields.subjectCode.trim().toUpperCase() }
       : {}),
+    ...(fields.page === GENERATOR_PAGE && generator ? { generator } : {}),
   };
 }
 

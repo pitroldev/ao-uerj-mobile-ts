@@ -1,4 +1,5 @@
 import React from 'react';
+import { useKeyboardState } from 'react-native-keyboard-controller';
 
 import { useStepsContext } from '@hooks/useSteps';
 import { Stepper } from '@components/ui';
@@ -9,27 +10,34 @@ import { StepFooter, type StepFooterProps } from './StepFooter';
 
 type GeneratorStepProps = {
   children?: React.ReactNode;
-  /** Rodapé fixo: "Anterior" e a ação principal do passo. */
+  /** Rodapé fixo: a situação das escolhas, "Anterior" e a ação do passo. */
   footer: StepFooterProps;
   /**
-   * `false` quando o passo tem a sua própria `FlatList` (disciplinas e
-   * turmas); aplique `useStepListStyle()` no `contentContainerStyle` dela.
+   * `false` quando o passo tem a sua própria `FlatList` (disciplinas);
+   * aplique `useStepListStyle()` no `contentContainerStyle` dela.
    */
   scroll?: boolean;
   scrollProps?: ScreenPanelProps['scrollProps'];
+  /**
+   * O rodapé some enquanto o teclado está aberto: no passo com busca, ele e
+   * o teclado juntos não deixariam ver os resultados.
+   */
+  footerYieldsToKeyboard?: boolean;
 };
 
 /**
  * Molde de cada passo do gerador: painel com o trilho de passos fixo no topo,
- * conteúdo rolável e o rodapé Anterior/Próximo.
+ * conteúdo rolável e o rodapé com a ação do passo.
  */
 export function GeneratorStep({
   children,
   footer,
   scroll = true,
   scrollProps,
+  footerYieldsToKeyboard = false,
 }: GeneratorStepProps) {
   const { step, setStep } = useStepsContext();
+  const typing = useKeyboardState(state => state.isVisible);
 
   return (
     <ScreenPanel
@@ -44,7 +52,11 @@ export function GeneratorStep({
           }}
         />
       }
-      footer={<StepFooter {...footer} />}
+      footer={
+        footerYieldsToKeyboard && typing ? undefined : (
+          <StepFooter {...footer} />
+        )
+      }
     >
       {children}
     </ScreenPanel>

@@ -67,3 +67,78 @@ it('does not record invalid reports', async () => {
   ).rejects.toMatchObject({ code: 'INVALID_INPUT' });
   expect(monitor.linkReport).not.toHaveBeenCalled();
 });
+
+it('sends only the known generator counts, as small whole numbers, and an upper-case outcome', async () => {
+  const { reporter, support } = setup();
+  await support.execute({
+    page: 'Gerador de Grade',
+    description: 'Não gera com 6 disciplinas.',
+    generator: {
+      step: 2,
+      outcome: 'SHORTFALL_ROUTINE',
+      goal: 'COMPACT',
+      busySlots: 72,
+      saturdayBusySlots: 12,
+      lunchMinutes: 50,
+      subjectsWithFreeClass: 1,
+      classes: 7,
+      freeClasses: -1,
+      schedules: 1.5,
+      largestSchedule: Number.NaN,
+      // nada fora da lista sai do aparelho, nem um campo a mais
+      ...({
+        subjects: ['FFP04-09770'],
+        matricula: account.matricula,
+      } as object),
+    },
+  });
+  expect(reporter.submit.mock.calls[0][0].diagnostic.generator).toStrictEqual({
+    step: 2,
+    outcome: 'SHORTFALL_ROUTINE',
+    goal: 'COMPACT',
+    busySlots: 72,
+    saturdayBusySlots: 12,
+    lunchMinutes: 50,
+    subjectsWithFreeClass: 1,
+    classes: 7,
+  });
+});
+
+it('replaces an outcome that is not a code and leaves other reports without generator counts', async () => {
+  const { reporter, support } = setup();
+  await support.execute({
+    page: 'Gerador de Grade',
+    description: 'Erro.',
+    generator: { step: 99, outcome: 'falhou para Fulano', goal: 'meu jeito' },
+  });
+  expect(reporter.submit.mock.calls[0][0].diagnostic.generator).toStrictEqual({
+    step: 0,
+    outcome: 'UNKNOWN',
+  });
+
+  await support.execute(draft);
+  expect(reporter.submit.mock.calls[1][0].diagnostic).not.toHaveProperty(
+    'generator',
+  );
+});
+
+it('sends the running OTA update with the app version, and nothing when it runs the store code', async () => {
+  const reporter: jest.Mocked<ErrorReporterPort> = {
+    submit: jest.fn().mockResolvedValue(undefined),
+  };
+  const ota = { ...version, updateId: '0195f2a1-7c1e-7d3a-9b2f-1a2b3c4d5e6f' };
+  await new SubmitErrorReport(reporter, ota, () => account).execute(draft);
+  expect(reporter.submit.mock.calls[0][0].diagnostic).toMatchObject({
+    appVersion: '1.3.5',
+    updateId: ota.updateId,
+  });
+
+  await new SubmitErrorReport(
+    reporter,
+    { ...version, updateId: null },
+    () => account,
+  ).execute(draft);
+  expect(reporter.submit.mock.calls[1][0].diagnostic).not.toHaveProperty(
+    'updateId',
+  );
+});

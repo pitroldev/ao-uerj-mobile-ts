@@ -7,7 +7,14 @@ export const PLAY_LISTING_URL =
  * separa visitas e instalações por origem: nada é medido dentro do app.
  */
 export type InviteSource =
-  'menu' | 'sobre' | 'qr' | 'grade' | 'mural' | 'campus' | 'companhia';
+  | 'menu'
+  | 'sobre'
+  | 'qr'
+  | 'grade'
+  | 'gerador'
+  | 'mural'
+  | 'campus'
+  | 'companhia';
 
 /** O link da Play com a origem (curto: o QR do convite fica na versão 6). */
 export function inviteLink(source: InviteSource): string {

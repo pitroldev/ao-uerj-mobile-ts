@@ -55,7 +55,7 @@ export const APP_INFO = [
     title: 'Gerador de Grade',
     icon: 'edit_calendar',
     description:
-      'Crie grades de horários personalizadas com base nas suas preferências e disponibilidade.',
+      'Marque as disciplinas, do seu curso ou universais, e quando não pode ter aula: o app monta as grades, guarda o almoço e deixa mandar a grade para a turma.',
   },
   {
     title: 'Meu Progresso',

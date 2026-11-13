@@ -32,7 +32,6 @@ export const form: ScheduleCreationParams = {
   max_subject_amount: 3,
   priority: ['MAX_CREDITS'],
   busy_schedules: [],
-  subjectsToTake: [curriculum],
   selectedSubjects: [curriculum],
   takenSubjects: [],
   subjects: [details],

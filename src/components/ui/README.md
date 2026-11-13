@@ -353,7 +353,7 @@ Fora do `Text` (por exemplo num `TextInput`) use `typeStyle(theme, 'body')`.
 ### Seleção
 
 - **`SegmentedControl`**: `options` (`value`, `label`, `icon`), `value`, `onChange`, `accessibilityLabel`. O selecionado ganha "check".
-- **`FilterChip`**: `label`, `selected`, `onPress`, `icon`. **`ChipGroup`**: `layout` `scroll` (uma linha, sangra, bordas esmaecidas em 20dp) ou `wrap`; `fadeColor` se o fundo não for `surface`.
+- **`FilterChip`**: `label`, `selected`, `onPress`, `icon`, `menu` (chip que abre uma escolha numa folha: seta à direita e papel de botão, como os ajustes das grades geradas). **`ChipGroup`**: `layout` `scroll` (uma linha, sangra, bordas esmaecidas em 20dp) ou `wrap`; `fadeColor` se o fundo não for `surface`.
 - **`Checkbox`**, **`Radio`**, **`Switch`**: só o desenho quando estão dentro de uma `ListRow` com o papel acessível certo; com `onPress`/`onValueChange` viram controles próprios de 48dp (aí `accessibilityLabel` é obrigatório).
 - **`Tabs`**: `tabs` (`value`, `label`), `value`, `onChange` ("Informações / Horários").
 - **`Stepper`**: trilho do gerador (`steps`, `current` a partir de 1, `onStepPress` para voltar a passos visitados, `fadeColor`). Bordas esmaecidas (14 no início, 24 no fim). Coloque no `ScreenPanel header`.

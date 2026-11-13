@@ -33,6 +33,7 @@ import { createSessionClient } from '@root/adapters/outbound/private-api/session
 import { IdentityController } from '@root/modules/identity/application/IdentityController';
 import { Community } from '@root/modules/community/application/Community';
 import { SubmitErrorReport } from '@root/modules/support/application/SubmitErrorReport';
+import { GeneratorRunLog } from '@root/modules/planning/application/GeneratorRunLog';
 import { ThemePreferences } from '@root/modules/appearance/application/ThemePreferences';
 import { version } from '../../../package.json';
 import { createQueryClient } from '../queryClient';
@@ -212,7 +213,12 @@ export function createAppServices() {
     }),
     support: new SubmitErrorReport(
       privateApi.errorReporter,
-      { appVersion: version, parserVersion: '3' },
+      {
+        appVersion: version,
+        parserVersion: '3',
+        // com OTA, a mesma versão roda códigos diferentes: o id diz qual
+        updateId: delivery.runningUpdate?.id,
+      },
       currentAccount,
       errorMonitor,
     ),
@@ -220,6 +226,8 @@ export function createAppServices() {
       undefined,
       studentSession,
     ),
+    // a última tentativa no gerador, em contagens, para o relato da tela
+    generatorRuns: new GeneratorRunLog(),
     academicRecords: portal.records,
     scheduleSharing: new NativeScheduleSharing(),
     documents: portal.documents,

@@ -106,7 +106,7 @@ Alterações no portal podem exigir a atualização dos parsers. O app preserva 
 
 Mensagens, suporte, situação do portal e geração de grades usam APIs próprias, distintas do portal da UERJ: `https://pitrol.dev/aouerj` (`src/adapters/outbound/private-api`) e `https://pitrol.dev/schedules` (`src/adapters/outbound/schedule-generator`).
 
-O gerador exige uma ação explícita para enviar a solicitação. Os detalhes das disciplinas são carregados com concorrência limitada e cancelamento.
+O gerador tem três passos (disciplinas, horários e grades). Cada disciplina marcada tem a própria consulta dos detalhes (`useSubjectDetailsList`, no máximo três leituras do portal de cada vez), e a tela das grades envia a solicitação ao chegar e a cada ajuste, com as folhas fechadas. O horário de almoço é uma regra do pedido (`lunch_break`): o servidor só devolve grades que deixam um trecho livre na janela, em cada dia com aula.
 
 ## Servidor próprio (`server/`)
 

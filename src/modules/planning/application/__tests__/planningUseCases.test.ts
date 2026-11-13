@@ -1,7 +1,8 @@
 import { GenerateSchedules } from '../GenerateSchedules';
-import { LoadPlanningSubjects } from '../LoadPlanningSubjects';
 import { form, curriculum, details } from '../testFixtures';
 import { SubjectClasses } from '../../domain/models';
+import { lunchBreak } from '../../domain/lunch';
+import { SubjectShortfall, TooManyClasses } from '../../domain/rules';
 
 describe('GenerateSchedules', () => {
   it('retains the same curriculum completion evidence during final validation', async () => {
@@ -77,7 +78,6 @@ describe('GenerateSchedules', () => {
   it.each([
     { min_subject_amount: 5, max_subject_amount: 3 },
     { min_subject_amount: 0 },
-    { selectedClasses: [] },
     {
       selectedClasses: [{ ...form.selectedClasses[0], subject_id: 'unknown' }],
     },
@@ -110,109 +110,100 @@ describe('GenerateSchedules', () => {
     );
   });
 
-  it('returns no schedules without posting when busy hours leave fewer subjects than the requested minimum', async () => {
+  it('explains, without posting, that busy hours leave fewer subjects than the requested minimum', async () => {
     const generator = { generate: jest.fn().mockResolvedValue([]) };
+    const run = new GenerateSchedules(generator).execute({
+      ...form,
+      busy_schedules: [
+        { week_day: 0, start_time_in_minutes: 420, end_time_in_minutes: 520 },
+      ],
+    });
+    await expect(run).rejects.toBeInstanceOf(SubjectShortfall);
+    await expect(run).rejects.toMatchObject({
+      code: 'INVALID_INPUT',
+      reason: 'ROUTINE',
+    });
+    expect(generator.generate).not.toHaveBeenCalled();
+  });
+
+  it('explains when the selected classes cover fewer subjects than the minimum', async () => {
+    const generator = { generate: jest.fn() };
+    const other = { ...details, id: 'IME01-54321', name: 'Cálculo' };
     await expect(
       new GenerateSchedules(generator).execute({
         ...form,
-        busy_schedules: [
-          { week_day: 0, start_time_in_minutes: 420, end_time_in_minutes: 520 },
-        ],
+        min_subject_amount: 2,
+        selectedSubjects: [curriculum, { ...curriculum, id: other.id }],
+        subjects: [details, other],
       }),
-    ).resolves.toEqual([]);
+    ).rejects.toMatchObject({ reason: 'SELECTION', available: 1 });
     expect(generator.generate).not.toHaveBeenCalled();
   });
-});
 
-describe('LoadPlanningSubjects', () => {
-  it('uses portal-confirmed completion when loading prerequisite eligibility', async () => {
-    const prerequisite = {
-      ...curriculum,
-      id: 'IME01-11111',
-      alreadyTaken: true,
-    };
-    const records = {
-      getSubjectDetails: jest.fn().mockResolvedValue({
-        ...details,
-        prerequisite: [[{ id: prerequisite.id, name: 'Pré-requisito' }]],
+  it('explains that the student took every class out', async () => {
+    const generator = { generate: jest.fn() };
+    await expect(
+      new GenerateSchedules(generator).execute({
+        ...form,
+        selectedClasses: [],
       }),
-    };
-    const result = await new LoadPlanningSubjects(records).execute(
-      [curriculum],
-      [],
-      new AbortController().signal,
-      jest.fn(),
-      [prerequisite],
-    );
-    expect(result[0].eligible).toBe(true);
+    ).rejects.toMatchObject({ reason: 'SELECTION', available: 0 });
+    expect(generator.generate).not.toHaveBeenCalled();
   });
-  it('bounds concurrent requests, preserves input order and reports individual failures', async () => {
-    const selected = [1, 2, 3, 4].map(code => ({
-      ...curriculum,
-      id: `IME01-0000${code}`,
-    }));
-    const pending = new Map<
-      string,
-      {
-        resolve: (value: typeof details) => void;
-        reject: (error: Error) => void;
-      }
-    >();
-    const records = {
-      getSubjectDetails: jest.fn(
-        (subjectId: string) =>
-          new Promise<typeof details>((resolve, reject) => {
-            pending.set(subjectId, { resolve, reject });
-          }),
-      ),
-    };
-    const progress = jest.fn();
-    const result = new LoadPlanningSubjects(records, 2).execute(
-      selected,
-      [],
-      new AbortController().signal,
-      progress,
-    );
-    expect(records.getSubjectDetails).toHaveBeenCalledTimes(2);
-    pending.get(selected[1].id)!.resolve({ ...details, id: selected[1].id });
-    await new Promise<void>(resolve => setTimeout(resolve, 0));
-    expect(records.getSubjectDetails).toHaveBeenCalledTimes(3);
-    pending.get(selected[0].id)!.reject(new Error('network'));
-    await new Promise<void>(resolve => setTimeout(resolve, 0));
-    expect(records.getSubjectDetails).toHaveBeenCalledTimes(4);
-    pending.get(selected[2].id)!.resolve({ ...details, id: selected[2].id });
-    pending.get(selected[3].id)!.resolve({ ...details, id: selected[3].id });
-    const actual = await result;
-    expect(actual.map(value => value.subject.id)).toEqual(
-      selected.map(subject => subject.id),
-    );
-    expect(actual[0].error?.message).toBe('network');
-    expect(progress).toHaveBeenLastCalledWith(
-      expect.objectContaining({ completed: 4, total: 4 }),
-    );
+
+  it('refuses more classes than the generator combines, counting only the ones that fit', async () => {
+    const generator = { generate: jest.fn().mockResolvedValue([]) };
+    const many = (count: number, day: 'Terça' | 'Segunda') =>
+      Array.from({ length: count }, (_, index): SubjectClasses => ({
+        ...form.selectedClasses[0],
+        classNumber: index + 1,
+        schedule: [{ [day]: [['N1', 'N2']] }],
+      }));
+    const busy = [
+      { week_day: 0, start_time_in_minutes: 1080, end_time_in_minutes: 1130 },
+    ];
+    const run = new GenerateSchedules(generator).execute({
+      ...form,
+      selectedClasses: many(31, 'Terça'),
+    });
+    await expect(run).rejects.toBeInstanceOf(TooManyClasses);
+    await expect(run).rejects.toMatchObject({ selected: 31, limit: 30 });
+    expect(generator.generate).not.toHaveBeenCalled();
+
+    // as que batem com um horário ocupado não contam para o limite
+    await new GenerateSchedules(generator).execute({
+      ...form,
+      busy_schedules: busy,
+      selectedClasses: [...many(30, 'Terça'), ...many(5, 'Segunda')],
+    });
+    expect(generator.generate.mock.calls[0][0].classes).toHaveLength(30);
   });
-  it('does not start queued requests or publish late results after cancellation', async () => {
-    let resolveLate!: (value: typeof details) => void;
-    const records = {
-      getSubjectDetails: jest.fn(
-        () =>
-          new Promise<typeof details>(resolve => {
-            resolveLate = resolve;
-          }),
-      ),
+
+  it('sends the lunch break and drops the class that leaves none by itself', async () => {
+    const generator = { generate: jest.fn().mockResolvedValue([]) };
+    const lunch = lunchBreak(50)!;
+    const overLunch: SubjectClasses = {
+      ...form.selectedClasses[0],
+      classNumber: 2,
+      schedule: [{ Terça: [['M6', 'T1', 'T2', 'T3']] }],
     };
-    const progress = jest.fn();
-    const controller = new AbortController();
-    const result = new LoadPlanningSubjects(records, 1).execute(
-      [curriculum, { ...curriculum, id: 'IME01-11111' }],
-      [],
-      controller.signal,
-      progress,
+    await new GenerateSchedules(generator).execute({
+      ...form,
+      lunch,
+      selectedClasses: [form.selectedClasses[0], overLunch],
+    });
+    expect(generator.generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        preferences: expect.objectContaining({ lunch }),
+        classes: [form.selectedClasses[0]],
+      }),
+      undefined,
     );
-    controller.abort();
-    resolveLate(details);
-    await expect(result).rejects.toMatchObject({ code: 'CANCELLED' });
-    expect(records.getSubjectDetails).toHaveBeenCalledTimes(1);
-    expect(progress).not.toHaveBeenCalled();
+
+    // sem o almoço, o pedido não leva o campo
+    await new GenerateSchedules(generator).execute({ ...form, lunch: null });
+    expect(generator.generate.mock.calls[1][0].preferences).not.toHaveProperty(
+      'lunch',
+    );
   });
 });

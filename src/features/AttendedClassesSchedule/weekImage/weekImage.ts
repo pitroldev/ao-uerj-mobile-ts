@@ -2,7 +2,8 @@
  * Imagem da semana para compartilhar: um pôster vertical com a grade horária
  * (uma coluna por dia, a altura de cada aula na escala do relógio), uma cor por
  * disciplina e a legenda com nome, turma, sala e código. É um SVG em texto,
- * desenhado pelo `SvgXml` e capturado em PNG.
+ * desenhado pelo `SvgXml` e capturado em PNG. Serve à grade do período
+ * (`buildWeekImage`) e à grade planejada no gerador (`drawWeekImage`).
  */
 import { LIGHT } from '@root/themes';
 import {
@@ -72,13 +73,26 @@ const COLLAPSE_MINUTES = 120;
 
 const ROOM_NOT_INFORMED = 'Sala não informada';
 
-type Block = {
-  item: AttendedClassesSchedule;
+/** Uma aula na imagem, de onde quer que venha a grade. */
+export type WeekImageClass = {
+  /** A disciplina: as aulas com a mesma chave têm a mesma cor e uma legenda. */
+  key: string;
+  /** O código no portal ("IME01-12345"). */
+  code: string;
+  name: string;
+  /** O número da turma; vazio quando não se sabe. */
+  turma: string;
+  /** 1 = segunda … 6 = sábado. */
   day: number;
   start: number;
   end: number;
-  key: string;
+  /** "7:00–8:40". */
+  hours: string;
+  /** Só a sala ("Sala 6001 F"); `null` quando o portal não informa. */
+  room: string | null;
 };
+
+type Block = WeekImageClass;
 
 type Subject = {
   key: string;
@@ -127,10 +141,6 @@ const logoHeight = (width: number) => {
   return (width * vbHeight) / vbWidth;
 };
 
-/** "7:00–8:40". */
-const hours = (item: AttendedClassesSchedule) =>
-  `${item.startTimeAlias}–${item.endTimeAlias}`;
-
 /** Tempos da aula, pela tabela da UERJ ("M1–M2" são 2). */
 const slotsOf = (block: Block) =>
   Math.max(
@@ -143,8 +153,8 @@ const slotsOf = (block: Block) =>
   );
 
 /** A sala sem o resto do endereço; nada quando o portal não informa. */
-function roomOf(item: AttendedClassesSchedule): string | null {
-  const { room } = splitLocation(item.class?.uerjLocation);
+export function roomOf(location: string | null | undefined): string | null {
+  const { room } = splitLocation(location);
   return room === ROOM_NOT_INFORMED ? null : room;
 }
 
@@ -209,7 +219,7 @@ function blockSvg(
   const textWidthMax = width - 18 - 10;
   const NAME = { font: 'Inter-SemiBold' as const, size: 22, line: 27 };
   const META = { size: 19, line: 24 };
-  const room = roomOf(block.item);
+  const { room } = block;
   const available = height - padY * 2;
 
   // o que cabe: o nome em quantas linhas der, o horário e a sala
@@ -247,7 +257,7 @@ function blockSvg(
   if (showTime) {
     parts.push(
       text(
-        hours(block.item),
+        block.hours,
         textX,
         baseline,
         'Inter-Medium',
@@ -276,8 +286,12 @@ function blockSvg(
 }
 
 export type WeekImageOptions = {
+  /** O título no alto; "Minha grade" quando não vem. */
+  title?: string;
   /** "2026.1"; sem ele, o subtítulo fica só com os números da semana. */
   period?: string | null;
+  /** Créditos da grade, no subtítulo (a grade planejada mostra). */
+  credits?: number;
   /** Professores de cada disciplina (por `subjectKey`), na legenda. */
   teachers?: ReadonlyMap<string, readonly string[]>;
   /**
@@ -287,27 +301,52 @@ export type WeekImageOptions = {
   store?: boolean;
 };
 
-/** SVG da semana (1080 de largura; a altura acompanha a grade e a legenda). */
-export function buildWeekImage(
-  data: readonly AttendedClassesSchedule[] = [],
-  { period, teachers, store = false }: WeekImageOptions = {},
-): string {
-  const blocks: Block[] = data
+/** As aulas do período (as canceladas e as sem horário ficam de fora). */
+function attendedClasses(
+  data: readonly AttendedClassesSchedule[],
+): WeekImageClass[] {
+  return data
     .filter(item => hasClassTime(item) && !isCanceled(item))
     .map(item => ({
-      item,
+      key: subjectKey(item.class?.id ?? item.subject_id),
+      code: item.class?.id ?? item.subject_id,
+      name: item.class?.name ?? item.subject_id,
+      turma: String(item.class?.class ?? '').trim(),
       day: weekdayOf(item),
       start: item.start_time_in_minutes,
       end: item.end_time_in_minutes,
-      key: subjectKey(item.class?.id ?? item.subject_id),
-    }))
+      hours: `${item.startTimeAlias}–${item.endTimeAlias}`,
+      room: roomOf(item.class?.uerjLocation),
+    }));
+}
+
+/** SVG da grade do período (1080 de largura; a altura acompanha a grade). */
+export function buildWeekImage(
+  data: readonly AttendedClassesSchedule[] = [],
+  options: WeekImageOptions = {},
+): string {
+  return drawWeekImage(attendedClasses(data), options);
+}
+
+/** SVG de uma semana de aulas (1080 de largura; a altura acompanha a grade). */
+export function drawWeekImage(
+  classes: readonly WeekImageClass[],
+  {
+    title = 'Minha grade',
+    period,
+    credits,
+    teachers,
+    store = false,
+  }: WeekImageOptions = {},
+): string {
+  const blocks: Block[] = classes
     .filter(block => block.day >= 1 && block.day <= 6)
     .sort((a, b) => a.day - b.day || a.start - b.start);
 
   // as disciplinas na ordem em que aparecem na semana, cada uma com sua cor
   const subjects = new Map<string, Subject>();
   for (const block of blocks) {
-    const room = roomOf(block.item);
+    const { room } = block;
     const known = subjects.get(block.key);
     if (known) {
       if (room && !known.rooms.includes(room)) known.rooms.push(room);
@@ -315,9 +354,9 @@ export function buildWeekImage(
     }
     subjects.set(block.key, {
       key: block.key,
-      id: block.item.class?.id ?? block.item.subject_id,
-      name: block.item.class?.name ?? block.item.subject_id,
-      turma: String(block.item.class?.class ?? '').trim(),
+      id: block.code,
+      name: block.name,
+      turma: block.turma,
       rooms: room ? [room] : [],
       colors: SUBJECT_PALETTE[subjects.size % SUBJECT_PALETTE.length],
     });
@@ -329,11 +368,12 @@ export function buildWeekImage(
   // cabeçalho: título, resumo da semana e o logo
   const logoWidth = 112;
   parts.push(logo(W - PAD - logoWidth, 62, logoWidth, C.logo));
-  parts.push(text('Minha grade', PAD, 124, 'InterDisplay-SemiBold', 68, C.ink));
+  parts.push(text(title, PAD, 124, 'InterDisplay-SemiBold', 68, C.ink));
   const slots = blocks.reduce((sum, block) => sum + slotsOf(block), 0);
   const summary = [
     period,
     subjects.size ? plural(subjects.size, 'disciplina', 'disciplinas') : null,
+    credits ? plural(credits, 'crédito', 'créditos') : null,
     slots ? plural(slots, 'tempo por semana', 'tempos por semana') : null,
   ]
     .filter(Boolean)

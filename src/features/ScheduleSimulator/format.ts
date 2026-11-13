@@ -5,15 +5,11 @@ import { AppError } from '@root/shared/errors/AppError';
 import { PORTAL_BLOCKED_FULL_TEXT } from '@components/ui/Feedback/blockedText';
 
 /** Rótulos do trilho de passos do gerador. */
-export const STEP_LABELS = [
-  'Qtd. Disciplinas',
-  'Horários Ocupados',
-  'Prioridades',
-  'Selecionar Disciplinas',
-  'Carregar Dados',
-  'Turmas',
-  'Gerar Grade',
-];
+export const STEP_LABELS = ['Disciplinas', 'Horários', 'Grades'];
+
+/** Os passos, na ordem de `STEP_LABELS`. */
+export const SUBJECTS_STEP = 0;
+export const ROUTINE_STEP = 1;
 
 export type TimeSlot = (typeof TIME_VALUES)[number];
 
@@ -35,7 +31,7 @@ export function plural(count: number, one: string, many: string): string {
 }
 
 /** "Seg", "Seg e Qua", "Seg, Qua e Sex". */
-function joinPt(items: string[]): string {
+export function joinPt(items: string[]): string {
   if (items.length < 2) return items.join('');
   return `${items.slice(0, -1).join(', ')} e ${items[items.length - 1]}`;
 }
@@ -164,10 +160,38 @@ export function scheduleMeetings(schedules: Schedule[]): string {
   return summarize(meetings, times);
 }
 
+export type Shift = 'morning' | 'afternoon' | 'night';
+
+const SHIFT_ORDER: Shift[] = ['morning', 'afternoon', 'night'];
+
+/**
+ * Os turnos em que a disciplina tem turma, pelo primeiro encontro da semana
+ * de cada uma (o tempo de sábado de uma turma da noite não conta).
+ */
+export function classShifts(
+  classes: readonly { schedule?: Horario[] }[],
+): Shift[] {
+  const found = new Set<Shift>();
+  classes.forEach(group => {
+    let first: { day: number; alias: string } | null = null;
+    (group.schedule ?? []).forEach(entry => {
+      (Object.keys(entry) as WeekDay[]).forEach(day => {
+        const alias = entry[day]?.[0]?.[0];
+        const index = WEEK_ORDER.indexOf(day);
+        if (alias && index >= 0 && (!first || index < first.day))
+          first = { day: index, alias };
+      });
+    });
+    const start = TIME_SLOTS.find(
+      slot => slot.periodAlias === (first as { alias: string } | null)?.alias,
+    )?.start_time_in_minutes;
+    if (start !== undefined) found.add(shiftOfMinutes(start));
+  });
+  return SHIFT_ORDER.filter(shift => found.has(shift));
+}
+
 /** Turno pelo início da aula (mesmos limites da grade antiga). */
-export function shiftOfMinutes(
-  minutes: number,
-): 'morning' | 'afternoon' | 'night' {
+export function shiftOfMinutes(minutes: number): Shift {
   if (minutes < 740) return 'morning';
   if (minutes < 1070) return 'afternoon';
   return 'night';

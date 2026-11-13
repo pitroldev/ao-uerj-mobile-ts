@@ -2,6 +2,7 @@ import {
   CurriculumSubject,
   SubjectInfo,
 } from '@root/modules/academics/domain/models';
+import type { LunchBreak } from '../domain/lunch';
 import {
   GeneratedSchedule,
   Priority,
@@ -15,6 +16,8 @@ export type ScheduleGenerationRequest = {
     maximumSubjects: number;
     priorities: Priority[];
     busyIntervals: Schedule[];
+    /** Horário de almoço que toda grade tem de deixar; ausente, sem a regra. */
+    lunch?: LunchBreak;
   };
   subjects: Array<{
     curriculum: CurriculumSubject;

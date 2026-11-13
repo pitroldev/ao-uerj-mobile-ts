@@ -7,7 +7,7 @@ import { usePortalStatus } from '@root/modules/connectivity/presentation/PortalS
 import { useDisabledRoutes } from '@root/modules/delivery/presentation/FeatureGate';
 import { blocksOf } from '@root/modules/graduation/domain/plan';
 import { useGraduationPlan } from '@root/modules/graduation/presentation/useGraduationPlan';
-import type { ScheduleCreationParams } from '@root/modules/planning/domain/models';
+import type { GeneratorDraft } from '@root/modules/planning/domain/models';
 
 import {
   CriticalityContext,
@@ -97,7 +97,7 @@ export function CriticalityProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { control } = useFormContext<ScheduleCreationParams>();
+  const { control } = useFormContext<GeneratorDraft>();
   const priority = useWatch({ control, name: 'priority' });
   const on = Boolean(priority?.includes('CRITICAL_FIRST'));
   // o aviso remoto que desliga o plano também para a leitura aqui

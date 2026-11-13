@@ -51,6 +51,15 @@ export function toGeneratorPayload(request: ScheduleGenerationRequest) {
       max_subject_amount: request.preferences.maximumSubjects,
       priority: request.preferences.priorities,
       busy_schedules: request.preferences.busyIntervals,
+      ...(request.preferences.lunch
+        ? {
+            lunch_break: {
+              start_time_in_minutes: request.preferences.lunch.start,
+              end_time_in_minutes: request.preferences.lunch.end,
+              minimum_minutes: request.preferences.lunch.minutes,
+            },
+          }
+        : {}),
     },
     classes,
     subjects,

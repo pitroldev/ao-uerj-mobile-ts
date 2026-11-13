@@ -1,6 +1,9 @@
 import React, { useLayoutEffect, useReducer, useRef, useState } from 'react';
 
-import { useAppServices } from '@root/app/providers/AppServicesProvider';
+import {
+  useAppServices,
+  useIdentity,
+} from '@root/app/providers/AppServicesProvider';
 import { errorMessage } from '@root/shared/errors/AppError';
 import { BottomSheet, Button, snackbar } from '@components/ui';
 
@@ -39,8 +42,11 @@ export const ErrorReportModal = ({ visible, setVisibility }: Props) => {
 };
 
 function ReportForm({ visible, setVisibility }: Props) {
-  const { support } = useAppServices();
+  const { support, generatorRuns } = useAppServices();
+  const scope = useIdentity().account?.scope;
   const [state, dispatch] = useReducer(reportFlow, INITIAL_REPORT);
+  // lida ao abrir a folha: a última tentativa no gerador, em contagens
+  const [generator] = useState(() => generatorRuns.read(scope));
   const { page, subjectCode, description } = state.fields;
   const step = state.phase === 'selecting' ? 0 : 1;
   const loading = state.phase === 'submitting';
@@ -66,7 +72,7 @@ function ReportForm({ visible, setVisibility }: Props) {
     pending.current = request;
     dispatch({ type: 'submit' });
     try {
-      await support.execute(reportDraft(state));
+      await support.execute(reportDraft(state, generator));
       if (!active.current || pending.current !== request) return;
       dispatch({ type: 'sent' });
       setVisibility(false);
@@ -81,7 +87,7 @@ function ReportForm({ visible, setVisibility }: Props) {
   const close = () => {
     if (!pending.current) setVisibility(false);
   };
-  const draft = reportDraft(state);
+  const draft = reportDraft(state, generator);
 
   const footer =
     step === 0
@@ -141,6 +147,7 @@ function ReportForm({ visible, setVisibility }: Props) {
         <ExplanationStep
           page={draft.page}
           subjectCode={draft.subjectCode}
+          withGeneratorSummary={Boolean(draft.generator)}
           description={description}
           onChangeDescription={value =>
             dispatch({ type: 'edit', field: 'description', value })

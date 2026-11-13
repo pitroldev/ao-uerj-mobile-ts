@@ -1,6 +1,6 @@
 # Política de privacidade do AO UERJ
 
-**Última atualização:** 6 de novembro de 2026
+**Última atualização:** 12 de novembro de 2026
 
 O AO UERJ é um app não oficial e de código aberto para alunos da UERJ. Ele não tem vínculo com a universidade e usa a sua conta do Aluno Online. Esta política explica o que fica no seu celular, o que vai para o servidor do app, quem vê cada coisa e por quanto tempo. Ela vale para o app no Android, distribuído pela Google Play, e no iPhone.
 
@@ -80,7 +80,7 @@ Quando você avisa algo sobre o campus (por exemplo, "elevadores parados no hall
 
 ### Relato de erro
 
-Quando você relata um problema, o app manda a tela, o que você escreveu e um diagnóstico técnico: a operação que falhou, o tipo de erro, a versão do app e, às vezes, o código da disciplina. O diagnóstico não leva os seus dados do portal. Com a identificação, o servidor sabe quem mandou. Os relatos ficam guardados sem prazo de remoção, para corrigir o app.
+Quando você relata um problema, o app manda a tela, o que você escreveu e um diagnóstico técnico: a operação que falhou, o tipo de erro, a versão do app (com a atualização que ela roda, se houver uma) e, às vezes, o código da disciplina. No relato do gerador de grades, vai também um resumo da sua última tentativa, só com números: o passo em que você parou, quantas disciplinas e turmas havia, quantos horários ocupados você marcou e o resultado. Nenhuma disciplina, turma ou horário vai junto. O diagnóstico não leva os seus dados do portal. Com a identificação, o servidor sabe quem mandou. Os relatos ficam guardados sem prazo de remoção, para corrigir o app.
 
 Os relatos das versões 1.x do app levavam a página do portal em que o erro aconteceu, que pode ter dados pessoais. Eles ficam só no servidor, fora do código público, e podem ser apagados a pedido.
 

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import {
   useAppServices,
   useIdentity,
@@ -121,8 +121,14 @@ export function useSchedule() {
 export function usePartialRid() {
   return useAcademicQuery('partial-rid', useRecords().partialRid);
 }
-export function useUniversalSubjects() {
-  return useAcademicQuery('universal-subjects', useRecords().universalSubjects);
+/** `enabled` falso adia a leitura (a lista é grande e nem toda tela a usa). */
+export function useUniversalSubjects(enabled = true) {
+  return useAcademicQuery(
+    'universal-subjects',
+    useRecords().universalSubjects,
+    undefined,
+    enabled,
+  );
 }
 /** Síntese da Formação: muda pouco ao longo do período. */
 export function useSynthesis() {
@@ -142,6 +148,58 @@ export function useSubjectDetails(subjectId?: string) {
     cacheId,
     Boolean(subjectId),
   );
+}
+
+/** Quantas páginas de disciplina o app pede ao portal ao mesmo tempo. */
+const DETAILS_AT_ONCE = 3;
+let detailsRunning = 0;
+const detailsWaiting: Array<() => void> = [];
+
+/** Fila das leituras de disciplina: o portal bloqueia quem pede demais junto. */
+async function inDetailsTurn<T>(read: () => Promise<T>): Promise<T> {
+  if (detailsRunning >= DETAILS_AT_ONCE)
+    await new Promise<void>(resolve => detailsWaiting.push(resolve));
+  detailsRunning += 1;
+  try {
+    return await read();
+  } finally {
+    detailsRunning -= 1;
+    detailsWaiting.shift()?.();
+  }
+}
+
+/**
+ * Os detalhes de várias disciplinas, uma consulta por disciplina (a mesma do
+ * `useSubjectDetails`, com o mesmo cache), no máximo três de cada vez. A
+ * ordem do resultado é a de `subjectIds`.
+ */
+export function useSubjectDetailsList(subjectIds: readonly string[]) {
+  const records = useRecords();
+  const { identity } = useAppServices();
+  const { account, status } = useIdentity();
+  const owner = account ?? SIGNED_OUT;
+  const enabled = showsAccount({ status, account });
+  return useQueries({
+    queries: subjectIds.map(subjectId => {
+      let cacheId = subjectId;
+      try {
+        cacheId = normalizeSubjectId(subjectId);
+      } catch {
+        /* Invalid input is reported by the query, not during render. */
+      }
+      return {
+        ...academicQueryOptions(
+          identity,
+          owner,
+          'subject-details',
+          options =>
+            inDetailsTurn(() => records.subjectDetails(subjectId, options)),
+          cacheId,
+        ),
+        enabled,
+      };
+    }),
+  });
 }
 
 export function isPortalBlocked(error: unknown): boolean {
