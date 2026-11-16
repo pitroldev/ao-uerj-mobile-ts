@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.17.1](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.17.0...v2.17.1) (2026-11-16)
+
+
+### Correções
+
+* **ci:** use current App Store screenshot display size ([fb11b3b](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/fb11b3b568ecd2c12374b169ada79d59b705d663))
+* **ci:** validate allowed App Attest profile environments ([234b369](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/234b369ebeee80b2cbd4268622415327ca7a5225))
+* **ios:** bundle App Store icons and document distribution ([4bbd43b](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/4bbd43b937493cefff76903592b9969b422c3136))
+* **ios:** declare photo library usage for App Store validation ([a5bda4c](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/a5bda4c0c5b91448bfa1dae54a211e412947f3f6))
+* **server:** configure App Attest for App Store team ([7b480c5](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/7b480c5670f35152b57f47e9332cc5044b428618))
+
 ## 2.17.0 (2026-11-13)
 
 ### Novidades
