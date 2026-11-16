@@ -1,0 +1,132 @@
+name: iOS App Store build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: 'CFBundleVersion (aumente a cada novo envio)'
+        required: true
+        default: '23'
+        type: string
+      upload:
+        description: Enviar a compilação ao App Store Connect
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-app-store
+  cancel-in-progress: false
+
+jobs:
+  distribute:
+    runs-on: macos-15
+    timeout-minutes: 90
+    environment: app-store
+    env:
+      APPLE_TEAM_ID: 4L52AMB8J7
+      BUILD_NUMBER: ${{ inputs.build_number }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate build number and select Xcode
+        run: |
+          [[ "$BUILD_NUMBER" =~ ^[1-9][0-9]*$ ]] || { echo '::error::build_number deve ser um inteiro positivo'; exit 1; }
+          xcode=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          test -n "$xcode"
+          sudo xcode-select -s "$xcode/Contents/Developer"
+          xcodebuild -version
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      - run: pnpm install --frozen-lockfile
+      - name: Calculate OTA runtime before native project changes
+        run: |
+          runtime=$(node scripts/ota/runtime-version.cjs ios)
+          echo "EXPO_UPDATES_FINGERPRINT_OVERRIDE=$runtime" >> "$GITHUB_ENV"
+          mkdir -p artifacts/ios-app-store
+          printf '%s\n' "$runtime" > artifacts/ios-app-store/runtime-version-ios.txt
+      - run: bundle exec pod install --project-directory=ios
+      - name: Install distribution certificate and profiles
+        env:
+          IOS_DISTRIBUTION_P12: ${{ secrets.IOS_DISTRIBUTION_P12 }}
+          IOS_DISTRIBUTION_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_PASSWORD }}
+          IOS_APP_PROFILE: ${{ secrets.IOS_APP_PROFILE }}
+          IOS_WIDGET_PROFILE: ${{ secrets.IOS_WIDGET_PROFILE }}
+        run: bash scripts/ci/ios-signing.sh
+      - name: Configure signing for the app and widget
+        run: bundle exec ruby scripts/ci/ios-signing.rb
+      - name: Archive for App Store
+        run: >-
+          xcodebuild
+          -workspace ios/AOUerjMobile.xcworkspace
+          -scheme AOUerjMobile
+          -configuration Release
+          -sdk iphoneos
+          -destination 'generic/platform=iOS'
+          -archivePath "$RUNNER_TEMP/AOUerjMobile.xcarchive"
+          CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
+          archive
+      - name: Verify archive and export IPA
+        run: |
+          app=$(find "$RUNNER_TEMP/AOUerjMobile.xcarchive/Products/Applications" -maxdepth 1 -name '*.app' | head -1)
+          test -n "$app"
+          codesign --verify --deep --strict "$app"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")" = 'com.aouerjmobile'
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Info.plist")" = "$BUILD_NUMBER"
+          fingerprint=$(find "$app" -path '*EXUpdates.bundle/fingerprint' | head -1)
+          test -n "$fingerprint"
+          test "$(cat "$fingerprint")" = "$EXPO_UPDATES_FINGERPRINT_OVERRIDE"
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/AOUerjMobile.xcarchive" \
+            -exportPath artifacts/ios-app-store \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
+      - name: Upload to App Store Connect
+        if: inputs.upload
+        env:
+          ASC_API_PRIVATE_KEY: ${{ secrets.ASC_API_PRIVATE_KEY }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+        run: |
+          test -n "$ASC_API_PRIVATE_KEY"
+          test -n "$ASC_API_KEY_ID"
+          test -n "$ASC_API_ISSUER_ID"
+          key_dir="$RUNNER_TEMP/private_keys"
+          mkdir -p "$key_dir"
+          chmod 700 "$key_dir"
+          printf '%s' "$ASC_API_PRIVATE_KEY" > "$key_dir/AuthKey_${ASC_API_KEY_ID}.p8"
+          chmod 600 "$key_dir/AuthKey_${ASC_API_KEY_ID}.p8"
+          export API_PRIVATE_KEYS_DIR="$key_dir"
+          ipa=$(find artifacts/ios-app-store -maxdepth 1 -name '*.ipa' | head -1)
+          test -n "$ipa"
+          xcrun altool --validate-app -f "$ipa" -t ios --apiKey "$ASC_API_KEY_ID" --apiIssuer "$ASC_API_ISSUER_ID"
+          xcrun altool --upload-app -f "$ipa" -t ios --apiKey "$ASC_API_KEY_ID" --apiIssuer "$ASC_API_ISSUER_ID"
+      - name: Save distribution artifacts
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-app-store-${{ inputs.build_number }}
+          path: artifacts/ios-app-store/
+          retention-days: 14
+          if-no-files-found: error
+      - name: Remove temporary signing material
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/ao-uerj-signing.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/distribution.p12" "$RUNNER_TEMP/app.mobileprovision" "$RUNNER_TEMP/widget.mobileprovision"
+          rm -f "$RUNNER_TEMP/app-profile.plist" "$RUNNER_TEMP/widget-profile.plist"
+          rm -rf "$RUNNER_TEMP/private_keys"
+          if [ -n "${IOS_APP_PROFILE_UUID:-}" ]; then
+            rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/$IOS_APP_PROFILE_UUID.mobileprovision"
+          fi
+          if [ -n "${IOS_WIDGET_PROFILE_UUID:-}" ]; then
+            rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/$IOS_WIDGET_PROFILE_UUID.mobileprovision"
+          fi
