@@ -8,7 +8,7 @@ O app tem código para o iPhone, mas o foco é o Android, publicado na Google Pl
 ## Estado atual
 
 - **Compila no CI:** o `ios.yml` (macOS, manual) compila o app e a extensão do widget em Release e abre o app num simulador.
-- **App Store:** o app está cadastrado como `6835308883`, com publicação inicial em preparação. O `ios-app-store.yml` assina e envia a compilação; a revisão e o lançamento são acompanhados no App Store Connect. O `release.yml` continua publicando o Android.
+- **App Store:** a versão `2.17.0`, build `24`, do app `6835308883` foi enviada em 16/11/2026 e está aguardando revisão da Apple. O lançamento será automático após aprovação, gratuito no Brasil. O `ios-app-store.yml` assina e envia a compilação; a revisão e o lançamento são acompanhados no App Store Connect. O `release.yml` continua publicando o Android.
 - **Identificação do aluno:** a implantação do servidor carrega `APPLE_APP_ATTEST_APP_ID=4L52AMB8J7.com.aouerjmobile` de `deploy/server/app-store.env`; o `.env` privado da VM tem prioridade (ver [server/README.md](../server/README.md#identificação-do-aluno-v2)). O App Attest precisa de iPhone físico.
 - **Versão:** `MARKETING_VERSION` e `CURRENT_PROJECT_VERSION` ficam no `project.pbxproj` e mudam à mão (ver [Release](release.md#versão)). O alvo mínimo é o iOS 16.4, o dos módulos do Expo SDK 58 (o `expo-updates`).
 
@@ -32,7 +32,8 @@ Roda só por `workflow_dispatch`, num runner `macos-15` (Actions > iOS simulator
 2. Compila em **Release**, como vai para a loja: o Xcode empacota o JS de iOS (o que só quebra nessa plataforma: resolução de módulos, assets) e o Hermes o compila.
 3. Assina para rodar localmente ("Sign to Run Locally", `CODE_SIGN_IDENTITY=-`, sem conta da Apple). Sem assinatura, o app fica sem os entitlements, e o Keychain do simulador recusa tudo (`-34018`), o que o iPhone de verdade não faz.
 4. Confere que o app leva o `Expo.plist` e o `EXUpdates.bundle`, com o manifesto do JS embutido e o mesmo runtime version que o publicador calcula.
-5. O `scripts/ci/ios-smoke.sh` abre o app num iPhone Pro com Dynamic Island e tela média, formato exigido pela App Store, e confere que ele não cai: na abertura (o login), no tema escuro, no link `aouerj://open?target=home`, numa segunda abertura e numa rodada da verificação em segundo plano. Também abre o mapa sem conta nos temas claro e escuro. As capturas e o log ficam no artefato `ios-smoke` por 14 dias, sem dados de alunos.
+5. Guarda o app do simulador no artefato `ios-simulator-app` por 7 dias. O `scripts/ci/ios-store-screenshots.sh` gera um projeto XCTest separado, abre esse Release, toca em **Explorar o mapa** e confirma os controles do mapa antes de capturar a tela. As imagens reais, sem dados de alunos, ficam em `ios-store-screenshots` por 14 dias. O runner de testes não entra no app distribuído.
+6. O `scripts/ci/ios-smoke.sh` abre o app num iPhone Pro com Dynamic Island e tela média, formato exigido pela App Store, e confere que ele não cai: na abertura (o login), no tema escuro, no link `aouerj://open?target=home`, numa segunda abertura e numa rodada da verificação em segundo plano. As capturas e o log ficam no artefato `ios-smoke` por 14 dias. O `simctl openurl` pode exibir uma confirmação do iOS; as imagens de navegação da loja vêm do XCTest, não desse comando.
 
 O que depende do login fica nos testes do Jest, que rodam como iOS (ver [Testes](#testes)).
 
@@ -62,6 +63,15 @@ perfis e atualize os secrets correspondentes. A chave de upload tem papel
 Developer. O material de assinatura é instalado num keychain temporário,
 removido ao fim do job. O IPA vai ao App Store Connect; o envio do binário
 não envia automaticamente a versão à revisão.
+
+Depois de um upload bem-sucedido, espere o processamento da Apple e confira
+se a compilação aparece disponível no App Store Connect. O recibo de upload
+não garante que o processamento foi aceito. O build 23 foi recusado por
+`ITMS-90683`: o SDK de compartilhamento referencia a fototeca. O `Info.plist`
+declara `NSPhotoLibraryUsageDescription` e `NSPhotoLibraryAddUsageDescription`
+para a opção **Salvar imagem** da grade; os testes e o workflow conferem
+as duas descrições antes de enviar o pacote.
+O build 24 foi processado com sucesso pela Apple e associado à submissão.
 
 Antes de submeter a versão, confira o resultado do `ios.yml`, as capturas
 reais do app, o login fornecido exclusivamente à Apple, a privacidade e os
