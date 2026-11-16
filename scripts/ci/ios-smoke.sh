@@ -11,10 +11,12 @@ out="$2"
 bundle_id="com.aouerjmobile"
 mkdir -p "$out"
 
-# o iPhone mais novo que o Xcode do runner tem
+# Prefere o Pro Max para capturas no tamanho aceito pela App Store.
 udid=$(xcrun simctl list devices available --json | jq -r '
   [.devices | to_entries[] | select(.key | test("iOS")) | .value[]
-    | select(.name | test("^iPhone"))] | last | .udid')
+    | select(.name | test("^iPhone"))] as $phones
+  | ([$phones[] | select(.name | test("Pro Max$"))] | last) // ($phones | last)
+  | .udid')
 if [ -z "$udid" ] || [ "$udid" = "null" ]; then
   echo "::error::nenhum simulador de iPhone disponível"
   exit 1
@@ -24,6 +26,8 @@ xcrun simctl list devices | grep "$udid" || true
 xcrun simctl boot "$udid"
 xcrun simctl bootstatus "$udid" -b
 xcrun simctl install "$udid" "$app"
+xcrun simctl status_bar "$udid" override --time '9:41' --dataNetwork wifi \
+  --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
 
 failed=0
 pid=""
@@ -88,6 +92,17 @@ unset SIMCTL_CHILD_AO_SMOKE_BACKGROUND_CHECK
 sleep 30
 check "rodada em segundo plano"
 xcrun simctl io "$udid" screenshot "$out/5-segundo-plano.png"
+
+# O mapa é uma função real disponível sem conta. As capturas podem ir à
+# loja sem expor dados acadêmicos, matrícula ou credenciais de um aluno.
+xcrun simctl openurl "$udid" 'aouerj://open?target=map'
+sleep 12
+check "mapa sem conta"
+xcrun simctl io "$udid" screenshot "$out/6-mapa.png"
+xcrun simctl ui "$udid" appearance dark
+sleep 5
+check "mapa no tema escuro"
+xcrun simctl io "$udid" screenshot "$out/7-mapa-escuro.png"
 
 xcrun simctl spawn "$udid" log show --last 10m --style compact \
   --predicate "subsystem CONTAINS \"$bundle_id\" OR process CONTAINS \"aouerj\" OR process CONTAINS \"AOUerj\"" \
