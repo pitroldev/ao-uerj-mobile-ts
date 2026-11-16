@@ -42,13 +42,7 @@ import type {
 } from '@root/modules/academics/domain/models';
 
 import { ScreenPanel } from '@templates/ScreenPanel';
-import {
-  BlockedState,
-  Button,
-  EmptyState,
-  ErrorState,
-  Notice,
-} from '@components/ui';
+import { Button, EmptyState, ErrorState } from '@components/ui';
 
 import { AppInfoModal } from '@features/AppInfoModal';
 import { RIDBoard } from '@features/PartialRID/RIDBoard';
@@ -82,6 +76,7 @@ import {
 } from '@root/modules/academics/domain/rules/partialRid';
 import { useNow } from '@features/AttendedClassesSchedule/useNow';
 
+import { HomeBlocked } from './components/HomeBlocked';
 import { HomeGreeting } from './components/HomeGreeting';
 import { HomeHelp } from './components/HomeHelp';
 import { HomeSkeleton } from './components/HomeSkeleton';
@@ -226,9 +221,10 @@ export const HomePage = () => {
       grade => typeof grade === 'number' && Number.isFinite(grade),
     ),
   );
-  const isBlocked = [scheduleError, gradesError, ridError].some(
+  const blockedError = [scheduleError, gradesError, ridError].find(
     isPortalBlocked,
   );
+  const isBlocked = blockedError !== undefined;
   const {
     scrollRef,
     onGradesLayout,
@@ -260,8 +256,11 @@ export const HomePage = () => {
     isClassGradesAvailable || isPartialRidAvailable || isScheduleAvailable;
 
   const errors: ErrorControl[] = [];
+  // o portal bloqueado não entra no "Ops, houve um erro": o aviso do topo já
+  // diz que a UERJ fechou as consultas
+  const failed = (error: unknown) => Boolean(error) && !isPortalBlocked(error);
 
-  const isScheduleWithError = Boolean(scheduleError && !isScheduleAvailable);
+  const isScheduleWithError = failed(scheduleError) && !isScheduleAvailable;
   if (isScheduleWithError) {
     errors.push({
       key: 'SCHEDULE',
@@ -270,7 +269,7 @@ export const HomePage = () => {
     });
   }
 
-  const isGradesWithError = Boolean(gradesError && !isClassGradesAvailable);
+  const isGradesWithError = failed(gradesError) && !isClassGradesAvailable;
   if (isGradesWithError) {
     errors.push({
       key: 'GRADES',
@@ -279,7 +278,7 @@ export const HomePage = () => {
     });
   }
 
-  const isRIDWithError = Boolean(ridError && !isPartialRidAvailable);
+  const isRIDWithError = failed(ridError) && !isPartialRidAvailable;
   if (isRIDWithError && !isScheduleAvailable) {
     errors.push({
       key: 'RID',
@@ -464,11 +463,15 @@ export const HomePage = () => {
 
   if (isBlocked && !hasSomethingAvailable) {
     return (
-      <ScreenPanel>
-        <RemoteNotices style={styles.notice} />
-        {greeting}
-        <BlockedState onRetry={retryFailed} />
-      </ScreenPanel>
+      <>
+        {/* a folha aberta no carregamento não some quando o bloqueio chega */}
+        <AppInfoModal />
+        <ScreenPanel refreshing={refreshing && !isPaused} onRefresh={onRefresh}>
+          <RemoteNotices style={styles.notice} />
+          {greeting}
+          <HomeBlocked onRetry={retryFailed} />
+        </ScreenPanel>
+      </>
     );
   }
 
@@ -490,9 +493,17 @@ export const HomePage = () => {
         retry={refetchAll}
       />
     );
-  } else if (isBlocked) {
+  } else if (blockedError) {
+    // os dados salvos seguem na tela, com a data da última leitura
     notice = (
-      <Notice kind="blocked" onRetry={retryFailed} style={styles.notice} />
+      <QueryNotice
+        isPaused={false}
+        isFetching={false}
+        error={blockedError}
+        hasData
+        dataUpdatedAt={oldestUpdate}
+        retry={retryFailed}
+      />
     );
   } else {
     notice = (

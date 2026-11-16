@@ -8,6 +8,7 @@ import {
 import styled from 'styled-components/native';
 
 import {
+  BlockedState,
   EmptyState,
   ErrorState,
   ListSeparator,
@@ -76,16 +77,7 @@ export function SubjectListFallback({
       );
     case 'blocked':
       return (
-        <EmptyState
-          icon="lock"
-          tone="bad"
-          text={SUBJECT_LIST_COPY.blocked}
-          action={{
-            label: 'Tentar novamente',
-            icon: 'refresh',
-            onPress: onRetry,
-          }}
-        />
+        <BlockedState text={SUBJECT_LIST_COPY.blocked} onRetry={onRetry} />
       );
     case 'error':
       return (

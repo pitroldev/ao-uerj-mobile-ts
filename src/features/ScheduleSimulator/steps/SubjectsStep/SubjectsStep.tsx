@@ -29,6 +29,7 @@ import { useStepsContext } from '@hooks/useSteps';
 import { normalizeText } from '@utils/normalize';
 import { SUBJECT_TYPE } from '@utils/constants/subjectDictionary';
 import {
+  BlockedState,
   ChipGroup,
   Checkbox,
   EmptyState,
@@ -36,6 +37,7 @@ import {
   FilterChip,
   ListRow,
   Notice,
+  PORTAL_BLOCKED_TEXT,
   SearchField,
   SelectField,
   SkeletonList,
@@ -273,6 +275,7 @@ export const SubjectsStep = () => {
   const base = universalMode ? universals : pending;
   const failed = !loading && Boolean(error) && !query.data;
   const showList = !loading && !failed;
+  const historyBlocked = isPortalBlocked(history.error);
 
   const search = normalizeText(searchQuery);
   const visible = offeredFirst(
@@ -352,10 +355,18 @@ export const SubjectsStep = () => {
         hasData={curriculum.data !== undefined}
         retry={curriculum.refetch}
       />
-      {history.error ? (
+      {/* com o portal bloqueado, um aviso só: o do currículo ou o cadeado
+          no lugar da lista já explicam */}
+      {history.error && !(historyBlocked && isPortalBlocked(error)) ? (
         <Notice
+          kind={historyBlocked ? 'blocked' : undefined}
           tone="warn"
-          text="Não deu para ler o seu histórico."
+          text={
+            historyBlocked
+              ? `${PORTAL_BLOCKED_TEXT} Não deu para ler o seu histórico.`
+              : 'Não deu para ler o seu histórico.'
+          }
+          style={styles.notice}
           onRetry={() => {
             void history.refetch();
           }}
@@ -431,16 +442,7 @@ export const SubjectsStep = () => {
         </Feedback>
       ) : null}
       {failed && isPortalBlocked(error) ? (
-        <EmptyState
-          icon="lock"
-          tone="bad"
-          text={BLOCKED_TEXT}
-          action={{
-            label: 'Tentar novamente',
-            icon: 'refresh',
-            onPress: retry,
-          }}
-        />
+        <BlockedState text={BLOCKED_TEXT} onRetry={retry} />
       ) : failed ? (
         <ErrorState
           message="Não deu para buscar as disciplinas. Toque para tentar de novo."
@@ -524,4 +526,6 @@ export const SubjectsStep = () => {
 
 const styles = StyleSheet.create({
   chips: { marginTop: 12 },
+  /** O aviso não tem margem própria: 20 até o título do passo. */
+  notice: { marginBottom: 20 },
 });

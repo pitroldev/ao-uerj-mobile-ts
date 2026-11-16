@@ -16,8 +16,9 @@ export type NoticeTone = 'info' | 'neutral' | 'warn' | 'bad' | 'good';
  * - `updating`: info + "sync" girando
  * - `offline`: neutro + "cloud_off" (dados salvos)
  * - `refreshFailed`: atenção + "sync_problem"
- * - `blocked`: crítico + "lock" (portal bloqueado); sem `text` nem
- *   `children`, usa o texto padrão `PORTAL_BLOCKED_TEXT`
+ * - `blocked`: atenção + "lock" (a UERJ fechou as consultas do portal por um
+ *   tempo; não é erro); sem `text` nem `children`, usa o texto padrão
+ *   `PORTAL_BLOCKED_TEXT`
  * - `portalDown`: atenção + "cloud_off" (o portal não responde, com a
  *   internet funcionando)
  */
@@ -28,7 +29,7 @@ const KINDS: Record<NoticeKind, { tone: NoticeTone; icon: IconName }> = {
   updating: { tone: 'info', icon: 'sync' },
   offline: { tone: 'neutral', icon: 'cloud_off' },
   refreshFailed: { tone: 'warn', icon: 'sync_problem' },
-  blocked: { tone: 'bad', icon: 'lock' },
+  blocked: { tone: 'warn', icon: 'lock' },
   portalDown: { tone: 'warn', icon: 'cloud_off' },
 };
 

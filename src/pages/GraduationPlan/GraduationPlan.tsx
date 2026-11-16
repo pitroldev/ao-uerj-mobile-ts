@@ -7,6 +7,7 @@ import {
 import type { DrawerNavigationProp } from '@react-navigation/drawer';
 
 import {
+  BlockedState,
   Button,
   Card,
   EmptyState,
@@ -40,6 +41,7 @@ import {
   type GraduationPlanView,
 } from '@root/modules/graduation/presentation/useGraduationPlan';
 import type { RootDrawerParamList } from '@root/routes';
+import { AppError } from '@root/shared/errors/AppError';
 import { useOnlineStatus } from '@root/modules/academics/presentation/useOnlineStatus';
 import { usePortalStatus } from '@root/modules/connectivity/presentation/PortalStatusContext';
 import { useMomentOnLeave } from '@root/modules/delivery/presentation/positiveMoments';
@@ -109,7 +111,14 @@ export function GraduationPlanPage() {
   let content: React.ReactNode;
   if (view.status === 'loading') content = <PlanSkeleton />;
   else if (view.status === 'error') {
-    content = <ErrorState message={COPY.error} onRetry={view.retrySources} />;
+    // o portal bloqueado não é erro: o plano volta quando a UERJ liberar
+    content =
+      view.error instanceof AppError &&
+      view.error.code === 'POSSIBLY_BLOCKED' ? (
+        <BlockedState onRetry={view.retrySources} />
+      ) : (
+        <ErrorState message={COPY.error} onRetry={view.retrySources} />
+      );
   } else if (view.status === 'done') {
     content = <EmptyState icon="school" text={COPY.done} />;
   } else if (view.status === 'reading') {

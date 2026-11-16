@@ -222,11 +222,9 @@ it('announces cached offline and background errors without hiding the data', asy
       retry={() => undefined}
     />,
   );
-  // aviso `blocked`: tom crítico (anunciado como alerta) e cadeado
+  // aviso `blocked`: tom de atenção (anunciado como alerta) e cadeado
   const blocked = screen.getByRole('alert');
-  expect(blocked).toHaveTextContent(
-    /^O Aluno Online está temporariamente bloqueado\./,
-  );
+  expect(blocked).toHaveTextContent(/^Aluno Online bloqueado pela UERJ\./);
   expect(blocked).toHaveTextContent(/últimos dados salvos/);
   expect(drawsIcon('lock')).toBe(true);
   expect(

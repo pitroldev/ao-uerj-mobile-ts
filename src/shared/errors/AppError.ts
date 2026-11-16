@@ -47,7 +47,8 @@ export function errorMessage(error: unknown): string {
     NOT_LOGGED_IN: 'Entre na sua conta para continuar.',
     SESSION_EXPIRED: 'Sua sessão expirou. Entre novamente.',
     SESSION_CHANGED: 'Sua sessão mudou. Tente novamente.',
-    POSSIBLY_BLOCKED: 'O Aluno Online restringiu temporariamente este acesso.',
+    POSSIBLY_BLOCKED:
+      'A UERJ bloqueou esta consulta no Aluno Online por enquanto.',
     PORTAL_LAYOUT_CHANGED:
       'O Aluno Online retornou dados em um formato inesperado.',
     NETWORK: 'Verifique sua conexão e tente novamente.',

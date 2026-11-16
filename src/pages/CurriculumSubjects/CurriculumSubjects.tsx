@@ -16,6 +16,7 @@ import {
   ChipGroup,
   FilterChip,
   Notice,
+  PORTAL_BLOCKED_TEXT,
   SearchField,
   SegmentedControl,
 } from '@components/ui';
@@ -121,6 +122,7 @@ export const CurriculumSubjects = () => {
     hasData: query.data !== undefined,
     blocked: isPortalBlocked(error),
   });
+  const historyBlocked = isPortalBlocked(history.error);
 
   const header = (
     <>
@@ -132,11 +134,18 @@ export const CurriculumSubjects = () => {
         hasData={query.data !== undefined}
         retry={refetch}
       />
-      {history.error ? (
+      {/* com o portal bloqueado, um aviso só: o do currículo ou o cadeado
+          no lugar da lista já explicam */}
+      {history.error && !(historyBlocked && isPortalBlocked(error)) ? (
         <Spaced>
           <Notice
+            kind={historyBlocked ? 'blocked' : undefined}
             tone="warn"
-            text="Não foi possível conferir o histórico. As conclusões disponíveis continuam visíveis."
+            text={
+              historyBlocked
+                ? `${PORTAL_BLOCKED_TEXT} O histórico não foi conferido.`
+                : 'Não foi possível conferir o histórico. As conclusões disponíveis continuam visíveis.'
+            }
             onRetry={() => {
               void history.refetch();
             }}

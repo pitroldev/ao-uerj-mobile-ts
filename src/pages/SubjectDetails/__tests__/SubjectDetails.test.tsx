@@ -267,8 +267,11 @@ describe('subject details', () => {
     await renderPage();
 
     expect(
-      await screen.findByText(
-        'Parece que o Aluno Online está temporariamente bloqueado. Tente novamente mais tarde.',
+      await screen.findByRole('header', { name: 'Aluno Online bloqueado' }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'A UERJ costuma bloquear notas, grade e histórico na época de inscrição. Volta sozinho quando ela liberar.',
       ),
     ).toBeOnTheScreen();
     expect(

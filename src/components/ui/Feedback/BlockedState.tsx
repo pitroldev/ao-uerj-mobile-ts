@@ -2,7 +2,7 @@ import React from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 
 import { EmptyState } from './EmptyState';
-import { PORTAL_BLOCKED_FULL_TEXT } from './blockedText';
+import { PORTAL_BLOCKED_FULL_TEXT, PORTAL_BLOCKED_TITLE } from './blockedText';
 
 export { PORTAL_BLOCKED_FULL_TEXT, PORTAL_BLOCKED_TEXT } from './blockedText';
 
@@ -15,8 +15,9 @@ export type BlockedStateProps = {
 };
 
 /**
- * Portal bloqueado sem dados para mostrar: cadeado na caixa vermelha, o texto
- * padrão (anunciado como alerta) e "Tentar novamente".
+ * Portal bloqueado sem dados para mostrar: cadeado na caixa de atenção (não é
+ * erro: a UERJ fechou as consultas por um tempo), o título, o texto padrão e
+ * "Tentar novamente".
  */
 export function BlockedState({
   onRetry,
@@ -26,7 +27,8 @@ export function BlockedState({
   return (
     <EmptyState
       icon="lock"
-      tone="bad"
+      tone="warn"
+      title={PORTAL_BLOCKED_TITLE}
       text={text}
       style={style}
       action={

@@ -634,10 +634,11 @@ it('explains a blocked portal without saved data and retries', async () => {
   mockGrades = makeQuery<ClassGrade[]>(undefined, { error: blocked });
   mockRid = makeQuery<PartialRidResult>(undefined, { error: blocked });
   await renderHome();
-  // tom crítico: a mensagem é anunciada como alerta, ao lado do cadeado
-  expect(screen.getByRole('alert')).toHaveTextContent(
-    /temporariamente bloqueado/,
-  );
+  // não é erro: título, o motivo anunciado como alerta e o cadeado
+  expect(
+    screen.getByRole('header', { name: 'Aluno Online bloqueado' }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole('alert')).toHaveTextContent(/costuma bloquear/);
   expect(drawsIcon('lock')).toBe(true);
   await userEvent.setup().press(screen.getByRole('button', RETRY));
   expect(mockSchedule.refetch).toHaveBeenCalled();
@@ -645,25 +646,80 @@ it('explains a blocked portal without saved data and retries', async () => {
   expect(mockRid.refetch).toHaveBeenCalled();
 });
 
+it('offers what keeps working while the portal is blocked', async () => {
+  const blocked = new AppError('POSSIBLY_BLOCKED');
+  mockSchedule = makeQuery<AttendedClassesSchedule[]>(undefined, {
+    error: blocked,
+  });
+  mockGrades = makeQuery<ClassGrade[]>(undefined, { error: blocked });
+  mockRid = makeQuery<PartialRidResult>(undefined, { error: blocked });
+  await renderHome();
+  expect(
+    screen.getByRole('header', { name: 'Continua funcionando' }),
+  ).toBeOnTheScreen();
+  // sem a sessão de aluno, o Agora no campus não existe neste aparelho
+  expect(
+    screen.queryByRole('button', { name: 'Agora no campus' }),
+  ).not.toBeOnTheScreen();
+  const user = userEvent.setup();
+  await user.press(screen.getByRole('button', { name: 'Documentos' }));
+  expect(mockNavigate).toHaveBeenLastCalledWith('Emissão de Documentos');
+  await user.press(screen.getByRole('button', { name: 'Mapa do campus' }));
+  expect(mockNavigate).toHaveBeenLastCalledWith('Mapa');
+});
+
+it('lists the campus notices among what keeps working when the device has them', async () => {
+  const blocked = new AppError('POSSIBLY_BLOCKED');
+  mockSchedule = makeQuery<AttendedClassesSchedule[]>(undefined, {
+    error: blocked,
+  });
+  mockGrades = makeQuery<ClassGrade[]>(undefined, { error: blocked });
+  mockServices.campusNow = { supported: true };
+  try {
+    await renderHome();
+    await userEvent
+      .setup()
+      .press(screen.getByRole('button', { name: 'Agora no campus' }));
+    expect(mockNavigate).toHaveBeenLastCalledWith('Agora no campus');
+  } finally {
+    mockServices.campusNow = { supported: false };
+  }
+});
+
 it('keeps saved data visible under a single blocked notice', async () => {
   const blocked = new AppError('POSSIBLY_BLOCKED');
   mockSchedule = makeQuery(schedule, { error: blocked });
   mockGrades = makeQuery(grades, { error: blocked });
   await renderHome();
-  // um só aviso (um só "Tentar novamente"), do tipo `blocked`: tom crítico
-  // (alerta), cadeado e o texto padrão
+  // um só aviso (um só "Tentar novamente"), do tipo `blocked`: alerta com o
+  // cadeado, dizendo que os dados na tela são os salvos e de quando
   expect(screen.getAllByRole('button', RETRY)).toHaveLength(1);
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    /^Aluno Online bloqueado pela UERJ\. Exibindo os últimos dados salvos\. Última atualização: /,
+  );
   expect(
-    screen.getByRole('alert', {
-      name: 'O Aluno Online está temporariamente bloqueado.',
-    }),
-  ).toBeOnTheScreen();
+    screen.queryByRole('header', { name: 'Continua funcionando' }),
+  ).not.toBeOnTheScreen();
   expect(drawsIcon('lock')).toBe(true);
   await userEvent.setup().press(screen.getByRole('button', RETRY));
   expect(mockSchedule.refetch).toHaveBeenCalled();
   expect(mockGrades.refetch).toHaveBeenCalled();
   expect(screen.getByRole('header', { name: 'Olá, Marina' })).toBeOnTheScreen();
   expect(screen.getAllByLabelText(/^P1/)).toHaveLength(3);
+});
+
+it('does not call a blocked page an error beside the saved data', async () => {
+  const blocked = new AppError('POSSIBLY_BLOCKED');
+  // a grade está salva; as notas e o RID nunca foram lidos e estão bloqueados
+  mockSchedule = makeQuery(schedule, { error: blocked });
+  mockGrades = makeQuery<ClassGrade[]>(undefined, { error: blocked });
+  mockRid = makeQuery<PartialRidResult>(undefined, { error: blocked });
+  await renderHome();
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    /^Aluno Online bloqueado pela UERJ\./,
+  );
+  expect(screen.queryByText(/^Ops, parece que houve um erro/)).toBeNull();
+  expect(screen.getAllByRole('button', RETRY)).toHaveLength(1);
 });
 
 it('shows one offline notice for all the saved data', async () => {
@@ -816,6 +872,27 @@ it('shows the partial RID during enrollment, with the queue status spelled out',
     subjectId: 'IME02-10892',
     sourceRoute: 'Início',
   });
+});
+
+it('keeps the sheet of what is new open when the portal turns out blocked', async () => {
+  // a folha abre no carregamento, antes de o bloqueio aparecer
+  mockSchedule = makeQuery<AttendedClassesSchedule[]>(undefined, {
+    isLoading: true,
+  });
+  const view = await renderHome();
+  expect(
+    await screen.findByRole('header', { name: 'Funcionalidades exclusivas' }),
+  ).toBeOnTheScreen();
+  const blocked = new AppError('POSSIBLY_BLOCKED');
+  mockSchedule = makeQuery<AttendedClassesSchedule[]>(undefined, {
+    error: blocked,
+  });
+  mockGrades = makeQuery<ClassGrade[]>(undefined, { error: blocked });
+  await view.rerender(<HomePage />);
+  expect(
+    screen.getByRole('header', { name: 'Aluno Online bloqueado' }),
+  ).toBeOnTheScreen();
+  expect(sheet('Funcionalidades exclusivas')).not.toBeNull();
 });
 
 it('presents what is new in a sheet once per version', async () => {

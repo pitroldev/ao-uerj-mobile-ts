@@ -250,9 +250,51 @@ it('explains a blocked portal when there is no saved curriculum', async () => {
   });
   await renderPage();
   expect(
-    screen.getByRole('alert', { name: /temporariamente bloqueado/ }),
+    screen.getByRole('header', { name: 'Aluno Online bloqueado' }),
   ).toBeOnTheScreen();
-  expect(glyphsBeside(/temporariamente bloqueado/)).toContain(
+  expect(
+    screen.getByRole('alert', { name: /costuma bloquear/ }),
+  ).toBeOnTheScreen();
+  expect(glyphsBeside(/costuma bloquear/)).toContain(OUTLINED_GLYPHS.lock);
+});
+
+it('says once that the portal is blocked when the history is blocked too', async () => {
+  const blocked = new AppError('POSSIBLY_BLOCKED');
+  mockCurriculum = makeQuery<CurriculumSubject[]>(undefined, {
+    error: blocked,
+  });
+  mockHistory = makeQuery<SubjectsTaken[]>(undefined, { error: blocked });
+  await renderPage();
+  expect(
+    screen.getByRole('header', { name: 'Aluno Online bloqueado' }),
+  ).toBeOnTheScreen();
+  // o aviso do histórico não repete o motivo nem o "Tentar novamente"
+  expect(screen.queryByText(/histórico não foi conferido/)).toBeNull();
+  expect(
+    screen.queryByText(/^Não foi possível conferir o histórico/),
+  ).toBeNull();
+  expect(
+    screen.getAllByRole('button', { name: 'Tentar novamente' }),
+  ).toHaveLength(1);
+});
+
+it('names the block when only the history could not be read', async () => {
+  mockHistory = makeQuery<SubjectsTaken[]>(undefined, {
+    error: new AppError('POSSIBLY_BLOCKED'),
+  });
+  await renderPage();
+  // o currículo salvo segue na tela
+  expectTitles(['Compiladores', 'Projeto Final I', 'Aprendizado de Máquina']);
+  expect(
+    screen.getByText(
+      'Aluno Online bloqueado pela UERJ. O histórico não foi conferido.',
+    ),
+  ).toBeOnTheScreen();
+  expect(glyphsBeside(/histórico não foi conferido/)).toContain(
     OUTLINED_GLYPHS.lock,
   );
+  await userEvent
+    .setup()
+    .press(screen.getByRole('button', { name: 'Tentar novamente' }));
+  expect(mockHistory.refetch).toHaveBeenCalledTimes(1);
 });

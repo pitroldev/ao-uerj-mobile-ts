@@ -210,9 +210,10 @@ it('explains a blocked portal when there is no saved history', async () => {
   });
   await renderScreen();
   expect(drawsIcon('lock')).toBe(true);
-  expect(screen.getByRole('alert')).toHaveTextContent(
-    /temporariamente bloqueado/,
-  );
+  expect(
+    screen.getByRole('header', { name: 'Aluno Online bloqueado' }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole('alert')).toHaveTextContent(/costuma bloquear/);
   await userEvent
     .setup()
     .press(screen.getByRole('button', { name: 'Tentar novamente' }));

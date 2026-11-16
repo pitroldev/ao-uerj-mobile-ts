@@ -485,6 +485,22 @@ it('warns when the plan does not fit the deadline', async () => {
   ).toBeOnTheScreen();
 });
 
+it('explains a blocked portal instead of an error when nothing is saved', async () => {
+  const blocked = new AppError('POSSIBLY_BLOCKED');
+  mockCurriculum = makeQuery<CurriculumSubject[]>(undefined, blocked);
+  mockHistory = makeQuery<SubjectsTaken[]>(undefined, blocked);
+  await renderPage();
+  expect(
+    await screen.findByRole('header', { name: 'Aluno Online bloqueado' }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByText('Não foi possível carregar o currículo e o histórico.'),
+  ).not.toBeOnTheScreen();
+  await user().press(screen.getByRole('button', { name: 'Tentar novamente' }));
+  expect(mockCurriculum.refetch).toHaveBeenCalled();
+  expect(mockHistory.refetch).toHaveBeenCalled();
+});
+
 it('stops reading when the portal asks for a pause and tries again', async () => {
   mockGetSubjectDetails.mockRejectedValue(new AppError('POSSIBLY_BLOCKED'));
   await renderPage();

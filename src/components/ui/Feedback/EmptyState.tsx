@@ -22,8 +22,11 @@ export type EmptyStateProps = {
   title?: string;
   /** Ícone na caixa de 64dp. Padrão "info". */
   icon?: IconName;
-  /** `bad` pinta a caixa de vermelho (erro, bloqueado). */
-  tone?: 'neutral' | 'bad';
+  /**
+   * `bad` pinta a caixa de vermelho (erro); `warn`, de âmbar (portal
+   * bloqueado: pede atenção, mas não é erro).
+   */
+  tone?: 'neutral' | 'warn' | 'bad';
   /** Botão contornado pequeno abaixo do texto. */
   action?: Action;
   style?: StyleProp<ViewStyle>;
@@ -55,7 +58,11 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <Root style={style}>
-      <IconTile icon={icon} size="lg" tone={tone === 'bad' ? 'bad' : 'muted'} />
+      <IconTile
+        icon={icon}
+        size="lg"
+        tone={tone === 'neutral' ? 'muted' : tone}
+      />
       <Copy>
         {title ? (
           <Text variant="headline" align="center" accessibilityRole="header">
@@ -66,7 +73,7 @@ export function EmptyState({
           variant="body"
           tone="muted"
           align="center"
-          accessibilityRole={tone === 'bad' ? 'alert' : undefined}
+          accessibilityRole={tone === 'neutral' ? undefined : 'alert'}
         >
           {text}
         </Message>

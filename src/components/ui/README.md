@@ -86,16 +86,16 @@ Cada um tem `{ ink, bg, line }` (texto/ícone, fundo pastel pequeno, fio). Os de
 células marcadas, alerta do RID): no claro é o próprio `bg`; no escuro,
 atenção e crítico descem um degrau.
 
-| Tom               | ink       | bg           | line         | Escuro (ink / bg / line)                           | Uso                                                   |
-| ----------------- | --------- | ------------ | ------------ | -------------------------------------------------- | ----------------------------------------------------- |
-| `status.good`     | `#17673A` | `#DDF5E3`    | `#A9DDB7`    | `#A4EBB8` / `#1E4A2E` / `#3B6A4A`                  | Aprovado, nota/vaga boa (≥70%)                        |
-| `status.warn`     | `#715600` | `#FAF4CC`    | `#E5D682`    | `#F8D48B` / `#573900` / `#78571D` (wash `#462D00`) | Atenção (≥50%), falha ao atualizar, trava de créditos |
-| `status.bad`      | `#A4261E` | `#FCE4E2`    | `#F1B5AF`    | `#FF9C92` / `#612E2B` / `#854B47` (wash `#4C221F`) | Reprovado, crítico, erro, bloqueado, horário ocupado  |
-| `status.neutral`  | `#4A5263` | `#EDEFF3`    | `#D3D8E0`    | `#B3BFCF` / `#36414F` / `#535F6E`                  | Cancelada, isenta, sem dado                           |
-| `status.info`     | = acento  | `accentSoft` | `accentLine` | idem                                               | "Hoje", "Agora", "Preferencial", aviso informativo    |
-| `shift.morning`   | `#665400` | `#FBF8D6`    | `#E6DC98`    | `#F2D98C` / `#4E3A03` / `#715A24`                  | Manhã                                                 |
-| `shift.afternoon` | `#894A0F` | `#FFEEDB`    | `#F0CBA4`    | `#FFCC9C` / `#593014` / `#7F4F31`                  | Tarde                                                 |
-| `shift.night`     | `#0A5A73` | `#DEF3FA`    | `#A6D8E9`    | `#99E6FF` / `#184655` / `#356575`                  | Noite                                                 |
+| Tom               | ink       | bg           | line         | Escuro (ink / bg / line)                           | Uso                                                                     |
+| ----------------- | --------- | ------------ | ------------ | -------------------------------------------------- | ----------------------------------------------------------------------- |
+| `status.good`     | `#17673A` | `#DDF5E3`    | `#A9DDB7`    | `#A4EBB8` / `#1E4A2E` / `#3B6A4A`                  | Aprovado, nota/vaga boa (≥70%)                                          |
+| `status.warn`     | `#715600` | `#FAF4CC`    | `#E5D682`    | `#F8D48B` / `#573900` / `#78571D` (wash `#462D00`) | Atenção (≥50%), falha ao atualizar, portal bloqueado, trava de créditos |
+| `status.bad`      | `#A4261E` | `#FCE4E2`    | `#F1B5AF`    | `#FF9C92` / `#612E2B` / `#854B47` (wash `#4C221F`) | Reprovado, crítico, erro, horário ocupado                               |
+| `status.neutral`  | `#4A5263` | `#EDEFF3`    | `#D3D8E0`    | `#B3BFCF` / `#36414F` / `#535F6E`                  | Cancelada, isenta, sem dado                                             |
+| `status.info`     | = acento  | `accentSoft` | `accentLine` | idem                                               | "Hoje", "Agora", "Preferencial", aviso informativo                      |
+| `shift.morning`   | `#665400` | `#FBF8D6`    | `#E6DC98`    | `#F2D98C` / `#4E3A03` / `#715A24`                  | Manhã                                                                   |
+| `shift.afternoon` | `#894A0F` | `#FFEEDB`    | `#F0CBA4`    | `#FFCC9C` / `#593014` / `#7F4F31`                  | Tarde                                                                   |
+| `shift.night`     | `#0A5A73` | `#DEF3FA`    | `#A6D8E9`    | `#99E6FF` / `#184655` / `#356575`                  | Noite                                                                   |
 
 Pastéis só em fundos pequenos (célula de nota, tag, bloco da grade). Utilitários
 em `@components/ui`: `toneColors(theme, tone)`, `healthTone('GOOD'|'BAD'|'CRITICAL')`
@@ -152,16 +152,16 @@ Fora do `Text` (por exemplo num `TextInput`) use `typeStyle(theme, 'body')`.
 
 ### Estados obrigatórios das telas de dados
 
-| Estado                       | Como mostrar                                                                                                                            |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Carregando (sem dados)       | `SkeletonList` (ou esqueleto com `Skeleton` no formato da tela), nunca um indicador girando no meio                                     |
-| Atualizando (com dados)      | `UpdatingBar` (o `QueryNotice` já faz) ou `ScreenPanel updating`                                                                        |
-| Sem conexão com dados salvos | `Notice kind="offline"` + "Tentar novamente" (o `QueryNotice` já faz)                                                                   |
-| Falha ao atualizar           | `Notice kind="refreshFailed"` + "Tentar novamente"                                                                                      |
-| Portal bloqueado com dados   | `Notice kind="blocked"` + "Tentar novamente" (sem `text`, usa `PORTAL_BLOCKED_TEXT`; o `QueryNotice` já faz)                            |
-| Portal bloqueado sem dados   | `BlockedState onRetry={refetch}` (cadeado, `PORTAL_BLOCKED_FULL_TEXT` e "Tentar novamente")                                             |
-| Vazio                        | `EmptyState` com ícone e a frase real (`search_off`, `history_edu`, `forum`, `manage_search`, `event_upcoming`, `event_busy`, `school`) |
-| Erro                         | `ErrorState` (centralizado) ou `ErrorState variant="card"` (Início, acima da ajuda "Caso o erro persista")                              |
+| Estado                       | Como mostrar                                                                                                                                   |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Carregando (sem dados)       | `SkeletonList` (ou esqueleto com `Skeleton` no formato da tela), nunca um indicador girando no meio                                            |
+| Atualizando (com dados)      | `UpdatingBar` (o `QueryNotice` já faz) ou `ScreenPanel updating`                                                                               |
+| Sem conexão com dados salvos | `Notice kind="offline"` + "Tentar novamente" (o `QueryNotice` já faz)                                                                          |
+| Falha ao atualizar           | `Notice kind="refreshFailed"` + "Tentar novamente"                                                                                             |
+| Portal bloqueado com dados   | `Notice kind="blocked"` + "Tentar novamente" (tom de atenção, não de erro; sem `text`, usa `PORTAL_BLOCKED_TEXT`; o `QueryNotice` já faz)      |
+| Portal bloqueado sem dados   | `BlockedState onRetry={refetch}` (cadeado em tom de atenção, título "Aluno Online bloqueado", `PORTAL_BLOCKED_FULL_TEXT` e "Tentar novamente") |
+| Vazio                        | `EmptyState` com ícone e a frase real (`search_off`, `history_edu`, `forum`, `manage_search`, `event_upcoming`, `event_busy`, `school`)        |
+| Erro                         | `ErrorState` (centralizado) ou `ErrorState variant="card"` (Início, acima da ajuda "Caso o erro persista")                                     |
 
 ---
 
@@ -372,12 +372,12 @@ Fora do `Text` (por exemplo num `TextInput`) use `typeStyle(theme, 'body')`.
 - **`UpdatingBar`** / **`LoadingBar`**: barra fina indeterminada (`tone` `accent|onBrand`, `width`, `height`). `LoadingBar tone="onBrand" width={120}` é a do carregamento.
 - **`Spinner`**: o `progress_activity` girando (botões e trechos curtos; prefira esqueleto no conteúdo).
 - **`Skeleton`** (`width`, `height`, `radius`, `cut`) e **`SkeletonList`** (`count`).
-- **`EmptyState`**: `text`, `title`, `icon`, `tone` (`neutral|bad`), `action` (`label`, `onPress`, `icon`).
+- **`EmptyState`**: `text`, `title`, `icon`, `tone` (`neutral|warn|bad`), `action` (`label`, `onPress`, `icon`).
 - **`ErrorState`**: `message`, `title` (só `centered`), `onRetry`, `retryLabel`, `icon`, `variant` (`centered|card`).
-- **`BlockedState`**: portal bloqueado sem dados (`onRetry`, `text`). Textos únicos exportados: `PORTAL_BLOCKED_TEXT` ("O Aluno Online está temporariamente bloqueado.", aviso com dados) e `PORTAL_BLOCKED_FULL_TEXT` ("Parece que o Aluno Online está temporariamente bloqueado. Tente novamente mais tarde.", sem dados).
+- **`BlockedState`**: portal bloqueado sem dados (`onRetry`, `text`), com o título "Aluno Online bloqueado". A UERJ fecha as consultas na inscrição em disciplinas com o login funcionando: é um estado de atenção (âmbar), não um erro. Textos únicos exportados: `PORTAL_BLOCKED_TEXT` ("Aluno Online bloqueado pela UERJ.", aviso com dados) e `PORTAL_BLOCKED_FULL_TEXT` ("A UERJ costuma bloquear notas, grade e histórico na época de inscrição. Volta sozinho quando ela liberar.", sem dados).
 
 ```tsx
-<Notice kind="blocked" text="O Aluno Online está temporariamente bloqueado." onRetry={refetch} />
+<Notice kind="blocked" text="Aluno Online bloqueado pela UERJ." onRetry={refetch} />
 <Notice tone="info" icon="tune" text="Configure os créditos necessários para ver o progresso."
   action={{ label: 'Configurar créditos', onPress: openCredits }} />
 <Notice tone="neutral" iconColor={theme.colors.accent} icon="info"
