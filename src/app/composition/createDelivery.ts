@@ -29,7 +29,18 @@ export function createDelivery({
 }) {
   const store = createAppKeyValueStore(preferences);
   const now = () => Date.now();
-  const review = new ReviewPrompter({ review: nativeReviewPrompt, store, now });
+  const review = new ReviewPrompter({
+    review: {
+      // a conta de demonstração (quem revisa nas lojas) nunca é convidada
+      // a avaliar
+      isAvailable: () =>
+        !identity.getSnapshot().account?.demo &&
+        nativeReviewPrompt.isAvailable(),
+      request: () => nativeReviewPrompt.request(),
+    },
+    store,
+    now,
+  });
   // Uma sessão é o aluno com o app na frente e a conta carregada. A
   // verificação de avisos em segundo plano também restaura a conta e não conta.
   const noteSession = () => {

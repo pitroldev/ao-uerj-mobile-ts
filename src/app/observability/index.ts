@@ -1,5 +1,6 @@
 export {
   errorMonitor,
+  markDemoAccount,
   recordScreen,
   reportPortalLayoutChange,
   reportQueryError,

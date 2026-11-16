@@ -338,6 +338,22 @@ it('greets the student and answers the next class first', async () => {
   ).toBeOnTheScreen();
 });
 
+it('says when the account is the demonstration one', async () => {
+  const demoText = 'Conta de demonstração. Os dados são fictícios.';
+  await renderHome();
+  expect(screen.queryByText(demoText)).toBeNull();
+  await screen.unmount();
+
+  const real = mockIdentity.account;
+  mockIdentity.account = { ...real, demo: true } as typeof real;
+  try {
+    await renderHome();
+    expect(screen.getByText(demoText)).toBeOnTheScreen();
+  } finally {
+    mockIdentity.account = real;
+  }
+});
+
 it('lists the grades with health spelled out, never by color alone', async () => {
   await renderHome();
   // com as células tocáveis (anotar a data da prova), cada uma é lida

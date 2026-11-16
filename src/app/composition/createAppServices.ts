@@ -1,14 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { observePortalTransport } from '@root/adapters/outbound/aluno-online/observedTransport';
 import { isPortalAnswer } from '@root/modules/connectivity/application/PortalMonitor';
 import { PORTAL_RETURN_KEY } from '@root/modules/notifications/application/PortalReturnAlert';
 import { bundledCampusMap } from '@root/adapters/outbound/campus-map';
 import { CampusMap } from '@root/modules/campus-map/application/CampusMap';
-import { createAlunoOnlineAdapter } from '@root/adapters/outbound/aluno-online';
-import {
-  createNativeCookieJar,
-  createNativePortalTransport,
-} from '@root/adapters/outbound/aluno-online/nativeTransport';
 import { createCredentialStore } from '@root/adapters/outbound/persistence/credential-store';
 import { createPreferencesStore } from '@root/adapters/outbound/persistence/preferences';
 import {
@@ -24,12 +18,8 @@ import { NativeDocumentSharing } from '@root/adapters/outbound/native/NativeDocu
 import { createLaunches } from '@root/adapters/outbound/native/NativeLaunches';
 import { nativeAppearance } from '@root/adapters/outbound/native/NativeAppearance';
 import { createAppKeyValueStore } from '@root/adapters/outbound/delivery/appStore';
-import {
-  createPrivateApiAdapters,
-  createPrivateApiClient,
-} from '@root/adapters/outbound/private-api';
+import { createPrivateApiClient } from '@root/adapters/outbound/private-api';
 import { createScheduleGeneratorAdapter } from '@root/adapters/outbound/schedule-generator';
-import { createSessionClient } from '@root/adapters/outbound/private-api/sessionClient';
 import { IdentityController } from '@root/modules/identity/application/IdentityController';
 import { Community } from '@root/modules/community/application/Community';
 import { SubmitErrorReport } from '@root/modules/support/application/SubmitErrorReport';
@@ -39,10 +29,13 @@ import { version } from '../../../package.json';
 import { createQueryClient } from '../queryClient';
 import {
   errorMonitor,
-  reportPortalLayoutChange,
-  reportPortalLayoutChanges,
+  markDemoAccount,
   reportQueryError,
 } from '../observability';
+import type { Backend } from './backend/Backend';
+import { createRealBackend } from './backend/createRealBackend';
+import { loadDemoBackend } from './backend/loadDemoBackend';
+import { switchBackend } from './backend/switchBackend';
 import {
   CHECK_STATE_KEY,
   PREFERENCES_KEY,
@@ -126,41 +119,43 @@ export function createAppServices() {
     },
     vault ? { maxAge: longLivedCacheAge } : {},
   );
-  const privateClient = createPrivateApiClient();
+  // a disponibilidade do Aluno Online pergunta ao backend da vez (a conta
+  // de demonstração não usa o portal); só pergunta depois de aberto
+  const portalMonitor = createPortalMonitor({
+    probe: () => backend.portalProbe.status(),
+    shared: { read: options => backend.portalStatus.read(options) },
+  });
+  // o portal e o nosso servidor, de verdade ou os da conta de demonstração:
+  // daqui para baixo, ninguém sabe qual
+  const backend: Backend = switchBackend(
+    createRealBackend({
+      credentials,
+      monitor: portalMonitor,
+      client: createPrivateApiClient(),
+      session: () => studentSession,
+    }),
+    {
+      savedCredentials: async () =>
+        (await credentials.read())?.credentials ?? null,
+      loadDemo: loadDemoBackend,
+    },
+  );
   // a sessão de aluno no servidor, no cofre: a matrícula e o nome da conta
   // logada, atestados pela Play (no iPhone, pelo App Attest); o logout a
   // encerra
   const studentSession = createStudentSession({
     vault,
-    client: privateClient,
+    api: backend.studentSessionApi,
     account: () => identity.getSnapshot().account,
   });
-  const studentClient = createSessionClient(privateClient, studentSession);
-  const privateApi = createPrivateApiAdapters(privateClient, studentClient);
-  const transport = createNativePortalTransport();
-  // a página inicial do portal: leve e o primeiro passo do próprio login
-  const probePortal = async () =>
-    (await transport.request({ path: '/' })).status;
-  const portalMonitor = createPortalMonitor({
-    probe: probePortal,
-    shared: privateApi.portalStatus,
-  });
-  const portal = reportPortalLayoutChanges(
-    createAlunoOnlineAdapter({
-      transport: observePortalTransport(transport, portalMonitor),
-      cookies: createNativeCookieJar(),
-      readCredentials: async () =>
-        (await credentials.read())?.credentials ?? null,
-    }),
-    reportPortalLayoutChange,
-  );
   const identity = new IdentityController({
     credentials,
-    authentication: portal.authentication,
+    authentication: backend.authentication,
     accountData: cache.lifecycle,
     createScope,
   });
   const currentAccount = () => identity.getSnapshot().account;
+  identity.subscribe(() => markDemoAccount(Boolean(currentAccount()?.demo)));
   let startup: Promise<string | null> | null = null;
   const delivery = createDelivery({
     appVersion: version,
@@ -170,13 +165,13 @@ export function createAppServices() {
   const evaluations = new EvaluationRecords(preferences);
   // encontros de minutos entre alunos, com as chaves de membro no cofre
   const companion = createCompanion({
-    student: studentClient,
+    server: backend.companion,
     session: studentSession,
     vault,
   });
   // avisos dos alunos sobre o campus, com a sessão de aluno
   const campusNow = createCampusNow({
-    student: studentClient,
+    server: backend.campus,
     session: studentSession,
     preferences,
     account: currentAccount,
@@ -189,13 +184,13 @@ export function createAppServices() {
     queryClient,
     identity,
     preferences,
-    records: portal.records,
+    records: backend.records,
     evaluations,
-    documents: portal.documents,
+    documents: backend.documents,
     remoteStatus: delivery.status,
     flushCache: cache.flush,
     savedScope: async () => (await credentials.read())?.account.scope ?? null,
-    probePortal: async () => isPortalAnswer(await probePortal()),
+    probePortal: async () => isPortalAnswer(await backend.portalProbe.status()),
     companion,
     campusNow,
   });
@@ -207,12 +202,12 @@ export function createAppServices() {
     portalMonitor,
     preferences,
     community: new Community({
-      messageBoard: privateApi.messageBoard,
-      teacherDirectory: privateApi.teacherDirectory,
+      messageBoard: backend.messageBoard,
+      teacherDirectory: backend.teacherDirectory,
       currentAccount,
     }),
     support: new SubmitErrorReport(
-      privateApi.errorReporter,
+      backend.errorReporter,
       {
         appVersion: version,
         parserVersion: '3',
@@ -228,9 +223,9 @@ export function createAppServices() {
     ),
     // a última tentativa no gerador, em contagens, para o relato da tela
     generatorRuns: new GeneratorRunLog(),
-    academicRecords: portal.records,
+    academicRecords: backend.records,
     scheduleSharing: new NativeScheduleSharing(),
-    documents: portal.documents,
+    documents: backend.documents,
     documentSharing: new NativeDocumentSharing(),
     // PDFs que o aluno guardou para usar sem o portal (no cofre)
     savedDocuments,

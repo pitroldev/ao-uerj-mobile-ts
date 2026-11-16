@@ -70,6 +70,7 @@ Cada módulo de `src/modules/<nome>/` tem até três pastas:
 
 - **Domínio e aplicação** (`src/modules/**/domain/**/*.ts` e `application/**/*.ts`) não importam React, React Native, React Navigation, styled-components, TanStack Query, Redux, axios nem cheerio, nem as pastas `adapters`, `app`, `presentation`, `services`, `features` e `store`: "Domínio e aplicação dependem de portas; conecte implementações na composição."
 - **Em todo o `src/`:** nada da raiz do `cheerio` (quebra no Metro; use `loadHtml()` de `src/adapters/outbound/aluno-online/html.ts`, com `cheerio/slim` e parse5), nada de `react-native-cheerio` e nada de `react-native-toast-message` direto (use a fachada `snackbar` de `@components/ui`).
+- **Conta de demonstração:** só `src/app/composition/backend/` (e os testes da composição) importa `src/adapters/outbound/demo`. Telas, módulos e adaptadores reais recebem um `Backend` e não perguntam se é demo.
 - **`src/modules/**` e `src/app/**`:** `react/exhaustive-deps` como erro.
 - **No servidor:** as regras hexagonais de [server/README.md](../server/README.md#arquitetura).
 
@@ -78,6 +79,17 @@ O `scripts/__tests__/architecture.test.cjs` (no `pnpm test:tooling`) confere que
 ## Composição
 
 `src/app/composition/createAppServices.ts` monta os serviços do app: liga cada porta a um adaptador (o portal, o cofre, o servidor, os módulos nativos) e entrega tudo às telas pelo `AppServicesProvider`. É o único lugar que conhece os dois lados. Os módulos que dependem de recursos de uma plataforma (a sessão de aluno, a Companhia agora, o Agora no campus, os avisos) dizem se estão disponíveis, e o menu esconde o que não está.
+
+### Conta de demonstração
+
+O que fala com a rede e muda com a conta fica num tipo só, o `Backend` (`src/app/composition/backend/Backend.ts`): autenticação, leituras e documentos do portal, o teste do portal, e o mural, os docentes, o relato, a Companhia, o Agora no campus, a situação do portal e a sessão de aluno do servidor. O resto da composição recebe um `Backend` e não sabe de onde ele vem.
+
+- `createRealBackend.ts` monta o Aluno Online e o servidor de verdade.
+- `src/adapters/outbound/demo` responde as mesmas portas no aparelho, com um aluno fictício. `loadDemoBackend.ts` só a carrega quando a conta demo entra, e o tipo de retorno obriga a demo a responder o `Backend` inteiro: uma porta nova que fale com a rede não compila sem a versão demo.
+- `switchBackend.ts` é a troca, e o único lugar que pergunta se a conta é a demo. Decide a cada login e saída pelas credenciais, e ao abrir pela conta guardada no cofre: as rodadas em segundo plano da Companhia, do campus e de "Avisar quando voltar" não fazem login.
+- Fora da troca, a conta só é lida em três pontos, pelo campo `demo` do perfil: o aviso no Início e no menu, o pedido de avaliação (nunca na demo) e a marca no Sentry.
+
+O comportamento para quem usa a conta está em [Funcionalidades](funcionalidades.md#conta-de-demonstração).
 
 ## Atualizações OTA
 

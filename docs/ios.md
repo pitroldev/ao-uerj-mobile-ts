@@ -74,8 +74,12 @@ as duas descrições antes de enviar o pacote.
 O build 24 foi processado com sucesso pela Apple e associado à submissão.
 
 Antes de submeter a versão, confira o resultado do `ios.yml`, as capturas
-reais do app, o login fornecido exclusivamente à Apple, a privacidade e os
-metadados da loja. A primeira publicação foi configurada como gratuita no
+reais do app, a privacidade e os metadados da loja. Em "App Review
+Information", o login é o da [conta de demonstração](funcionalidades.md#conta-de-demonstração)
+(matrícula `123456`, senha `aouerj-demo`), que funciona sem o Aluno Online e
+sem a conta de um aluno; as notas da revisão explicam por que não há conta
+real. Ela só existe a partir do build que a traz no binário (uma
+atualização OTA não chega à primeira abertura do revisor). A primeira publicação foi configurada como gratuita no
 Brasil e com lançamento automático após aprovação.
 
 ## Módulos nativos

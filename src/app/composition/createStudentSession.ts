@@ -4,11 +4,12 @@ import { createNativeAppAttest } from '@root/adapters/outbound/native/NativeAppA
 import { createNativeDeviceTrust } from '@root/adapters/outbound/native/NativeDeviceTrust';
 import { createStudentSessionStore } from '@root/adapters/outbound/persistence/student-session-store';
 import type { SecureVault } from '@root/adapters/outbound/persistence/vault-storage';
-import type { PrivateApiHttpClient } from '@root/adapters/outbound/private-api';
-import { createStudentSessionApi } from '@root/adapters/outbound/private-api/studentSession';
 import type { IdentityController } from '@root/modules/identity/application/IdentityController';
 import { StudentSession } from '@root/modules/trust/application/StudentSession';
-import type { DeviceTrustPort } from '@root/modules/trust/application/ports';
+import type {
+  DeviceTrustPort,
+  StudentSessionApiPort,
+} from '@root/modules/trust/application/ports';
 
 /** A espera ao acaso entre o login e a primeira entrada no servidor. */
 const WARM_UP_MS = { min: 5_000, max: 30_000 };
@@ -28,21 +29,22 @@ export function createDeviceTrust(
 /**
  * A sessão de aluno no servidor: só onde há atestação (a Play no Android, o
  * App Attest no iPhone) e o cofre. `account` é lida na hora de entrar (a
- * conta logada).
+ * conta logada). `api` é a do backend da vez: a da conta de demonstração
+ * diz que a identificação está desligada, e o app nem chega a atestar.
  */
 export function createStudentSession({
   vault,
-  client,
+  api,
   account,
   device = createDeviceTrust(),
 }: {
   vault: SecureVault | null;
-  client: PrivateApiHttpClient;
+  api: StudentSessionApiPort;
   account: () => Account | null | undefined;
   device?: DeviceTrustPort | null;
 }) {
   return new StudentSession({
-    api: createStudentSessionApi(client),
+    api,
     device,
     store: vault ? createStudentSessionStore(vault) : null,
     account,

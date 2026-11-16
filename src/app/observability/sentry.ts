@@ -71,6 +71,15 @@ export function startObservability({
   return true;
 }
 
+/**
+ * Marca os eventos da conta de demonstração (quem revisa nas lojas), para
+ * uma falha com dados fictícios não se misturar às dos alunos.
+ */
+export function markDemoAccount(demo: boolean) {
+  if (!enabled) return;
+  Sentry.setTag('demo_account', demo ? 'yes' : 'no');
+}
+
 /** Erro de renderização pego pelo ErrorBoundary da raiz. */
 export function reportRenderError(
   error: unknown,

@@ -42,7 +42,7 @@ import type {
 } from '@root/modules/academics/domain/models';
 
 import { ScreenPanel } from '@templates/ScreenPanel';
-import { Button, EmptyState, ErrorState } from '@components/ui';
+import { Button, EmptyState, ErrorState, Notice } from '@components/ui';
 
 import { AppInfoModal } from '@features/AppInfoModal';
 import { RIDBoard } from '@features/PartialRID/RIDBoard';
@@ -370,14 +370,26 @@ export const HomePage = () => {
     setEvaluationSheet(sheet => ({ ...sheet, visible: false }));
   }, []);
 
-  const greeting =
-    homeLayout.greeting === 'none' ? null : (
-      <HomeGreeting
-        firstName={firstName}
-        date={dateLabel(now)}
-        style={homeLayout.greeting}
-      />
-    );
+  const greeting = (
+    <>
+      {homeLayout.greeting === 'none' ? null : (
+        <HomeGreeting
+          firstName={firstName}
+          date={dateLabel(now)}
+          style={homeLayout.greeting}
+        />
+      )}
+      {/* a conta das lojas: ninguém confunde os dados com os de um aluno */}
+      {account?.demo ? (
+        <Notice
+          tone="info"
+          icon="visibility"
+          text="Conta de demonstração. Os dados são fictícios."
+          style={styles.demo}
+        />
+      ) : null}
+    </>
+  );
 
   // as seções na ordem do aluno; o atalho "Notas" mostra as notas mesmo
   // escondidas, para não abrir num Início que não as tem

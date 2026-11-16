@@ -28,6 +28,7 @@ let mockAccount: {
   name: string;
   matricula: string;
   period: string;
+  demo?: true;
 } | null;
 let mockBottomInset = 0;
 const mockNativeAppearance = { apply: jest.fn() };
@@ -331,6 +332,20 @@ it('lists the routes in groups, navigates and signs out from the drawer', async 
   await user.press(screen.getByRole('button', { name: 'Sair' }));
   expect(navigation.closeDrawer).toHaveBeenCalled();
   expect(mockSignOut).toHaveBeenCalled();
+});
+
+it('names the demonstration account instead of its matricula', async () => {
+  mockAccount = { ...mockAccount!, matricula: '123456', demo: true };
+  await renderWithProviders(
+    <DrawerNavigator
+      {...({
+        state: { routeNames: ['Início', 'Sobre'], index: 0 },
+        navigation: { navigate: jest.fn(), closeDrawer: jest.fn() },
+      } as any)}
+    />,
+  );
+  expect(screen.getByText('Conta de demonstração')).toBeOnTheScreen();
+  expect(screen.queryByText(/^Matrícula/)).toBeNull();
 });
 
 it('opens the theme options from the drawer footer and applies the choice', async () => {

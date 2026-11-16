@@ -237,7 +237,9 @@ export const DrawerNavigator = ({
             {account!.name}
           </Text>
           <Text variant="meta" tone="onBrandMuted">
-            {`Matrícula ${account!.matricula}`}
+            {account!.demo
+              ? 'Conta de demonstração'
+              : `Matrícula ${account!.matricula}`}
           </Text>
         </UserText>
       </User>

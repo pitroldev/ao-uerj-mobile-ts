@@ -14,6 +14,7 @@ Como cada funcionalidade se comporta, com as regras que o código segue. Serve p
 | Lembretes, avisos do portal, widgets e atalhos | [Notificações e widget](notificacoes-e-widget.md)                                                         |
 | Emissão de documentos                          | [Emissão de documentos](emissao-de-documentos.md)                                                         |
 | Mapa offline do campus                         | [DESIGN.md do mapa](../src/pages/CampusMap/DESIGN.md) e [fontes do mapa](../scripts/campus-map/README.md) |
+| Conta de demonstração (revisão das lojas)      | [Abaixo](#conta-de-demonstração)                                                                          |
 
 Quando o AO não informa o semestre, a interface usa "Período atual". O período do mural é um filtro selecionado pelo usuário; não é uma confirmação do calendário acadêmico oficial.
 
@@ -126,3 +127,18 @@ Em Meu Progresso, a seção "Atividades complementares" mostra as horas que cont
 - **Leitura:** a mesma página do histórico. O adaptador compartilha por 15 segundos a requisição dessa página, então o histórico e as atividades pedidos juntos saem de uma requisição só.
 - **Carga exigida:** a página não a informa. Ela aparece ("120 h de 200 h · faltam 80 h") só quando a Síntese da Formação traz um requisito de atividades complementares; senão, a seção mostra o total que conta.
 - Sem atividades nem exigência, a seção não aparece.
+
+## Conta de demonstração
+
+A App Store e a Google Play pedem um acesso que funcione sempre, de qualquer lugar. Como só a UERJ cria matrículas, o app traz uma conta de demonstração, com um aluno fictício guardado no próprio app.
+
+- **Credenciais:** matrícula `123456` e senha `aouerj-demo`, na tela de login normal (`src/adapters/outbound/demo/account.ts`). São públicas: a conta não dá acesso a nada real.
+- **O que ela mostra:** todas as telas, com dados inventados e datas contadas a partir de hoje (o período corrente, aulas de segunda a sábado de manhã, à tarde e à noite, P1 lançada e P2 pendente, RID, resultado da inscrição, Síntese, documentos). O Início avisa "Conta de demonstração. Os dados são fictícios.", e o menu mostra "Conta de demonstração" no lugar da matrícula.
+- **Isolamento:**
+  - nenhuma requisição ao Aluno Online, em nenhum caminho (login, abertura, segundo plano). Com a matrícula demo e a senha errada, o login é recusado no aparelho;
+  - nenhuma identidade no servidor: a sessão de aluno responde "identificação desligada", e o app nem chega a atestar (Play Integrity, App Attest);
+  - mural, Companhia agora, Agora no campus e relatos respondem no aparelho; o que se posta fica na memória até o app fechar;
+  - o PDF dos documentos é uma página "Documento fictício, sem valor", sem imitar o da UERJ;
+  - o gerador de grade vai ao servidor de verdade, sem identificar o aluno, como num aparelho sem a Play.
+- **Sem pedido de avaliação** na loja, e os eventos do Sentry levam a marca `demo_account`.
+- **Como funciona no código:** ver [Arquitetura](arquitetura.md#conta-de-demonstração).

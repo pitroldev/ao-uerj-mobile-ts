@@ -6,6 +6,12 @@ export type StudentProfile = {
   matricula: string;
   name: string;
   period: string;
+  /**
+   * A conta de demonstração das lojas: dados fictícios, no aparelho. Lido
+   * só pela etiqueta "Demonstração", pelo pedido de avaliação e pelo
+   * monitoramento de falhas; o resto do app não distingue.
+   */
+  demo?: true;
 };
 
 export type Account = StudentProfile & { scope: string };

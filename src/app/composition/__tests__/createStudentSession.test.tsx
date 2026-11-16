@@ -1,7 +1,7 @@
 import { AppState, Platform } from 'react-native';
 
 import type { SecureVault } from '@root/adapters/outbound/persistence/vault-storage';
-import type { PrivateApiHttpClient } from '@root/adapters/outbound/private-api';
+import type { StudentSessionApiPort } from '@root/modules/trust/application/ports';
 import type { IdentityState } from '@root/modules/identity/domain/types';
 import { testCrypto } from '@root/modules/trust/__tests__/testCrypto';
 import { toBase64 } from '@root/modules/trust/domain/bytes';
@@ -126,7 +126,7 @@ it('attests with App Attest on the iPhone and with Play Integrity on Android', a
   expect(Platform.OS).toBe('ios');
   const session = createStudentSession({
     vault: {} as SecureVault,
-    client: {} as PrivateApiHttpClient,
+    api: {} as StudentSessionApiPort,
     account: () => null,
   });
   expect(session.supported).toBe(true);
@@ -140,7 +140,7 @@ it('does not sign in on the iPhone simulator, which has no App Attest', () => {
   expect(
     createStudentSession({
       vault: {} as SecureVault,
-      client: {} as PrivateApiHttpClient,
+      api: {} as StudentSessionApiPort,
       account: () => null,
     }).supported,
   ).toBe(false);
@@ -151,22 +151,21 @@ it('does not sign in on the iPhone simulator, which has no App Attest', () => {
 });
 
 it('needs the attestation and the vault (none without the native module)', () => {
-  const client = {} as PrivateApiHttpClient;
+  const api = {} as StudentSessionApiPort;
   expect(
-    createStudentSession({ vault: null, client, account: () => null })
-      .supported,
+    createStudentSession({ vault: null, api, account: () => null }).supported,
   ).toBe(false);
   expect(
     createStudentSession({
       vault: {} as SecureVault,
-      client,
+      api,
       account: () => null,
     }).supported,
   ).toBe(false);
   expect(
     createStudentSession({
       vault: {} as SecureVault,
-      client,
+      api,
       account: () => null,
       device: { crypto: testCrypto, attest: async () => ({ token: 't' }) },
     }).supported,

@@ -33,6 +33,11 @@ entre manualmente e use `--no-login` nas capturas.
 Opções: `--adb <caminho>`, `--serial <id>`, `--env-file <arquivo>` e
 `--login-timeout <ms>` (padrão 180000).
 
+Para entrar com a [conta de demonstração](../../docs/funcionalidades.md#conta-de-demonstração),
+sem o portal e sem dados de um aluno, passe as credenciais dela no ambiente:
+`AO_MATRICULA=123456 AO_PASSWORD=aouerj-demo`. O helper confere "Conta de
+demonstração" no menu, e as capturas saem sem nada a borrar.
+
 ## Deep links de debug
 
 O intent-filter fica em `android/app/src/debug/AndroidManifest.xml` e a

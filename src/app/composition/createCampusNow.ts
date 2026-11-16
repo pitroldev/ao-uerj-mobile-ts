@@ -1,12 +1,13 @@
-import type { PrivateApiHttpClient } from '@root/adapters/outbound/private-api';
-import { createCampusNowServer } from '@root/adapters/outbound/private-api/campusNow';
 import { CampusNow } from '@root/modules/campus-now/application/CampusNow';
-import type { CampusNowStorePort } from '@root/modules/campus-now/application/ports';
+import type {
+  CampusNowServerPort,
+  CampusNowStorePort,
+} from '@root/modules/campus-now/application/ports';
 import type { StudentSession } from '@root/modules/trust/application/StudentSession';
 
 type Dependencies = {
-  /** O cliente com a sessão de aluno (todas as rotas a levam). */
-  student: PrivateApiHttpClient;
+  /** O servidor do Agora no campus (todo pedido leva a sessão de aluno). */
+  server: CampusNowServerPort;
   session: Pick<StudentSession, 'supported'>;
   preferences: CampusNowStorePort;
   account: () => { scope: string } | null | undefined;
@@ -17,13 +18,13 @@ type Dependencies = {
  * escolhas do aparelho ficam nas preferências da conta, que o logout apaga.
  */
 export function createCampusNow({
-  student,
+  server,
   session,
   preferences,
   account,
 }: Dependencies) {
   return new CampusNow({
-    server: session.supported ? createCampusNowServer(student) : null,
+    server: session.supported ? server : null,
     store: preferences,
     account,
     now: () => Date.now(),

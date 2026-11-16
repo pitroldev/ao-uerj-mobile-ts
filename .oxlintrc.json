@@ -285,6 +285,42 @@
                 "name": "react-native-toast-message",
                 "message": "Use a fachada snackbar.success/error/info de '@components/ui' (o SnackbarHost desenha o aviso, inclusive sobre folhas abertas)."
               }
+            ],
+            "patterns": [
+              {
+                "regex": "(^|/)outbound/demo(/|$)|^(\\.\\./)+demo(/|$)",
+                "message": "Só a troca da composição (src/app/composition/backend) conhece a conta de demonstração: telas, módulos e adaptadores reais recebem um Backend e não perguntam se é demo."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // The demo account itself, the switch that picks it and the composition
+      // tests: the src/** paths without the demo restriction.
+      "files": [
+        "src/adapters/outbound/demo/**",
+        "src/app/composition/backend/**",
+        "src/app/composition/__tests__/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "cheerio",
+                "message": "A raiz do cheerio importa undici e node:stream e quebra no Metro. Carregue HTML com loadHtml() (src/adapters/outbound/aluno-online/html.ts), que usa cheerio/slim com parse5."
+              },
+              {
+                "name": "react-native-cheerio",
+                "message": "Substituída por loadHtml() (src/adapters/outbound/aluno-online/html.ts), que usa cheerio/slim com parse5."
+              },
+              {
+                "name": "react-native-toast-message",
+                "message": "Use a fachada snackbar.success/error/info de '@components/ui' (o SnackbarHost desenha o aviso, inclusive sobre folhas abertas)."
+              }
             ]
           }
         ]

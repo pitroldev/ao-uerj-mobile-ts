@@ -12,6 +12,15 @@ const {
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const projectRoot = path.resolve(__dirname, '../..');
+/** A conta de demonstração (src/adapters/outbound/demo/account.ts). */
+const DEMO_MATRICULA = '123456';
+
+/** O que o menu mostra para a conta logada. */
+function accountLabel(matricula) {
+  return matricula === DEMO_MATRICULA
+    ? 'Conta de demonstração'
+    : `Matrícula ${matricula}`;
+}
 
 function readCredentials(
   envFile = path.join(projectRoot, '.env'),
@@ -214,7 +223,7 @@ async function ensureRealLogin(adb, { loginTimeout = 180000, envFile } = {}) {
         'conferir conta',
       );
       const drawer = readScreen(adb);
-      if (labeled(drawer, `Matrícula ${credentials.matricula}`)) {
+      if (labeled(drawer, accountLabel(credentials.matricula))) {
         adb.back();
         accountChecked = true;
         continue;

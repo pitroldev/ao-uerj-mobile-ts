@@ -81,6 +81,53 @@ test('domain/application reject frameworks and outbound implementation imports',
   }
 });
 
+test('only the composition switch knows the demo account', () => {
+  // o relativo só chega à demo a partir de outro adaptador de saída
+  const demoOf = dir =>
+    [
+      '@root/adapters/outbound/demo',
+      '@root/adapters/outbound/demo/account',
+    ].concat(
+      dir.startsWith('src/adapters/outbound/') ? ['../demo/account'] : [],
+    );
+  const outside = [
+    'src/pages/Example',
+    'src/features/Example',
+    'src/modules/example/presentation',
+    'src/modules/example/application',
+    'src/adapters/outbound/aluno-online',
+    'src/adapters/outbound/private-api',
+    'src/app/composition',
+  ];
+  const inside = [
+    'src/app/composition/backend',
+    'src/adapters/outbound/demo/ports',
+    'src/app/composition/__tests__',
+  ];
+  const fixtures = {};
+  for (const dir of [...outside, ...inside]) {
+    demoOf(dir).forEach((dependency, i) => {
+      fixtures[`${dir}/Demo${i}.ts`] = importOf(dependency);
+    });
+  }
+  fixtures['src/features/Example/Unrelated.ts'] = importOf(
+    '@root/adapters/outbound/private-api',
+  );
+
+  const flagged = filesWithRestrictedImports(fixtures);
+  for (const dir of outside) {
+    demoOf(dir).forEach((dependency, i) => {
+      assert.ok(flagged.has(`${dir}/Demo${i}.ts`), `${dir}: ${dependency}`);
+    });
+  }
+  for (const dir of inside) {
+    demoOf(dir).forEach((dependency, i) => {
+      assert.ok(!flagged.has(`${dir}/Demo${i}.ts`), `${dir}: ${dependency}`);
+    });
+  }
+  assert.ok(!flagged.has('src/features/Example/Unrelated.ts'));
+});
+
 test('src rejects the cheerio root, react-native-cheerio and the toast lib', () => {
   const forbidden = [
     'cheerio',

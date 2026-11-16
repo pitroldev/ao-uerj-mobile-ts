@@ -2,6 +2,7 @@ import { createAlunoOnlineAdapter } from '@root/adapters/outbound/aluno-online';
 import { createCredentialStore } from '@root/adapters/outbound/persistence/credential-store';
 import { createPrivateApiAdapters } from '@root/adapters/outbound/private-api';
 import { createScheduleGeneratorAdapter } from '@root/adapters/outbound/schedule-generator';
+import { DEMO_CREDENTIALS } from '@root/adapters/outbound/demo/account';
 import type { SavedAccount } from '@root/modules/identity/domain/types';
 import { createAppServices } from '../createAppServices';
 
@@ -70,13 +71,14 @@ jest.mock('@root/adapters/outbound/native/NativeLaunches', () => ({
 }));
 jest.mock('../../observability', () => ({
   reportPortalLayoutChanges: (ports: unknown) => ports,
+  markDemoAccount: jest.fn(),
   errorMonitor: {},
   reportPortalLayoutChange: jest.fn(),
   reportQueryError: jest.fn(),
 }));
 
-function setup() {
-  let saved: SavedAccount | null = null;
+function setup(initial: SavedAccount | null = null) {
+  let saved = initial;
   const portal = {
     authentication: {
       signIn: jest.fn(async ({ matricula }: { matricula: string }) => ({
@@ -142,31 +144,32 @@ describe('real adapter composition', () => {
     globals.__DEV__ = original;
   });
 
-  it.each([
-    [true, '209900000001'],
-    [false, '209900000001'],
-    [true, 'demo'],
-    [false, 'demo'],
-  ])(
-    'uses portal authentication with __DEV__=%s and matricula=%s',
-    async (development, matricula) => {
+  it.each([true, false])(
+    'sends a real account to the portal with __DEV__=%s',
+    async development => {
       globals.__DEV__ = development;
       const { services, portal, scheduleGenerator } = setup();
-      const credentials = { matricula, password: 'synthetic-password' };
+      const credentials = {
+        matricula: '209900000001',
+        password: 'synthetic-password',
+      };
 
       await services.identity.signIn(credentials);
+      await services.academicRecords.getGrades();
+      await services.documents.list();
 
       expect(portal.authentication.signIn).toHaveBeenCalledWith(credentials);
-      expect(services.academicRecords).toBe(portal.records);
-      expect(services.documents).toBe(portal.documents);
+      expect(portal.records.getGrades).toHaveBeenCalledTimes(1);
+      expect(portal.documents.list).toHaveBeenCalledTimes(1);
       expect(services.scheduleGenerator).toBe(scheduleGenerator);
-      expect(services).not.toHaveProperty('demo');
+      expect(services.identity.getSnapshot().account).not.toHaveProperty(
+        'demo',
+      );
       await services.identity.signOut();
     },
   );
 
   it('propagates a rejected portal login without accepting an alternative account', async () => {
-    globals.__DEV__ = true;
     const { services, portal } = setup();
     const failure = new Error('Portal authentication rejected');
     portal.authentication.signIn.mockRejectedValue(failure);
@@ -179,6 +182,90 @@ describe('real adapter composition', () => {
       status: 'signedOut',
       account: null,
     });
+  });
+});
+
+describe('demo account', () => {
+  const touchedServer = (privateApi: ReturnType<typeof setup>['privateApi']) =>
+    [
+      privateApi.portalStatus.read,
+      privateApi.messageBoard.read,
+      privateApi.messageBoard.post,
+      privateApi.teacherDirectory.list,
+      privateApi.teacherDirectory.find,
+      privateApi.errorReporter.submit,
+    ].some(spy => spy.mock.calls.length > 0);
+
+  it.each([true, false])(
+    'answers in the app without the portal or the server, with __DEV__=%s',
+    async development => {
+      (globalThis as { __DEV__?: boolean }).__DEV__ = development;
+      const { services, portal, privateApi } = setup();
+
+      await services.identity.signIn(DEMO_CREDENTIALS);
+      expect(services.identity.getSnapshot().account).toMatchObject({
+        matricula: DEMO_CREDENTIALS.matricula,
+        demo: true,
+      });
+      expect(await services.academicRecords.getGrades()).not.toHaveLength(0);
+      expect(await services.documents.list()).not.toHaveLength(0);
+      await services.community.messages({
+        subjectId: 'IME01-00001',
+        classNumber: '1',
+        period: '2026.2',
+      });
+
+      expect(portal.authentication.signIn).not.toHaveBeenCalled();
+      expect(portal.records.getGrades).not.toHaveBeenCalled();
+      expect(portal.documents.list).not.toHaveBeenCalled();
+      expect(touchedServer(privateApi)).toBe(false);
+      await services.identity.signOut();
+    },
+  );
+
+  it('refuses a wrong password without asking the portal', async () => {
+    const { services, portal } = setup();
+    await expect(
+      services.identity.signIn({
+        matricula: DEMO_CREDENTIALS.matricula,
+        password: 'outra',
+      }),
+    ).rejects.toMatchObject({ code: 'LOGIN_FAILED' });
+    expect(portal.authentication.signIn).not.toHaveBeenCalled();
+  });
+
+  it('keeps a saved demo account on the demo, even before the sign-in of the round', async () => {
+    const { services, portal } = setup({
+      credentials: DEMO_CREDENTIALS,
+      account: {
+        matricula: DEMO_CREDENTIALS.matricula,
+        name: 'Conta salva',
+        period: '2026.2',
+        scope: 'account-demo',
+        demo: true,
+      },
+    });
+    // uma rodada em segundo plano lê sem fazer login
+    expect(await services.academicRecords.getSchedule()).not.toHaveLength(0);
+    await services.initialize();
+    expect(services.identity.getSnapshot().status).toBe('signedIn');
+    expect(portal.authentication.signIn).not.toHaveBeenCalled();
+    expect(portal.records.getSchedule).not.toHaveBeenCalled();
+  });
+
+  it('goes back to the portal after leaving the demo', async () => {
+    const { services, portal } = setup();
+    await services.identity.signIn(DEMO_CREDENTIALS);
+    await services.identity.signOut();
+    const credentials = {
+      matricula: '209900000001',
+      password: 'synthetic-password',
+    };
+    await services.identity.signIn(credentials);
+    await services.academicRecords.getGrades();
+    expect(portal.authentication.signIn).toHaveBeenCalledWith(credentials);
+    expect(portal.records.getGrades).toHaveBeenCalledTimes(1);
+    expect(services.identity.getSnapshot().account).not.toHaveProperty('demo');
   });
 });
 
