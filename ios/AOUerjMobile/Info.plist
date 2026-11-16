@@ -55,6 +55,8 @@
     <false />
     <key>NSPhotoLibraryAddUsageDescription</key>
     <string>O AO UERJ salva na galeria a imagem da grade quando você escolhe "Salvar imagem" ao compartilhar.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>O AO UERJ usa a fototeca para salvar a imagem da sua grade quando você escolhe "Salvar imagem" ao compartilhar.</string>
     <key>RCTNewArchEnabled</key>
     <true />
     <!-- Ciclo de vida com cenas (template do React Native 0.88; exigido pelo SDK do iOS 27). -->

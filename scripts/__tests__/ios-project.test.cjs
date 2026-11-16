@@ -114,6 +114,19 @@ test('App Attest has its entitlement and DeviceCheck linked into the app', () =>
   assert.match(frameworks, /DeviceCheck\.framework in Frameworks/);
 });
 
+test('sharing a schedule declares both photo library purpose strings required by Apple', () => {
+  const info = read('ios/AOUerjMobile/Info.plist');
+  for (const key of [
+    'NSPhotoLibraryUsageDescription',
+    'NSPhotoLibraryAddUsageDescription',
+  ]) {
+    assert.match(
+      info,
+      new RegExp(`<key>${key}</key>\\s*<string>[^<]+grade[^<]+</string>`),
+    );
+  }
+});
+
 test('native module name agrees with JavaScript registration', () => {
   const { name } = JSON.parse(read('app.json'));
   // React Native starts in the scene delegate (UIScene life cycle, RN 0.88),

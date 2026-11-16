@@ -6,7 +6,7 @@ on:
       build_number:
         description: 'CFBundleVersion (aumente a cada novo envio)'
         required: true
-        default: '23'
+        default: '24'
         type: string
       upload:
         description: Enviar a compilação ao App Store Connect
@@ -85,6 +85,8 @@ jobs:
           test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.devicecheck.appattest-environment' "$RUNNER_TEMP/app-entitlements.plist")" = 'production'
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")" = 'com.aouerjmobile'
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Info.plist")" = "$BUILD_NUMBER"
+          test -n "$(/usr/libexec/PlistBuddy -c 'Print :NSPhotoLibraryUsageDescription' "$app/Info.plist")"
+          test -n "$(/usr/libexec/PlistBuddy -c 'Print :NSPhotoLibraryAddUsageDescription' "$app/Info.plist")"
           fingerprint=$(find "$app" -path '*EXUpdates.bundle/fingerprint' | head -1)
           test -n "$fingerprint"
           test "$(cat "$fingerprint")" = "$EXPO_UPDATES_FINGERPRINT_OVERRIDE"
