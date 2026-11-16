@@ -56,7 +56,10 @@ for kind, bundle in [('app', 'com.aouerjmobile'), ('widget', 'com.aouerjmobile.N
     assert profile['ExpirationDate'] > datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None), 'Perfil expirado'
     assert 'group.com.aouerjmobile' in entitlements['com.apple.security.application-groups'], 'Falta App Group'
     if kind == 'app':
-        assert entitlements['com.apple.developer.devicecheck.appattest-environment'] == 'production', 'App Attest fora da produção'
+        environments = entitlements['com.apple.developer.devicecheck.appattest-environment']
+        if isinstance(environments, str):
+            environments = [environments]
+        assert 'production' in environments, 'Perfil não permite App Attest de produção'
     uuid = profile['UUID']
     shutil.copyfile(temp / f'{kind}.mobileprovision', profiles / f'{uuid}.mobileprovision')
     export_profiles[bundle] = uuid

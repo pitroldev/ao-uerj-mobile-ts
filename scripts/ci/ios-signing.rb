@@ -16,6 +16,7 @@ profiles.each do |name, profile|
     configuration.build_settings['CODE_SIGN_STYLE'] = 'Manual'
     configuration.build_settings['DEVELOPMENT_TEAM'] = ENV.fetch('APPLE_TEAM_ID')
     configuration.build_settings['CODE_SIGN_IDENTITY'] = 'Apple Distribution'
+    configuration.build_settings['CODE_SIGN_IDENTITY[sdk=iphoneos*]'] = 'Apple Distribution'
     configuration.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = profile
   end
 end
