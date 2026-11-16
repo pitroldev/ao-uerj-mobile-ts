@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.17.1 (2026-11-16)
+
+### Novidades
+
+- Conta de demonstração para quem revisa o app nas lojas: matrícula `123456` e senha `aouerj-demo` abrem todas as telas com um aluno fictício guardado no app, sem o Aluno Online e sem se identificar no servidor. O Início e o menu avisam que é uma conta de demonstração.
+
+### Correções
+
+- Login com o Aluno Online bloqueado na época de inscrição: o portal aceita o login e fecha quase todo o menu, e o app tratava isso como falha de login. Agora a conta entra, e cada página bloqueada responde na hora.
+- Portal bloqueado como aviso, não como erro: cadeado âmbar, "Aluno Online bloqueado" e, no Início sem dados salvos, o que continua funcionando (Documentos, Mapa do campus, Agora no campus). O Plano até a formatura, Do currículo e o Gerador dizem isso uma vez só.
+
 ## 2.17.0 (2026-11-13)
 
 ### Novidades
