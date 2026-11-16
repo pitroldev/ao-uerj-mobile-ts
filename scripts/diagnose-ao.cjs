@@ -42,42 +42,76 @@ async function main() {
   const { authentication, records, diagnostics } = adapter;
   stage = 'login';
   await authentication.signIn(credentials);
-  report({ ok: true, menuEntries: diagnostics.snapshot().operations.length });
-  stage = 'grades';
-  const grades = await records.getGrades();
-  validSubjects(grades);
-  report({ ok: true, count: grades.length });
-  stage = 'schedule';
-  const schedule = await records.getSchedule();
-  assert.ok(
-    schedule.every(item => item.class?.id === item.subject_id),
-    'INVALID_SCHEDULE',
-  );
-  report({ ok: true, count: schedule.length });
-  stage = 'history';
-  const history = await records.getHistory();
-  validSubjects(history);
-  report({ ok: true, count: history.length });
-  stage = 'curriculum';
-  const curriculum = await records.getCurriculum();
-  validSubjects(curriculum);
-  report({ ok: true, count: curriculum.length });
-  stage = 'universal-subjects';
-  const universal = await records.getUniversalSubjects();
-  validSubjects(universal);
-  report({ ok: true, count: universal.length });
-  stage = 'partial-rid';
-  const rid = await records.getPartialRid();
-  validSubjects(rid.subjects);
-  report({ ok: true, count: rid.subjects.length });
-  const subjectId = curriculum[0]?.id;
-  if (subjectId) {
-    stage = 'subject-details';
-    const subject = await records.getSubjectDetails(subjectId);
-    assert.equal(subject.id, subjectId, 'SUBJECT_MISMATCH');
-    report({ ok: true, classes: subject.classes.length });
+  const menu = diagnostics.snapshot();
+  report({
+    ok: true,
+    menuEntries: menu.operations.length,
+    blockedEntries: menu.blocked.length,
+  });
+  // The portal blocks most of the menu during enrollment while the login
+  // still works. A blocked page is reported and skipped: it says nothing
+  // about the parsers, and the other pages are still worth checking.
+  const blockedStages = [];
+  async function page(name, read) {
+    stage = name;
+    try {
+      return await read();
+    } catch (error) {
+      if (error?.code !== 'POSSIBLY_BLOCKED') throw error;
+      blockedStages.push(name);
+      report({ ok: false, code: 'POSSIBLY_BLOCKED' });
+      return null;
+    }
   }
-  if (process.argv.includes('--expire-session')) {
+  const grades = await page('grades', () => records.getGrades());
+  if (grades) {
+    validSubjects(grades);
+    report({ ok: true, count: grades.length });
+  }
+  const schedule = await page('schedule', () => records.getSchedule());
+  if (schedule) {
+    assert.ok(
+      schedule.every(item => item.class?.id === item.subject_id),
+      'INVALID_SCHEDULE',
+    );
+    report({ ok: true, count: schedule.length });
+  }
+  const history = await page('history', () => records.getHistory());
+  if (history) {
+    validSubjects(history);
+    report({ ok: true, count: history.length });
+  }
+  const curriculum = await page('curriculum', () => records.getCurriculum());
+  if (curriculum) {
+    validSubjects(curriculum);
+    report({ ok: true, count: curriculum.length });
+  }
+  const universal = await page('universal-subjects', () =>
+    records.getUniversalSubjects(),
+  );
+  if (universal) {
+    validSubjects(universal);
+    report({ ok: true, count: universal.length });
+  }
+  const rid = await page('partial-rid', () => records.getPartialRid());
+  if (rid) {
+    validSubjects(rid.subjects);
+    report({ ok: true, count: rid.subjects.length });
+  }
+  const subjectId = curriculum?.[0]?.id;
+  if (subjectId) {
+    const subject = await page('subject-details', () =>
+      records.getSubjectDetails(subjectId),
+    );
+    if (subject) {
+      assert.equal(subject.id, subjectId, 'SUBJECT_MISMATCH');
+      report({ ok: true, classes: subject.classes.length });
+    }
+  }
+  if (process.argv.includes('--expire-session') && !grades) {
+    stage = 'session-recovery';
+    report({ ok: false, code: 'POSSIBLY_BLOCKED' });
+  } else if (process.argv.includes('--expire-session')) {
     stage = 'session-recovery';
     const before = diagnostics.snapshot();
     const previousLogins = counts().logins;
@@ -126,7 +160,7 @@ async function main() {
     }
   }
   stage = 'complete';
-  report({ ok: true, ...counts() });
+  report({ ok: true, ...counts(), blockedStages });
 }
 main()
   .catch(error => {

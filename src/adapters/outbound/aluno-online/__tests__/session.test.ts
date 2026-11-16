@@ -12,6 +12,7 @@ import {
   rejectedLoginPage,
   unknownMatriculaLoginPage,
   blockedHomePage,
+  fullyBlockedHomePage,
   loginPage,
   homePage,
 } from '../__fixtures__/loginPages';
@@ -114,6 +115,7 @@ it('authenticates without exposing cookies, tokens or credentials in public iden
     identityGeneration: 1,
     sessionGeneration: 1,
     operations: ['notas', 'DisciplinasCursar'],
+    blocked: [],
   });
 });
 
@@ -228,7 +230,6 @@ describe.each(['signIn', 'refresh'] as const)('%s bootstrap recovery', mode => {
     [rejectedLoginPage, 'LOGIN_FAILED'],
     [unknownMatriculaLoginPage, 'ACCOUNT_UNAVAILABLE'],
     [studentHeader, 'PORTAL_LAYOUT_CHANGED'],
-    [blockedHomePage, 'POSSIBLY_BLOCKED'],
   ])('does not retry authentication response %s', async (page, code) => {
     const { app, authenticate, previousLogins } = await prepare();
     app.setLoginResult(page);
@@ -568,7 +569,6 @@ it('rejects refresh without saved credentials and can retry after credentials re
 });
 
 it.each([
-  ['blocked', blockedHomePage, 'POSSIBLY_BLOCKED'],
   ['missing menu', studentHeader, 'PORTAL_LAYOUT_CHANGED'],
   ['rejected', rejectedLoginPage, 'LOGIN_FAILED'],
   [
@@ -610,6 +610,136 @@ it('accepts authenticated identity and menu even when the portal includes a noti
   await expect(app.authentication.signIn(credentials)).resolves.toMatchObject({
     matricula: credentials.matricula,
     name: 'Estudante de Teste',
+  });
+});
+
+describe('a menu blocked by the portal', () => {
+  const BLOCK_AGE = 60 * 1000;
+  let clock: jest.SpiedFunction<typeof Date.now>;
+  beforeEach(() => {
+    clock = jest.spyOn(Date, 'now').mockReturnValue(1_000_000);
+  });
+  afterEach(() => {
+    clock.mockRestore();
+  });
+
+  it.each([
+    ['most of the menu', blockedHomePage],
+    ['the whole menu', fullyBlockedHomePage],
+  ])('signs in with %s blocked', async (_name, page) => {
+    const app = setup();
+    app.setLoginResult(page);
+    await expect(app.authentication.signIn(credentials)).resolves.toEqual({
+      matricula: credentials.matricula,
+      name: 'Estudante de Teste',
+      period: '2026.2',
+    });
+    expect(app.diagnostics.snapshot().sessionGeneration).toBe(1);
+  });
+
+  it('reports the blocked pages without asking the portal again', async () => {
+    const app = setup();
+    app.setLoginResult(blockedHomePage);
+    await app.authentication.signIn(credentials);
+    expect(app.diagnostics.snapshot()).toMatchObject({
+      operations: ['Alteração de Senha', 'Emissão de Documentos'],
+      blocked: expect.arrayContaining([
+        'notas',
+        'Disciplinas em Curso',
+        'DisciplinasCursar',
+        'DisciplinasRealizadas',
+        'UniversaisCursar',
+        'SinteseFormacao',
+        'RidParcial',
+        'RidInscricao',
+      ]),
+    });
+    clock.mockReturnValue(1_000_000 + BLOCK_AGE - 1);
+
+    const reads = [
+      app.records.getGrades(),
+      app.records.getSchedule(),
+      app.records.getHistory(),
+      app.records.getCurriculum(),
+      app.records.getUniversalSubjects(),
+      app.records.getSynthesis(),
+      app.records.getPartialRid(),
+      app.records.getEnrollmentResult(),
+      // os detalhes saem da página do currículo, que está bloqueada
+      app.records.getSubjectDetails('IME02-10892'),
+    ];
+    for (const read of reads) {
+      const failure = await read.catch(error => error);
+      expect(failure).toMatchObject({ code: 'POSSIBLY_BLOCKED' });
+      // não é falha de login: as outras páginas da sessão seguem valendo
+      expect(failure).not.toBeInstanceOf(SignInError);
+    }
+    expect(app.loginCount()).toBe(1);
+    expect(app.operations).toHaveLength(0);
+  });
+
+  it('keeps the pages the portal left open working', async () => {
+    const app = setup();
+    app.setLoginResult(blockedHomePage);
+    await app.authentication.signIn(credentials);
+    app.handle(async () => response(shortPage));
+
+    await expect(app.diagnostics.fetch('documents')).resolves.toBe(shortPage);
+    expect(app.operations[0].params).toMatchObject({
+      requisicao: 'synthetic_documents_requisition_1234',
+    });
+    expect(app.loginCount()).toBe(1);
+  });
+
+  it('signs in once more after a minute to see whether the portal reopened', async () => {
+    const app = setup();
+    app.setLoginResult(blockedHomePage);
+    await app.authentication.signIn(credentials);
+    clock.mockReturnValue(1_000_000 + BLOCK_AGE);
+    // o portal liberou: o menu novo traz as requisições
+    app.setLoginResult(undefined);
+
+    await expect(app.records.getGrades()).resolves.toEqual([]);
+    expect(app.loginCount()).toBe(2);
+    expect(app.operations[0].params).toMatchObject({
+      requisicao: key('grades', 2),
+    });
+  });
+
+  it('answers blocked again when the new login finds the same block', async () => {
+    const app = setup();
+    app.setLoginResult(blockedHomePage);
+    await app.authentication.signIn(credentials);
+    clock.mockReturnValue(1_000_000 + BLOCK_AGE);
+
+    // leituras pedidas juntas dividem o mesmo login
+    const failures = await Promise.all(
+      [app.records.getGrades(), app.records.getSchedule()].map(read =>
+        read.catch(error => error),
+      ),
+    );
+    expect(failures).toEqual([
+      expect.objectContaining({ code: 'POSSIBLY_BLOCKED' }),
+      expect.objectContaining({ code: 'POSSIBLY_BLOCKED' }),
+    ]);
+    expect(app.loginCount()).toBe(2);
+    expect(app.operations).toHaveLength(0);
+  });
+
+  it('reports blocked documents instead of an unavailable document', async () => {
+    const app = setup();
+    app.setLoginResult(
+      `${studentHeader}<div id="menu_linha_item">
+        <a onclick="go('${key('grades', 1)}')">Notas do Período</a>
+        <a onclick="javascript:executaMenu(1, '', 0, '', this);">Emissão de Documentos</a>
+      </div>`,
+    );
+    await app.authentication.signIn(credentials);
+
+    await expect(app.documents.list()).rejects.toMatchObject({
+      code: 'POSSIBLY_BLOCKED',
+    });
+    expect(app.loginCount()).toBe(1);
   });
 });
 

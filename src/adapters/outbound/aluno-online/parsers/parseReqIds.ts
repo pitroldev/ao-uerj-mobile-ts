@@ -4,7 +4,12 @@ type ReqIds = {
   dictionary: {
     [key: string]: string;
   };
-  failed: number;
+  /**
+   * Itens que o portal lista sem requisição: `executaMenu(1, '', …)`, que no
+   * site só mostra "Acesso temporariamente bloqueado.". Na época de inscrição
+   * quase todo o menu vem assim, com o login funcionando.
+   */
+  blocked: string[];
 };
 
 function translate(name: string) {
@@ -32,24 +37,22 @@ export function getReqIds($: CheerioAPI): ReqIds {
   const regex = /\w{20,}/gi;
 
   const dictionary: ReqIds['dictionary'] = {};
-  let failed = 0;
+  const blocked: string[] = [];
 
   $('#menu_linha_item a').each((_index, node) => {
     const cleanedReqID = (node.attribs.onclick ?? '').replace(/[\s']+/gi, '');
     const execReqID = cleanedReqID.match(regex);
+    const reqName = $(node).text().trim();
+    if (!reqName) return;
 
-    const isBlocked = !execReqID;
-    if (isBlocked) {
-      failed += 1;
+    if (!execReqID) {
+      blocked.push(translate(reqName));
       return;
     }
 
     const [parsedReqID] = execReqID;
-    const reqName = $(node).text().trim();
-    if (reqName) {
-      dictionary[translate(reqName)] = parsedReqID;
-    }
+    dictionary[translate(reqName)] = parsedReqID;
   });
 
-  return { dictionary, failed };
+  return { dictionary, blocked };
 }

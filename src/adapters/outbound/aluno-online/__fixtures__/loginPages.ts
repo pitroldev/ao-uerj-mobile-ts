@@ -38,12 +38,39 @@ export const unknownMatriculaLoginPage = `
   <br><table><tr><td><font>Prezado Aluno, a matrícula informada não existe, ou não está habilitada para acesso ao Aluno Online, ou existe alguma manutenção no sistema impedindo o acesso neste momento!</font></td></tr></table>
 `;
 
+const menuItem = (label: string, requisition = '') =>
+  `<div id="menu_linha_item"><a class="LINKNAOSUB" href="#" onclick="javascript:executaMenu(${
+    requisition ? 0 : 1
+  }, '${requisition}', 0, '', this);">${label}</a></div>`;
+
+/**
+ * Forma real do menu na inscrição em disciplinas (16/11/2026): o login
+ * funciona, mas as consultas vêm como `executaMenu(1, '', …)`, que no site só
+ * mostra "Acesso temporariamente bloqueado.". A emissão de documentos e as
+ * páginas públicas seguem liberadas.
+ */
 export const blockedHomePage = `
   ${studentHeader}
-  <div id="menu_linha_item">
-    ${Array.from(
-      { length: 21 },
-      () => '<a onclick="alert(\'Bloqueado\')">Recurso indisponível</a>',
-    ).join('')}
-  </div>
+  ${menuItem('Alteração de Senha', 'synthetic_password_requisition_1234')}
+  ${menuItem('Emissão de Documentos', 'synthetic_documents_requisition_1234')}
+  ${[
+    'Dados Pessoais',
+    'Disciplinas do Currículo/A Cursar',
+    'Disciplinas Universais',
+    'Disciplinas em Curso',
+    'Notas do Período',
+    'Requisitos Cursados',
+    'Síntese da Formação',
+    'RID: Resultado Provisório',
+    'RID: Resultado da Inscrição',
+  ]
+    .map(label => menuItem(label))
+    .join('')}
+`;
+
+/** Nenhum item liberado: a conta entra do mesmo jeito. */
+export const fullyBlockedHomePage = `
+  ${studentHeader}
+  ${menuItem('Notas do Período')}
+  ${menuItem('Disciplinas em Curso')}
 `;

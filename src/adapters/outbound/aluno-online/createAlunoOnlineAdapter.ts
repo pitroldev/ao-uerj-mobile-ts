@@ -66,6 +66,8 @@ type Session = {
   generation: number;
   token: string;
   dictionary: Record<string, string>;
+  /** Itens que o menu lista sem requisição ("Acesso temporariamente bloqueado."). */
+  blocked: ReadonlySet<string>;
   profile: StudentProfile;
   /** When the login read the menu that filled `dictionary`. */
   readAt: number;
@@ -77,6 +79,11 @@ type Session = {
  * pages come and go with enrollment) and earns one new login.
  */
 const FRESH_MENU = 5 * 60 * 1000;
+/**
+ * O bloqueio do menu vale por menos tempo: quem toca em "Tentar novamente"
+ * um minuto depois quer saber se a UERJ já liberou, e isso custa um login.
+ */
+const FRESH_BLOCK = 60 * 1000;
 /** Uma página lida há menos que isto serve à outra leitura da mesma página. */
 const SHARED_PAGE_TTL = 15 * 1000;
 
@@ -237,9 +244,10 @@ export function createAlunoOnlineAdapter({
     if (isSessionExpiredResponse(home.body, homePage))
       throw new AppError('SESSION_EXPIRED');
     if (!info.nome) throw new AppError('PORTAL_LAYOUT_CHANGED');
-    const { dictionary, failed } = parse(getReqIds, homePage);
-    if (failed > 20) throw new AppError('POSSIBLY_BLOCKED');
-    if (!Object.keys(dictionary).length)
+    // Um menu bloqueado (época de inscrição) não é falha de login: a conta
+    // entra, e só as páginas bloqueadas respondem POSSIBLY_BLOCKED.
+    const { dictionary, blocked } = parse(getReqIds, homePage);
+    if (!Object.keys(dictionary).length && !blocked.length)
       throw new AppError('PORTAL_LAYOUT_CHANGED');
     guard(identity);
     const profile: StudentProfile = {
@@ -254,6 +262,7 @@ export function createAlunoOnlineAdapter({
       generation: sessionGeneration,
       token: login._token,
       dictionary,
+      blocked: new Set(blocked),
       profile,
       readAt: Date.now(),
     };
@@ -335,13 +344,19 @@ export function createAlunoOnlineAdapter({
       .map(key => snapshot.dictionary[key])
       .find(Boolean);
     if (!requisition) {
+      const menuAge = Date.now() - snapshot.readAt;
+      // A página está no menu, mas bloqueada pela UERJ. Um bloqueio lido há
+      // pouco responde na hora; um mais velho passa por um novo login
+      // (SESSION_EXPIRED), que diz se o portal já liberou.
+      if (operationKeys[operation].some(key => snapshot.blocked.has(key)))
+        throw new AppError(
+          menuAge < FRESH_BLOCK ? 'POSSIBLY_BLOCKED' : 'SESSION_EXPIRED',
+        );
       if (operation === 'documents') throw new AppError('DOCUMENT_UNAVAILABLE');
       // An outdated menu goes through one new login (SESSION_EXPIRED); a fresh
       // menu without the page means the account cannot open it now.
       throw new AppError(
-        Date.now() - snapshot.readAt < FRESH_MENU
-          ? 'PAGE_UNAVAILABLE'
-          : 'SESSION_EXPIRED',
+        menuAge < FRESH_MENU ? 'PAGE_UNAVAILABLE' : 'SESSION_EXPIRED',
       );
     }
     const response = await request(
@@ -637,6 +652,7 @@ export function createAlunoOnlineAdapter({
         identityGeneration,
         sessionGeneration: session?.generation ?? null,
         operations: Object.keys(session?.dictionary ?? {}),
+        blocked: [...(session?.blocked ?? [])],
       }),
     },
   };
