@@ -8,8 +8,8 @@ O app tem código para o iPhone, mas o foco é o Android, publicado na Google Pl
 ## Estado atual
 
 - **Compila no CI:** o `ios.yml` (macOS, manual) compila o app e a extensão do widget em Release e abre o app num simulador.
-- **Fora da App Store:** o `release.yml` publica só o Android; o iPhone ainda não tem distribuição.
-- **Identificação do aluno:** no servidor, sem `APPLE_APP_ATTEST_APP_ID`, a entrada do iPhone responde 503 `student_identity_unavailable`, e as funções entre alunos não abrem nele (ver [server/README.md](../server/README.md#identificação-do-aluno-v2)).
+- **App Store:** o app está cadastrado como `6835308883`, com publicação inicial em preparação. O `ios-app-store.yml` assina e envia a compilação; a revisão e o lançamento são acompanhados no App Store Connect. O `release.yml` continua publicando o Android.
+- **Identificação do aluno:** a implantação do servidor carrega `APPLE_APP_ATTEST_APP_ID=4L52AMB8J7.com.aouerjmobile` de `deploy/server/app-store.env`; o `.env` privado da VM tem prioridade (ver [server/README.md](../server/README.md#identificação-do-aluno-v2)). O App Attest precisa de iPhone físico.
 - **Versão:** `MARKETING_VERSION` e `CURRENT_PROJECT_VERSION` ficam no `project.pbxproj` e mudam à mão (ver [Release](release.md#versão)). O alvo mínimo é o iOS 16.4, o dos módulos do Expo SDK 58 (o `expo-updates`).
 
 ## Rodar no macOS
@@ -32,9 +32,41 @@ Roda só por `workflow_dispatch`, num runner `macos-15` (Actions > iOS simulator
 2. Compila em **Release**, como vai para a loja: o Xcode empacota o JS de iOS (o que só quebra nessa plataforma: resolução de módulos, assets) e o Hermes o compila.
 3. Assina para rodar localmente ("Sign to Run Locally", `CODE_SIGN_IDENTITY=-`, sem conta da Apple). Sem assinatura, o app fica sem os entitlements, e o Keychain do simulador recusa tudo (`-34018`), o que o iPhone de verdade não faz.
 4. Confere que o app leva o `Expo.plist` e o `EXUpdates.bundle`, com o manifesto do JS embutido e o mesmo runtime version que o publicador calcula.
-5. O `scripts/ci/ios-smoke.sh` abre o app no iPhone simulado mais novo do runner e confere que ele não cai: na abertura (o login), no tema escuro, no link `aouerj://open?target=home`, numa segunda abertura e numa rodada da verificação em segundo plano. As capturas e o log ficam no artefato `ios-smoke` por 14 dias.
+5. O `scripts/ci/ios-smoke.sh` abre o app num iPhone Pro com Dynamic Island e tela média, formato exigido pela App Store, e confere que ele não cai: na abertura (o login), no tema escuro, no link `aouerj://open?target=home`, numa segunda abertura e numa rodada da verificação em segundo plano. Também abre o mapa sem conta nos temas claro e escuro. As capturas e o log ficam no artefato `ios-smoke` por 14 dias, sem dados de alunos.
 
 O que depende do login fica nos testes do Jest, que rodam como iOS (ver [Testes](#testes)).
+
+## Envio à App Store
+
+O workflow manual `.github/workflows/ios-app-store.yml` usa o environment
+`app-store`. Informe um `build_number` maior que o último enviado e mantenha
+`upload` ligado para validar e enviar o IPA à Apple. Com `upload` desligado,
+ele apenas gera o artefato assinado, guardado por 14 dias.
+
+O app (`com.aouerjmobile`) e o widget (`com.aouerjmobile.NextClassWidget`)
+pertencem à equipe `4L52AMB8J7` e compartilham `group.com.aouerjmobile`.
+Os perfis de distribuição precisam incluir esse grupo; o do app também
+precisa permitir App Attest de produção. O workflow confere os perfis e o
+entitlement de produção no app assinado antes do envio.
+
+Secrets do environment, nunca do código:
+
+- `IOS_DISTRIBUTION_P12`: certificado Apple Distribution com chave privada, em base64.
+- `IOS_DISTRIBUTION_PASSWORD`: senha do P12.
+- `IOS_APP_PROFILE` e `IOS_WIDGET_PROFILE`: perfis App Store Connect em base64.
+- `ASC_API_PRIVATE_KEY`: conteúdo do arquivo `.p8` da chave de upload.
+- `ASC_API_KEY_ID` e `ASC_API_ISSUER_ID`: identificadores dessa chave.
+
+Ao renovar o certificado ou alterar capabilities, gere novamente os dois
+perfis e atualize os secrets correspondentes. A chave de upload tem papel
+Developer. O material de assinatura é instalado num keychain temporário,
+removido ao fim do job. O IPA vai ao App Store Connect; o envio do binário
+não envia automaticamente a versão à revisão.
+
+Antes de submeter a versão, confira o resultado do `ios.yml`, as capturas
+reais do app, o login fornecido exclusivamente à Apple, a privacidade e os
+metadados da loja. A primeira publicação foi configurada como gratuita no
+Brasil e com lançamento automático após aprovação.
 
 ## Módulos nativos
 
@@ -70,7 +102,7 @@ O `expo-updates` usa o início próprio do app (`EX_UPDATES_CUSTOM_INIT` no `Pod
 
 A configuração fica no `ios/AOUerjMobile/Expo.plist` (o endereço, o runtime version lido do `EXUpdates.bundle`, a busca a cada abertura sem esperar e o certificado, cópia do `config/ota/certificate.pem` conferida pelo `pnpm test:tooling`). O `EXUpdates.bundle`, com o runtime version e o manifesto do JS embutido, sai no build, por uma fase do pod do `expo-updates`.
 
-O `pod install` mexe no projeto do Xcode (o `ExpoModulesProvider.swift`, a fase "[Expo] Configure project", as flags do Swift), e um build feito depois dele calcularia outro runtime version. Por isso o `ios.yml` calcula o valor antes e o passa ao Xcode pelo `EXPO_UPDATES_FINGERPRINT_OVERRIDE`. Uma build para a loja, quando houver, precisa fazer o mesmo.
+O `pod install` mexe no projeto do Xcode (o `ExpoModulesProvider.swift`, a fase "[Expo] Configure project", as flags do Swift), e um build feito depois dele calcularia outro runtime version. Por isso o `ios.yml` e o `ios-app-store.yml` calculam o valor antes e o passam ao Xcode pelo `EXPO_UPDATES_FINGERPRINT_OVERRIDE`.
 
 ## Verificação em segundo plano
 

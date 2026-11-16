@@ -48,6 +48,30 @@ test('iOS source resources exist with exact casing and privacy manifest is bundl
   assert.match(resources, /PrivacyInfo\.xcprivacy in Resources/);
 });
 
+test('App Store icon catalog contains opaque PNGs at the required dimensions', () => {
+  const directory = 'ios/AOUerjMobile/Images.xcassets/AppIcon.appiconset';
+  const { images } = JSON.parse(read(`${directory}/Contents.json`));
+  assert.ok(
+    images.some(
+      image => image.idiom === 'ios-marketing' && image.size === '1024x1024',
+    ),
+  );
+  for (const image of images) {
+    assert.ok(image.filename, `${image.idiom} ${image.size} ${image.scale}`);
+    const png = fs.readFileSync(path.join(root, directory, image.filename));
+    assert.equal(png.subarray(1, 4).toString(), 'PNG');
+    const size =
+      Number(image.size.split('x')[0]) * Number(image.scale.replace('x', ''));
+    assert.equal(png.readUInt32BE(16), size, image.filename);
+    assert.equal(png.readUInt32BE(20), size, image.filename);
+    assert.equal(
+      png[25],
+      2,
+      'Store icons must be RGB without an alpha channel',
+    );
+  }
+});
+
 /** A build phase `phase` (e.g. Sources) of the app target, by its template id. */
 function appPhase(project, id, phase) {
   const match = project.match(
