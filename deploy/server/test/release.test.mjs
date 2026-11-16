@@ -101,7 +101,7 @@ describe('release.sh', { skip: unsupported }, () => {
     assert.deepEqual(box.steps(), [
       'corepack pnpm install --prod --frozen-lockfile --ignore-workspace --reporter=append-only',
       'pm2 delete ao-uerj-green',
-      `pm2 start ${box.release}/server/src/main.ts --name ao-uerj-green --cwd ${box.release}/server --interpreter ${box.root}/node/bin/node --node-args=--env-file-if-exists=.env --kill-timeout 15000 --max-memory-restart 400M --time`,
+      `pm2 start ${box.release}/server/src/main.ts --name ao-uerj-green --cwd ${box.release}/server --interpreter ${box.root}/node/bin/node --node-args=--env-file-if-exists=../deploy/server/app-store.env --env-file-if-exists=.env --kill-timeout 15000 --max-memory-restart 400M --time`,
       `smoke ${direct(3102).join(' ')}`,
       'nginx -t -q',
       'systemctl reload nginx',

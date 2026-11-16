@@ -266,9 +266,11 @@ O iPhone não tem um `LICENSED` nem um `MEETS_DEVICE_INTEGRITY`: o App Attest
 garante uma chave no Secure Enclave de um aparelho da Apple, no app assinado
 pelo nosso time, mas não diz de onde o app foi instalado. O recibo (a métrica
 de fraude da Apple) não é usado. Uma recusa é 403 `attestation_failed`, como
-no Android, e o motivo vai só para o log. Sem `APPLE_APP_ATTEST_APP_ID` (hoje
-não há conta da Apple), a entrada do iPhone responde 503
-`student_identity_unavailable` e o Android segue igual.
+no Android, e o motivo vai só para o log. A implantação carrega a identidade
+pública `4L52AMB8J7.com.aouerjmobile` de `deploy/server/app-store.env` antes
+do `.env` privado da VM. O `.env` privado pode substituir esse valor; um
+valor vazio desativa a entrada do iPhone, que responde 503
+`student_identity_unavailable`, e o Android segue igual.
 `TOKEN_ATTESTATION=development` vale só para a Play Integrity: o simulador do
 iPhone não tem App Attest.
 

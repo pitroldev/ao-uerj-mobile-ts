@@ -118,7 +118,7 @@ PORT="$port" HOST=127.0.0.1 RELEASE_COMMIT="$SHA" RELEASE_COLOR="$next" \
   --name "$name" \
   --cwd "$RELEASE/server" \
   --interpreter "$ROOT/node/bin/node" \
-  --node-args='--env-file-if-exists=.env' \
+  --node-args='--env-file-if-exists=../deploy/server/app-store.env --env-file-if-exists=.env' \
   --kill-timeout 15000 \
   --max-memory-restart 400M \
   --time >/dev/null || abandon 'o pm2 não subiu o processo'
