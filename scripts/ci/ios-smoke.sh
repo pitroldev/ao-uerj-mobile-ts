@@ -11,11 +11,11 @@ out="$2"
 bundle_id="com.aouerjmobile"
 mkdir -p "$out"
 
-# Prefere o Pro Max para capturas no tamanho aceito pela App Store.
+# A App Store exige Dynamic Island (tela média): iPhone 14 Pro ou posterior.
 udid=$(xcrun simctl list devices available --json | jq -r '
   [.devices | to_entries[] | select(.key | test("iOS")) | .value[]
     | select(.name | test("^iPhone"))] as $phones
-  | ([$phones[] | select(.name | test("Pro Max$"))] | last) // ($phones | last)
+  | [$phones[] | select(.name | test("^iPhone (1[4-9]|[2-9][0-9]) Pro$"))] | last
   | .udid')
 if [ -z "$udid" ] || [ "$udid" = "null" ]; then
   echo "::error::nenhum simulador de iPhone disponível"
