@@ -93,17 +93,6 @@ sleep 30
 check "rodada em segundo plano"
 xcrun simctl io "$udid" screenshot "$out/5-segundo-plano.png"
 
-# O mapa é uma função real disponível sem conta. As capturas podem ir à
-# loja sem expor dados acadêmicos, matrícula ou credenciais de um aluno.
-xcrun simctl openurl "$udid" 'aouerj://open?target=map'
-sleep 12
-check "mapa sem conta"
-xcrun simctl io "$udid" screenshot "$out/6-mapa.png"
-xcrun simctl ui "$udid" appearance dark
-sleep 5
-check "mapa no tema escuro"
-xcrun simctl io "$udid" screenshot "$out/7-mapa-escuro.png"
-
 xcrun simctl spawn "$udid" log show --last 10m --style compact \
   --predicate "subsystem CONTAINS \"$bundle_id\" OR process CONTAINS \"aouerj\" OR process CONTAINS \"AOUerj\"" \
   > "$out/app.log" 2>&1 || true

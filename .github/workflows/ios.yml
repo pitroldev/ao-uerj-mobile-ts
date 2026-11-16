@@ -94,6 +94,26 @@ jobs:
           fi
           test "$(plutil -extract EXUpdatesURL raw "$app/Expo.plist")" = "https://pitrol.dev/aouerj/ota/manifest"
           test "$(plutil -extract EXUpdatesRuntimeVersion raw "$app/Expo.plist")" = "file:fingerprint"
+      - name: Package simulator app for repeatable UI captures
+        run: |
+          app=$(find ios/build/Build/Products/Release-iphonesimulator -maxdepth 1 -name '*.app' | head -1)
+          tar -C "$(dirname "$app")" -czf "$RUNNER_TEMP/ios-simulator-app.tgz" "$(basename "$app")"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-simulator-app
+          path: ${{ runner.temp }}/ios-simulator-app.tgz
+          retention-days: 7
+      - name: Capture the public map through its actual UI
+        run: |
+          app=$(find ios/build/Build/Products/Release-iphonesimulator -maxdepth 1 -name '*.app' | head -1)
+          bash scripts/ci/ios-store-screenshots.sh "$app" "$RUNNER_TEMP/ios-store-screenshots" "$RUNNER_TEMP/screenshot-runner"
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-store-screenshots
+          path: ${{ runner.temp }}/ios-store-screenshots
+          retention-days: 14
+          if-no-files-found: ignore
       # Abre o app num iPhone simulado e confere que ele não cai (abertura,
       # tema escuro, link aouerj://, segunda abertura e uma rodada da
       # verificação em segundo plano, com o React Native aberto sem janela e
