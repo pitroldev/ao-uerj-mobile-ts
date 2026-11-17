@@ -57,6 +57,8 @@ type Dependencies = {
   transport: PortalTransport;
   cookies: PortalCookieJar;
   readCredentials: () => Promise<Credentials | null>;
+  /** A espera entre as tentativas de abrir a sessão (os testes não esperam). */
+  wait?: (ms: number) => Promise<void>;
 };
 
 /** A response loaded once; session detection and the parser share `$`. */
@@ -86,6 +88,16 @@ const FRESH_MENU = 5 * 60 * 1000;
 const FRESH_BLOCK = 60 * 1000;
 /** Uma página lida há menos que isto serve à outra leitura da mesma página. */
 const SHARED_PAGE_TTL = 15 * 1000;
+/**
+ * Quando o portal está instável, ele responde a página de erro de sessão
+ * ("Página não encontrada!") no lugar do formulário de login, em janelas de
+ * segundos a minutos. Em 17/11/2026, depois do fim do bloqueio da inscrição,
+ * só 1 em cada 10 a 15 sessões novas abria, e as janelas ruins passavam de
+ * 15 s. A abertura recomeça com uma sessão nova, esperando cada vez mais
+ * (uns 21 s no total), antes de desistir. Ainda não mandou matrícula nem
+ * senha, então insistir não pesa na conta.
+ */
+const BOOTSTRAP_WAITS = [1000, 2000, 3000, 4000, 5000, 6000];
 
 const operationKeys: Record<PortalOperation, string[]> = {
   grades: ['notas'],
@@ -134,6 +146,7 @@ export function createAlunoOnlineAdapter({
   transport,
   cookies,
   readCredentials,
+  wait = ms => new Promise(resolve => setTimeout(resolve, ms)),
 }: Dependencies) {
   let identityGeneration = 0;
   let sessionGeneration = 0;
@@ -198,6 +211,35 @@ export function createAlunoOnlineAdapter({
     return cleanup;
   }
 
+  /**
+   * A raiz (que cria a sessão anônima) e o formulário de login. Sem o
+   * formulário, só a página de erro de sessão do portal (ou uma resposta
+   * vazia) faz recomeçar; qualquer outra página segue para o parser, que diz
+   * se o formato mudou.
+   */
+  async function openLoginForm(identity: number): Promise<CheerioAPI> {
+    for (let attempt = 0; ; attempt += 1) {
+      if (attempt > 0) {
+        await wait(BOOTSTRAP_WAITS[attempt - 1]);
+        guard(identity);
+        await clearCookies();
+        guard(identity);
+      }
+      const root = await request(identity, '/');
+      checkStatus(root);
+      const loginPage = await request(identity, '/requisicaoaluno/');
+      checkStatus(loginPage);
+      const loginForm = loadHtml(loginPage.body);
+      if (
+        loginForm('input[name="matricula"], input[name="senha"]').length ||
+        !isSessionExpiredResponse(loginPage.body, loginForm)
+      )
+        return loginForm;
+      if (attempt >= BOOTSTRAP_WAITS.length)
+        throw new AppError('PORTAL_UNSTABLE');
+    }
+  }
+
   async function authenticate(
     credentials: Credentials,
     identity: number,
@@ -206,19 +248,7 @@ export function createAlunoOnlineAdapter({
     if (!credentials.matricula.trim() || !credentials.password) {
       throw new AppError('INVALID_INPUT');
     }
-    const root = await request(identity, '/');
-    checkStatus(root);
-    const loginPage = await request(identity, '/requisicaoaluno/');
-    checkStatus(loginPage);
-    const loginForm = loadHtml(loginPage.body);
-    // The anonymous bootstrap can expire before the login form is returned.
-    // A normal login form is expected here; only the portal's session error
-    // (or an empty response) uses the existing bounded authentication retry.
-    if (
-      !loginForm('input[name="matricula"], input[name="senha"]').length &&
-      isSessionExpiredResponse(loginPage.body, loginForm)
-    )
-      throw new AppError('SESSION_EXPIRED');
+    const loginForm = await openLoginForm(identity);
     let login: { loginReqId: string; _token: string };
     try {
       login = await parseLoginReqId(loginForm);
@@ -287,7 +317,19 @@ export function createAlunoOnlineAdapter({
       guard(identity);
       await clearCookies();
       guard(identity);
-      return authenticate(credentials, identity);
+      try {
+        return await authenticate(credentials, identity);
+      } catch (retryError) {
+        // a sessão perdida de novo, logo depois de entrar: é o portal
+        // instável, não a conta (e "Sua sessão expirou" não faz sentido no
+        // login)
+        if (
+          retryError instanceof AppError &&
+          retryError.code === 'SESSION_EXPIRED'
+        )
+          throw new AppError('PORTAL_UNSTABLE');
+        throw retryError;
+      }
     }
   }
 
@@ -434,7 +476,13 @@ export function createAlunoOnlineAdapter({
         const sessionError =
           error instanceof AppError &&
           ['SESSION_EXPIRED', 'SESSION_CHANGED'].includes(error.code);
-        if (!sessionError || attempt > 0) throw error;
+        if (!sessionError) throw error;
+        // a página perdeu a sessão de novo, logo depois de um login novo: o
+        // portal está instável (a conta e o login estão bem)
+        if (attempt > 0)
+          throw error.code === 'SESSION_EXPIRED'
+            ? new AppError('PORTAL_UNSTABLE')
+            : error;
         if (session === snapshot) await refresh();
         guard(identity, options.signal);
       }

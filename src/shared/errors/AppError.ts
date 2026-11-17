@@ -8,6 +8,8 @@ export type ErrorCode =
   | 'PORTAL_LAYOUT_CHANGED'
   | 'NETWORK'
   | 'SERVICE_UNAVAILABLE'
+  /** O Aluno Online não abre sessão nova (instável): passageiro, não é a conta. */
+  | 'PORTAL_UNSTABLE'
   | 'RATE_LIMITED'
   | 'CANCELLED'
   | 'STORAGE_FAILED'
@@ -33,7 +35,12 @@ export class AppError extends Error {
 export function isTransientError(error: unknown): boolean {
   return (
     error instanceof AppError &&
-    ['NETWORK', 'SERVICE_UNAVAILABLE', 'RATE_LIMITED'].includes(error.code)
+    [
+      'NETWORK',
+      'SERVICE_UNAVAILABLE',
+      'PORTAL_UNSTABLE',
+      'RATE_LIMITED',
+    ].includes(error.code)
   );
 }
 
@@ -54,6 +61,8 @@ export function errorMessage(error: unknown): string {
     NETWORK: 'Verifique sua conexão e tente novamente.',
     SERVICE_UNAVAILABLE:
       'O serviço está indisponível. Tente novamente mais tarde.',
+    PORTAL_UNSTABLE:
+      'O Aluno Online está instável e não abriu a sessão. Tente de novo em alguns minutos.',
     RATE_LIMITED: 'Aguarde um pouco antes de tentar novamente.',
     CANCELLED: 'Operação cancelada.',
     STORAGE_FAILED:

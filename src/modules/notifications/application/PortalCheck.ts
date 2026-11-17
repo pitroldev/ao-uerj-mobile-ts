@@ -77,6 +77,7 @@ const REFUSALS: readonly ErrorCode[] = ['POSSIBLY_BLOCKED', 'RATE_LIMITED'];
 /** Portal fora do ar ou sem rede: para agora e tenta no próximo ciclo. */
 const UNAVAILABLE: readonly ErrorCode[] = [
   'SERVICE_UNAVAILABLE',
+  'PORTAL_UNSTABLE',
   'ACCOUNT_UNAVAILABLE',
 ];
 const ACCESS: readonly ErrorCode[] = ['LOGIN_FAILED', 'NOT_LOGGED_IN'];

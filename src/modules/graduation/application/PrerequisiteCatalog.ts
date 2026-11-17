@@ -47,6 +47,7 @@ const STOP: readonly ErrorCode[] = [
   'POSSIBLY_BLOCKED',
   'RATE_LIMITED',
   'SERVICE_UNAVAILABLE',
+  'PORTAL_UNSTABLE',
   'NETWORK',
   'NOT_LOGGED_IN',
   'LOGIN_FAILED',

@@ -5,7 +5,11 @@ import type {
   PortalTransport,
 } from '../contracts';
 import { SignInError } from '@root/modules/identity/application/ports';
-import { AppError } from '@root/shared/errors/AppError';
+import {
+  AppError,
+  errorMessage,
+  isTransientError,
+} from '@root/shared/errors/AppError';
 import { historyPage, historyRow } from '../__fixtures__/historyPage';
 import {
   studentHeader,
@@ -79,15 +83,19 @@ function setup() {
   const readCredentials = jest.fn(
     async () => credentials as typeof credentials | null,
   );
+  // as esperas entre as tentativas de abrir a sessão, sem esperar de verdade
+  const wait = jest.fn(async (_ms: number): Promise<void> => undefined);
   const adapter = createAlunoOnlineAdapter({
     transport,
     cookies,
     readCredentials,
+    wait,
   });
   return {
     ...adapter,
     transport,
     cookies,
+    wait,
     operations,
     readCredentials,
     loginCount: () => logins,
@@ -155,7 +163,30 @@ describe.each(['signIn', 'refresh'] as const)('%s bootstrap recovery', mode => {
     });
   });
 
-  it('stops after two expired bootstrap pages without sending credentials', async () => {
+  it('keeps opening new sessions while the portal is unstable, waiting longer each time', async () => {
+    const { app, authenticate, previousLogins } = await prepare();
+    const request = jest.mocked(app.transport.request);
+    const original = request.getMockImplementation()!;
+    const clearsBefore = app.cookies.clear.mock.calls.length;
+    let bootstraps = 0;
+    request.mockImplementation(input => {
+      if (input.path === '/requisicaoaluno/' && !input.params) {
+        bootstraps += 1;
+        if (bootstraps <= 3) return Promise.resolve(response(expired));
+      }
+      return original(input);
+    });
+    await expect(authenticate()).resolves.toMatchObject({
+      matricula: credentials.matricula,
+    });
+    expect(bootstraps).toBe(4);
+    expect(app.wait.mock.calls.map(([ms]) => ms)).toEqual([1000, 2000, 3000]);
+    // cada tentativa começa uma sessão nova, e a senha vai uma vez só
+    expect(app.cookies.clear.mock.calls.length - clearsBefore).toBe(4);
+    expect(app.loginCount()).toBe(previousLogins + 1);
+  });
+
+  it('gives up on an unstable portal without sending credentials', async () => {
     const { app, authenticate, previousLogins } = await prepare();
     const request = jest.mocked(app.transport.request);
     const original = request.getMockImplementation()!;
@@ -167,10 +198,35 @@ describe.each(['signIn', 'refresh'] as const)('%s bootstrap recovery', mode => {
       }
       return original(input);
     });
-    await expect(authenticate()).rejects.toMatchObject({
-      code: 'SESSION_EXPIRED',
-    });
-    expect(bootstraps).toBe(2);
+    const failure = await authenticate().catch(error => error);
+    expect(failure).toMatchObject({ code: 'PORTAL_UNSTABLE' });
+    // passageiro: as consultas tentam de novo, e não é "sessão expirada"
+    expect(isTransientError(failure)).toBe(true);
+    expect(errorMessage(failure)).toMatch(/instável/);
+    expect(bootstraps).toBe(7);
+    expect(app.wait.mock.calls.map(([ms]) => ms)).toEqual([
+      1000, 2000, 3000, 4000, 5000, 6000,
+    ]);
+    expect(app.loginCount()).toBe(previousLogins);
+  });
+
+  it('stops waiting for the portal after logout', async () => {
+    const { app, authenticate, previousLogins } = await prepare();
+    const request = jest.mocked(app.transport.request);
+    const original = request.getMockImplementation()!;
+    request.mockImplementation(input =>
+      input.path === '/requisicaoaluno/' && !input.params
+        ? Promise.resolve(response(expired))
+        : original(input),
+    );
+    const paused = deferred<void>();
+    app.wait.mockImplementationOnce(() => paused.promise);
+    const pending = authenticate().catch(error => error);
+    await new Promise<void>(resolve => setTimeout(() => resolve(), 0));
+    await app.authentication.signOut();
+    paused.resolve();
+    expect(await pending).toMatchObject({ code: 'CANCELLED' });
+    expect(app.wait).toHaveBeenCalledTimes(1);
     expect(app.loginCount()).toBe(previousLogins);
   });
 
@@ -216,11 +272,11 @@ describe.each(['signIn', 'refresh'] as const)('%s bootstrap recovery', mode => {
     });
   });
 
-  it('stops after the second expired authentication', async () => {
+  it('calls a session lost twice right after login an unstable portal', async () => {
     const { app, authenticate, previousLogins } = await prepare();
     app.setLoginResult(expired);
     await expect(authenticate()).rejects.toMatchObject({
-      code: 'SESSION_EXPIRED',
+      code: 'PORTAL_UNSTABLE',
     });
     expect(app.loginCount()).toBe(previousLogins + 2);
     expect(app.diagnostics.snapshot().sessionGeneration).toBeNull();
@@ -407,8 +463,10 @@ it('rejects a second expiry without entering a login loop', async () => {
   const app = setup();
   await app.authentication.signIn(credentials);
   app.handle(async () => response(expired));
+  // a página perde a sessão mesmo depois de um login novo: o portal está
+  // instável, e a conta não precisa entrar de novo
   await expect(app.records.getGrades()).rejects.toMatchObject({
-    code: 'SESSION_EXPIRED',
+    code: 'PORTAL_UNSTABLE',
   });
   expect(app.loginCount()).toBe(2);
   expect(app.operations).toHaveLength(2);
@@ -581,12 +639,13 @@ it.each([
     '<br><table><tr><td><font>Sistema em manutenção. Tente mais tarde.</font></td></tr></table>',
     'ACCOUNT_UNAVAILABLE',
   ],
-  ['login form without credential rejection', loginPage, 'SESSION_EXPIRED'],
-  ['portal session error', expired, 'SESSION_EXPIRED'],
+  // as três abaixo se repetem no segundo login: é o portal instável
+  ['login form without credential rejection', loginPage, 'PORTAL_UNSTABLE'],
+  ['portal session error', expired, 'PORTAL_UNSTABLE'],
   [
     'token rejection',
     `${loginPage}<br><table><tr><td><font>Token inválido. Tente novamente.</font></td></tr></table>`,
-    'SESSION_EXPIRED',
+    'PORTAL_UNSTABLE',
   ],
   [
     'unrecognized portal warning',
