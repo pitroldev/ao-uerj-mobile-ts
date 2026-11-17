@@ -22,7 +22,11 @@ import {
 import { ScreenPanel } from '@templates/ScreenPanel';
 import { useAppServices } from '@root/app/providers/AppServicesProvider';
 import { useBackHandler } from '@root/hooks/useBackHandler';
-import { floorLabel } from '@root/modules/campus-map/domain/parseLocation';
+import {
+  floorLabel,
+  parseClassLocations,
+  type ClassLocation,
+} from '@root/modules/campus-map/domain/parseLocation';
 import type {
   Floor,
   Place,
@@ -64,6 +68,21 @@ const sources: Source[] = [
   },
 ];
 
+/** A sala de um lugar do atlas (secretaria, laboratório), quando há. */
+function roomOfPlace(next: Place): RoomLocation | undefined {
+  return next.room &&
+    next.floor &&
+    (next.building === 'pjlf' || next.building === 'haroldinho')
+    ? {
+        kind: 'room',
+        building: next.building,
+        code: next.room,
+        block: next.block,
+        floor: next.floor,
+      }
+    : undefined;
+}
+
 function openLink(url: string) {
   void Linking.openURL(url).catch(() =>
     snackbar.error('Não foi possível abrir o link.'),
@@ -102,18 +121,56 @@ export function MapScreen({
   const theme = useTheme(),
     c = theme.colors;
   const insets = useSafeAreaInsets();
-  const initial = campusMap.locate(initialLocation ?? '');
+  // os locais da aula que o mapa encontra (o portal junta vários num texto:
+  // "Sala 5.098/F (…) / LEE 09 (…)"); o primeiro abre selecionado
+  const [targets] = useState(() =>
+    parseClassLocations(initialLocation).filter(
+      ({ result }) =>
+        result.kind === 'room' ||
+        (result.kind === 'place' && atlas.places.some(p => p.id === result.id)),
+    ),
+  );
+  const [first] = useState(() => (targets[0] ? resolve(targets[0]) : null));
+  /** O lugar do atlas e a sala de um local da aula. */
+  function resolve({ result }: ClassLocation) {
+    if (result.kind === 'room') return { room: result, place: undefined };
+    if (result.kind !== 'place') return null;
+    const found = atlas.places.find(p => p.id === result.id)!;
+    // a área sem a sala da aula (DIR01): o andar, procurando nas placas
+    if (result.area && result.block && result.building === 'pjlf')
+      return {
+        room: {
+          kind: 'room' as const,
+          building: 'pjlf' as const,
+          code: '',
+          floor: result.floor,
+          block: result.block,
+          name: result.label,
+        },
+        place: found,
+      };
+    // o LEE 09 é a sala dele; sem número, a sala do lugar
+    return {
+      room: campusMap.labRoom(result) ?? roomOfPlace(found),
+      place: found,
+    };
+  }
+  const [target, setTarget] = useState<number | undefined>(
+    first ? 0 : undefined,
+  );
   const [destination, setDestination] = useState<RoomLocation | undefined>(
-    initial.kind === 'room' ? initial : undefined,
+    first?.room,
   );
   const [place, setPlace] = useState<Place | undefined>(() =>
-    initialPlace ? atlas.places.find(p => p.id === initialPlace) : undefined,
+    first
+      ? first.place
+      : initialPlace
+        ? atlas.places.find(p => p.id === initialPlace)
+        : undefined,
   );
-  const [query, setQuery] = useState(
-    initial.kind === 'room' ? '' : (initialLocation ?? ''),
-  );
+  const [query, setQuery] = useState(first ? '' : (initialLocation ?? ''));
   const [searching, setSearching] = useState(
-    Boolean(initialLocation && initial.kind !== 'room'),
+    Boolean(initialLocation && !first),
   );
   const [category, setCategory] = useState<string>();
   const [sheet, setSheet] = useState<
@@ -122,9 +179,24 @@ export function MapScreen({
   const [view, setView] = useState<'campus' | 'floor'>('campus');
   const [entrance, setEntrance] = useState<'metro' | 'sfx'>('metro');
   const [floor, setFloor] = useState<Floor | undefined>(
-    initial.kind === 'room' ? initial.floor : undefined,
+    first?.room?.floor ?? first?.place?.floor,
   );
+  // a sala com nome ("LEE 09"): a porta não tem fonte, a posição sai da ordem
+  const named = destination?.name;
+  // um lugar da aula sem a sala exata (Direito, Oceanografia, COART)
+  const current = target === undefined ? undefined : targets[target];
+  const inexact =
+    current?.result.kind === 'place' && current.result.id !== 'lee';
   const parsed = campusMap.locate(query);
+  const parsedPlace =
+    parsed.kind === 'place'
+      ? atlas.places.find(p => p.id === parsed.id)
+      : undefined;
+  // "LEE 13" na busca: a sala do LEE 13, não a do LEE
+  const parsedRoom =
+    parsed.kind === 'place' && parsedPlace
+      ? (campusMap.labRoom(parsed) ?? roomOfPlace(parsedPlace))
+      : undefined;
   const block = destination?.block ?? place?.block;
   const pavilion =
     destination?.building === 'pjlf' || place?.building === 'pjlf';
@@ -141,6 +213,7 @@ export function MapScreen({
   const matches = campusMap.search(query, category);
   const selected = Boolean(destination || place);
   const label =
+    named ??
     place?.name ??
     (destination
       ? `Sala ${destination.code}${block ? ` ${block}` : ''}`
@@ -153,11 +226,16 @@ export function MapScreen({
           : destination.building === 'haroldinho'
             ? 'Haroldinho'
             : 'Escolha o bloco',
-        ...(place ? [`Sala ${destination.code}`] : []),
+        ...(place && !named && !inexact && destination.code
+          ? [`Sala ${destination.code}`]
+          : []),
       ].join(' · ')
-    : floor
-      ? floorLabel(floor)
-      : place?.subtitle;
+    : place?.subtitle && place.building !== 'pjlf'
+      ? // fora do pavilhão (Centro Cultural, Haroldinho): o andar e o prédio
+        place.subtitle
+      : floor
+        ? floorLabel(floor)
+        : place?.subtitle;
   const floors = atlas.blocks.find(b => b.id === (block ?? 'F'))?.floors ?? [];
   const orientation =
     destination || place
@@ -166,6 +244,7 @@ export function MapScreen({
 
   function reset() {
     Keyboard.dismiss();
+    setTarget(undefined);
     setDestination(undefined);
     setPlace(undefined);
     setFloor(undefined);
@@ -174,30 +253,21 @@ export function MapScreen({
     setSearching(false);
     setView('campus');
   }
-  function selectPlace(next: Place) {
+  /** Um lugar do atlas; `room`, a sala dentro dele (o LEE 09 no LEE). */
+  function selectPlace(next: Place, room = roomOfPlace(next)) {
     Keyboard.dismiss();
+    setTarget(undefined);
     setSearching(false);
     setCategory(undefined);
     setQuery('');
     setView('campus');
     setPlace(next);
-    setFloor(next.floor);
-    setDestination(
-      next.room &&
-        next.floor &&
-        (next.building === 'pjlf' || next.building === 'haroldinho')
-        ? {
-            kind: 'room',
-            building: next.building,
-            code: next.room,
-            block: next.block,
-            floor: next.floor,
-          }
-        : undefined,
-    );
+    setFloor(room?.floor ?? next.floor);
+    setDestination(room);
   }
   function selectRoom(next: RoomLocation) {
     Keyboard.dismiss();
+    setTarget(undefined);
     setSearching(false);
     setCategory(undefined);
     setQuery('');
@@ -205,6 +275,15 @@ export function MapScreen({
     setDestination(next);
     setFloor(next.floor);
     setView('campus');
+  }
+  /** Outro local da mesma aula, na mesma vista (campus ou andar). */
+  function selectTarget(index: number) {
+    const next = resolve(targets[index]);
+    if (!next) return;
+    if (next.place) selectPlace(next.place, next.room);
+    else if (next.room) selectRoom(next.room);
+    setTarget(index);
+    setView(view);
   }
   function selectBlock(letter: string, nextView = view) {
     const next = atlas.places.find(
@@ -287,6 +366,7 @@ export function MapScreen({
               }}
               onSubmitEditing={() => {
                 if (parsed.kind === 'room') selectRoom(parsed);
+                else if (parsedPlace) selectPlace(parsedPlace, parsedRoom);
                 else if (matches.length === 1) selectPlace(matches[0]);
                 else Keyboard.dismiss();
               }}
@@ -364,10 +444,19 @@ export function MapScreen({
                 onPress={() => selectRoom(parsed)}
                 testID="room-result"
               />
+            ) : parsed.kind === 'place' && !category && parsedPlace ? (
+              <ListRow
+                title={parsed.label}
+                subtitle={`${parsedPlace.name} · ${parsedPlace.subtitle}`}
+                leadingIcon="location_on"
+                chevron
+                onPress={() => selectPlace(parsedPlace, parsedRoom)}
+                testID="room-result"
+              />
             ) : undefined
           }
           ListEmptyComponent={
-            parsed.kind !== 'room' ? (
+            parsed.kind !== 'room' && !parsedPlace ? (
               <View style={styles.empty}>
                 <Text
                   variant="body"
@@ -419,6 +508,18 @@ export function MapScreen({
               },
             ]}
           >
+            {targets.length > 1 ? (
+              <ChipGroup layout="scroll" accessibilityLabel="Locais da aula">
+                {targets.map((item, index) => (
+                  <FilterChip
+                    key={`${item.label}-${index}`}
+                    label={item.label}
+                    selected={target === index}
+                    onPress={() => selectTarget(index)}
+                  />
+                ))}
+              </ChipGroup>
+            ) : null}
             <View style={styles.row}>
               <View style={styles.grow}>
                 <Text
@@ -437,6 +538,15 @@ export function MapScreen({
                     Rua São Francisco Xavier, 524
                   </Text>
                 )}
+                {inexact ? (
+                  <Text variant="meta" tone="muted">
+                    A sala exata não vem no portal: confira no andar.
+                  </Text>
+                ) : named ? (
+                  <Text variant="meta" tone="muted">
+                    {`Pela ordem dos LEE (o 1 é a 5116) · confira a porta.`}
+                  </Text>
+                ) : null}
               </View>
               {selected && view === 'floor' ? (
                 <Button

@@ -4,6 +4,7 @@ import {
   duration,
   findNextClass,
   locationLabel,
+  locationText,
   meetingSummary,
   slotRange,
   splitLocation,
@@ -121,6 +122,40 @@ it('splits the room from the rest of the place', () => {
   });
   expect(locationLabel('Não Informado')).toBe('Sala não informada');
   expect(splitLocation(undefined).room).toBe('Sala não informada');
+});
+
+it('lists every place the portal gives for a class, with what they share', () => {
+  const circuits =
+    'Sala 5.098/F         (Pav. João Lira Filho) / LEE 09               (Pav. João Lira Filho)';
+  expect(splitLocation(circuits)).toEqual({
+    room: 'Sala 5098 F · LEE 09',
+    place: 'Pav. João Lyra Filho · 5º andar · Bloco F',
+  });
+  expect(locationText(circuits)).toBe(
+    'Sala 5098 F · LEE 09 · Pav. João Lyra Filho · 5º andar · Bloco F',
+  );
+  // andares diferentes: o lugar fica só com o prédio
+  expect(
+    splitLocation(
+      'Sala 6019 B (Pav. João Lira Filho) / Sala 9023 D (Pav. João Lira Filho)',
+    ),
+  ).toEqual({
+    room: 'Sala 6019 B · Sala 9023 D',
+    place: 'Pav. João Lyra Filho',
+  });
+  // em outro campus: as salas e o prédio, sem mapa
+  expect(
+    splitLocation(
+      'Sala 213 (Prédio da FEBF - Caxias)Sala 201 (Prédio da FEBF - Caxias)',
+    ),
+  ).toEqual({
+    room: 'Sala 213 · Sala 201',
+    place: 'Fora do Maracanã · Prédio da FEBF - Caxias',
+  });
+  // fora do formato do portal, o texto segue como veio
+  expect(locationText('Pav. João Lyra Filho · 6º andar · Sala 6019 B')).toBe(
+    'Pav. João Lyra Filho · 6º andar · Sala 6019 B',
+  );
 });
 
 it('summarises meetings grouped by time', () => {

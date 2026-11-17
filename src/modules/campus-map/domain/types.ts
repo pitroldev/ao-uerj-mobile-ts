@@ -106,8 +106,35 @@ export type RoomLocation = {
   code: string;
   floor: Floor;
   block?: Block;
+  /**
+   * Como a aula chama a sala quando o número da porta não é conhecido
+   * ("LEE 09"): o mapa mostra o nome, e `code` é só a posição no modelo.
+   */
+  name?: string;
+};
+/**
+ * Um lugar do atlas que o portal escreve com nome próprio, sem número de
+ * sala ("LEE 13"): o mapa leva ao lugar, e `label` é como a aula o chama.
+ */
+export type PlaceLocation = {
+  kind: 'place';
+  id: string;
+  label: string;
+  /** A sala dentro do lugar, quando ele tem salas numeradas (o 9 do "LEE 09"). */
+  number?: number;
+  /**
+   * Uma área com várias salas, sem a sala da aula ("DIR01" é uma das salas
+   * do Direito): o mapa leva ao andar e manda procurar nas placas.
+   */
+  area?: true;
+  building: 'pjlf' | 'haroldinho' | 'ccot';
+  floor: Floor;
+  block?: Block;
 };
 export type LocationResult =
   | RoomLocation
+  | PlaceLocation
+  /** Em outro campus ou prédio fora do mapa ("FEBF (Caxias)"). */
+  | { kind: 'elsewhere'; where: string }
   | { kind: 'virtual' | 'empty' | 'unknown' }
   | { kind: 'invalid'; message: string };

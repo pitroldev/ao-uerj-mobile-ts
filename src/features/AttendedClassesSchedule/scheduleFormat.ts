@@ -4,6 +4,10 @@
  */
 import { TIME_VALUES } from '@utils/constants/time';
 import type { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
+import {
+  floorLabel,
+  parseClassLocations,
+} from '@root/modules/campus-map/domain/parseLocation';
 
 export const WEEKDAY_NAMES = [
   'Domingo',
@@ -100,6 +104,8 @@ export function splitLocation(location?: string | null): {
 } {
   const loc = locationLabel(location);
   if (loc === ROOM_NOT_INFORMED) return { room: loc, place: '' };
+  const portal = portalLocation(loc);
+  if (portal) return portal;
   const parts = loc
     .split(/\s+[·•|–—-]\s+/)
     .map(p => p.trim())
@@ -109,6 +115,63 @@ export function splitLocation(location?: string | null): {
     room: parts[parts.length - 1],
     place: parts.slice(0, -1).join(' · '),
   };
+}
+
+/**
+ * O local como o portal escreve: um ou mais trechos com o prédio entre
+ * parênteses, separados por " / " ("Sala 5.098/F (Pav. João Lira Filho) /
+ * LEE 09 (Pav. João Lira Filho)") → { room: "Sala 5098 F · LEE 09", place:
+ * "Pav. João Lyra Filho · 5º andar · Bloco F" }. O lugar só traz o que é
+ * comum a todos os trechos. `null` para outros formatos.
+ */
+function portalLocation(loc: string): { room: string; place: string } | null {
+  if (!/\s\/\s|\(/.test(loc)) return null;
+  const parts = parseClassLocations(loc);
+  const found = parts.flatMap(({ result }) =>
+    result.kind === 'room' || result.kind === 'place' ? [result] : [],
+  );
+  const away = parts.flatMap(({ result }) =>
+    result.kind === 'elsewhere' ? [result.where] : [],
+  );
+  // em outro campus: as salas como vieram e onde fica o prédio
+  if (!found.length && away.length)
+    return {
+      room: [...new Set(parts.map(part => part.label))].join(' · '),
+      place: ['Fora do Maracanã', ...new Set(away)].join(' · '),
+    };
+  if (!found.length) return null;
+  const same = <T>(values: T[]) =>
+    values.every(value => value === values[0]) ? values[0] : undefined;
+  const building = same(found.map(result => result.building));
+  const floor = same(found.map(result => result.floor));
+  const block = same(found.map(result => result.block));
+  const place = [
+    building === 'pjlf'
+      ? 'Pav. João Lyra Filho'
+      : building === 'haroldinho'
+        ? 'Haroldinho'
+        : building === 'ccot'
+          ? 'Centro Cultural'
+          : undefined,
+    floor && floorLabel(floor),
+    block && `Bloco ${block}`,
+  ];
+  return {
+    room: [...new Set(parts.map(part => part.label))].join(' · '),
+    place: place.filter(Boolean).join(' · '),
+  };
+}
+
+/**
+ * O local numa linha. No formato do portal, as salas e o que é comum a elas
+ * ("Sala 5098 F · LEE 09 · Pav. João Lyra Filho · 5º andar · Bloco F");
+ * nos outros, o texto como veio.
+ */
+export function locationText(location?: string | null): string {
+  const loc = locationLabel(location);
+  const portal = portalLocation(loc);
+  if (!portal) return loc;
+  return portal.place ? `${portal.room} · ${portal.place}` : portal.room;
 }
 
 export type Shift = 'morning' | 'afternoon' | 'night';

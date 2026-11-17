@@ -1,6 +1,12 @@
 import { normalizeLocation, parseLocation } from '../domain/parseLocation';
+import { leeRoom } from '../domain/labs';
 import { orient } from '../domain/orientation';
-import type { Entrance, Place, RoomLocation } from '../domain/types';
+import type {
+  Entrance,
+  Place,
+  PlaceLocation,
+  RoomLocation,
+} from '../domain/types';
 import type { CampusMapRepository } from './ports';
 
 export class CampusMap {
@@ -23,6 +29,16 @@ export class CampusMap {
 
   locate(input: string) {
     return parseLocation(input);
+  }
+
+  /**
+   * A sala de um lugar com salas numeradas ("LEE 09"), com o nome da aula;
+   * `undefined` quando o lugar não tem número ou o número passa do andar.
+   */
+  labRoom(location: PlaceLocation): RoomLocation | undefined {
+    if (location.id !== 'lee' || location.number === undefined)
+      return undefined;
+    return leeRoom(this.atlas, location.number, location.label);
   }
 
   orientation(destination: RoomLocation | Place, entrance?: Entrance) {

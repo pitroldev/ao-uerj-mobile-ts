@@ -81,7 +81,11 @@ function entranceRoute(atlas: CampusAtlas, entrance: Entrance): Point[] {
   return passage.slice(0, end + 1).reverse();
 }
 
-function confidence(model?: RoomModel, hasRoom = false): string {
+function confidence(model?: RoomModel, hasRoom = false, named = false): string {
+  // a sala com nome (LEE 09) sai da ordem dos laboratórios, não do número
+  if (model && named) return 'Pela ordem dos laboratórios · confira a porta';
+  // a área sem a sala (DIR01): o trajeto vai até o andar
+  if (named) return 'Trajeto até o andar · procure a sala nas placas';
   if (!model)
     return hasRoom
       ? 'Trajeto até o bloco · posição da sala indisponível'
@@ -104,6 +108,9 @@ export function orient(
   if (destination.building !== 'pjlf') return undefined;
   const { block, floor } = destination;
   const code = 'code' in destination ? destination.code : destination.room;
+  // como a aula chama a sala, quando o número da porta não é conhecido
+  const name = 'kind' in destination ? destination.name : undefined;
+  const shown = name ? `o ${name}` : `a sala ${code}`;
   const plan =
     block && floor
       ? atlas.floorPlans.find(p => p.block === block && p.floor === floor)
@@ -114,7 +121,7 @@ export function orient(
       : undefined;
   const modelId = index == null ? undefined : plan?.positions[String(index)];
   const model = modelId == null ? undefined : atlas.roomModels[modelId];
-  const room = model && code ? planRoom(model, code) : undefined;
+  const room = model && code ? planRoom(model, name ?? code) : undefined;
   const floorPlan: FloorPlan | undefined = plan
     ? {
         block: plan.block,
@@ -152,7 +159,7 @@ export function orient(
         : model.certainty === 'zone'
           ? 'zone'
           : 'modeled-door',
-    confidence: confidence(model, Boolean(code)),
+    confidence: confidence(model, Boolean(code), Boolean(name)),
     floorPlan,
     room,
     entranceRoute: entranceRoute(atlas, entrance),
@@ -222,8 +229,7 @@ export function orient(
           ? 'O destino fica no nível do hall dos elevadores.'
           : 'Os braços ficam meio andar abaixo do térreo do F. Confirme o acesso na portaria.',
     });
-    if (code)
-      steps.push({ title: `Procure a sala ${code} nas placas do bloco.` });
+    if (code) steps.push({ title: `Procure ${shown} nas placas do bloco.` });
     return result;
   }
   if (upper && block === 'F') {
@@ -241,7 +247,7 @@ export function orient(
           }
         : {
             title: code
-              ? `No próprio Bloco C, procure a sala ${code} nas placas.`
+              ? `No próprio Bloco C, procure ${shown} nas placas.`
               : 'O destino fica no próprio Bloco C.',
           },
     );
@@ -256,15 +262,15 @@ export function orient(
     });
   }
   if (!model || !code) {
-    if (code)
+    if (code || name)
       steps.push({
-        title: `No corredor do Bloco ${block}, procure a sala ${code} nas placas.`,
+        title: `No corredor do Bloco ${block}, procure ${shown} nas placas.`,
       });
     return result;
   }
   if (model.atJunction) {
     steps.push({
-      title: `A sala ${code} fica logo na chegada da passarela, do outro lado do corredor.`,
+      title: `${name ? `O ${name}` : `A sala ${code}`} fica logo na chegada da passarela, do outro lado do corredor.`,
     });
     return result;
   }
@@ -285,7 +291,7 @@ export function orient(
       .map(part => part.replace(/^(a|o|as|os) /, 'd$1 '))
       .join(' e ');
     steps.push({
-      title: `A ${code} é a ${model.ordinal}ª sala à ${model.side}${mark ? `, depois ${mark}` : ''}.`,
+      title: `${name ? `O ${name}` : `A ${code}`} é a ${model.ordinal}ª sala à ${model.side}${mark ? `, depois ${mark}` : ''}.`,
     });
   }
   return result;

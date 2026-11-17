@@ -169,3 +169,81 @@ it.each(['light', 'dark'] as const)(
     ).toBeVisible();
   },
 );
+
+describe('a class with more than one place', () => {
+  // como o portal escreve na grade em curso (17/11/2026)
+  const circuits =
+    'Sala 5.098/F         (Pav. João Lira Filho) / LEE 09               (Pav. João Lira Filho)';
+
+  it('opens the first place and switches to the others', async () => {
+    await renderWithProviders(<MapScreen initialLocation={circuits} />);
+    expect(screen.getByRole('header', { name: 'Sala 5098 F' })).toBeVisible();
+    expect(screen.getByText('5º andar · Bloco F')).toBeVisible();
+    expect(screen.getByLabelText('Buscar sala ou lugar')).toHaveProp(
+      'value',
+      '',
+    );
+    expect(
+      screen.getByRole('togglebutton', { name: 'Sala 5098 F' }),
+    ).toHaveProp(
+      'accessibilityState',
+      expect.objectContaining({ checked: true }),
+    );
+
+    await fireEvent.press(screen.getByRole('togglebutton', { name: 'LEE 09' }));
+    // cada LEE é uma sala: a posição sai da ordem dos laboratórios
+    expect(screen.getByRole('header', { name: 'LEE 09' })).toBeVisible();
+    expect(screen.getByText('5º andar · Bloco F')).toBeVisible();
+    expect(
+      screen.getByText('Pela ordem dos LEE (o 1 é a 5116) · confira a porta.'),
+    ).toBeVisible();
+
+    // na vista do andar, a troca mantém a vista
+    await fireEvent.press(screen.getByRole('tab', { name: 'Andar' }));
+    await fireEvent.press(
+      screen.getByRole('togglebutton', { name: 'Sala 5098 F' }),
+    );
+    expect(screen.getByRole('tab', { name: 'Andar' })).toBeSelected();
+    expect(screen.getByRole('header', { name: 'Sala 5098 F' })).toBeVisible();
+  });
+
+  it('finds a lab typed in the search', async () => {
+    await renderWithProviders(<MapScreen />);
+    await fireEvent.changeText(
+      screen.getByLabelText('Buscar sala ou lugar'),
+      'LEE 13',
+    );
+    expect(
+      screen.getByText(
+        'Laboratórios de Engenharia Elétrica (LEE) · 5º andar · Bloco F · Sala 5116',
+      ),
+    ).toBeVisible();
+    await fireEvent.press(screen.getByTestId('room-result'));
+    expect(screen.getByRole('header', { name: 'LEE 13' })).toBeVisible();
+  });
+});
+
+describe('a class place without the exact room', () => {
+  it('takes a Law room to the 7th floor and asks to check the signs', async () => {
+    await renderWithProviders(
+      <MapScreen initialLocation="DIR01 (Pav. João Lira Filho) / DIR02 (Pav. João Lira Filho)" />,
+    );
+    expect(screen.getByRole('header', { name: 'DIR01' })).toBeVisible();
+    expect(screen.getByText('7º andar · Bloco F')).toBeVisible();
+    expect(
+      screen.getByText('A sala exata não vem no portal: confira no andar.'),
+    ).toBeVisible();
+    await fireEvent.press(screen.getByRole('togglebutton', { name: 'DIR02' }));
+    expect(screen.getByRole('header', { name: 'DIR02' })).toBeVisible();
+  });
+
+  it('opens a place outside the pavilion by its name', async () => {
+    await renderWithProviders(
+      <MapScreen initialLocation="COART 3 (Prédio não definido)" />,
+    );
+    expect(
+      screen.getByRole('header', { name: 'Coordenadoria de Artes (COART)' }),
+    ).toBeVisible();
+    expect(screen.getByText('2º andar · Centro Cultural')).toBeVisible();
+  });
+});

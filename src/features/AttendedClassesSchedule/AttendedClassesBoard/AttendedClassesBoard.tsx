@@ -11,7 +11,7 @@ import {
   StatusLabel,
   Text,
 } from '@components/ui';
-import { parseLocation } from '@root/modules/campus-map/domain/parseLocation';
+import { hasMapLocation } from '@root/modules/campus-map/domain/parseLocation';
 import { AttendedClassesSchedule } from '@root/modules/academics/domain/models';
 import { subjectKey } from '@root/modules/academics/domain/rules/subjectId';
 import { useSubjectLoads } from '@root/modules/academics/presentation/useSubjectLoads';
@@ -27,7 +27,7 @@ import { attendanceTone, remainingText, usedText } from '../attendanceText';
 import {
   hasClassTime,
   isCanceled,
-  locationLabel,
+  locationText,
   meetingSummary,
   plural,
 } from '../scheduleFormat';
@@ -186,12 +186,12 @@ function ClassesList({
     const isItemCanceled = item.status === 'CANCELED';
     // estágio, TCC: sem aulas na grade, não há sala certa nem faltas por aula
     const untimed = !meetings.some(hasClassTime);
-    const room = parseLocation(item.uerjLocation).kind === 'room';
+    const room = hasMapLocation(item.uerjLocation);
     const meta = isItemCanceled
       ? undefined
       : [
           ...meetingSummary(meetings),
-          ...(untimed && !room ? [] : [locationLabel(item.uerjLocation)]),
+          ...(untimed && !room ? [] : [locationText(item.uerjLocation)]),
           ...(item.avaLocation
             ? [`Sala virtual (AVA): ${item.avaLocation}`]
             : []),

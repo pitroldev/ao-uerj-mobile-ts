@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigation } from '@react-navigation/native';
-import { parseLocation } from '@root/modules/campus-map/domain/parseLocation';
+import { hasMapLocation } from '@root/modules/campus-map/domain/parseLocation';
 import { useTheme } from 'styled-components/native';
 
 import {
@@ -151,7 +151,7 @@ export const NextClassCard = React.memo(function NextClassCard({
           </Chevron>
         </Row>
       </Card>
-      {showMap && parseLocation(item.class.uerjLocation).kind === 'room' ? (
+      {showMap && hasMapLocation(item.class.uerjLocation) ? (
         <Button
           label="Ver no mapa"
           icon="location_on"

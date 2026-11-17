@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { Teacher } from '@root/modules/community/domain/models';
 import { List, ListRow, Section, Text } from '@components/ui';
+import { locationText } from '@features/AttendedClassesSchedule/scheduleFormat';
 import { Updated } from './TeacherView.styles';
 
 /**
@@ -27,7 +28,7 @@ export const TeacherView = ({ name, updatedAt, subjects }: Teacher) => {
                 title={subject.name}
                 code={subject.id}
                 subtitle={`Turma ${item.number}`}
-                meta={item.location || undefined}
+                meta={item.location ? locationText(item.location) : undefined}
                 chevron
                 onPress={() =>
                   navigation.navigate('Pesquisa de Disciplinas', {
