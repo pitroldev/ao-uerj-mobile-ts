@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.17.2 (2026-11-17)
+
+### Correções
+
+- Login com o Aluno Online instável: depois do fim do bloqueio, o portal muitas vezes não abre a sessão e responde "Página não encontrada!", e o app dizia "Sua sessão expirou". Agora ele tenta de novo sozinho, antes de mandar a senha, por até uns 20 segundos; se não der, avisa "O Aluno Online está instável".
+- Aulas com mais de um local: a sala e o laboratório aparecem separados ("Sala 5098 F · LEE 09"), e o mapa abre no primeiro local, com um botão para cada um.
+- Laboratórios da Engenharia Elétrica: cada LEE é uma sala do 5º andar do Bloco F, na ordem do corredor a partir da 5116, e o mapa avisa para conferir a porta.
+- Mais formatos de local no mapa: "Bl. F", "5001-C/F" (antes ia para o bloco errado), locais colados na página da disciplina, as salas do Direito (DIR), o Laboratório Minato, "Sala 04 - Bloco D" de Letras e a COART. Aulas em outros campi aparecem como "Fora do Maracanã", com o prédio.
+
 ## 2.17.1 (2026-11-16)
 
 ### Novidades
