@@ -42,7 +42,30 @@ export type Diagnostic = {
   eventId?: string;
   /** A última tentativa no gerador de grades, em contagens (relato do gerador). */
   generator?: GeneratorRun;
+  /**
+   * As leituras do portal com erro quando o aluno abriu o relato (apps
+   * depois da 2.18.0): o nome da leitura e o código ("schedule" →
+   * "PORTAL_LAYOUT_CHANGED").
+   */
+  portalErrors?: Record<string, string>;
 };
+
+const MAX_PORTAL_ERRORS = 12;
+
+/** Só pares de nome em minúsculas e código em maiúsculas. */
+function parsePortalErrors(value: unknown): Record<string, string> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    return undefined;
+  const pairs = Object.entries(value as Record<string, unknown>)
+    .filter(
+      (pair): pair is [string, string] =>
+        /^[a-z][a-z-]{0,39}$/.test(pair[0]) &&
+        typeof pair[1] === 'string' &&
+        /^[A-Z_]{1,40}$/.test(pair[1]),
+    )
+    .slice(0, MAX_PORTAL_ERRORS);
+  return pairs.length ? Object.fromEntries(pairs) : undefined;
+}
 
 /** As contagens que o app manda da última tentativa no gerador. */
 export type GeneratorRun = {
@@ -119,6 +142,7 @@ export function parseDiagnostic(content: string): Diagnostic | null {
   const subjectCode = text(value.subjectCode, 40);
   const eventId = text(value.eventId, 64);
   const generator = parseGeneratorRun(value.generator);
+  const portalErrors = parsePortalErrors(value.portalErrors);
   return {
     operation,
     category,
@@ -128,6 +152,7 @@ export function parseDiagnostic(content: string): Diagnostic | null {
     ...(subjectCode ? { subjectCode } : {}),
     ...(eventId ? { eventId } : {}),
     ...(generator ? { generator } : {}),
+    ...(portalErrors ? { portalErrors } : {}),
   };
 }
 

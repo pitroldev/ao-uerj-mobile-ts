@@ -514,6 +514,12 @@ export function generatorSummary(run: GeneratorRun): string {
 /** O começo do id da OTA ("0195f2a1…"), que já a distingue das outras. */
 const shortId = (id: string) => (id.length > 12 ? `${id.slice(0, 8)}…` : id);
 
+/** As leituras do portal com erro, com o código ("schedule: PORTAL_LAYOUT_CHANGED"). */
+const portalErrorsSummary = (errors: Record<string, string>) =>
+  Object.entries(errors)
+    .map(([resource, code]) => `${resource}: ${code}`)
+    .join(' · ');
+
 function diagnosticFacts(diagnostic: Diagnostic) {
   const facts: Array<[string, string]> = [
     ['App', diagnostic.appVersion],
@@ -526,6 +532,8 @@ function diagnosticFacts(diagnostic: Diagnostic) {
   if (diagnostic.eventId) facts.push(['Sentry', diagnostic.eventId]);
   if (diagnostic.generator)
     facts.push(['Gerador', generatorSummary(diagnostic.generator)]);
+  if (diagnostic.portalErrors)
+    facts.push(['Com erro', portalErrorsSummary(diagnostic.portalErrors)]);
   return html`<dl class="facts">
     ${facts.map(
       ([term, value]) =>
@@ -1517,6 +1525,11 @@ export function diagnosticPage({
   if (diagnostic.eventId) rows.push(['Evento no Sentry', diagnostic.eventId]);
   if (diagnostic.generator)
     rows.push(['Gerador de grade', generatorSummary(diagnostic.generator)]);
+  if (diagnostic.portalErrors)
+    rows.push([
+      'Leituras do portal com erro',
+      portalErrorsSummary(diagnostic.portalErrors),
+    ]);
   return layout({
     base,
     title: 'Diagnóstico',

@@ -179,6 +179,27 @@ test('only a JSON of schema 1 with the expected fields is a diagnostic', () => {
       },
     },
   );
+  // as leituras do portal com erro: só nome em minúsculas e código
+  assert.deepEqual(
+    parseDiagnostic(
+      JSON.stringify({
+        ...valid,
+        portalErrors: {
+          schedule: 'PORTAL_LAYOUT_CHANGED',
+          'partial-rid': 'NETWORK',
+          Grades: 'NETWORK',
+          history: 'texto livre',
+          curriculum: 3,
+        },
+      }),
+    )?.portalErrors,
+    { schedule: 'PORTAL_LAYOUT_CHANGED', 'partial-rid': 'NETWORK' },
+  );
+  for (const portalErrors of [{}, [], 'schedule', { Grades: 'NETWORK' }])
+    assert.equal(
+      parseDiagnostic(JSON.stringify({ ...valid, portalErrors }))?.portalErrors,
+      undefined,
+    );
   // um resumo do gerador sem passo ou com um resultado fora do formato some
   for (const generator of [
     { outcome: 'EMPTY' },
