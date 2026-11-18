@@ -7,6 +7,8 @@ export type ErrorCode =
   | 'POSSIBLY_BLOCKED'
   | 'PORTAL_LAYOUT_CHANGED'
   | 'NETWORK'
+  /** A rede conectada interceptou ou ainda não liberou o acesso à internet. */
+  | 'CAPTIVE_PORTAL'
   | 'SERVICE_UNAVAILABLE'
   /** O Aluno Online não abre sessão nova (instável): passageiro, não é a conta. */
   | 'PORTAL_UNSTABLE'
@@ -59,6 +61,8 @@ export function errorMessage(error: unknown): string {
     PORTAL_LAYOUT_CHANGED:
       'O Aluno Online retornou dados em um formato inesperado.',
     NETWORK: 'Verifique sua conexão e tente novamente.',
+    CAPTIVE_PORTAL:
+      'Este Wi-Fi ainda não liberou a internet. Entre na rede pelo navegador ou use os dados móveis.',
     SERVICE_UNAVAILABLE:
       'O serviço está indisponível. Tente novamente mais tarde.',
     PORTAL_UNSTABLE:

@@ -157,6 +157,7 @@ it.each<ErrorCode>([
   'SESSION_EXPIRED',
   'PORTAL_LAYOUT_CHANGED',
   'POSSIBLY_BLOCKED',
+  'CAPTIVE_PORTAL',
   // same portal warning for an unknown registration and for maintenance
   'ACCOUNT_UNAVAILABLE',
 ])(
@@ -229,6 +230,7 @@ it.each<ErrorCode>([
   'POSSIBLY_BLOCKED',
   'ACCOUNT_UNAVAILABLE',
   'NETWORK',
+  'CAPTIVE_PORTAL',
   'SERVICE_UNAVAILABLE',
   'RATE_LIMITED',
   'CANCELLED',

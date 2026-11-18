@@ -10,17 +10,20 @@ import { decodePortalResponse, MAX_DOCUMENT_BYTES } from './portalResponse';
 
 const ORIGIN = 'https://www.alunoonline.uerj.br';
 
+function isPortalOriginUrl(url: string): boolean {
+  return (
+    !url.includes('\\') &&
+    !Array.from(url).some(character => character.charCodeAt(0) <= 0x20) &&
+    (url === ORIGIN || url.startsWith(`${ORIGIN}/`))
+  );
+}
+
 function trustedUrl(path: string): string {
   // React Native's URL polyfill does not resolve all WHATWG URL forms.
   // Accept only an absolute portal URL or a root-relative portal path.
   const url =
     path.startsWith('/') && !path.startsWith('//') ? `${ORIGIN}${path}` : path;
-  if (
-    url.includes('\\') ||
-    Array.from(url).some(character => character.charCodeAt(0) <= 0x20) ||
-    (url !== ORIGIN && !url.startsWith(`${ORIGIN}/`))
-  )
-    throw new AppError('INVALID_INPUT');
+  if (!isPortalOriginUrl(url)) throw new AppError('INVALID_INPUT');
   return url === ORIGIN ? `${ORIGIN}/` : url;
 }
 
@@ -80,6 +83,18 @@ export function createNativePortalTransport(): PortalTransport {
         const response = await request;
         if (signal?.aborted || generation !== started)
           throw new AppError('CANCELLED');
+        const responseUrl = (
+          response.request as { responseURL?: unknown } | undefined
+        )?.responseURL;
+        // Um Wi-Fi com portal cativo redireciona o XHR para outra origem (ou
+        // para HTTP sem TLS) ou responde 511 antes de chegar ao Aluno Online.
+        if (
+          response.status === 511 ||
+          (typeof responseUrl === 'string' &&
+            responseUrl.length > 0 &&
+            !isPortalOriginUrl(responseUrl))
+        )
+          throw new AppError('CAPTIVE_PORTAL');
         const header = response.headers?.['content-type'];
         return decodePortalResponse(
           response.status,

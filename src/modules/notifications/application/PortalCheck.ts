@@ -95,7 +95,7 @@ function stopOutcome(code: ErrorCode | null): CheckOutcome | null {
   if (!code) return null;
   if (REFUSALS.includes(code)) return 'blocked';
   if (UNAVAILABLE.includes(code)) return 'unavailable';
-  if (code === 'NETWORK') return 'offline';
+  if (code === 'NETWORK' || code === 'CAPTIVE_PORTAL') return 'offline';
   if (ACCESS.includes(code)) return 'signed-out';
   if (code === 'CANCELLED' || SESSION.includes(code)) return 'failed';
   return null;

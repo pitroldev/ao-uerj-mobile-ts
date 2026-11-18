@@ -164,3 +164,53 @@ it.each([
   ).rejects.toMatchObject({ code: 'INVALID_INPUT' });
   expect(get).not.toHaveBeenCalled();
 });
+
+it.each([
+  'http://10.0.0.1/login',
+  'https://captive.example/portal',
+  'http://www.alunoonline.uerj.br/requisicaoaluno/',
+  'https://www.alunoonline.uerj.br.other.example/login',
+  'https://www.alunoonline.uerj.br@other.example/login',
+])(
+  'rejects a captive portal redirect outside the trusted HTTPS origin: %s',
+  async responseURL => {
+    const get = jest.fn(async () => ({
+      status: 200,
+      data: new Uint8Array([0x3c, 0x68, 0x74, 0x6d, 0x6c, 0x3e]),
+      request: { responseURL },
+    }));
+    jest
+      .mocked(axios.create)
+      .mockReturnValue({ get } as unknown as ReturnType<typeof axios.create>);
+    await expect(
+      createNativePortalTransport().request({ path: '/' }),
+    ).rejects.toMatchObject({ code: 'CAPTIVE_PORTAL' });
+  },
+);
+
+it('rejects HTTP 511 Network Authentication Required as a captive portal and allows same-origin redirects', async () => {
+  const get = jest
+    .fn()
+    .mockResolvedValueOnce({
+      status: 511,
+      data: new Uint8Array([0x61]),
+    })
+    .mockResolvedValueOnce({
+      status: 200,
+      data: new Uint8Array([0x6f, 0x6b]),
+      request: {
+        responseURL: 'https://www.alunoonline.uerj.br/requisicaoaluno/',
+      },
+    });
+  jest
+    .mocked(axios.create)
+    .mockReturnValue({ get } as unknown as ReturnType<typeof axios.create>);
+  const transport = createNativePortalTransport();
+  await expect(transport.request({ path: '/' })).rejects.toMatchObject({
+    code: 'CAPTIVE_PORTAL',
+  });
+  await expect(transport.request({ path: '/' })).resolves.toMatchObject({
+    status: 200,
+    body: 'ok',
+  });
+});

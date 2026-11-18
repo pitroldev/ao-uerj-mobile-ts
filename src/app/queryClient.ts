@@ -36,7 +36,12 @@ export function createQueryClient(onError?: QueryErrorListener) {
         retry: (failures, error) => failures < 1 && isTransientError(error),
         retryDelay: 1000,
       },
-      mutations: { retry: false },
+      mutations: {
+        retry: false,
+        // Ações iniciadas por toque (login, envio no mural, gerador) tentam na
+        // hora e devolvem o erro se a rede falhar, sem travar em pausa.
+        networkMode: 'always',
+      },
     },
   });
 }

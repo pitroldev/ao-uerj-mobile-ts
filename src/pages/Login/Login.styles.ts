@@ -1,6 +1,6 @@
 import styled from 'styled-components/native';
 
-import { Button, Text } from '@components/ui';
+import { Button, Notice, Text } from '@components/ui';
 
 /** Fundo azul atrás de tudo (o painel claro sobe por cima dele). */
 export const Root = styled.View`
@@ -40,6 +40,10 @@ export const PanelRim = styled.View`
 export const Subtitle = styled(Text)`
   margin-top: 4px;
   margin-bottom: 24px;
+`;
+
+export const WifiNotice = styled(Notice)`
+  margin-bottom: 20px;
 `;
 
 export const RecoveryButton = styled(Button)`

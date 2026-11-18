@@ -46,6 +46,15 @@ it('reports network failures and lets cancellations pass', async () => {
     'CANCELLED',
   );
   expect(cancelled.monitor.failed).not.toHaveBeenCalled();
+
+  const captive = setup(async () => {
+    throw new AppError('CAPTIVE_PORTAL');
+  });
+  await expect(captive.observed.request({ path: '/' })).rejects.toThrow(
+    'CAPTIVE_PORTAL',
+  );
+  expect(captive.monitor.failed).not.toHaveBeenCalled();
+  expect(captive.monitor.answered).not.toHaveBeenCalled();
 });
 
 it('does not reach the portal while the monitor holds the reads', async () => {

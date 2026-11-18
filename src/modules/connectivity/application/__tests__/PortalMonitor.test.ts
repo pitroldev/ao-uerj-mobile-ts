@@ -170,3 +170,16 @@ it('tells the screens only when something changes', () => {
   monitor.answered(200, 9000);
   expect(listener).toHaveBeenCalledTimes(1);
 });
+
+it('ignores captive portal interceptions during a recovery probe', async () => {
+  const { monitor, probe } = setup();
+  const recovered = jest.fn();
+  monitor.onRecovered(recovered);
+  monitor.failed('unavailable');
+  const attemptsBefore = monitor.getSnapshot().attempts;
+  probe.mockRejectedValueOnce(new AppError('CAPTIVE_PORTAL'));
+  await monitor.retryNow();
+  expect(monitor.getSnapshot().state).toBe('down');
+  expect(monitor.getSnapshot().attempts).toBe(attemptsBefore);
+  expect(recovered).not.toHaveBeenCalled();
+});

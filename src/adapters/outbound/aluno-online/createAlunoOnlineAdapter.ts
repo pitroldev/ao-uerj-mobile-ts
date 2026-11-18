@@ -113,6 +113,7 @@ const operationKeys: Record<PortalOperation, string[]> = {
 };
 
 function checkStatus(response: PortalResponse) {
+  if (response.status === 511) throw new AppError('CAPTIVE_PORTAL');
   if (response.status === 429) throw new AppError('RATE_LIMITED');
   if (response.status >= 500) throw new AppError('SERVICE_UNAVAILABLE');
   if (response.status >= 400) throw new AppError('PORTAL_LAYOUT_CHANGED');

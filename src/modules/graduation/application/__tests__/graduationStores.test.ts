@@ -157,6 +157,21 @@ describe('prerequisite catalog', () => {
     expect(result.stoppedBy).toBeNull();
     expect(Object.keys(result.entries)).toEqual(['2']);
   });
+
+  it('stops loading remaining subjects when a captive portal intercepts the connection', async () => {
+    const { store } = memoryStore();
+    const fetch = jest.fn().mockRejectedValue(new AppError('CAPTIVE_PORTAL'));
+    const result = await new PrerequisiteCatalog(store, 1).load(
+      'a',
+      'v1',
+      ['FEN04-00001', 'FEN04-00002'],
+      fetch,
+      new AbortController().signal,
+      () => undefined,
+    );
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(result.stoppedBy).toBe('CAPTIVE_PORTAL');
+  });
 });
 
 describe('plan preferences', () => {

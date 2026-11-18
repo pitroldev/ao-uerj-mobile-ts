@@ -158,7 +158,8 @@ export class PortalMonitor {
     try {
       const status = await this.dependencies.probe();
       this.answered(status, this.dependencies.now() - started);
-    } catch {
+    } catch (error) {
+      if (error instanceof AppError && error.code === 'CAPTIVE_PORTAL') return;
       this.failed('network');
     }
   }

@@ -21,7 +21,8 @@ Quando o AO não informa o semestre, a interface usa "Período atual". O períod
 ## Sem internet ou com o portal fora do ar
 
 - **Abertura:** com a conta salva, o app abre na hora com os dados salvos e entra no portal por trás ("Entrando no Aluno Online…"). As leituras esperam esse login, sem um segundo login em paralelo. Uma senha recusada nesse login leva ao Login.
-- **Sem internet:** as consultas pausam e voltam com a conexão.
+- **Sem internet:** as consultas pausam e voltam com a conexão. Ações disparadas por toque (como "Entrar") tentam na hora e mostram o erro sem travar em pausa.
+- **Wi-Fi sem internet liberada (portal cativo):** quando o aparelho está numa rede que ainda não liberou a internet (o ponto de exclamação no Wi-Fi), o Login avisa de imediato e oferece "Abrir navegador", sem bloquear o botão "Entrar". Se a rede redirecionar o acesso para fora do Aluno Online ou pedir autenticação de rede (HTTP 511), a tentativa para antes de enviar matrícula e senha, sem contar como queda do portal. Se o Aluno Online responder de verdade naquela rede (como num firewall do campus que bloqueia só o teste do sistema), as consultas seguem normalmente.
 - **Portal fora do ar:** com a internet funcionando, uma resposta 502, 503 ou 504, ou duas falhas de rede seguidas, marcam o portal como fora do ar.
   - Daí em diante, as leituras falham na hora, sem esperar o tempo-limite.
   - Uma requisição leve à página inicial do portal testa a volta, com espera crescente: 1, 2, 5, 10 e depois 15 minutos. O teste só acontece com o app na tela.

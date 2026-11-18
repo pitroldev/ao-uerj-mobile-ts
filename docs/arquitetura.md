@@ -87,7 +87,7 @@ O que fala com a rede e muda com a conta fica num tipo só, o `Backend` (`src/ap
 - `createRealBackend.ts` monta o Aluno Online e o servidor de verdade.
 - `src/adapters/outbound/demo` responde as mesmas portas no aparelho, com um aluno fictício. `loadDemoBackend.ts` só a carrega quando a conta demo entra, e o tipo de retorno obriga a demo a responder o `Backend` inteiro: uma porta nova que fale com a rede não compila sem a versão demo.
 - `switchBackend.ts` é a troca, e o único lugar que pergunta se a conta é a demo. Decide a cada login e saída pelas credenciais, e ao abrir pela conta guardada no cofre: as rodadas em segundo plano da Companhia, do campus e de "Avisar quando voltar" não fazem login.
-- Fora da troca, a conta só é lida em três pontos, pelo campo `demo` do perfil: o aviso no Início e no menu, o pedido de avaliação (nunca na demo) e a marca no Sentry.
+- Fora da troca, a conta só é lida em quatro pontos, pelo campo `demo` do perfil: o aviso no Início e no menu, a liberação das consultas sem rede no `AppServicesProvider`, o pedido de avaliação (nunca na demo) e a marca no Sentry.
 
 O comportamento para quem usa a conta está em [Funcionalidades](funcionalidades.md#conta-de-demonstração).
 

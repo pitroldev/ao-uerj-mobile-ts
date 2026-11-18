@@ -8,10 +8,24 @@ import { AppState } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { focusManager, onlineManager } from '@tanstack/react-query';
 import { snackbar } from '@components/ui/Snackbar';
+import {
+  classifyNetworkStatus,
+  type NetworkReading,
+} from '@root/modules/connectivity/domain/networkStatus';
+import { setNetworkStatus } from '@root/modules/connectivity/presentation/networkStatus';
 import { PortalStatusProvider } from '@root/modules/connectivity/presentation/PortalStatusContext';
 import type { AppServices } from '../composition/createAppServices';
 
 const ServicesContext = createContext<AppServices | null>(null);
+
+function hasVerifiedPortalSession(services: AppServices): boolean {
+  const snapshot = services.identity.getSnapshot();
+  return (
+    snapshot.status === 'signedIn' &&
+    snapshot.error === null &&
+    !snapshot.account?.demo
+  );
+}
 
 export function AppServicesProvider({
   services,
@@ -21,10 +35,40 @@ export function AppServicesProvider({
     void services.initialize().then(warning => {
       if (warning) snackbar.error(warning);
     });
-    const unsubscribe = NetInfo.addEventListener(state => {
+    let latestReading: NetworkReading = {
+      isConnected: true,
+      isInternetReachable: true,
+    };
+    let portalVerified = false;
+    let wasAuthenticated = hasVerifiedPortalSession(services);
+
+    const syncConnectivity = () => {
+      const snapshot = services.identity.getSnapshot();
+      const status = classifyNetworkStatus(latestReading, portalVerified);
+      setNetworkStatus(status);
       onlineManager.setOnline(
-        state.isConnected !== false && state.isInternetReachable !== false,
+        Boolean(snapshot.account?.demo) || status === 'online',
       );
+    };
+
+    const unsubscribe = NetInfo.addEventListener(state => {
+      if (
+        state.isConnected !== true ||
+        state.isInternetReachable === true ||
+        state.type !== latestReading.type
+      ) {
+        portalVerified = false;
+      }
+      latestReading = state;
+      syncConnectivity();
+    });
+    const unsubscribeIdentity = services.identity.subscribe(() => {
+      const snapshot = services.identity.getSnapshot();
+      const authenticated = hasVerifiedPortalSession(services);
+      if (snapshot.status === 'signedOut') portalVerified = false;
+      else if (authenticated && !wasAuthenticated) portalVerified = true;
+      wasAuthenticated = authenticated;
+      syncConnectivity();
     });
     const listener = AppState.addEventListener('change', status => {
       // Focus revalidates stale queries. The AO coordinator renews only when a
@@ -48,8 +92,10 @@ export function AppServicesProvider({
     });
     return () => {
       unsubscribe();
+      unsubscribeIdentity();
       listener.remove();
       recovered();
+      setNetworkStatus('online');
     };
   }, [services]);
   return (

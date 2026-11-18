@@ -24,6 +24,7 @@ function errorEvent(overrides: Partial<ErrorEvent> = {}): ErrorEvent {
 describe('isExpectedFailure', () => {
   it.each<ErrorCode>([
     'NETWORK',
+    'CAPTIVE_PORTAL',
     'SERVICE_UNAVAILABLE',
     'RATE_LIMITED',
     'CANCELLED',

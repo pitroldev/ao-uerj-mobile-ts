@@ -1,5 +1,5 @@
 import React from 'react';
-import { AppState } from 'react-native';
+import { AppState, Text } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { act, render, screen } from '@testing-library/react-native';
 import { focusManager, onlineManager } from '@tanstack/react-query';
@@ -7,10 +7,16 @@ import { snackbar } from '@components/ui/Snackbar';
 import { AppServicesProvider } from '../AppServicesProvider';
 import type { AppServices } from '../../composition/createAppServices';
 import { PortalMonitor } from '@root/modules/connectivity/application/PortalMonitor';
+import { useNetworkStatus } from '@root/modules/connectivity/presentation/networkStatus';
+import type { IdentityState } from '@root/modules/identity/domain/types';
 
 jest.mock('@react-native-community/netinfo', () => ({
   addEventListener: jest.fn(() => jest.fn()),
 }));
+
+function NetworkStatusProbe() {
+  return <Text testID="network-status">{useNetworkStatus()}</Text>;
+}
 
 /** Os serviços que o provedor usa, com o monitor do portal de verdade. */
 function servicesWith(overrides: Record<string, unknown>) {
@@ -23,7 +29,12 @@ function servicesWith(overrides: Record<string, unknown>) {
     setTimer: () => null,
     clearTimer: () => undefined,
   });
-  const identityState = { status: 'signedIn', account: null, error: null };
+  let identityState: IdentityState = {
+    status: 'signedOut',
+    account: null,
+    error: null,
+  };
+  const identityListeners = new Set<() => void>();
   return {
     services: {
       initialize: jest.fn(async () => null),
@@ -34,12 +45,21 @@ function servicesWith(overrides: Record<string, unknown>) {
       ...overrides,
       identity: {
         refresh: jest.fn(async () => {}),
-        subscribe: () => () => undefined,
+        subscribe: (listener: () => void) => {
+          identityListeners.add(listener);
+          return () => {
+            identityListeners.delete(listener);
+          };
+        },
         getSnapshot: () => identityState,
       },
     } as unknown as AppServices,
     setProbeStatus: (next: number) => {
       status = next;
+    },
+    publishIdentity: (next: IdentityState) => {
+      identityState = next;
+      identityListeners.forEach(listener => listener());
     },
   };
 }
@@ -119,5 +139,81 @@ it('updates the failed screens and says so when the portal comes back', async ()
   expect(services.queryClient.refetchQueries).toHaveBeenCalledWith(
     expect.objectContaining({ type: 'active' }),
   );
+  listener.mockRestore();
+});
+
+it('tracks unvalidated Wi-Fi, enables demo queries offline and promotes verified campus sessions', async () => {
+  jest.clearAllMocks();
+  const listener = jest
+    .spyOn(AppState, 'addEventListener')
+    .mockReturnValue({ remove: jest.fn() });
+  const { services, publishIdentity } = servicesWith({});
+  publishIdentity({ status: 'signedOut', account: null, error: null });
+
+  await render(
+    <AppServicesProvider services={services}>
+      <NetworkStatusProbe />
+    </AppServicesProvider>,
+  );
+  const networkChange = jest.mocked(NetInfo.addEventListener).mock.calls[0][0];
+
+  await act(() => {
+    networkChange({
+      type: 'wifi',
+      isConnected: true,
+      isInternetReachable: false,
+    } as Parameters<typeof networkChange>[0]);
+  });
+  expect(screen.getByTestId('network-status')).toHaveTextContent(
+    'unvalidated_wifi',
+  );
+  expect(onlineManager.isOnline()).toBe(false);
+
+  // A conta de demonstração libera as consultas locais mesmo sem internet
+  // validada, mas não marca o Wi-Fi como autenticado depois do logout.
+  await act(() => {
+    publishIdentity({
+      status: 'signedIn',
+      account: {
+        scope: 'demo',
+        matricula: '123456',
+        name: 'Demo',
+        period: '2026.2',
+        demo: true,
+      },
+      error: null,
+    });
+  });
+  expect(onlineManager.isOnline()).toBe(true);
+  expect(screen.getByTestId('network-status')).toHaveTextContent(
+    'unvalidated_wifi',
+  );
+
+  await act(() => {
+    publishIdentity({ status: 'signedOut', account: null, error: null });
+  });
+  expect(onlineManager.isOnline()).toBe(false);
+  expect(screen.getByTestId('network-status')).toHaveTextContent(
+    'unvalidated_wifi',
+  );
+
+  // Um login real concluído prova que o Aluno Online responde neste Wi-Fi.
+  await act(() => {
+    publishIdentity({
+      status: 'signedIn',
+      account: {
+        scope: 'student',
+        matricula: '2023100',
+        name: 'Aluna',
+        period: '2026.2',
+      },
+      error: null,
+    });
+  });
+  expect(onlineManager.isOnline()).toBe(true);
+  expect(screen.getByTestId('network-status')).toHaveTextContent('online');
+
+  await screen.unmount();
+  onlineManager.setOnline(true);
   listener.mockRestore();
 });

@@ -362,6 +362,7 @@ it('pauses after the portal blocks or limits requests, and stops reading', async
 it.each([
   ['SERVICE_UNAVAILABLE', 'unavailable'],
   ['NETWORK', 'offline'],
+  ['CAPTIVE_PORTAL', 'offline'],
 ] as const)('stops on %s without pausing', async (code, outcome) => {
   const { check, records, saved } = setup();
   records.getGrades.mockRejectedValue(new AppError(code));
@@ -388,6 +389,7 @@ it.each([
   ['RATE_LIMITED', 'blocked', true],
   ['LOGIN_FAILED', 'signed-out', true],
   ['NETWORK', 'offline', false],
+  ['CAPTIVE_PORTAL', 'offline', false],
   ['SERVICE_UNAVAILABLE', 'unavailable', false],
   ['STORAGE_FAILED', 'failed', false],
 ] as const)(

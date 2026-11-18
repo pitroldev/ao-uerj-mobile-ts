@@ -1,5 +1,6 @@
 import {
   focusManager,
+  MutationObserver,
   onlineManager,
   QueryObserver,
 } from '@tanstack/react-query';
@@ -55,4 +56,14 @@ it('refetches when the network returns with the app on screen', async () => {
   await reconnect();
   expect(queryFn).toHaveBeenCalledTimes(2);
   stop();
+});
+
+it('runs mutations immediately without pausing when the OS marks the network offline', async () => {
+  onlineManager.setOnline(false);
+  const client = createQueryClient();
+  const mutationFn = jest.fn(async () => 'signed-in');
+  const observer = new MutationObserver(client, { mutationFn });
+  await expect(observer.mutate()).resolves.toBe('signed-in');
+  expect(mutationFn).toHaveBeenCalledTimes(1);
+  client.clear();
 });

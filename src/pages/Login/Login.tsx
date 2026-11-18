@@ -14,7 +14,9 @@ import {
   useAppServices,
   useIdentity,
 } from '@root/app/providers/AppServicesProvider';
-import { errorMessage } from '@root/shared/errors/AppError';
+import { isUnvalidatedNetwork } from '@root/modules/connectivity/domain/networkStatus';
+import { useNetworkStatus } from '@root/modules/connectivity/presentation/networkStatus';
+import { AppError, errorMessage } from '@root/shared/errors/AppError';
 import {
   AoLogo,
   Button,
@@ -33,11 +35,29 @@ import {
   Root,
   Subtitle,
   Top,
+  WifiNotice,
 } from './Login.styles';
 
 const PASS_RECOVERY_URL = 'https://www.alunoonline.uerj.br/requisicaoaluno/';
+/**
+ * Endereço HTTP da própria UERJ para abrir o portal de autenticação do Wi-Fi
+ * no navegador do sistema sem depender de domínios de terceiros nem esbarrar em
+ * HSTS antes do redirecionamento da rede.
+ */
+const CAPTIVE_PORTAL_URL = 'http://www.uerj.br/';
 /** Linha de erro do formulário com até duas linhas (6 + 36 + 12). */
 const ERROR_LINE_HEIGHT = 54;
+
+function loginErrorMessage(failure: unknown, unvalidated: boolean): string {
+  if (
+    unvalidated &&
+    failure instanceof AppError &&
+    (failure.code === 'NETWORK' || failure.code === 'PORTAL_LAYOUT_CHANGED')
+  ) {
+    return errorMessage(new AppError('CAPTIVE_PORTAL'));
+  }
+  return errorMessage(failure);
+}
 
 export const LoginPage = () => {
   const [error, setError] = useState('');
@@ -45,6 +65,8 @@ export const LoginPage = () => {
   const [password, setPassword] = useState('');
   const { identity } = useAppServices();
   const { error: identityError } = useIdentity();
+  const networkStatus = useNetworkStatus();
+  const unvalidatedNetwork = isUnvalidatedNetwork(networkStatus);
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   // espaço entre o campo focado e o teclado: com a matrícula focada, cabem a
@@ -55,9 +77,11 @@ export const LoginPage = () => {
   const passwordInputRef = useRef<TextInputInstance>(null);
 
   const { isPending: loading, mutate: login } = useMutation({
+    networkMode: 'always',
     mutationFn: () =>
       identity.signIn({ matricula: matricula.trim(), password }),
-    onError: failure => setError(errorMessage(failure)),
+    onError: failure =>
+      setError(loginErrorMessage(failure, unvalidatedNetwork)),
   });
 
   const handleSignInPress = () => {
@@ -73,6 +97,12 @@ export const LoginPage = () => {
   const handleRecoveryPassPress = () => {
     void Linking.openURL(PASS_RECOVERY_URL).catch(() =>
       setError('Não foi possível abrir o portal.'),
+    );
+  };
+
+  const handleCaptiveBrowserPress = () => {
+    void Linking.openURL(CAPTIVE_PORTAL_URL).catch(() =>
+      setError('Não foi possível abrir o navegador.'),
     );
   };
 
@@ -105,6 +135,22 @@ export const LoginPage = () => {
           <Subtitle tone="muted">
             Use a mesma matrícula e senha do Aluno Online.
           </Subtitle>
+          {unvalidatedNetwork ? (
+            <WifiNotice
+              tone="warn"
+              icon="wifi_off"
+              action={{
+                label: 'Abrir navegador',
+                onPress: handleCaptiveBrowserPress,
+              }}
+            >
+              <Text variant="meta" accessibilityLiveRegion="polite">
+                {networkStatus === 'unvalidated_wifi'
+                  ? 'Este Wi-Fi parece exigir autenticação ou ainda não liberou a internet.'
+                  : 'Sua rede ainda não liberou o acesso à internet.'}
+              </Text>
+            </WifiNotice>
+          ) : null}
           <FieldGroup error={error || identityError || ''}>
             <FieldGroupRow
               icon="badge"

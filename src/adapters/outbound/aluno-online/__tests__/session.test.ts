@@ -602,18 +602,37 @@ it('does not repeat credentials for malformed pages or network failures', async 
   expect(app.loginCount()).toBe(1);
 });
 
-it.each([429, 502, 503])(
+it.each([429, 502, 503, 511])(
   'translates HTTP %s without refreshing',
   async status => {
     const app = setup();
     await app.authentication.signIn(credentials);
     app.handle(async () => response('unavailable', status));
     await expect(app.records.getGrades()).rejects.toMatchObject({
-      code: status === 429 ? 'RATE_LIMITED' : 'SERVICE_UNAVAILABLE',
+      code:
+        status === 429
+          ? 'RATE_LIMITED'
+          : status === 511
+            ? 'CAPTIVE_PORTAL'
+            : 'SERVICE_UNAVAILABLE',
     });
     expect(app.loginCount()).toBe(1);
   },
 );
+
+it('stops login immediately on a captive portal without sending credentials or retrying', async () => {
+  const app = setup();
+  jest
+    .mocked(app.transport.request)
+    .mockRejectedValueOnce(new AppError('CAPTIVE_PORTAL'));
+  const failure = await app.authentication
+    .signIn(credentials)
+    .catch(error => error);
+  expect(failure).toMatchObject({ code: 'CAPTIVE_PORTAL' });
+  expect(isTransientError(failure)).toBe(false);
+  expect(app.wait).not.toHaveBeenCalled();
+  expect(app.loginCount()).toBe(0);
+});
 
 it('rejects refresh without saved credentials and can retry after credentials return', async () => {
   const app = setup();

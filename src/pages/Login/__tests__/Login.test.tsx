@@ -4,6 +4,7 @@ import { act, screen, userEvent } from '@testing-library/react-native';
 import { useMutation } from '@tanstack/react-query';
 
 import { renderWithProviders } from '@root/test-utils/render';
+import { setNetworkStatus } from '@root/modules/connectivity/presentation/networkStatus';
 import { LoginPage } from '../Login';
 import { AppError } from '@root/shared/errors/AppError';
 
@@ -26,6 +27,7 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 type LoginCallbacks = {
+  networkMode?: string;
   mutationFn: () => Promise<void>;
   onError: (error: Error) => void;
 };
@@ -35,8 +37,13 @@ describe('LoginPage feedback', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    setNetworkStatus('online');
     await renderWithProviders(<LoginPage />);
     callbacks = jest.mocked(useMutation).mock.calls[0][0] as LoginCallbacks;
+  });
+
+  afterEach(async () => {
+    await act(() => setNetworkStatus('online'));
   });
 
   /**
@@ -65,9 +72,13 @@ describe('LoginPage feedback', () => {
   }
 
   it('starts without an error', () => {
+    expect(callbacks.networkMode).toBe('always');
     expect(formError()).not.toBeOnTheScreen();
     expect(
       screen.queryByText('Matrícula ou senha inválida. Confira seus dados.'),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole('button', { name: 'Abrir navegador' }),
     ).not.toBeOnTheScreen();
   });
 
@@ -157,4 +168,44 @@ describe('LoginPage feedback', () => {
       'https://www.alunoonline.uerj.br/requisicaoaluno/',
     );
   });
+
+  it('warns proactively on unvalidated Wi-Fi, opens the captive browser and still allows signing in', async () => {
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    await act(() => setNetworkStatus('unvalidated_wifi'));
+
+    expect(
+      screen.getByText(
+        'Este Wi-Fi parece exigir autenticação ou ainda não liberou a internet.',
+      ),
+    ).toBeOnTheScreen();
+    expect(formError()).not.toBeOnTheScreen();
+
+    const user = userEvent.setup();
+    await user.press(screen.getByRole('button', { name: 'Abrir navegador' }));
+    expect(open).toHaveBeenCalledWith('http://www.uerj.br/');
+
+    await user.type(screen.getByLabelText('Matrícula'), '123456');
+    await user.type(screen.getByLabelText('Senha'), 'aouerj-demo');
+    await user.press(screen.getByRole('button', { name: 'Entrar' }));
+    expect(signIns()).toBe(1);
+  });
+
+  it.each<AppError>([
+    new AppError('CAPTIVE_PORTAL'),
+    new AppError('NETWORK'),
+    new AppError('PORTAL_LAYOUT_CHANGED'),
+  ])(
+    'explains captive Wi-Fi interception clearly when login fails with %o on unvalidated Wi-Fi',
+    async failure => {
+      await act(() => setNetworkStatus('unvalidated_wifi'));
+      const latestCallbacks = jest
+        .mocked(useMutation)
+        .mock.calls.at(-1)?.[0] as LoginCallbacks;
+      await act(() => latestCallbacks.onError(failure));
+
+      expect(formError()).toHaveAccessibleName(
+        'Este Wi-Fi ainda não liberou a internet. Entre na rede pelo navegador ou use os dados móveis.',
+      );
+    },
+  );
 });
