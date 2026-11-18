@@ -34,6 +34,12 @@ export type GeneratorDiagnostic = {
   largestSchedule?: number;
 };
 
+/**
+ * As leituras do portal com erro quando o aluno abriu o relato: o nome da
+ * leitura ("schedule") e o código do erro ("PORTAL_LAYOUT_CHANGED").
+ */
+export type PortalErrors = Record<string, string>;
+
 export type ErrorReportDraft = {
   page: string;
   description: string;
@@ -41,6 +47,7 @@ export type ErrorReportDraft = {
   subjectCode?: string;
   /** Só no relato do gerador de grades. */
   generator?: GeneratorDiagnostic;
+  portalErrors?: PortalErrors;
 };
 
 type DiagnosticReport = {
@@ -61,6 +68,7 @@ type DiagnosticReport = {
     /** Evento do monitoramento de falhas ligado a este relato. */
     eventId?: string;
     generator?: GeneratorDiagnostic;
+    portalErrors?: PortalErrors;
   };
 };
 

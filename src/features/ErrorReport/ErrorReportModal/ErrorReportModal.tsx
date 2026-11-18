@@ -1,9 +1,11 @@
 import React, { useLayoutEffect, useReducer, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 import {
   useAppServices,
   useIdentity,
 } from '@root/app/providers/AppServicesProvider';
+import { failedAcademicReads } from '@root/modules/academics/presentation/queries';
 import { errorMessage } from '@root/shared/errors/AppError';
 import { BottomSheet, Button, snackbar } from '@components/ui';
 
@@ -45,8 +47,13 @@ function ReportForm({ visible, setVisibility }: Props) {
   const { support, generatorRuns } = useAppServices();
   const scope = useIdentity().account?.scope;
   const [state, dispatch] = useReducer(reportFlow, INITIAL_REPORT);
-  // lida ao abrir a folha: a última tentativa no gerador, em contagens
+  // lidas ao abrir a folha: a última tentativa no gerador, em contagens, e
+  // as leituras do portal com erro, só com o código de cada uma
   const [generator] = useState(() => generatorRuns.read(scope));
+  const queryClient = useQueryClient();
+  const [portalErrors] = useState(() =>
+    failedAcademicReads(queryClient, scope),
+  );
   const { page, subjectCode, description } = state.fields;
   const step = state.phase === 'selecting' ? 0 : 1;
   const loading = state.phase === 'submitting';
@@ -72,7 +79,7 @@ function ReportForm({ visible, setVisibility }: Props) {
     pending.current = request;
     dispatch({ type: 'submit' });
     try {
-      await support.execute(reportDraft(state, generator));
+      await support.execute(reportDraft(state, generator, portalErrors));
       if (!active.current || pending.current !== request) return;
       dispatch({ type: 'sent' });
       setVisibility(false);
@@ -87,7 +94,7 @@ function ReportForm({ visible, setVisibility }: Props) {
   const close = () => {
     if (!pending.current) setVisibility(false);
   };
-  const draft = reportDraft(state, generator);
+  const draft = reportDraft(state, generator, portalErrors);
 
   const footer =
     step === 0

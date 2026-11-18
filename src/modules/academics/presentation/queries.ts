@@ -1,10 +1,14 @@
 import { useMemo } from 'react';
-import { useQueries, useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery, type QueryClient } from '@tanstack/react-query';
 import {
   useAppServices,
   useIdentity,
 } from '@root/app/providers/AppServicesProvider';
-import { isTransientError, AppError } from '@root/shared/errors/AppError';
+import {
+  isTransientError,
+  AppError,
+  type ErrorCode,
+} from '@root/shared/errors/AppError';
 import { AcademicRequestOptions } from '../application/ports';
 import { ReadAcademicRecords } from '../application/use-cases/ReadAcademicRecords';
 import { normalizeSubjectId } from '../domain/rules/subjectId';
@@ -29,6 +33,34 @@ const STALE_HOURS = {
 } as const;
 
 export type AcademicResource = keyof typeof STALE_HOURS;
+
+const RESOURCES = Object.keys(STALE_HOURS) as AcademicResource[];
+
+/**
+ * As leituras do portal desta conta que estão com erro agora, cada uma com o
+ * código do erro ("schedule" → "PORTAL_LAYOUT_CHANGED"): só o nome da
+ * leitura e o código, nunca o período, a disciplina ou a mensagem.
+ */
+export function failedAcademicReads(
+  client: QueryClient,
+  scope: string | undefined,
+): Partial<Record<AcademicResource, ErrorCode>> {
+  const failed: Partial<Record<AcademicResource, ErrorCode>> = {};
+  if (!scope) return failed;
+  client
+    .getQueryCache()
+    .findAll({ queryKey: academicKeys.account(scope) })
+    .forEach(({ queryKey, state }) => {
+      const resource = queryKey[3] as AcademicResource;
+      if (
+        state.status === 'error' &&
+        state.error instanceof AppError &&
+        RESOURCES.includes(resource)
+      )
+        failed[resource] = state.error.code;
+    });
+  return failed;
+}
 
 type Identity = Pick<IdentityController, 'getSnapshot' | 'settled'>;
 const SIGNED_OUT = { scope: 'signed-out', period: '' };

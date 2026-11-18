@@ -1,7 +1,13 @@
 import React from 'react';
 import { act, screen, userEvent } from '@testing-library/react-native';
+import type { QueryClient } from '@tanstack/react-query';
 import { useAppServices } from '@root/app/providers/AppServicesProvider';
-import { renderWithProviders } from '@root/test-utils/render';
+import { academicKeys } from '@root/modules/academics/presentation/queryKeys';
+import { AppError } from '@root/shared/errors/AppError';
+import {
+  createTestQueryClient,
+  renderWithProviders,
+} from '@root/test-utils/render';
 import { ErrorReportModal } from '../ErrorReportModal';
 
 jest.mock('@root/app/providers/AppServicesProvider', () => ({
@@ -29,6 +35,7 @@ describe('support submission', () => {
   const setVisibility = jest.fn();
   const read = jest.fn();
   let user: ReturnType<typeof userEvent.setup>;
+  let queryClient: QueryClient;
 
   const button = (label: string) => screen.getByRole('button', { name: label });
   const press = (label: string) => user.press(button(label));
@@ -45,8 +52,10 @@ describe('support submission', () => {
       generatorRuns: { read },
     } as unknown as ReturnType<typeof useAppServices>);
     user = userEvent.setup();
+    queryClient = createTestQueryClient();
     await renderWithProviders(
       <ErrorReportModal visible setVisibility={setVisibility} />,
+      { queryClient },
     );
   });
 
@@ -96,6 +105,41 @@ describe('support submission', () => {
       page: 'Gerador de Grade',
       description: 'Não gera com 6 disciplinas.',
       generator: LAST_RUN,
+    });
+  });
+
+  it('sends the portal reads of this account that failed, with the error code of each', async () => {
+    const fail = (
+      scope: string,
+      resource: string,
+      code: 'NETWORK' | 'PORTAL_LAYOUT_CHANGED',
+    ) =>
+      queryClient.prefetchQuery({
+        queryKey: academicKeys.resource(scope, 'current', resource),
+        queryFn: () => Promise.reject(new AppError(code)),
+      });
+    await act(async () => {
+      await fail('conta-1', 'schedule', 'PORTAL_LAYOUT_CHANGED');
+      await fail('outra-conta', 'grades', 'NETWORK');
+    });
+    queryClient.setQueryData(
+      academicKeys.resource('conta-1', 'current', 'grades'),
+      [],
+    );
+    // lidas ao abrir a folha: a reabertura pega a grade com erro
+    await screen.rerender(
+      <ErrorReportModal visible={false} setVisibility={setVisibility} />,
+    );
+    await screen.rerender(
+      <ErrorReportModal visible setVisibility={setVisibility} />,
+    );
+    await selectFeature();
+    await describeProblem('A grade não aparece.');
+    await press('Enviar relato');
+    expect(execute).toHaveBeenCalledWith({
+      page: 'Quadro de Notas',
+      description: 'A grade não aparece.',
+      portalErrors: { schedule: 'PORTAL_LAYOUT_CHANGED' },
     });
   });
 
@@ -205,6 +249,7 @@ describe('support submission', () => {
     // Um novo host não pode receber o aviso da folha que já deixou de existir.
     await renderWithProviders(
       <ErrorReportModal visible setVisibility={setVisibility} />,
+      { queryClient },
     );
     expect(
       screen.queryByText('Não foi possível concluir. Tente novamente.'),

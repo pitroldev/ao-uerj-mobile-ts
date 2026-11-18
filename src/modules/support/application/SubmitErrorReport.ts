@@ -4,6 +4,7 @@ import type {
   ErrorReportDraft,
   ErrorReporterPort,
   GeneratorDiagnostic,
+  PortalErrors,
 } from './ports';
 import { sanitizeDescription } from './sanitizeDescription';
 
@@ -54,6 +55,21 @@ function generatorFacts(value: GeneratorDiagnostic): GeneratorDiagnostic {
   return facts;
 }
 
+/** O nome de uma leitura do portal ("schedule", "partial-rid"). */
+const RESOURCE = /^[a-z][a-z-]{0,39}$/;
+const MAX_PORTAL_ERRORS = 12;
+
+/** Só pares de nome e código: o que mais vier não sai do aparelho. */
+function portalErrorFacts(value: PortalErrors): PortalErrors | null {
+  const facts = Object.entries(value)
+    .filter(
+      ([resource, code]) =>
+        RESOURCE.test(resource) && typeof code === 'string' && CODE.test(code),
+    )
+    .slice(0, MAX_PORTAL_ERRORS);
+  return facts.length ? Object.fromEntries(facts) : null;
+}
+
 export class SubmitErrorReport {
   constructor(
     private readonly reporter: ErrorReporterPort,
@@ -87,6 +103,9 @@ export class SubmitErrorReport {
     // de falha de rede registra outro evento.
     const eventId = this.monitor?.linkReport({ operation, category });
     const { appVersion, parserVersion, updateId } = this.version;
+    const portalErrors = draft.portalErrors
+      ? portalErrorFacts(draft.portalErrors)
+      : null;
     await this.reporter.submit({
       page: operation,
       description,
@@ -102,6 +121,7 @@ export class SubmitErrorReport {
         ...(draft.generator
           ? { generator: generatorFacts(draft.generator) }
           : {}),
+        ...(portalErrors ? { portalErrors } : {}),
       },
     });
     if (this.currentAccount()?.scope !== account.scope)

@@ -1,6 +1,7 @@
 import type {
   ErrorReportDraft,
   GeneratorDiagnostic,
+  PortalErrors,
 } from '@root/modules/support/application/ports';
 import {
   GENERATOR_PAGE,
@@ -31,11 +32,13 @@ export function canExplain({ fields }: ReportFlow): boolean {
 
 /**
  * Um único rascunho: voltar e trocar a página nunca conserva um código oculto
- * no envio. As contagens do gerador só vão no relato do gerador.
+ * no envio. As contagens do gerador só vão no relato do gerador; as leituras
+ * do portal com erro vão em qualquer relato.
  */
 export function reportDraft(
   { fields }: ReportFlow,
   generator?: GeneratorDiagnostic | null,
+  portalErrors?: PortalErrors,
 ): ErrorReportDraft {
   return {
     page: fields.page,
@@ -44,6 +47,9 @@ export function reportDraft(
       ? { subjectCode: fields.subjectCode.trim().toUpperCase() }
       : {}),
     ...(fields.page === GENERATOR_PAGE && generator ? { generator } : {}),
+    ...(portalErrors && Object.keys(portalErrors).length
+      ? { portalErrors }
+      : {}),
   };
 }
 

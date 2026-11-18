@@ -122,6 +122,31 @@ it('replaces an outcome that is not a code and leaves other reports without gene
   );
 });
 
+it('sends the portal reads that failed only as read names and error codes', async () => {
+  const { reporter, support } = setup();
+  await support.execute({
+    ...draft,
+    portalErrors: {
+      schedule: 'PORTAL_LAYOUT_CHANGED',
+      'partial-rid': 'NETWORK',
+      // nem texto livre nem um nome fora do formato saem do aparelho
+      grades: `falhou para ${account.name}`,
+      [account.matricula]: 'NETWORK',
+    },
+  });
+  expect(
+    reporter.submit.mock.calls[0][0].diagnostic.portalErrors,
+  ).toStrictEqual({
+    schedule: 'PORTAL_LAYOUT_CHANGED',
+    'partial-rid': 'NETWORK',
+  });
+
+  await support.execute({ ...draft, portalErrors: { grades: 'falhou' } });
+  await support.execute(draft);
+  for (const call of reporter.submit.mock.calls.slice(1))
+    expect(call[0].diagnostic).not.toHaveProperty('portalErrors');
+});
+
 it('sends the running OTA update with the app version, and nothing when it runs the store code', async () => {
   const reporter: jest.Mocked<ErrorReporterPort> = {
     submit: jest.fn().mockResolvedValue(undefined),
