@@ -1,4 +1,8 @@
-import type { ErrorMonitorPort, ErrorReporterPort } from '../ports';
+import type {
+  ErrorMonitorPort,
+  ErrorReporterPort,
+  PortalPagesPort,
+} from '../ports';
 import { SubmitErrorReport } from '../SubmitErrorReport';
 
 const account = {
@@ -145,6 +149,102 @@ it('sends the portal reads that failed only as read names and error codes', asyn
   await support.execute(draft);
   for (const call of reporter.submit.mock.calls.slice(1))
     expect(call[0].diagnostic).not.toHaveProperty('portalErrors');
+});
+
+describe('the portal pages of a report', () => {
+  function withPages(capture: PortalPagesPort['capture']) {
+    const reporter: jest.Mocked<ErrorReporterPort> = {
+      submit: jest.fn().mockResolvedValue(undefined),
+    };
+    let current: typeof account | null = account;
+    const pages = { capture: jest.fn(capture) };
+    const support = new SubmitErrorReport(
+      reporter,
+      version,
+      () => current,
+      undefined,
+      pages,
+    );
+    return {
+      reporter,
+      pages,
+      support,
+      switchAccount: () => {
+        current = { ...account, scope: 'account-b' };
+      },
+    };
+  }
+
+  it('attaches the captured pages after the diagnostic, with the reads that failed', async () => {
+    const { reporter, pages, support } = withPages(async () => ({
+      pages: [{ read: 'schedule', html: '<p>página anonimizada</p>' }],
+      failures: { grades: 'PORTAL_UNSTABLE', history: 'texto livre' },
+    }));
+    await support.execute({
+      ...draft,
+      subjectCode: 'ime02-10838',
+      pageReads: [
+        'schedule',
+        'grades',
+        'schedule',
+        'Fora do Formato',
+        'curriculum',
+        'history',
+      ],
+    });
+    expect(pages.capture).toHaveBeenCalledWith(
+      ['schedule', 'grades', 'curriculum'],
+      {
+        personal: [account.name, account.matricula],
+        subjectCode: 'IME02-10838',
+        signal: expect.any(AbortSignal),
+      },
+    );
+    const [report] = reporter.submit.mock.calls[0];
+    expect(report.attachments).toEqual(['<p>página anonimizada</p>']);
+    expect(report.diagnostic).toMatchObject({
+      pages: ['schedule'],
+      pageErrors: { grades: 'PORTAL_UNSTABLE' },
+    });
+  });
+
+  it('still sends the report when the pages do not come', async () => {
+    const { reporter, support } = withPages(async () => {
+      throw new Error('portal fora');
+    });
+    await support.execute({ ...draft, pageReads: ['schedule'] });
+    const [report] = reporter.submit.mock.calls[0];
+    expect(report).not.toHaveProperty('attachments');
+    expect(report.diagnostic.pageErrors).toEqual({ schedule: 'UNKNOWN' });
+  });
+
+  it('asks for no page when the student turned it off or the screen has none', async () => {
+    const { pages, reporter, support } = withPages(async () => ({
+      pages: [],
+      failures: {},
+    }));
+    await support.execute(draft);
+    await support.execute({ ...draft, pageReads: [] });
+    expect(pages.capture).not.toHaveBeenCalled();
+    for (const [report] of reporter.submit.mock.calls) {
+      expect(report).not.toHaveProperty('attachments');
+      expect(report.diagnostic).not.toHaveProperty('pages');
+      expect(report.diagnostic).not.toHaveProperty('pageErrors');
+    }
+  });
+
+  it('does not send the pages of one account in the name of another', async () => {
+    const holder: { switchAccount?: () => void } = {};
+    const { reporter, support, switchAccount } = withPages(async () => {
+      holder.switchAccount?.();
+      return { pages: [{ read: 'schedule', html: '<p>x</p>' }], failures: {} };
+    });
+    holder.switchAccount = switchAccount;
+    await expect(
+      support.execute({ ...draft, pageReads: ['schedule'] }),
+    ).rejects.toMatchObject({ code: 'CANCELLED' });
+    expect(reporter.submit).not.toHaveBeenCalled();
+  });
 });
 
 it('sends the running OTA update with the app version, and nothing when it runs the store code', async () => {

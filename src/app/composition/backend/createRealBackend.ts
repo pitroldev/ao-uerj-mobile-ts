@@ -4,6 +4,7 @@ import {
   createNativePortalTransport,
 } from '@root/adapters/outbound/aluno-online/nativeTransport';
 import { observePortalTransport } from '@root/adapters/outbound/aluno-online/observedTransport';
+import { createPortalPages } from '@root/adapters/outbound/aluno-online/reportPages';
 import { isDemoAccount } from '@root/adapters/outbound/demo/account';
 import {
   createPrivateApiAdapters,
@@ -73,6 +74,7 @@ export function createRealBackend({
     messageBoard: server.messageBoard,
     teacherDirectory: server.teacherDirectory,
     errorReporter: server.errorReporter,
+    portalPages: createPortalPages(portal.diagnostics),
     companion: createCompanionServer(student, student),
     campus: createCampusNowServer(student),
     studentSessionApi: createStudentSessionApi(client),

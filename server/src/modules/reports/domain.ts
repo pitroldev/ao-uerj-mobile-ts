@@ -48,9 +48,24 @@ export type Diagnostic = {
    * "PORTAL_LAYOUT_CHANGED").
    */
   portalErrors?: Record<string, string>;
+  /** As leituras cujas páginas (anonimizadas no app) vieram nos anexos seguintes. */
+  pages?: string[];
+  /** As páginas que o aluno quis mandar e não vieram, com o código. */
+  pageErrors?: Record<string, string>;
 };
 
 const MAX_PORTAL_ERRORS = 12;
+const READ = /^[a-z][a-z-]{0,39}$/;
+
+function parseReads(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const reads = value
+    .filter(
+      (item): item is string => typeof item === 'string' && READ.test(item),
+    )
+    .slice(0, 10);
+  return reads.length ? reads : undefined;
+}
 
 /** Só pares de nome em minúsculas e código em maiúsculas. */
 function parsePortalErrors(value: unknown): Record<string, string> | undefined {
@@ -59,7 +74,7 @@ function parsePortalErrors(value: unknown): Record<string, string> | undefined {
   const pairs = Object.entries(value as Record<string, unknown>)
     .filter(
       (pair): pair is [string, string] =>
-        /^[a-z][a-z-]{0,39}$/.test(pair[0]) &&
+        READ.test(pair[0]) &&
         typeof pair[1] === 'string' &&
         /^[A-Z_]{1,40}$/.test(pair[1]),
     )
@@ -143,6 +158,8 @@ export function parseDiagnostic(content: string): Diagnostic | null {
   const eventId = text(value.eventId, 64);
   const generator = parseGeneratorRun(value.generator);
   const portalErrors = parsePortalErrors(value.portalErrors);
+  const pages = parseReads(value.pages);
+  const pageErrors = parsePortalErrors(value.pageErrors);
   return {
     operation,
     category,
@@ -153,6 +170,8 @@ export function parseDiagnostic(content: string): Diagnostic | null {
     ...(eventId ? { eventId } : {}),
     ...(generator ? { generator } : {}),
     ...(portalErrors ? { portalErrors } : {}),
+    ...(pages ? { pages } : {}),
+    ...(pageErrors ? { pageErrors } : {}),
   };
 }
 

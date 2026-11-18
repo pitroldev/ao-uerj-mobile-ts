@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { TextField } from '@components/ui';
+import { ListRow, Switch, TextField } from '@components/ui';
 
 import { Description, Question } from '../ErrorReport.styles';
 import type { ExplanationStepProps } from '../types';
@@ -12,6 +12,9 @@ export const ExplanationStep = ({
   page,
   subjectCode,
   withGeneratorSummary,
+  pagesOffered,
+  sendPages,
+  onToggleSendPages,
   description,
   onChangeDescription,
   editable = true,
@@ -39,5 +42,22 @@ export const ExplanationStep = ({
       accessibilityLabel={QUESTION}
       editable={editable}
     />
+    {pagesOffered ? (
+      <ListRow
+        inset={0}
+        leadingIcon="description"
+        title="Mandar a página do portal"
+        titleWeight="regular"
+        meta="Sem seu nome, matrícula, notas e textos"
+        trailing={<Switch value={Boolean(sendPages)} />}
+        accessibilityRole="switch"
+        accessibilityState={{
+          checked: Boolean(sendPages),
+          disabled: !editable,
+        }}
+        disabled={!editable}
+        onPress={onToggleSendPages}
+      />
+    ) : null}
   </>
 );

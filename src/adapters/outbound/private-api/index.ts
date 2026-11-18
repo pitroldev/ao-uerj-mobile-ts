@@ -224,12 +224,15 @@ export function createPrivateApiAdapters(
     errorReporter: {
       submit: report =>
         request(async () => {
-          // Retain the server's existing envelope; this field contains only an
-          // allowlisted diagnostic object, never a portal HTML response.
+          // o envelope de sempre: primeiro o diagnóstico (só campos da lista),
+          // depois as páginas do portal, já anonimizadas no aparelho
           const body = {
             page: report.page,
             description: report.description,
-            html: [JSON.stringify(report.diagnostic)],
+            html: [
+              JSON.stringify(report.diagnostic),
+              ...(report.attachments ?? []),
+            ],
           } satisfies StudentErrorReportRequest;
           try {
             await student.post('/v2/reports', body);

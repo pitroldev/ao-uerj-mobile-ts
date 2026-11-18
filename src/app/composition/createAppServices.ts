@@ -216,6 +216,7 @@ export function createAppServices() {
       },
       currentAccount,
       errorMonitor,
+      backend.portalPages,
     ),
     scheduleGenerator: createScheduleGeneratorAdapter(
       undefined,

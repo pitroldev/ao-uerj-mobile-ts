@@ -7,6 +7,7 @@ import {
   GENERATOR_PAGE,
   SUBJECT_PAGE,
   isValidSubjectCode,
+  portalPageReads,
 } from '../reportPages';
 
 type Fields = { page: string; subjectCode: string; description: string };
@@ -33,13 +34,18 @@ export function canExplain({ fields }: ReportFlow): boolean {
 /**
  * Um único rascunho: voltar e trocar a página nunca conserva um código oculto
  * no envio. As contagens do gerador só vão no relato do gerador; as leituras
- * do portal com erro vão em qualquer relato.
+ * do portal com erro vão em qualquer relato. Com `sendPages`, vão as páginas
+ * do portal da tela e das leituras com erro, anonimizadas no envio.
  */
 export function reportDraft(
   { fields }: ReportFlow,
   generator?: GeneratorDiagnostic | null,
   portalErrors?: PortalErrors,
+  sendPages = false,
 ): ErrorReportDraft {
+  const pageReads = sendPages
+    ? portalPageReads(fields.page, Object.keys(portalErrors ?? {}))
+    : [];
   return {
     page: fields.page,
     description: fields.description,
@@ -50,6 +56,7 @@ export function reportDraft(
     ...(portalErrors && Object.keys(portalErrors).length
       ? { portalErrors }
       : {}),
+    ...(pageReads.length ? { pageReads } : {}),
   };
 }
 

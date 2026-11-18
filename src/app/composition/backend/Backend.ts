@@ -8,7 +8,10 @@ import type { CompanionServerPort } from '@root/modules/companion/application/po
 import type { SharedPortalStatusPort } from '@root/modules/connectivity/application/ports';
 import type { DocumentsPort } from '@root/modules/documents/application/ports';
 import type { AuthenticationPort } from '@root/modules/identity/application/ports';
-import type { ErrorReporterPort } from '@root/modules/support/application/ports';
+import type {
+  ErrorReporterPort,
+  PortalPagesPort,
+} from '@root/modules/support/application/ports';
 import type { StudentSessionApiPort } from '@root/modules/trust/application/ports';
 
 /** O teste leve do portal: o status HTTP da página inicial. */
@@ -35,6 +38,8 @@ export type Backend = {
   messageBoard: MessageBoardPort;
   teacherDirectory: TeacherDirectoryPort;
   errorReporter: ErrorReporterPort;
+  /** As páginas do portal que vão no relato, anonimizadas no aparelho. */
+  portalPages: PortalPagesPort;
   companion: CompanionServerPort;
   campus: CampusNowServerPort;
   studentSessionApi: StudentSessionApiPort;

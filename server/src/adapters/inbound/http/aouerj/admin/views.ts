@@ -534,6 +534,12 @@ function diagnosticFacts(diagnostic: Diagnostic) {
     facts.push(['Gerador', generatorSummary(diagnostic.generator)]);
   if (diagnostic.portalErrors)
     facts.push(['Com erro', portalErrorsSummary(diagnostic.portalErrors)]);
+  if (diagnostic.pages) facts.push(['Páginas', diagnostic.pages.join(' · ')]);
+  if (diagnostic.pageErrors)
+    facts.push([
+      'Páginas que não vieram',
+      portalErrorsSummary(diagnostic.pageErrors),
+    ]);
   return html`<dl class="facts">
     ${facts.map(
       ([term, value]) =>
@@ -1529,6 +1535,16 @@ export function diagnosticPage({
     rows.push([
       'Leituras do portal com erro',
       portalErrorsSummary(diagnostic.portalErrors),
+    ]);
+  if (diagnostic.pages)
+    rows.push([
+      'Páginas anonimizadas nos anexos',
+      diagnostic.pages.join(' · '),
+    ]);
+  if (diagnostic.pageErrors)
+    rows.push([
+      'Páginas que não vieram',
+      portalErrorsSummary(diagnostic.pageErrors),
     ]);
   return layout({
     base,

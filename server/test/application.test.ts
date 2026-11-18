@@ -195,6 +195,21 @@ test('only a JSON of schema 1 with the expected fields is a diagnostic', () => {
     )?.portalErrors,
     { schedule: 'PORTAL_LAYOUT_CHANGED', 'partial-rid': 'NETWORK' },
   );
+  // as páginas que vieram nos anexos e as que não vieram
+  assert.deepEqual(
+    parseDiagnostic(
+      JSON.stringify({
+        ...valid,
+        pages: ['schedule', 'Fora', 3, 'grades'],
+        pageErrors: { history: 'TIMEOUT', curriculum: 'texto' },
+      }),
+    ),
+    {
+      ...parseDiagnostic(JSON.stringify(valid)),
+      pages: ['schedule', 'grades'],
+      pageErrors: { history: 'TIMEOUT' },
+    },
+  );
   for (const portalErrors of [{}, [], 'schedule', { Grades: 'NETWORK' }])
     assert.equal(
       parseDiagnostic(JSON.stringify({ ...valid, portalErrors }))?.portalErrors,

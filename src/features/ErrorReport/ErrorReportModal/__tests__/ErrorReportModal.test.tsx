@@ -80,6 +80,7 @@ describe('support submission', () => {
     expect(execute).toHaveBeenCalledWith({
       page: 'Quadro de Notas',
       description: 'Notas não aparecem.',
+      pageReads: ['grades'],
     });
     expect(setVisibility).toHaveBeenCalledWith(false);
     // o aviso aparece no host de avisos da própria folha
@@ -140,7 +141,55 @@ describe('support submission', () => {
       page: 'Quadro de Notas',
       description: 'A grade não aparece.',
       portalErrors: { schedule: 'PORTAL_LAYOUT_CHANGED' },
+      // a página da tela e a da leitura com erro
+      pageReads: ['grades', 'schedule'],
     });
+  });
+
+  it('sends the portal page of the screen unless the student turns it off', async () => {
+    await user.press(screen.getByRole('radio', { name: 'Quadro de Horários' }));
+    await press('Próximo');
+    const toggle = screen.getByRole('switch', {
+      name: /^Mandar a página do portal/,
+    });
+    expect(toggle).toBeChecked();
+    await describeProblem('A grade não aparece.');
+    await press('Enviar relato');
+    expect(execute).toHaveBeenLastCalledWith({
+      page: 'Quadro de Horários',
+      description: 'A grade não aparece.',
+      pageReads: ['schedule'],
+    });
+
+    execute.mockRejectedValueOnce(new Error('offline'));
+    await screen.rerender(
+      <ErrorReportModal visible={false} setVisibility={setVisibility} />,
+    );
+    await screen.rerender(
+      <ErrorReportModal visible setVisibility={setVisibility} />,
+    );
+    await user.press(screen.getByRole('radio', { name: 'Quadro de Horários' }));
+    await press('Próximo');
+    await user.press(
+      screen.getByRole('switch', { name: /^Mandar a página do portal/ }),
+    );
+    expect(
+      screen.getByRole('switch', { name: /^Mandar a página do portal/ }),
+    ).not.toBeChecked();
+    await describeProblem('Sem a página.');
+    await press('Enviar relato');
+    expect(execute).toHaveBeenLastCalledWith({
+      page: 'Quadro de Horários',
+      description: 'Sem a página.',
+    });
+  });
+
+  it('offers no page on a screen without one', async () => {
+    await user.press(screen.getByRole('radio', { name: 'Mural de Mensagens' }));
+    await press('Próximo');
+    expect(
+      screen.queryByRole('switch', { name: /^Mandar a página do portal/ }),
+    ).toBeNull();
   });
 
   it('preserves the report and leaves loading after a failed submission', async () => {
@@ -177,6 +226,7 @@ describe('support submission', () => {
       page: 'Informações de uma disciplina específica',
       subjectCode: 'IME02-01388',
       description: 'Turmas vazias.',
+      pageReads: ['subject-details'],
     });
   });
 

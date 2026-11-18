@@ -274,7 +274,7 @@ describe('private API boundary', () => {
     );
   });
 
-  it('sanitizes the actual support payload and never sends collected portal HTML', async () => {
+  it('sanitizes the actual support payload and never sends portal HTML it did not anonymize', async () => {
     const { http, support } = setup();
     http.post.mockResolvedValue({ data: {} });
     const draft = {
@@ -314,6 +314,29 @@ describe('private API boundary', () => {
       parserVersion: '2',
       subjectCode: 'IME02-01388',
     });
+  });
+
+  it('sends the anonymized portal pages after the diagnostic, in the same envelope', async () => {
+    const { http } = setup();
+    http.post.mockResolvedValue({ data: {} });
+    const adapters = createPrivateApiAdapters(http, http);
+    await adapters.errorReporter.submit({
+      page: 'Quadro de Horários',
+      description: 'A grade não aparece.',
+      attachments: ['<p>página anonimizada</p>'],
+      diagnostic: {
+        schemaVersion: 1,
+        operation: 'Quadro de Horários',
+        category: 'USER_REPORT',
+        appVersion: '2.18.0',
+        parserVersion: '3',
+        pages: ['schedule'],
+      },
+    });
+    const report = http.post.mock.calls[0][1] as { html: string[] };
+    expect(report.html).toHaveLength(2);
+    expect(JSON.parse(report.html[0])).toMatchObject({ pages: ['schedule'] });
+    expect(report.html[1]).toBe('<p>página anonimizada</p>');
   });
 
   it('rejects invalid support input without sending', async () => {

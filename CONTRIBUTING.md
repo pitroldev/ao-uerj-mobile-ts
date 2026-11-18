@@ -238,7 +238,7 @@ O app lida com dados de alunos de verdade. Estas regras valem para todo código,
 
 ## Reportar bugs com segurança
 
-- **Pelo app:** em **Sobre > Reportar problema**. O relato leva um diagnóstico técnico sem a sua senha nem as páginas do portal. É o melhor caminho quando uma tela que lê o Aluno Online quebra.
+- **Pelo app:** em **Sobre > Reportar problema**. O relato leva um diagnóstico técnico e, nas telas que leem o Aluno Online, a página do portal anonimizada no celular (sem nome, matrícula, notas nem textos seus), o que dá para desligar no próprio relato. É o melhor caminho quando uma tela que lê o Aluno Online quebra.
 - **Pelo GitHub:** abra uma [issue de problema](https://github.com/pitroldev/ao-uerj-mobile-ts/issues/new/choose). O formulário pede a versão do app (em Sobre), o aparelho, o sistema e os passos. Não cole matrícula, senha, notas nem capturas com dados pessoais.
 - **Falha de segurança:** não abra issue pública. Escreva para **contato@pitrol.dev**.
 - **Seus dados:** pedidos de acesso, correção ou exclusão seguem a [política de privacidade](docs/privacidade.md#seus-direitos).

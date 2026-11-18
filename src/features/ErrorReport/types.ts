@@ -12,6 +12,11 @@ export type ExplanationStepProps = {
   subjectCode?: string;
   /** O relato leva as contagens da última tentativa no gerador. */
   withGeneratorSummary?: boolean;
+  /** A tela tem página do portal que pode ir junto, anonimizada. */
+  pagesOffered?: boolean;
+  /** O aluno deixou a página ir (começa ligado). */
+  sendPages?: boolean;
+  onToggleSendPages?: () => void;
   description: string;
   onChangeDescription: (description: string) => void;
   editable?: boolean;

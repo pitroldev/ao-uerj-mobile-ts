@@ -11,6 +11,7 @@ import { BottomSheet, Button, snackbar } from '@components/ui';
 
 import { FeatureSelectionStep } from '../FeatureSelectionStep';
 import { ExplanationStep } from '../ExplanationStep';
+import { portalPageReads } from '../reportPages';
 import {
   canExplain,
   INITIAL_REPORT,
@@ -54,6 +55,8 @@ function ReportForm({ visible, setVisibility }: Props) {
   const [portalErrors] = useState(() =>
     failedAcademicReads(queryClient, scope),
   );
+  // a página do portal vai junto, anonimizada, a menos que o aluno desligue
+  const [sendPages, setSendPages] = useState(true);
   const { page, subjectCode, description } = state.fields;
   const step = state.phase === 'selecting' ? 0 : 1;
   const loading = state.phase === 'submitting';
@@ -79,7 +82,9 @@ function ReportForm({ visible, setVisibility }: Props) {
     pending.current = request;
     dispatch({ type: 'submit' });
     try {
-      await support.execute(reportDraft(state, generator, portalErrors));
+      await support.execute(
+        reportDraft(state, generator, portalErrors, sendPages),
+      );
       if (!active.current || pending.current !== request) return;
       dispatch({ type: 'sent' });
       setVisibility(false);
@@ -94,7 +99,7 @@ function ReportForm({ visible, setVisibility }: Props) {
   const close = () => {
     if (!pending.current) setVisibility(false);
   };
-  const draft = reportDraft(state, generator, portalErrors);
+  const draft = reportDraft(state, generator, portalErrors, sendPages);
 
   const footer =
     step === 0
@@ -155,6 +160,11 @@ function ReportForm({ visible, setVisibility }: Props) {
           page={draft.page}
           subjectCode={draft.subjectCode}
           withGeneratorSummary={Boolean(draft.generator)}
+          pagesOffered={
+            portalPageReads(page, Object.keys(portalErrors)).length > 0
+          }
+          sendPages={sendPages}
+          onToggleSendPages={() => setSendPages(on => !on)}
           description={description}
           onChangeDescription={value =>
             dispatch({ type: 'edit', field: 'description', value })

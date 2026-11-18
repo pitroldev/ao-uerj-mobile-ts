@@ -48,11 +48,38 @@ export type ErrorReportDraft = {
   /** Só no relato do gerador de grades. */
   generator?: GeneratorDiagnostic;
   portalErrors?: PortalErrors;
+  /**
+   * As leituras do portal cuja página vai junto, anonimizada ("schedule");
+   * vazio ou ausente, nenhuma (o aluno desligou ou a tela não tem página).
+   */
+  pageReads?: string[];
 };
+
+/** Uma página do portal no relato, já anonimizada no aparelho. */
+export type PortalPage = { read: string; html: string };
+
+/**
+ * As páginas do Aluno Online que vão no relato, anonimizadas no aparelho
+ * (sem nome, matrícula, notas nem textos do aluno). Nunca lança: uma
+ * leitura que falha sai em `failures`, com o código do erro.
+ */
+export interface PortalPagesPort {
+  capture(
+    reads: readonly string[],
+    context: {
+      /** O nome e a matrícula da conta: nunca ficam na página. */
+      personal: readonly string[];
+      subjectCode?: string;
+      signal?: AbortSignal;
+    },
+  ): Promise<{ pages: PortalPage[]; failures: PortalErrors }>;
+}
 
 type DiagnosticReport = {
   page: string;
   description: string;
+  /** As páginas do portal anonimizadas, depois do diagnóstico. */
+  attachments?: string[];
   diagnostic: {
     schemaVersion: 1;
     operation: string;
@@ -69,6 +96,10 @@ type DiagnosticReport = {
     eventId?: string;
     generator?: GeneratorDiagnostic;
     portalErrors?: PortalErrors;
+    /** As leituras cujas páginas foram junto, na ordem dos anexos. */
+    pages?: string[];
+    /** As páginas que o aluno quis mandar e não vieram, com o código. */
+    pageErrors?: PortalErrors;
   };
 };
 

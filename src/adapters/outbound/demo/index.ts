@@ -41,6 +41,8 @@ export function createDemoBackend(now: () => number = Date.now) {
     teacherDirectory: createDemoTeacherDirectory(clock),
     // o relato mostra o sucesso e não vai a lugar nenhum
     errorReporter: { submit: async () => undefined },
+    // nenhuma página do portal: a demo não tem portal
+    portalPages: { capture: async () => ({ pages: [], failures: {} }) },
     companion: createDemoCompanion(clock),
     campus: createDemoCampus(clock),
     studentSessionApi: createDemoStudentSessionApi(),

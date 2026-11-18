@@ -5,6 +5,7 @@ import type {
   ErrorReporterPort,
   GeneratorDiagnostic,
   PortalErrors,
+  PortalPagesPort,
 } from './ports';
 import { sanitizeDescription } from './sanitizeDescription';
 
@@ -70,6 +71,12 @@ function portalErrorFacts(value: PortalErrors): PortalErrors | null {
   return facts.length ? Object.fromEntries(facts) : null;
 }
 
+/** No máximo esta espera pelas páginas; depois, o relato vai com o que veio. */
+const PAGE_CAPTURE_MS = 15_000;
+const MAX_PAGE_READS = 3;
+
+type CapturedPages = Awaited<ReturnType<PortalPagesPort['capture']>>;
+
 export class SubmitErrorReport {
   constructor(
     private readonly reporter: ErrorReporterPort,
@@ -81,7 +88,34 @@ export class SubmitErrorReport {
     },
     private readonly currentAccount: () => ReporterAccount | null,
     private readonly monitor?: ErrorMonitorPort,
+    /** As páginas do portal, anonimizadas; sem a porta, o relato vai sem elas. */
+    private readonly portalPages?: PortalPagesPort,
   ) {}
+
+  /**
+   * As páginas pedidas, com prazo: uma falha (sem rede, o portal fora) não
+   * impede o relato, só fica registrada no diagnóstico.
+   */
+  private async capturePages(
+    reads: string[],
+    personal: string[],
+    subjectCode: string | undefined,
+  ): Promise<CapturedPages | null> {
+    if (!this.portalPages || reads.length === 0) return null;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), PAGE_CAPTURE_MS);
+    try {
+      return await this.portalPages.capture(reads, {
+        personal,
+        subjectCode,
+        signal: controller.signal,
+      });
+    } catch {
+      return { pages: [], failures: { [reads[0]]: 'UNKNOWN' } };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
 
   execute = async (draft: ErrorReportDraft): Promise<void> => {
     const account = this.currentAccount();
@@ -99,6 +133,19 @@ export class SubmitErrorReport {
     if (subjectCode && !/^[A-Z][A-Z0-9]{1,7}-\d{3,8}$/.test(subjectCode))
       throw new AppError('INVALID_INPUT');
     const category = draft.category ?? 'USER_REPORT';
+    const reads = [...new Set(draft.pageReads ?? [])]
+      .filter(read => RESOURCE.test(read))
+      .slice(0, MAX_PAGE_READS);
+    const captured = await this.capturePages(
+      reads,
+      personalValues,
+      subjectCode,
+    );
+    // a conta mudou enquanto as páginas vinham: o relato não vai em nome dela
+    if (this.currentAccount()?.scope !== account.scope)
+      throw new AppError('CANCELLED');
+    const pages = captured?.pages ?? [];
+    const pageErrors = captured ? portalErrorFacts(captured.failures) : null;
     // Antes do envio, para o id ir junto no relato. Uma nova tentativa depois
     // de falha de rede registra outro evento.
     const eventId = this.monitor?.linkReport({ operation, category });
@@ -109,6 +156,7 @@ export class SubmitErrorReport {
     await this.reporter.submit({
       page: operation,
       description,
+      ...(pages.length ? { attachments: pages.map(page => page.html) } : {}),
       diagnostic: {
         schemaVersion: 1,
         operation,
@@ -122,6 +170,8 @@ export class SubmitErrorReport {
           ? { generator: generatorFacts(draft.generator) }
           : {}),
         ...(portalErrors ? { portalErrors } : {}),
+        ...(pages.length ? { pages: pages.map(page => page.read) } : {}),
+        ...(pageErrors ? { pageErrors } : {}),
       },
     });
     if (this.currentAccount()?.scope !== account.scope)

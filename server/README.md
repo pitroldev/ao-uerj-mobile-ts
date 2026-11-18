@@ -174,10 +174,12 @@ tem 10 tentativas erradas a cada 15 minutos (acertar não conta).
 - **Resolver e reabrir:** grava `resolvedAt` no relato (os antigos não têm o
   campo e contam como abertos). O formulário leva um `csrf` tirado do token,
   além do cookie `SameSite=Strict`.
-- **Anexos:** o diagnóstico abre numa página. A página do portal que os apps
-  1.x mandavam abre com `Content-Security-Policy: sandbox`: sem script, numa
-  origem própria e sem buscar nada na rede, então não lê o cookie nem as
-  outras páginas. Só abre o anexo do próprio relato.
+- **Anexos:** o diagnóstico abre numa página, com as leituras do portal que
+  estavam com erro (`portalErrors`) e as páginas que vieram junto (`pages`) ou
+  não vieram (`pageErrors`). A página do portal (a da 1.x, crua, ou a dos apps
+  novos, anonimizada no aparelho) abre com `Content-Security-Policy: sandbox`:
+  sem script, numa origem própria e sem buscar nada na rede, então não lê o
+  cookie nem as outras páginas. Só abre o anexo do próprio relato.
 - **Sugestões:** numa aba ao lado, das mais novas às mais antigas.
 - **Companhia:** a terceira aba. Em cima, os números dos últimos 14 dias
   (quem olhou a lista e quantos a acharam vazia, mesas e voltas abertas,
@@ -834,7 +836,9 @@ O que mudou de propósito:
   escolheu), os relatos (página, descrição, e-mail opcional e os anexos em
   `AOreports/`) e as sugestões (nome, texto e e-mail opcional), sem prazo de
   remoção. Os anexos dos relatos da 1.x trazem a página do portal, com dados
-  pessoais: a pasta fica fora do Git e só se lê no servidor.
+  pessoais; os dos apps novos podem trazer a página anonimizada no aparelho
+  (só estrutura, códigos de disciplina, horários e textos fixos do portal).
+  A pasta fica fora do Git e só se lê no servidor.
 - **O que fica guardado das atualizações pelo ar:** só o que o CI publica
   (os textos assinados e os arquivos do app, que já são públicos). A pergunta
   do app não grava nada: a plataforma, o runtime e o update dele vão nos
