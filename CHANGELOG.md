@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.17.3 (2026-11-18)
+
+### Novidades
+
+- Tema escuro redesenhado: cabeçalho e menu lateral em azul-marinho profundo para destacar o painel de conteúdo, superfícies em ardósia com separação clara entre fundo, cartões e divisórias, células de nota e tags contornadas e cores sincronizadas com os widgets do Android e do iPhone.
+
+### Correções
+
+- Login em Wi-Fi sem internet liberada (portal cativo): quando o celular marca o Wi-Fi com exclamação, o botão "Entrar" não trava mais em "Entrando…". A tela de login avisa que a rede pode exigir autenticação, oferece "Abrir navegador" e bloqueia redirecionamentos fora do Aluno Online antes de enviar matrícula e senha, sem marcar o portal como fora do ar. Se o Aluno Online responder naquela rede, as consultas seguem normalmente, e a conta de demonstração abre mesmo sem internet validada.
+
 ## 2.17.2 (2026-11-17)
 
 ### Correções
