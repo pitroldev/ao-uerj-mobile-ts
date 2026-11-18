@@ -28,6 +28,7 @@ import * as RootNavigation from '@services/rootNavigation';
 import {
   Footer,
   Panel,
+  PanelRim,
   RecoveryButton,
   Root,
   Subtitle,
@@ -155,6 +156,7 @@ export const LoginPage = () => {
           >
             {`Aplicativo não oficial e de código aberto · Versão ${version}`}
           </Footer>
+          {theme.name === 'dark' ? <PanelRim pointerEvents="none" /> : null}
         </Panel>
       </KeyboardAwareScrollView>
     </Root>

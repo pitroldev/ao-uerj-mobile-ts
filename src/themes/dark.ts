@@ -26,111 +26,111 @@ const tone = (
 ): StatusToneColors => ({ ink, bg, line, wash, washLine });
 
 /**
- * Tema escuro com cabeçalho, menu e moldura em marinho profundo. As
- * superfícies seguem o matiz da UERJ, com elevação por degraus
- * (painel < elevada < mais alta) em vez de sombras. O acento claro fica para
- * texto, ícones, indicadores e fios; o preenchimento (`fill`) é um azul médio
- * com texto branco.
+ * Tema escuro "Abissal & Ardósia": cabeçalho, menu e moldura recuam para um
+ * marinho abissal quase preto (`#050A12`), fazendo o painel de conteúdo em
+ * ardósia fria (`#101722`) saltar à frente na curva de 48dp. As superfícies
+ * sobem por degraus nítidos e pouco saturados (`surfaceMuted` < `surface` <
+ * `surfaceStrong`), com fios discretos para evitar aspecto gradeado.
  *
- * Contraste (WCAG), conferido: `ink` de 15,4:1 (fundo) a 10,6:1 (degrau mais
- * alto da folha); `inkMuted` de 8,6:1 a 5,9:1 nos mesmos extremos; `accent` 7,7:1 (fundo), 6,2:1 (superfície da folha) e 5,4:1 sobre
- * `accentSoft`; branco sobre `fill` 5,3:1 (4,7:1 pressionado); tintas de
- * status e turno de 5,4:1 a 9,0:1 sobre os próprios fundos; `fieldBorder`
- * 3,1:1 ou mais contra as superfícies onde há campos.
+ * Contraste (WCAG), conferido: `ink` de 16,0:1 (fundo) a 10,0:1 (degrau mais
+ * alto da folha); `inkMuted` de 8,1:1 a 5,1:1 nos mesmos extremos; `accent`
+ * 8,6:1 (fundo), 6,5:1 (superfície da folha) e 6,3:1 sobre `accentSoft`;
+ * branco sobre `fill` 5,6:1 (4,9:1 pressionado); tintas de status e turno de
+ * 5,6:1 a 9,8:1 sobre os próprios fundos; `fieldBorder` 3,2:1 ou mais contra
+ * as superfícies onde há campos.
  */
 const colors: ThemeColors = {
-  brand: '#071425',
-  brandHighlight: '#173A60',
-  onBrand: '#E6EDF6',
-  onBrandSelected: '#CFE6FF',
-  onBrandMuted: '#A7B4C6',
-  brandRule: '#2C4058',
-  onBrandPressed: 'rgba(230,237,246,0.12)',
-  onBrandTrack: '#2C4058',
-  onBrandRing: '#2C4058',
+  brand: '#050A12',
+  brandHighlight: '#132B4A',
+  onBrand: '#ECF2F9',
+  onBrandSelected: '#FFFFFF',
+  onBrandMuted: '#9FB1C8',
+  brandRule: '#1A293D',
+  onBrandPressed: 'rgba(236,242,249,0.12)',
+  onBrandTrack: '#1A293D',
+  onBrandRing: '#223650',
 
-  background: '#0B1626',
-  surface: '#111F33',
-  surfaceMuted: '#111F33',
-  surfacePressed: '#182A43',
-  surfaceStrong: '#182A43',
-  sheet: '#111F33',
-  float: '#182A43',
+  background: '#101722',
+  surface: '#182231',
+  surfaceMuted: '#141C29',
+  surfacePressed: '#202D40',
+  surfaceStrong: '#243247',
+  sheet: '#192332',
+  float: '#202D40',
 
-  rule: '#304259',
-  ruleStrong: '#3B4E68',
-  fieldBorder: '#63768F',
-  /** ".busy{--rule}": a malha de 7×17 fios desce um degrau (1,5:1). */
-  gridRule: '#26374D',
+  rule: '#253246',
+  ruleStrong: '#31425B',
+  fieldBorder: '#6D7C94',
+  /** ".busy{--rule}": a malha de 7×17 fios desce um degrau. */
+  gridRule: '#1C2636',
 
-  ink: '#E6EDF6',
-  inkMuted: '#A7B4C6',
-  inkSubtle: '#7E8DA3',
+  ink: '#ECF2FA',
+  inkMuted: '#9EB0C7',
+  inkSubtle: '#73859E',
 
-  accent: '#6DAEF0',
-  fill: '#2A6BC0',
-  fillPressed: '#3273C9',
+  accent: '#76B7FF',
+  fill: '#2366C2',
+  fillPressed: '#2B70CF',
   onFill: '#FFFFFF',
-  accentSoft: '#123458',
-  accentLine: '#2D5786',
-  selection: '#17497B',
-  noticeWarnAction: '#F8D48B',
-  noticeBadAction: '#FF9C92',
+  accentSoft: '#143056',
+  accentLine: '#29558C',
+  selection: '#1A4375',
+  noticeWarnAction: '#F7D383',
+  noticeBadAction: '#FFA096',
 
-  logo: '#E6EDF6',
-  scrim: 'rgba(2,8,20,0.62)',
-  /** Não definido no protótipo: a tinta a 12%, o mesmo papel do claro. */
-  pressedOverlay: 'rgba(230,237,246,0.12)',
+  logo: '#ECF2FA',
+  scrim: 'rgba(2,5,11,0.72)',
+  pressedOverlay: 'rgba(236,242,250,0.11)',
 
-  snackbar: '#273E5C',
-  onSnackbar: '#EEF3F9',
-  snackbarSuccess: '#A4EBB8',
-  snackbarError: '#FF9C92',
+  snackbar: '#243247',
+  onSnackbar: '#F0F4FA',
+  snackbarSuccess: '#94EAB0',
+  snackbarError: '#FFA096',
 
-  shadow: '#000612',
+  shadow: '#00040B',
 };
 
 /** ".sheet" do escuro: a folha já é a superfície elevada, então tudo sobe um nível. */
 const sheetColors: Partial<ThemeColors> = {
-  background: '#111F33',
-  surface: '#182A43',
-  surfaceMuted: '#182A43',
-  surfacePressed: '#1F3551',
-  surfaceStrong: '#1F3551',
-  rule: '#33475F',
-  ruleStrong: '#42566F',
+  background: '#192332',
+  surface: '#212E42',
+  surfaceMuted: '#1C2839',
+  surfacePressed: '#293952',
+  surfaceStrong: '#2B3B54',
+  rule: '#30415A',
+  ruleStrong: '#3D5270',
 };
 
 /**
- * Status viram superfícies tingidas com texto claro do mesmo matiz. Em áreas
- * grandes (avisos, células marcadas), atenção e crítico usam um degrau mais
+ * Status viram superfícies tingidas profundas com texto claro do mesmo matiz.
+ * Em áreas grandes (avisos, células marcadas), cada tom usa um degrau mais
  * calmo (`wash`).
  */
 const status: Record<StatusTone, StatusToneColors> = {
-  good: tone('#A4EBB8', '#1E4A2E', '#3B6A4A'),
-  warn: tone('#F8D48B', '#573900', '#78571D', '#462D00', '#6A4C1D'),
-  bad: tone('#FF9C92', '#612E2B', '#854B47', '#4C221F', '#743E3B'),
-  neutral: tone('#B3BFCF', '#36414F', '#535F6E'),
+  good: tone('#94EAB0', '#143826', '#285E42', '#112E20', '#214F37'),
+  warn: tone('#F7D383', '#3D2B08', '#6B4E17', '#312206', '#594012'),
+  bad: tone('#FFA096', '#451D20', '#75353A', '#371619', '#612B2F'),
+  neutral: tone('#BAC7D8', '#253245', '#3B4C63', '#1E2939', '#324156'),
   info: tone(colors.accent, colors.accentSoft, colors.accentLine),
 };
 
 const shift: Record<ShiftTone, ToneColors> = {
-  morning: { ink: '#F2D98C', bg: '#4E3A03', line: '#715A24' },
-  afternoon: { ink: '#FFCC9C', bg: '#593014', line: '#7F4F31' },
-  night: { ink: '#99E6FF', bg: '#184655', line: '#356575' },
+  morning: { ink: '#F4DA88', bg: '#3A2C08', line: '#634D18' },
+  afternoon: { ink: '#FFC899', bg: '#422510', line: '#6E4122' },
+  night: { ink: '#91E3FF', bg: '#123647', line: '#265B73' },
 };
 
 export const darkTheme: AppTheme = {
   name: 'dark',
   colors,
   campusMap: {
-    land: '#25352F',
-    building: '#374C61',
-    outline: '#8298AC',
-    street: '#34414D',
-    streetEdge: '#4F5E6B',
-    ground: '#1C2833',
-    water: '#294F65',
+    land: '#1D2925',
+    building: '#2A3A4D',
+    outline: '#768BA1',
+    street: '#233042',
+    streetEdge: '#3C4D63',
+    ground: '#141C29',
+    water: '#1D4159',
   },
   sheetColors,
   status,

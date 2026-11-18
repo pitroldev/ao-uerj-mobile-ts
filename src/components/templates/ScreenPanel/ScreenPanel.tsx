@@ -62,6 +62,18 @@ const Panel = styled.View`
   overflow: hidden;
 `;
 
+/** Fio sutil no topo e na curva de 48dp para destacar o painel elevado no escuro. */
+const PanelRim = styled.View`
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  right: -2px;
+  bottom: -2px;
+  border-top-left-radius: ${({ theme }) => theme.layout.panelRadius}px;
+  border-width: ${({ theme }) => theme.borders.hairline}px;
+  border-color: ${({ theme }) => theme.colors.rule};
+`;
+
 const Top = styled.View`
   padding-top: 18px;
   border-bottom-width: ${({ theme }) => theme.borders.hairline}px;
@@ -225,6 +237,7 @@ export function ScreenPanel({
           <LoadingBar accessibilityLabel="Atualizando dados…" />
         </UpdatingSlot>
       ) : null}
+      {theme.name === 'dark' ? <PanelRim pointerEvents="none" /> : null}
     </Panel>
   );
 }

@@ -37,18 +37,6 @@ const TimeColumn = styled.View`
   width: ${TIME_COLUMN}px;
 `;
 
-/**
- * ".wk-band": no escuro, a linha dos dias sobe um degrau, como o cabeçalho
- * das tabelas (faixa `surface` um pouco maior que a grade).
- */
-const HeadBand = styled.View`
-  position: absolute;
-  top: -4px;
-  left: -10px;
-  right: -10px;
-  background-color: ${({ theme }) => theme.colors.surface};
-`;
-
 const Spacer = styled.View``;
 
 const DayColumn = styled.View`
@@ -169,9 +157,6 @@ export const ScheduleVisualizer = React.memo(function ScheduleVisualizer({
   return (
     <>
       <Grid accessible accessibilityRole="image" accessibilityLabel={label}>
-        {theme.name === 'dark' ? (
-          <HeadBand style={{ height: headHeight + 4 }} />
-        ) : null}
         <TimeColumn>
           <Spacer style={{ height: headHeight }} />
           {rows.map(slot => (

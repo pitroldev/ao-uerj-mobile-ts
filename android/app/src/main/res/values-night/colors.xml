@@ -2,20 +2,19 @@
 
 <resources>
   <!-- O `ink` de src/themes/dark.ts. O azul (primary, splash) é o mesmo nos dois temas. -->
-  <color name="text_primary">#E6EDF6</color>
+  <color name="text_primary">#ECF2FA</color>
   <!-- O `accent` de src/themes/dark.ts, legível na gaveta de avisos escura. -->
-  <color name="notification_accent">#6DAEF0</color>
+  <color name="notification_accent">#76B7FF</color>
   <!-- Widget "Próxima aula": surface, ink, inkMuted, rule e accent de src/themes/dark.ts. -->
-  <color name="widget_surface">#111F33</color>
-  <color name="widget_ink">#E6EDF6</color>
-  <color name="widget_muted">#A7B4C6</color>
-  <color name="widget_rule">#304259</color>
-  <color name="widget_accent">#6DAEF0</color>
+  <color name="widget_surface">#182231</color>
+  <color name="widget_ink">#ECF2FA</color>
+  <color name="widget_muted">#9EB0C7</color>
+  <color name="widget_rule">#253246</color>
+  <color name="widget_accent">#76B7FF</color>
   <!-- Bloco do dia e do horário: fill, onFill e accentSoft de src/themes/dark.ts. O dia (10dp)
-       fica branco como o horário: sobre o fill, o branco dá 5,3:1, e um quase branco (#E3ECF8)
-       ficava em 4,45:1, abaixo dos 4,5:1 de texto pequeno. -->
-  <color name="widget_tile_strong">#2A6BC0</color>
+       fica branco como o horário: sobre o fill, o branco dá 5,6:1. -->
+  <color name="widget_tile_strong">#2366C2</color>
   <color name="widget_on_tile_strong">#FFFFFF</color>
   <color name="widget_on_tile_strong_muted">#FFFFFF</color>
-  <color name="widget_tile_soft">#123458</color>
+  <color name="widget_tile_soft">#143056</color>
 </resources>

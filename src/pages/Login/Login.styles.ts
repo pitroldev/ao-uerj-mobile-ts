@@ -23,6 +23,18 @@ export const Panel = styled.View<{ $inset: number }>`
   padding: 36px 24px ${({ $inset }) => 28 + $inset}px 24px;
   border-top-left-radius: ${({ theme }) => theme.layout.panelRadius}px;
   background-color: ${({ theme }) => theme.colors.background};
+  overflow: hidden;
+`;
+
+export const PanelRim = styled.View`
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  right: -2px;
+  bottom: -2px;
+  border-top-left-radius: ${({ theme }) => theme.layout.panelRadius}px;
+  border-width: ${({ theme }) => theme.borders.hairline}px;
+  border-color: ${({ theme }) => theme.colors.rule};
 `;
 
 export const Subtitle = styled(Text)`

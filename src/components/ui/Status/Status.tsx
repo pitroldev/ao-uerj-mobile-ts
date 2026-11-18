@@ -102,7 +102,7 @@ export type TagProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-const TagBox = styled.View<{ $bg: string }>`
+const TagBox = styled.View<{ $bg: string; $line: string | null }>`
   flex-direction: row;
   align-items: center;
   align-self: flex-start;
@@ -112,6 +112,10 @@ const TagBox = styled.View<{ $bg: string }>`
   border-radius: ${({ theme }) => theme.radii.sm}px;
   border-top-right-radius: 0px;
   background-color: ${({ $bg }) => $bg};
+  ${({ theme, $line }) =>
+    $line
+      ? `border-width: ${theme.borders.hairline}px; border-color: ${$line};`
+      : ''}
 `;
 
 /**
@@ -128,7 +132,11 @@ export function Tag({
   const theme = useTheme();
   const t = toneColors(theme, tone);
   return (
-    <TagBox $bg={t.bg} style={style}>
+    <TagBox
+      $bg={t.bg}
+      $line={theme.name === 'dark' ? t.line : null}
+      style={style}
+    >
       {icon ? (
         <Icon name={icon} size={theme.sizes.icon.sm} color={t.ink} />
       ) : null}
@@ -165,6 +173,7 @@ const GradeBox = styled.View<{
   $w: number;
   $h: number;
   $bg: string;
+  $line: string | null;
   $dash: string | null;
 }>`
   min-width: ${({ $w }) => $w}px;
@@ -175,10 +184,12 @@ const GradeBox = styled.View<{
   border-radius: ${({ theme }) => theme.radii.sm}px;
   border-top-right-radius: 0px;
   background-color: ${({ $bg }) => $bg};
-  ${({ $dash }) =>
+  ${({ theme, $line, $dash }) =>
     $dash
       ? `border-width: 1.5px; border-style: dashed; border-color: ${$dash};`
-      : ''}
+      : $line
+        ? `border-width: ${theme.borders.hairline}px; border-color: ${$line};`
+        : ''}
 `;
 
 /**
@@ -213,6 +224,7 @@ export function GradeCell({
       $w={box.width}
       $h={box.height}
       $bg={t && !dashed ? t.bg : 'transparent'}
+      $line={t && !dashed && theme.name === 'dark' ? t.line : null}
       $dash={dashed ? t.ink : null}
       style={style}
       accessible

@@ -10,6 +10,7 @@ import { ScreenPanel } from '@templates/ScreenPanel';
 import {
   BottomSheet,
   Button,
+  GradeCell,
   Notice,
   Table,
   TableRow,
@@ -103,7 +104,7 @@ it('raises the surfaces one step inside a dark sheet', async () => {
   });
 });
 
-it('paints the panel and the table header band from the dark palette', async () => {
+it('paints the panel, keeps the table header clean, and outlines grade cells in the dark', async () => {
   const columns = [
     { key: 'name', label: 'Disciplina' },
     { key: 'p1', label: 'P1', width: 45 },
@@ -113,7 +114,7 @@ it('paints the panel and the table header band from the dark palette', async () 
       <Table columns={columns}>
         <TableRow>
           <Text>Cálculo I</Text>
-          <Text>8,0</Text>
+          <GradeCell value={8} />
         </TableRow>
       </Table>
     </ScreenPanel>
@@ -122,17 +123,22 @@ it('paints the panel and the table header band from the dark palette', async () 
   expect(screen.getByTestId('panel')).toHaveStyle({
     backgroundColor: DARK.colors.background,
   });
-  // o cabeçalho sobe um degrau: faixa elevada sobre o fundo do painel
-  expect(backgroundBehind(screen.getByText('P1'))).toBe(DARK.colors.surface);
+  expect(backgroundBehind(screen.getByText('P1'))).toBe(DARK.colors.background);
   expect(backgroundBehind(screen.getByText('Cálculo I'))).toBe(
     DARK.colors.background,
   );
+  expect(screen.getByLabelText('Nota 8,0, Bom')).toHaveStyle({
+    backgroundColor: DARK.status.good.bg,
+    borderColor: DARK.status.good.line,
+  });
 
-  // no claro a faixa não existe (superfície e fundo são o mesmo branco)
   await renderWithProviders(screenContent);
   expect(backgroundBehind(screen.getByText('P1'))).toBe(
     LIGHT.colors.background,
   );
+  expect(screen.getByLabelText('Nota 8,0, Bom')).toHaveStyle({
+    backgroundColor: LIGHT.status.good.bg,
+  });
 });
 
 it('shows the error screen in the scheme the app is using', async () => {

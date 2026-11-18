@@ -25,14 +25,14 @@ struct Palette {
   )
 
   static let dark = Palette(
-    surface: Color(hex: 0x111F33),
-    ink: Color(hex: 0xE6EDF6),
-    muted: Color(hex: 0xA7B4C6),
-    accent: Color(hex: 0x6DAEF0),
-    tileStrong: Color(hex: 0x2A6BC0),
+    surface: Color(hex: 0x182231),
+    ink: Color(hex: 0xECF2FA),
+    muted: Color(hex: 0x9EB0C7),
+    accent: Color(hex: 0x76B7FF),
+    tileStrong: Color(hex: 0x2366C2),
     onTileStrong: Color(hex: 0xFFFFFF),
     onTileStrongMuted: Color(hex: 0xFFFFFF),
-    tileSoft: Color(hex: 0x123458)
+    tileSoft: Color(hex: 0x143056)
   )
 
   static func of(_ scheme: ColorScheme) -> Palette {

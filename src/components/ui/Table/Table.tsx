@@ -63,18 +63,14 @@ const Cell = styled.View<{
 const Wrapper = styled.View``;
 
 /**
- * Linha de cabeçalho (".gt"/".tt" thead) com o fio embaixo. No escuro ela
- * sobe um degrau: faixa `surface` 10dp mais larga que a tabela de cada lado.
- * No claro a superfície é o próprio fundo, então fica só o fio.
+ * Linha de cabeçalho (".gt"/".tt" thead) com o fio embaixo, sem faixa de fundo
+ * em nenhum dos temas para manter o ritmo limpo de fios.
  */
 export const tableHeaderCss = css`
   flex-direction: row;
+  padding-bottom: ${({ theme }) => theme.spacing.sm}px;
   border-bottom-width: ${({ theme }) => theme.borders.hairline}px;
   border-bottom-color: ${({ theme }) => theme.colors.rule};
-  ${({ theme }) =>
-    theme.name === 'dark'
-      ? `padding: 7px 10px; margin: 0px -10px; background-color: ${theme.colors.surface};`
-      : `padding-bottom: ${theme.spacing.sm}px;`}
 `;
 
 const Header = styled.View`

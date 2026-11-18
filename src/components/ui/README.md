@@ -31,8 +31,8 @@ Há dois temas com os mesmos nomes semânticos, `lightTheme` e `darkTheme`
 entrega o tema ativo pelo `ThemeProvider`: o escolhido em "Tema" (rodapé do menu
 lateral: Padrão do sistema, Claro ou Escuro) ou o do aparelho. Componentes leem
 sempre `useTheme()`; `LIGHT` fica para testes e para a imagem compartilhada. Ramos por
-`theme.name === 'dark'` só para o que o protótipo muda de forma no escuro
-(faixa do cabeçalho de tabelas e da grade semanal).
+`theme.name === 'dark'` só para o que muda de forma no escuro
+(fio de luz na curva de 48dp do painel e contorno de `1px` em células de nota e tags).
 
 A folha inferior já é uma superfície elevada: o `BottomSheet` aplica
 `theme.sheetColors` ao conteúdo (no escuro, cada degrau sobe um nível; no claro,
@@ -42,60 +42,61 @@ nada muda).
 
 | Token                                                        | Claro                            | Escuro                  | Uso                                                                                                                  |
 | ------------------------------------------------------------ | -------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `brand`                                                      | `#003468`                        | igual                   | Barra de status, cabeçalho, menu lateral, fundo atrás do painel                                                      |
-| `brandHighlight`                                             | `#004891`                        | igual                   | Destaque do item ativo no menu, avatar no menu                                                                       |
-| `onBrand` / `onBrandMuted`                                   | `#FFF` / `rgba(255,255,255,.76)` | igual                   | Texto e ícones sobre o azul                                                                                          |
-| `brandRule`                                                  | `rgba(255,255,255,.14)`          | igual                   | Fios sobre o azul                                                                                                    |
-| `onBrandPressed`                                             | `rgba(255,255,255,.16)`          | igual                   | Toque em botões sobre o azul (menu, voltar, logo)                                                                    |
-| `onBrandTrack`                                               | `rgba(255,255,255,.18)`          | igual                   | Trilho da barra de carregamento sobre o azul                                                                         |
-| `onBrandRing`                                                | `rgba(255,255,255,.2)`           | igual                   | Contorno do avatar no menu                                                                                           |
-| `background`                                                 | `#FFFFFF`                        | `#0B1626`               | Fundo do painel e do Login (`--bg`)                                                                                  |
-| `surface`                                                    | `#FFFFFF`                        | `#111F33`               | Superfície elevada: cards, campos, chips, seletor, botão contornado, segmentado                                      |
-| `surfaceMuted`                                               | `#F6F7F9`                        | `#111F33`               | Linha pressionada, aviso neutro, eventos da agenda, "callout", balão                                                 |
-| `surfacePressed`                                             | `#F6F7F9`                        | `#182A43`               | Toque sobre superfície elevada (card, chip, dia, segmento)                                                           |
-| `surfaceStrong`                                              | `#EDF0F4`                        | `#182A43`               | Trilho de progresso, esqueleto, botão desabilitado                                                                   |
-| `sheet`                                                      | `#FFFFFF`                        | `#111F33`               | Folha inferior                                                                                                       |
-| `float`                                                      | `#FFFFFF`                        | `#182A43`               | Etiqueta flutuante (data grudada da conversa)                                                                        |
-| `rule`                                                       | `#E4E7EC`                        | `#304259`               | Fio padrão (divisores, cards, tabelas)                                                                               |
-| `ruleStrong`                                                 | `#D0D5DD`                        | `#3B4E68`               | Fio forte (chips, segmentado, contornos, borda tracejada)                                                            |
-| `fieldBorder`                                                | `#B8BFCA`                        | `#63768F`               | Borda de campo e seletor                                                                                             |
-| `gridRule`                                                   | `#E4E7EC`                        | `#26374D`               | Fios internos da malha de horários ocupados                                                                          |
-| `ink`                                                        | `#101828`                        | `#E6EDF6`               | Texto principal                                                                                                      |
-| `inkMuted`                                                   | `#5D6679`                        | `#A7B4C6`               | Texto secundário (5,8:1 no claro; 8,6:1 no escuro)                                                                   |
-| `inkSubtle`                                                  | `#7C8596`                        | `#7E8DA3`               | Só decorativo (pontos de agenda, linha média do gráfico), nunca texto                                                |
-| `accent`                                                     | `#004891`                        | `#6DAEF0`               | Acento: **só seleção e ações**, como texto, ícone, indicador e fio                                                   |
-| `fill` / `onFill`                                            | `#004891` / `#FFF`               | `#2A6BC0` / `#FFF`      | Fundo de ação e seleção forte: botão primário, enviar, dia escolhido, caixa marcada, interruptor ligado, passo atual |
-| `fillPressed`                                                | `#02427F`                        | `#3273C9`               | `fill` pressionado                                                                                                   |
-| `accentSoft` / `accentLine`                                  | `#E8F0FA` / `#BBD0EC`            | `#123458` / `#2D5786`   | Selecionado suave (chip, segmento, linha em foco), aviso informativo                                                 |
-| `selection`                                                  | `#CFE0F5`                        | `#17497B`               | Seleção de texto                                                                                                     |
+| `brand`                                                      | `#003468`                        | `#050A12`               | Barra de status, cabeçalho, menu lateral, fundo atrás do painel                                                      |
+| `brandHighlight`                                             | `#004891`                        | `#132B4A`               | Destaque do item ativo no menu, avatar no menu                                                                       |
+| `onBrand` / `onBrandMuted`                                   | `#FFF` / `rgba(255,255,255,.76)` | `#ECF2F9` / `#9FB1C8`   | Texto e ícones sobre o azul                                                                                          |
+| `brandRule`                                                  | `rgba(255,255,255,.14)`          | `#1A293D`               | Fios sobre o azul                                                                                                    |
+| `onBrandPressed`                                             | `rgba(255,255,255,.16)`          | `rgba(236,242,249,.12)` | Toque em botões sobre o azul (menu, voltar, logo)                                                                    |
+| `onBrandTrack`                                               | `rgba(255,255,255,.18)`          | `#1A293D`               | Trilho da barra de carregamento sobre o azul                                                                         |
+| `onBrandRing`                                                | `rgba(255,255,255,.2)`           | `#223650`               | Contorno do avatar no menu                                                                                           |
+| `background`                                                 | `#FFFFFF`                        | `#101722`               | Fundo do painel e do Login (`--bg`)                                                                                  |
+| `surface`                                                    | `#FFFFFF`                        | `#182231`               | Superfície elevada: cards, campos, chips, seletor, botão contornado, segmentado                                      |
+| `surfaceMuted`                                               | `#F6F7F9`                        | `#141C29`               | Linha pressionada, aviso neutro, eventos da agenda, "callout", balão                                                 |
+| `surfacePressed`                                             | `#F6F7F9`                        | `#202D40`               | Toque sobre superfície elevada (card, chip, dia, segmento)                                                           |
+| `surfaceStrong`                                              | `#EDF0F4`                        | `#243247`               | Trilho de progresso, esqueleto, botão desabilitado                                                                   |
+| `sheet`                                                      | `#FFFFFF`                        | `#192332`               | Folha inferior                                                                                                       |
+| `float`                                                      | `#FFFFFF`                        | `#202D40`               | Etiqueta flutuante (data grudada da conversa)                                                                        |
+| `rule`                                                       | `#E4E7EC`                        | `#253246`               | Fio padrão (divisores, cards, tabelas)                                                                               |
+| `ruleStrong`                                                 | `#D0D5DD`                        | `#31425B`               | Fio forte (chips, segmentado, contornos, borda tracejada)                                                            |
+| `fieldBorder`                                                | `#B8BFCA`                        | `#6D7C94`               | Borda de campo e seletor                                                                                             |
+| `gridRule`                                                   | `#E4E7EC`                        | `#1C2636`               | Fios internos da malha de horários ocupados                                                                          |
+| `ink`                                                        | `#101828`                        | `#ECF2FA`               | Texto principal                                                                                                      |
+| `inkMuted`                                                   | `#5D6679`                        | `#9EB0C7`               | Texto secundário (5,8:1 no claro; 8,1:1 no escuro)                                                                   |
+| `inkSubtle`                                                  | `#7C8596`                        | `#73859E`               | Só decorativo (pontos de agenda, linha média do gráfico), nunca texto                                                |
+| `accent`                                                     | `#004891`                        | `#76B7FF`               | Acento: **só seleção e ações**, como texto, ícone, indicador e fio                                                   |
+| `fill` / `onFill`                                            | `#004891` / `#FFF`               | `#2366C2` / `#FFF`      | Fundo de ação e seleção forte: botão primário, enviar, dia escolhido, caixa marcada, interruptor ligado, passo atual |
+| `fillPressed`                                                | `#02427F`                        | `#2B70CF`               | `fill` pressionado                                                                                                   |
+| `accentSoft` / `accentLine`                                  | `#E8F0FA` / `#BBD0EC`            | `#143056` / `#29558C`   | Selecionado suave (chip, segmento, linha em foco), aviso informativo                                                 |
+| `selection`                                                  | `#CFE0F5`                        | `#1A4375`               | Seleção de texto                                                                                                     |
 | `noticeWarnAction` / `noticeBadAction`                       | = `accent`                       | = tinta do tom          | Ação em texto dos avisos de atenção e crítico (no escuro, sublinhada)                                                |
-| `logo`                                                       | `#003468`                        | `#E6EDF6`               | Logo AO sobre a superfície                                                                                           |
-| `scrim`                                                      | `rgba(10,20,40,.44)`             | `rgba(2,8,20,.62)`      | Véu das folhas                                                                                                       |
-| `pressedOverlay`                                             | `rgba(16,24,40,.10)`             | `rgba(230,237,246,.12)` | Toque em botões de ícone sobre a superfície                                                                          |
-| `snackbar`, `onSnackbar`, `snackbarSuccess`, `snackbarError` | `#1C2433`…                       | `#273E5C`…              | Snackbar                                                                                                             |
+| `logo`                                                       | `#003468`                        | `#ECF2FA`               | Logo AO sobre a superfície                                                                                           |
+| `scrim`                                                      | `rgba(10,20,40,.44)`             | `rgba(2,5,11,.72)`      | Véu das folhas                                                                                                       |
+| `pressedOverlay`                                             | `rgba(16,24,40,.10)`             | `rgba(236,242,250,.11)` | Toque em botões de ícone sobre a superfície                                                                          |
+| `snackbar`, `onSnackbar`, `snackbarSuccess`, `snackbarError` | `#1C2433`…                       | `#243247`…              | Snackbar                                                                                                             |
 
-Dentro da folha inferior, no escuro: `background`/`sheet` `#111F33`, `surface` e
-`surfaceMuted` `#182A43`, `surfacePressed` e `surfaceStrong` `#1F3551`, `rule`
-`#33475F`, `ruleStrong` `#42566F` (`theme.sheetColors`). Os pares de texto dos
-dois temas têm teste de contraste AA em `src/themes/__tests__/contrast.test.ts`.
+Dentro da folha inferior, no escuro: `background`/`sheet` `#192332`, `surface`
+`#212E42`, `surfaceMuted` `#1C2839`, `surfacePressed` `#293952`, `surfaceStrong`
+`#2B3B54`, `rule` `#30415A`, `ruleStrong` `#3D5270` (`theme.sheetColors`). Os
+pares de texto dos dois temas têm teste de contraste AA em
+`src/themes/__tests__/contrast.test.ts`.
 
 ### Significados: `theme.status` e `theme.shift`
 
 Cada um tem `{ ink, bg, line }` (texto/ícone, fundo pastel pequeno, fio). Os de
 `status` têm também `wash`/`washLine`, o fundo de áreas grandes (avisos,
-células marcadas, alerta do RID): no claro é o próprio `bg`; no escuro,
-atenção e crítico descem um degrau.
+células marcadas, alerta do RID): no claro é o próprio `bg`; no escuro, os tons
+descem um degrau.
 
 | Tom               | ink       | bg           | line         | Escuro (ink / bg / line)                           | Uso                                                                     |
 | ----------------- | --------- | ------------ | ------------ | -------------------------------------------------- | ----------------------------------------------------------------------- |
-| `status.good`     | `#17673A` | `#DDF5E3`    | `#A9DDB7`    | `#A4EBB8` / `#1E4A2E` / `#3B6A4A`                  | Aprovado, nota/vaga boa (≥70%)                                          |
-| `status.warn`     | `#715600` | `#FAF4CC`    | `#E5D682`    | `#F8D48B` / `#573900` / `#78571D` (wash `#462D00`) | Atenção (≥50%), falha ao atualizar, portal bloqueado, trava de créditos |
-| `status.bad`      | `#A4261E` | `#FCE4E2`    | `#F1B5AF`    | `#FF9C92` / `#612E2B` / `#854B47` (wash `#4C221F`) | Reprovado, crítico, erro, horário ocupado                               |
-| `status.neutral`  | `#4A5263` | `#EDEFF3`    | `#D3D8E0`    | `#B3BFCF` / `#36414F` / `#535F6E`                  | Cancelada, isenta, sem dado                                             |
+| `status.good`     | `#17673A` | `#DDF5E3`    | `#A9DDB7`    | `#94EAB0` / `#143826` / `#285E42` (wash `#112E20`) | Aprovado, nota/vaga boa (≥70%)                                          |
+| `status.warn`     | `#715600` | `#FAF4CC`    | `#E5D682`    | `#F7D383` / `#3D2B08` / `#6B4E17` (wash `#312206`) | Atenção (≥50%), falha ao atualizar, portal bloqueado, trava de créditos |
+| `status.bad`      | `#A4261E` | `#FCE4E2`    | `#F1B5AF`    | `#FFA096` / `#451D20` / `#75353A` (wash `#371619`) | Reprovado, crítico, erro, horário ocupado                               |
+| `status.neutral`  | `#4A5263` | `#EDEFF3`    | `#D3D8E0`    | `#BAC7D8` / `#253245` / `#3B4C63` (wash `#1E2939`) | Cancelada, isenta, sem dado                                             |
 | `status.info`     | = acento  | `accentSoft` | `accentLine` | idem                                               | "Hoje", "Agora", "Preferencial", aviso informativo                      |
-| `shift.morning`   | `#665400` | `#FBF8D6`    | `#E6DC98`    | `#F2D98C` / `#4E3A03` / `#715A24`                  | Manhã                                                                   |
-| `shift.afternoon` | `#894A0F` | `#FFEEDB`    | `#F0CBA4`    | `#FFCC9C` / `#593014` / `#7F4F31`                  | Tarde                                                                   |
-| `shift.night`     | `#0A5A73` | `#DEF3FA`    | `#A6D8E9`    | `#99E6FF` / `#184655` / `#356575`                  | Noite                                                                   |
+| `shift.morning`   | `#665400` | `#FBF8D6`    | `#E6DC98`    | `#F4DA88` / `#3A2C08` / `#634D18`                  | Manhã                                                                   |
+| `shift.afternoon` | `#894A0F` | `#FFEEDB`    | `#F0CBA4`    | `#FFC899` / `#422510` / `#6E4122`                  | Tarde                                                                   |
+| `shift.night`     | `#0A5A73` | `#DEF3FA`    | `#A6D8E9`    | `#91E3FF` / `#123647` / `#265B73`                  | Noite                                                                   |
 
 Pastéis só em fundos pequenos (célula de nota, tag, bloco da grade). Utilitários
 em `@components/ui`: `toneColors(theme, tone)`, `healthTone('GOOD'|'BAD'|'CRITICAL')`
