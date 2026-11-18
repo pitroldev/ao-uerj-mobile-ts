@@ -14,6 +14,8 @@ flowchart LR
   play --> internal["Teste interno da Play"]
   play --> runtime["runtime-version: runtime no GitHub Release"]
   internal -->|"à mão, no Play Console"| prod["Produção"]
+  ghr -.->|"à mão, com a tag"| ios["ios-app-store.yml: IPA no App Store Connect"]
+  ios -->|"revisão da Apple"| appstore["App Store"]
 ```
 
 Uma correção só do JavaScript pode sair sem a loja, por OTA, e um OTA não é bump: ver [Atualizações OTA](ota.md).
@@ -73,6 +75,16 @@ Antes do Gradle, o job `play` calcula o runtime version que a build embute (`nod
 
 - Uma falha no cálculo não barra a publicação: a versão sai na Play sem o registro, o job `runtime-version` falha, e o OTA recusa essa versão.
 - Sem o GitHub Release (num bump à mão), o registro falha: crie-o com `gh release create vX.Y.Z --verify-tag` e use "Re-run failed jobs", que não envia o AAB de novo.
+
+## Na App Store
+
+O `release.yml` só publica o Android. O iPhone sai da mesma tag, à mão:
+
+1. Rode o `ios-app-store.yml` com a tag e o `CURRENT_PROJECT_VERSION` dela como `build_number` (ver [Envio à App Store](ios.md#envio-à-app-store)).
+2. No App Store Connect, escolha a build na versão e mande para a revisão.
+3. Com a versão liberada na loja, grave o `runtime-version-ios.txt` do artefato no GitHub Release da tag, para o OTA do iPhone.
+
+A revisão da Apple leva de horas a dias, e o iPhone pode ficar uma versão atrás do Android. Leve isso em conta antes de subir a versão mínima do [aviso remoto](aviso-remoto.md#minsupportedversion).
 
 ## Configuração no GitHub
 

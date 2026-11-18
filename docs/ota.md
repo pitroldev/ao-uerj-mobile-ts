@@ -38,7 +38,7 @@ Quem decide é o runtime version: se ele mudou, o nativo mudou, e o OTA é recus
 - Depois que a Play aceita o AAB, o job `runtime-version` do [Release](../.github/workflows/release.yml) grava esse valor no GitHub Release da versão, como o asset `runtime-version-android.txt`. Uma versão sem esse asset não conta como build na loja.
 - O workflow OTA acha a última build de cada plataforma na loja (o GitHub Release `vX.Y.Z` mais novo com o asset) e só publica se este commit tiver o mesmo runtime e a mesma versão no `package.json`.
 - Um update vai para um runtime só. Quem está numa build mais antiga, de outro runtime, continua com o JS que veio na loja.
-- **iPhone:** o iOS ainda não está na App Store (ver [iOS](ios.md)), então nenhuma release tem `runtime-version-ios.txt`, e o OTA de `ios` (ou `both`) é recusado. Quando uma build sair na App Store, grave o runtime à mão, no commit da tag: `node scripts/ota/runtime-version.cjs ios > runtime-version-ios.txt` e `gh release upload vX.Y.Z runtime-version-ios.txt`.
+- **iPhone:** nenhum workflow grava o `runtime-version-ios.txt`. Quando a Apple libera uma build, ele vai à mão para o GitHub Release da versão, tirado do artefato do `ios-app-store.yml` (ver [Envio à App Store](ios.md#envio-à-app-store)). A primeira foi a `v2.17.2` (build 26, em 18/11/2026). Como a App Store chega depois da Play, as duas plataformas podem estar em versões diferentes; aí o OTA só vai para a que tem na loja a versão da `main` (o `both` é recusado), e a outra espera a build dela sair.
 
 ## Um OTA não é bump
 

@@ -110,7 +110,7 @@ O aviso remoto (ver [Aviso remoto](aviso-remoto.md)) está sempre ligado. O app 
 
 ### Para as lojas
 
-A atualização (In-App Updates da Play, só no Android) e a avaliação (In-App Review da Play; no iPhone, o `SKStoreReviewController`) usam as APIs da própria loja, que passam pelo app da loja no aparelho. O app não envia dados próprios nesses fluxos.
+A atualização (In-App Updates da Play, só no Android; no iPhone, o "Atualizar" só abre a página da App Store) e a avaliação (In-App Review da Play; no iPhone, o `SKStoreReviewController`) usam as APIs da própria loja, que passam pelo app da loja no aparelho. O app não envia dados próprios nesses fluxos.
 
 ### Para o Sentry
 

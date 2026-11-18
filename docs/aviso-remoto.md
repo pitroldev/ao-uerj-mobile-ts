@@ -18,7 +18,7 @@ Até 10 avisos no topo do Início, cada um com `id`, `level` (`info`, `warning` 
 - O aluno pode dispensar cada aviso; para mostrá-lo de novo, troque o `id`.
 - **Limites:** o `id` segue `^[a-z0-9][a-z0-9-]{0,63}$`, o `title` tem até 80 caracteres e a `message` até 400.
 - **Texto seguro:** um título ou uma mensagem com algo que pareça endereço (o link vai só em `url`; até um ponto sem espaço depois, como "notas.Confira") ou com a palavra "senha" ou "password" descarta o aviso. O app só pede a senha na tela de Login.
-- **Links:** só `https`, host em minúsculas, sem usuário nem porta, até 300 caracteres, para `uerj.br` e subdomínios, `pitrol.dev`, `github.com/pitroldev/ao-uerj-mobile-ts` e a página do app na Play. A lista fica em `LINK_DESTINATIONS` (`appStatus.ts`); mantenha o `pattern` de `url` no esquema igual a ela. O botão mostra o domínio antes de abrir.
+- **Links:** só `https`, host em minúsculas, sem usuário nem porta, até 300 caracteres, para `uerj.br` e subdomínios, `pitrol.dev`, `github.com/pitroldev/ao-uerj-mobile-ts` e as páginas do app na Play e na App Store (`apps.apple.com/br/app/id6835308883`, com ou sem o nome do app no caminho). A lista fica em `LINK_DESTINATIONS` (`appStatus.ts`); mantenha o `pattern` de `url` no esquema igual a ela. O botão mostra o domínio antes de abrir.
 
 ### `disabledFeatures`
 
@@ -34,8 +34,9 @@ Alguns param mais que a tela:
 
 Abaixo dessa versão (MAJOR.MINOR.PATCH, a do `package.json`), o app fica na tela de bloqueio com "Atualizar", mesmo sem rede, porque a cópia fica salva.
 
-- No Android instalado pela Play, o bloqueio só aparece se a Play oferecer uma versão nova para o aparelho: abaixo da mínima, mas sem nada a instalar (rollout parcial, versão ainda não promovida, mínima errada), o app não bloqueia. No iOS e fora da Play, a versão mínima vale sozinha.
-- Só suba o valor para uma versão que já esteja em produção na Play com rollout de 100%. O release publica no teste interno; antes da promoção, parte dos usuários ficaria sem ter o que instalar.
+- No Android instalado pela Play, o bloqueio só aparece se a Play oferecer uma versão nova para o aparelho: abaixo da mínima, mas sem nada a instalar (rollout parcial, versão ainda não promovida, mínima errada), o app não bloqueia. No iOS e fora da Play, a versão mínima vale sozinha: no iPhone, o "Atualizar" abre a página do app na App Store.
+- Só suba o valor para uma versão que já esteja em produção na Play com rollout de 100% e liberada na App Store. O release publica no teste interno; antes da promoção, parte dos usuários ficaria sem ter o que instalar.
+- O valor vale para as duas lojas, e a App Store costuma chegar depois, por causa da revisão da Apple. Como o iPhone não consulta a loja antes de bloquear, uma mínima acima da versão da App Store prende todos os alunos do iPhone na tela de bloqueio, sem nada para instalar.
 
 ### `enrollment`
 

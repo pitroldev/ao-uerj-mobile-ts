@@ -1,14 +1,16 @@
 # iOS
 
-O app tem código para o iPhone, mas o foco é o Android, publicado na Google Play.
+O app está na [App Store](https://apps.apple.com/br/app/ao-uerj-aluno-online/id6835308883) desde 18/11/2026, além da Google Play.
 
 > [!IMPORTANT]
-> O código nativo do iOS foi escrito sem Mac e não está na App Store. Quem confere que ele compila e abre é o workflow manual [`ios.yml`](#o-workflow-iosyml): rode-o antes de publicar qualquer coisa que mexa em `ios/`.
+> O código nativo do iOS foi escrito sem Mac. Quem confere que ele compila e abre é o workflow manual [`ios.yml`](#o-workflow-iosyml): rode-o antes de publicar qualquer coisa que mexa em `ios/`.
 
 ## Estado atual
 
+- **App Store:** o app `6835308883` ("AO UERJ: Aluno Online") está na loja do Brasil, gratuito, só para iPhone. A primeira versão publicada é a `2.17.2`, build `26`, compilada do tag `v2.17.2` e liberada em 18/11/2026. O `ios-app-store.yml` assina e envia a compilação; a revisão e o lançamento são acompanhados no App Store Connect. O `release.yml` continua publicando o Android.
+- **No app:** "Avaliar na App Store", no Sobre, e o "Atualizar" da tela de versão sem suporte abrem a página do app na App Store (`itms-apps://` e, sem o app da loja, o site). Os convites levam os links das duas lojas, e o QR deixa escolher Android ou iPhone.
+- **OTA:** o Release `v2.17.2` tem o `runtime-version-ios.txt` da build 26, e o OTA de `ios` vale para ela (ver [Atualizações OTA](ota.md#a-regra-de-compatibilidade)).
 - **Compila no CI:** o `ios.yml` (macOS, manual) compila o app e a extensão do widget em Release e abre o app num simulador.
-- **App Store:** a versão `2.17.0`, build `24`, do app `6835308883` foi enviada em 16/11/2026 e está aguardando revisão da Apple. O lançamento será automático após aprovação, gratuito no Brasil. O `ios-app-store.yml` assina e envia a compilação; a revisão e o lançamento são acompanhados no App Store Connect. O `release.yml` continua publicando o Android.
 - **Identificação do aluno:** a implantação do servidor carrega `APPLE_APP_ATTEST_APP_ID=4L52AMB8J7.com.aouerjmobile` de `deploy/server/app-store.env`; o `.env` privado da VM tem prioridade (ver [server/README.md](../server/README.md#identificação-do-aluno-v2)). O App Attest precisa de iPhone físico.
 - **Versão:** `MARKETING_VERSION` e `CURRENT_PROJECT_VERSION` ficam no `project.pbxproj` e mudam à mão (ver [Release](release.md#versão)). O alvo mínimo é o iOS 16.4, o dos módulos do Expo SDK 58 (o `expo-updates`).
 
@@ -40,9 +42,21 @@ O que depende do login fica nos testes do Jest, que rodam como iOS (ver [Testes]
 ## Envio à App Store
 
 O workflow manual `.github/workflows/ios-app-store.yml` usa o environment
-`app-store`. Informe um `build_number` maior que o último enviado e mantenha
-`upload` ligado para validar e enviar o IPA à Apple. Com `upload` desligado,
-ele apenas gera o artefato assinado, guardado por 14 dias.
+`app-store`. Rode-o no tag da versão (`gh workflow run ios-app-store.yml --ref vX.Y.Z -f build_number=N`),
+com o `CURRENT_PROJECT_VERSION` do `project.pbxproj` desse tag como
+`build_number` (maior que o último enviado), e mantenha `upload` ligado para
+validar e enviar o IPA à Apple. Com `upload` desligado, ele apenas gera o
+artefato assinado, guardado por 14 dias.
+
+Depois que a Apple liberar a versão na loja, grave o runtime da build no
+GitHub Release, para o [OTA](ota.md#a-regra-de-compatibilidade) achá-la. O
+valor é o que o workflow calculou e conferiu no app assinado, guardado no
+artefato `ios-app-store-N`:
+
+```sh
+gh run download <id do run> -n ios-app-store-N -D /tmp/ios-app-store-N
+gh release upload vX.Y.Z /tmp/ios-app-store-N/runtime-version-ios.txt
+```
 
 O app (`com.aouerjmobile`) e o widget (`com.aouerjmobile.NextClassWidget`)
 pertencem à equipe `4L52AMB8J7` e compartilham `group.com.aouerjmobile`.
@@ -134,7 +148,7 @@ Os intervalos de cada verificação estão em [Notificações](notificacoes-e-wi
 ## Fora do iPhone
 
 - As leituras a cada 15 minutos da Companhia agora ("Me avise se tiver mesa") e do Agora no campus ("ainda está lá?"): o iOS não acorda o app com essa frequência (`frequentWatches` no `NotificationDevicePort`).
-- A atualização dentro do app (`InAppUpdates` é da Play). O pedido de avaliação existe nos dois, pela API de cada loja.
+- A atualização dentro do app (`InAppUpdates` é da Play): no iPhone, o "Atualizar" abre a página do app na App Store. O pedido de avaliação existe nos dois, pela API de cada loja.
 
 ## Outros detalhes
 

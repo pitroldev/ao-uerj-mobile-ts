@@ -1,8 +1,8 @@
 # Política de privacidade do AO UERJ
 
-**Última atualização:** 12 de novembro de 2026
+**Última atualização:** 18 de novembro de 2026
 
-O AO UERJ é um app não oficial e de código aberto para alunos da UERJ. Ele não tem vínculo com a universidade e usa a sua conta do Aluno Online. Esta política explica o que fica no seu celular, o que vai para o servidor do app, quem vê cada coisa e por quanto tempo. Ela vale para o app no Android, distribuído pela Google Play, e no iPhone.
+O AO UERJ é um app não oficial e de código aberto para alunos da UERJ. Ele não tem vínculo com a universidade e usa a sua conta do Aluno Online. Esta política explica o que fica no seu celular, o que vai para o servidor do app, quem vê cada coisa e por quanto tempo. Ela vale para o app no Android, distribuído pela Google Play, e no iPhone, distribuído pela App Store.
 
 ## Resumo
 
@@ -100,10 +100,10 @@ O servidor do app registra cada pedido sem o IP, sem o User-Agent e sem o conte�
 
 - **UERJ (Aluno Online):** o app conversa com o portal em seu nome, com o seu login.
 - **Google (Android):** a Play Integrity confirma que o app é o original. O Google vê que o app pediu a verificação, mas não recebe a sua matrícula nem o seu nome, só um código calculado a partir deles. Atualizar e avaliar o app usam a própria Play Store, sem dados do AO UERJ. Esses serviços seguem a [política de privacidade do Google](https://policies.google.com/privacy).
-- **Apple (iPhone):** o App Attest confirma que o app é o original. O iPhone cria uma chave nova a cada entrada, e a Apple recebe essa chave e um código calculado a partir do pedido, nunca a sua matrícula nem o seu nome. O serviço segue a [política de privacidade da Apple](https://www.apple.com/br/legal/privacy/).
+- **Apple (iPhone):** o App Attest confirma que o app é o original. O iPhone cria uma chave nova a cada entrada, e a Apple recebe essa chave e um código calculado a partir do pedido, nunca a sua matrícula nem o seu nome. Atualizar e avaliar o app usam a própria App Store, sem dados do AO UERJ. Esses serviços seguem a [política de privacidade da Apple](https://www.apple.com/br/legal/privacy/).
 - **GitHub (Microsoft):** o app baixa, no máximo a cada 15 minutos, um arquivo de avisos e de configuração deste repositório, em `raw.githubusercontent.com`. O pedido não leva dados seus, mas o GitHub vê o IP, o horário e o User-Agent ([declaração de privacidade do GitHub](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement)).
 - **Oracle Cloud e MongoDB Atlas:** o servidor roda numa máquina da Oracle Cloud, e o banco de dados fica no MongoDB Atlas. Eles guardam os dados em nome do AO UERJ e não os usam para outra coisa. Esses serviços podem ficar fora do Brasil, inclusive nos Estados Unidos.
-- **Links e compartilhamento:** "Como chegar", no mapa, abre o Google Maps só com o destino. Os links do Sobre abrem o GitHub, o LinkedIn e a Play Store. Quando você compartilha a grade ou o convite do app, você escolhe o app de destino (o WhatsApp, por exemplo), e o que você manda segue as regras dele.
+- **Links e compartilhamento:** "Como chegar", no mapa, abre o Google Maps só com o destino. Os links do Sobre abrem o GitHub, o LinkedIn e a loja do app (a Play Store ou a App Store). Quando você compartilha a grade ou o convite do app, você escolhe o app de destino (o WhatsApp, por exemplo), e o que você manda segue as regras dele.
 
 ## O que o app não faz
 

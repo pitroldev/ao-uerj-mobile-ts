@@ -9,17 +9,18 @@
 App de código aberto, feito por aluno para aluno: notas, grade, documentos e ferramentas para planejar o curso, até sem internet.
 
 [![Google Play](https://img.shields.io/badge/Google_Play-baixar-414141?logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=com.aouerjmobile)
+[![App Store](https://img.shields.io/badge/App_Store-baixar-414141?logo=appstore&logoColor=white)](https://apps.apple.com/br/app/ao-uerj-aluno-online/id6835308883)
 [![Licença GPLv3](https://img.shields.io/badge/licen%C3%A7a-GPLv3-blue)](LICENSE)
 [![Quality](https://img.shields.io/github/actions/workflow/status/pitroldev/ao-uerj-mobile-ts/quality.yml?branch=main&label=Quality&logo=githubactions&logoColor=white)](https://github.com/pitroldev/ao-uerj-mobile-ts/actions/workflows/quality.yml)
 [![Servidor](https://img.shields.io/github/actions/workflow/status/pitroldev/ao-uerj-mobile-ts/server.yml?branch=main&label=Servidor&logo=githubactions&logoColor=white)](https://github.com/pitroldev/ao-uerj-mobile-ts/actions/workflows/server.yml)
 [![iOS](https://img.shields.io/github/actions/workflow/status/pitroldev/ao-uerj-mobile-ts/ios.yml?branch=main&label=iOS&logo=apple&logoColor=white)](https://github.com/pitroldev/ao-uerj-mobile-ts/actions/workflows/ios.yml)
 <br>
 [![Android](https://img.shields.io/badge/Android-na_Play-3DDC84?logo=android&logoColor=white)](https://play.google.com/store/apps/details?id=com.aouerjmobile)
-[![iPhone](https://img.shields.io/badge/iPhone-fora_da_loja-lightgrey?logo=apple&logoColor=white)](docs/ios.md)
+[![iPhone](https://img.shields.io/badge/iPhone-na_App_Store-0D96F6?logo=apple&logoColor=white)](https://apps.apple.com/br/app/ao-uerj-aluno-online/id6835308883)
 [![React Native 0.88](https://img.shields.io/badge/React_Native-0.88-61DAFB?logo=react&logoColor=black)](https://reactnative.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 
-[Baixar na Play](https://play.google.com/store/apps/details?id=com.aouerjmobile) · [Contribuir](CONTRIBUTING.md) · [Documentação](docs/README.md) · [Privacidade](docs/privacidade.md)
+[Baixar na Play](https://play.google.com/store/apps/details?id=com.aouerjmobile) · [Baixar na App Store](https://apps.apple.com/br/app/ao-uerj-aluno-online/id6835308883) · [Contribuir](CONTRIBUTING.md) · [Documentação](docs/README.md) · [Privacidade](docs/privacidade.md)
 
 </div>
 
@@ -28,7 +29,7 @@ App de código aberto, feito por aluno para aluno: notas, grade, documentos e fe
 
 ## O que o app faz
 
-O app está publicado para Android. O código do iPhone existe e compila no CI, mas ainda não está na App Store: a coluna do iPhone mostra o que esse código já faz.
+O app está na Google Play e, desde 18/11/2026, na App Store do Brasil (iPhone com iOS 16.4 ou mais novo). A coluna do iPhone mostra onde o iOS limita alguma função.
 
 |     | Funcionalidade         | O que faz                                                                                             | Android |              iPhone               |
 | :-: | ---------------------- | ----------------------------------------------------------------------------------------------------- | :-----: | :-------------------------------: |
@@ -55,7 +56,7 @@ Como cada uma funciona por dentro está em [Funcionalidades](docs/funcionalidade
 
 - 🎯 **Você resolve o seu próprio problema.** Sentiu falta de algo no Aluno Online? Dá para fazer aqui, e os seus colegas usam.
 - 🛠️ **Stack de mercado.** React Native 0.88 (nova arquitetura e React Compiler), React 19.3, TypeScript 7, Kotlin, Swift e um backend em Node com MongoDB.
-- 🏗️ **Projeto de verdade.** Arquitetura hexagonal, testes, CI/CD, publicação na Play e implantação azul/verde. Bom para aprender e para o portfólio.
+- 🏗️ **Projeto de verdade.** Arquitetura hexagonal, testes, CI/CD, publicação na Play e na App Store e implantação azul/verde. Bom para aprender e para o portfólio.
 - 🤝 **Tem lugar para todo tamanho de ajuda.** Um texto mais claro, um teste, um parser, uma tela nova ou um relato de bug bem feito.
 
 ## Comece em 5 passos
@@ -80,7 +81,7 @@ Como cada uma funciona por dentro está em [Funcionalidades](docs/funcionalidade
    pnpm start      # o Metro, num terminal
    pnpm android    # em outro: compila, instala e abre
    ```
-   Entre com a sua própria conta do Aluno Online: o app lê o portal real, sem conta de demonstração.
+   Entre com a sua própria conta do Aluno Online, que o app lê do portal real, ou com a [conta de demonstração](docs/funcionalidades.md#conta-de-demonstração) (matrícula `123456`, senha `aouerj-demo`), um aluno fictício guardado no app.
 5. **Opcional, o servidor:** os testes não precisam de banco instalado (baixam um mongod próprio na primeira vez).
    ```sh
    pnpm test:server
@@ -106,7 +107,7 @@ flowchart LR
   app -.->|"atestação do aluno"| lojas
   server -.->|"decifra o token da Play Integrity"| lojas
   server -->|"confere se o portal está no ar"| ao
-  gha -->|"publica o AAB no teste interno"| lojas
+  gha -->|"publica o AAB no teste interno<br/>e envia o IPA ao App Store Connect"| lojas
   gha -->|"implanta, azul/verde"| server
 ```
 
@@ -126,7 +127,7 @@ ao-uerj-mobile-ts/
 │   ├── components/ui/  o design system "Agenda limpa"
 │   └── app/            composição, provedores e tarefas em segundo plano
 ├── android/            o projeto Android (cofre, avisos, widgets e atalhos em Kotlin)
-├── ios/                o projeto iOS (Swift e Objective-C++), fora da App Store
+├── ios/                o projeto iOS (Swift e Objective-C++), o app da App Store
 ├── server/             o backend de pitrol.dev (Node, Express e MongoDB)
 ├── deploy/server/      os scripts da implantação azul/verde na VM
 ├── config/             o aviso remoto (app-status.json) e o esquema dele
@@ -160,8 +161,8 @@ O [guia de contribuição](CONTRIBUTING.md) explica o ambiente, as convenções 
 | [Notificações e widget](docs/notificacoes-e-widget.md) | Lembretes, avisos do portal, widgets e atalhos                  |
 | [Dados e armazenamento](docs/dados-e-armazenamento.md) | O que fica no aparelho e o que sai dele, no código              |
 | [Aviso remoto](docs/aviso-remoto.md)                   | O `config/app-status.json`                                      |
-| [iOS](docs/ios.md)                                     | O estado do iPhone e o workflow manual                          |
-| [Release](docs/release.md)                             | Versão, tags e publicação na Play (mantenedores)                |
+| [iOS](docs/ios.md)                                     | O iPhone, o envio à App Store e o workflow manual               |
+| [Release](docs/release.md)                             | Versão, tags e publicação nas lojas (mantenedores)              |
 | [Observabilidade](docs/observabilidade.md)             | O Sentry, hoje desligado                                        |
 | [Design system](src/components/ui/README.md)           | Tokens e componentes da "Agenda limpa"                          |
 | [Servidor](server/README.md)                           | API, arquitetura e implantação do backend                       |
