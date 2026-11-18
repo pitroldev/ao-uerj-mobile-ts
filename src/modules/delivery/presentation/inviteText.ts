@@ -1,4 +1,4 @@
-import { inviteLink, type InviteSource } from '../domain/invite';
+import { inviteLinks, type InviteSource } from '../domain/invite';
 
 /**
  * Um convite: o texto que o aluno manda (na voz dele, editável no app de
@@ -7,7 +7,7 @@ import { inviteLink, type InviteSource } from '../domain/invite';
 export type Invite = { source: InviteSource; text: string };
 
 const APP =
-  'Tô usando o AO UERJ: grade, notas, quanto falta na PF e aviso de nota nova, tudo no celular. É grátis, para Android:';
+  'Tô usando o AO UERJ: grade, notas, quanto falta na PF e aviso de nota nova, tudo no celular. É grátis, para Android e iPhone:';
 
 /** Do menu e do Sobre: o app inteiro. */
 export const appInvite = (source: 'menu' | 'sobre'): Invite => ({
@@ -33,23 +33,23 @@ export function muralInvite(
 /** Do Agora no campus sem avisos. */
 export const CAMPUS_INVITE: Invite = {
   source: 'campus',
-  text: 'No AO UERJ, quem está no campus avisa fila do bandejão, elevador parado e Wi-Fi fora. Quanto mais gente, mais avisos. É grátis, para Android:',
+  text: 'No AO UERJ, quem está no campus avisa fila do bandejão, elevador parado e Wi-Fi fora. Quanto mais gente, mais avisos. É grátis, para Android e iPhone:',
 };
 
 /** Da Companhia agora sem mesas nem grupos. */
 export const COMPANION_INVITE: Invite = {
   source: 'companhia',
-  text: 'No AO UERJ dá pra abrir uma mesa no almoço ou um grupo pra voltar depois da aula, com gente da UERJ. É grátis, para Android:',
+  text: 'No AO UERJ dá pra abrir uma mesa no almoço ou um grupo pra voltar depois da aula, com gente da UERJ. É grátis, para Android e iPhone:',
 };
 
-/** A mensagem inteira, com o link no fim. */
+/** A mensagem inteira, com os links das duas lojas no fim. */
 export const inviteMessage = (invite: Invite): string =>
-  `${invite.text} ${inviteLink(invite.source)}`;
+  `${invite.text}\n${inviteLinks(invite.source)}`;
 
 /** A legenda que vai junto com a imagem da grade. */
 export const scheduleCaption = (period?: string | null): string =>
-  `Minha grade${period ? ` de ${period}` : ''}, feita no app AO UERJ: ${inviteLink('grade')}`;
+  `Minha grade${period ? ` de ${period}` : ''}, feita no app AO UERJ:\n${inviteLinks('grade')}`;
 
 /** A legenda da grade planejada no Gerador de Grade. */
 export const plannedScheduleCaption = (): string =>
-  `Minha grade planejada no gerador do app AO UERJ: ${inviteLink('gerador')}`;
+  `Minha grade planejada no gerador do app AO UERJ:\n${inviteLinks('gerador')}`;

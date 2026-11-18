@@ -47,10 +47,10 @@
             "maxLength": 400
           },
           "url": {
-            "description": "Link \"Saiba mais\" (o botão mostra o domínio). Só https, host em minúsculas, sem usuário nem porta, para: uerj.br e subdomínios, pitrol.dev, github.com/pitroldev/ao-uerj-mobile-ts e a página do app na Play. A lista fica em LINK_DESTINATIONS (appStatus.ts).",
+            "description": "Link \"Saiba mais\" (o botão mostra o domínio). Só https, host em minúsculas, sem usuário nem porta, para: uerj.br e subdomínios, pitrol.dev, github.com/pitroldev/ao-uerj-mobile-ts e as páginas do app na Play e na App Store. A lista fica em LINK_DESTINATIONS (appStatus.ts).",
             "type": "string",
             "maxLength": 300,
-            "pattern": "^(?!.*[@\\\\])https://(?:(?:(?:[a-z0-9-]+\\.)*uerj\\.br|pitrol\\.dev)(?:[/?#][!-~]*)?|(?:github\\.com/pitroldev/ao-uerj-mobile-ts|play\\.google\\.com/store/apps/details\\?id=com\\.aouerjmobile)(?:[/?#&][!-~]*)?)$"
+            "pattern": "^(?!.*[@\\\\])https://(?:(?:(?:[a-z0-9-]+\\.)*uerj\\.br|pitrol\\.dev)(?:[/?#][!-~]*)?|(?:github\\.com/pitroldev/ao-uerj-mobile-ts|play\\.google\\.com/store/apps/details\\?id=com\\.aouerjmobile|apps\\.apple\\.com/br/app/(?:ao-uerj-aluno-online/)?id6835308883)(?:[/?#&][!-~]*)?)$"
           },
           "until": {
             "description": "Data ISO 8601; depois dela o aviso some.",

@@ -171,6 +171,15 @@ const ALLOWED_LINKS = [
     'https://play.google.com/store/apps/details?id=com.aouerjmobile&hl=pt_BR',
     'play.google.com',
   ],
+  ['https://apps.apple.com/br/app/id6835308883', 'apps.apple.com'],
+  [
+    'https://apps.apple.com/br/app/ao-uerj-aluno-online/id6835308883',
+    'apps.apple.com',
+  ],
+  [
+    'https://apps.apple.com/br/app/ao-uerj-aluno-online/id6835308883?uo=4',
+    'apps.apple.com',
+  ],
 ] as const;
 
 const BLOCKED_LINKS = [
@@ -192,6 +201,10 @@ const BLOCKED_LINKS = [
   'https://github.com/outra-conta/ao-uerj-mobile-ts',
   'https://play.google.com/store/apps/details?id=com.aouerjmobile.falso',
   'https://play.google.com/store/apps/details?id=com.outro',
+  'https://apps.apple.com/br/app/id68353088830',
+  'https://apps.apple.com/br/app/outro-app/id123',
+  'https://apps.apple.com/us/app/id6835308883',
+  'https://apps.apple.com/br/app/ao-uerj-aluno-online/id6835308883x',
   'mailto:contato@pitrol.dev',
 ];
 

@@ -319,8 +319,15 @@ describe('updateNow (unsupported version screen)', () => {
     expect(outside.port.start).not.toHaveBeenCalled();
     expect(outside.storeListing.open).toHaveBeenCalled();
 
-    const ios = setupWithoutPort(createStoreListing(false));
+    // o iPhone não tem atualização dentro do app: vai direto à App Store
+    const ios = setupWithoutPort();
+    expect(ios.updates.canUpdate).toBe(true);
     await ios.updates.updateNow();
-    expect(ios.storeListing.open).not.toHaveBeenCalled();
+    expect(ios.storeListing.open).toHaveBeenCalledTimes(1);
+
+    const noStore = setupWithoutPort(createStoreListing(false));
+    expect(noStore.updates.canUpdate).toBe(false);
+    await noStore.updates.updateNow();
+    expect(noStore.storeListing.open).not.toHaveBeenCalled();
   });
 });

@@ -96,6 +96,7 @@ export function createUpdatesPort(
 export function createStoreListing(available = true) {
   return {
     available,
+    name: 'Play Store',
     open: jest.fn(async () => undefined),
   } satisfies StoreListingPort;
 }

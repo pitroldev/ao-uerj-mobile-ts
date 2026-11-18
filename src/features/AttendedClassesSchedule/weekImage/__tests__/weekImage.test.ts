@@ -136,8 +136,10 @@ it('says when there is no class to draw', () => {
 
 it('says where to get the app only where it is in a store', () => {
   const withStore = buildWeekImage([lesson(1, 'M1', 'M2')], { store: true });
-  expect(withStore).toContain('Feito com o app AO UERJ · grátis na Play Store');
-  expect(buildWeekImage([lesson(1, 'M1', 'M2')])).not.toContain('Play Store');
+  expect(withStore).toContain(
+    'Feito com o app AO UERJ · grátis para Android e iPhone',
+  );
+  expect(buildWeekImage([lesson(1, 'M1', 'M2')])).not.toContain('grátis');
 });
 
 it('uses the light palette, whatever the app theme', () => {

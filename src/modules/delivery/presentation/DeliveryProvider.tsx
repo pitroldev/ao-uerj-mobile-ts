@@ -24,7 +24,7 @@ export type Delivery = {
   status: RemoteStatus;
   updates: AppUpdates;
   review: Pick<ReviewPrompter, 'notePositiveMoment'>;
-  /** A página do app na loja: "Avaliar na Play Store" e os convites. */
+  /** A página do app na loja: "Avaliar na Play Store" (ou App Store) e os convites. */
   storeListing: StoreListingPort;
   /** A atualização OTA em uso; `null` com o JS da instalação. */
   runningUpdate: RunningUpdate | null;
@@ -209,10 +209,7 @@ export function useRunningUpdate(): RunningUpdate | null {
   return useDelivery()?.runningUpdate ?? null;
 }
 
-/**
- * Indicar e avaliar só existem onde o app está numa loja (o Android, pela
- * Play): no iPhone o link levaria a uma página que não abre lá.
- */
+/** Indicar e avaliar só existem onde o app está numa loja (a Play ou a App Store). */
 export function useCanInvite(): boolean {
   return useStoreListing()?.available ?? false;
 }

@@ -30,8 +30,9 @@ export type RemoteNotice = {
 export type AppStatus = {
   schemaVersion: typeof APP_STATUS_SCHEMA_VERSION;
   /**
-   * Semver `MAJOR.MINOR.PATCH`; abaixo dela o app exige atualização. Só pode
-   * subir para uma versão já com rollout de 100% na Play.
+   * Semver `MAJOR.MINOR.PATCH`; abaixo dela o app exige atualização. Vale
+   * para as duas lojas: só pode subir para uma versão já com rollout de 100%
+   * na Play e liberada na App Store.
    */
   minSupportedVersion: string;
   notices: RemoteNotice[];
@@ -103,6 +104,9 @@ const LINK_DESTINATIONS: readonly LinkDestination[] = [
   { host: 'pitrol.dev' },
   { host: 'github.com', path: '/pitroldev/ao-uerj-mobile-ts' },
   { host: 'play.google.com', path: '/store/apps/details?id=com.aouerjmobile' },
+  // a App Store aceita o link com e sem o nome do app
+  { host: 'apps.apple.com', path: '/br/app/id6835308883' },
+  { host: 'apps.apple.com', path: '/br/app/ao-uerj-aluno-online/id6835308883' },
 ];
 // host em minúsculas e sem usuário (@), porta, barra invertida, espaço ou
 // caractere fora do ASCII visível: o host lido aqui é o mesmo que o navegador

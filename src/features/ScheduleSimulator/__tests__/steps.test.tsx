@@ -992,7 +992,7 @@ describe('ResultsStep', () => {
     const [uri, caption] = mockShare.mock.calls[0];
     expect(uri).toMatch(/^data:image\/svg\+xml;base64,/);
     expect(caption).toMatch(
-      /^Minha grade planejada no gerador do app AO UERJ: https:\/\/play\.google\.com\/\S+utm_source%3Dgerador$/,
+      /^Minha grade planejada no gerador do app AO UERJ:\nAndroid: https:\/\/play\.google\.com\/\S+utm_source%3Dgerador\niPhone: https:\/\/apps\.apple\.com\/br\/app\/id6835308883$/,
     );
   });
 

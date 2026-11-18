@@ -170,7 +170,7 @@ it('opens the invite with the message from the menu', async () => {
   await user.press(screen.getByRole('button', { name: 'Mandar' }));
   expect(share).toHaveBeenCalledWith({
     message: expect.stringMatching(
-      /^Tô usando o AO UERJ: .*Android: https:\/\/play\.google\.com\/store\/apps\/details\?id=com\.aouerjmobile&referrer=utm_source%3Dmenu$/,
+      /^Tô usando o AO UERJ: .*\nAndroid: https:\/\/play\.google\.com\/store\/apps\/details\?id=com\.aouerjmobile&referrer=utm_source%3Dmenu\niPhone: https:\/\/apps\.apple\.com\/br\/app\/id6835308883$/,
     ),
   });
 });

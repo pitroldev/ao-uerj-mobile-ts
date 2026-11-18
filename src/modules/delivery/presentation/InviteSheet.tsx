@@ -12,7 +12,7 @@ import {
   snackbar,
 } from '@components/ui';
 
-import { inviteLink } from '../domain/invite';
+import { inviteLink, inviteLinks, type StorePlatform } from '../domain/invite';
 import { inviteMessage, type Invite } from './inviteText';
 import { QrCode } from './QrCode';
 
@@ -20,6 +20,15 @@ type Mode = 'message' | 'qr';
 
 /** Lado do QR na folha: lido de um palmo de distância, cabe em tela pequena. */
 const QR_SIZE = 216;
+
+const STORE_NAMES: Record<StorePlatform, string> = {
+  android: 'Play Store',
+  ios: 'App Store',
+};
+
+/** O QR começa na loja do próprio celular: o colega do lado costuma ter igual. */
+const ownStore = (): StorePlatform =>
+  Platform.OS === 'ios' ? 'ios' : 'android';
 
 /** O Android 13 (API 33) mostra a prévia do que foi copiado. */
 const systemConfirmsCopy = () =>
@@ -52,6 +61,12 @@ const QrBlock = styled.View`
   padding-top: ${({ theme }) => theme.spacing.sm}px;
 `;
 
+/** Android ou iPhone, na largura da folha, acima do QR. */
+const StorePicker = styled.View`
+  align-self: stretch;
+  margin-bottom: ${({ theme }) => theme.spacing.sm}px;
+`;
+
 /** O QR sempre sobre branco, com o fio da folha em volta. */
 const Plate = styled.View`
   padding: ${({ theme }) => theme.spacing.sm}px;
@@ -77,6 +92,7 @@ type Props = {
 export function InviteSheet({ invite, onClose }: Props) {
   const theme = useTheme();
   const [mode, setMode] = useState<Mode>('message');
+  const [qrStore, setQrStore] = useState<StorePlatform>(ownStore);
   // a folha segue desenhada com o último convite enquanto desce
   const [shown, setShown] = useState(invite);
   if (invite && invite !== shown) setShown(invite);
@@ -84,10 +100,10 @@ export function InviteSheet({ invite, onClose }: Props) {
 
   const copy = () => {
     if (!current) return;
-    Clipboard.setString(inviteLink(current.source));
+    Clipboard.setString(inviteLinks(current.source));
     // do Android 13 em diante, o próprio sistema mostra o que foi copiado
     if (!systemConfirmsCopy())
-      snackbar.success('Link copiado', 'Cole na conversa que quiser.');
+      snackbar.success('Links copiados', 'Cole na conversa que quiser.');
   };
 
   const send = async () => {
@@ -104,14 +120,18 @@ export function InviteSheet({ invite, onClose }: Props) {
     <BottomSheet
       visible={invite !== null}
       onClose={onClose}
-      onClosed={() => setMode('message')}
+      onClosed={() => {
+        setMode('message');
+        setQrStore(ownStore());
+      }}
       title="Indicar o AO UERJ"
       footer={[
         <Button
           key="copy"
           variant="outline"
           icon="content_copy"
-          label="Copiar link"
+          label="Copiar links"
+          accessibilityHint="Copia os links do Android e do iPhone"
           onPress={copy}
         />,
         <Button
@@ -147,25 +167,36 @@ export function InviteSheet({ invite, onClose }: Props) {
                 <LinkLine>
                   <Icon name="link" size={16} color={theme.colors.accent} />
                   <Text variant="meta" tone="accent" weight="medium">
-                    AO UERJ na Google Play
+                    AO UERJ na Google Play e na App Store
                   </Text>
                 </LinkLine>
               </Bubble>
             </>
           ) : (
             <QrBlock>
+              <StorePicker>
+                <SegmentedControl
+                  accessibilityLabel="Celular de quem vai ler o QR"
+                  options={[
+                    { value: 'android', label: 'Android' },
+                    { value: 'ios', label: 'iPhone' },
+                  ]}
+                  value={qrStore}
+                  onChange={setQrStore}
+                />
+              </StorePicker>
               <Plate>
                 <QrCode
-                  value={inviteLink('qr')}
+                  value={inviteLink('qr', qrStore)}
                   size={QR_SIZE}
-                  accessibilityLabel="QR com o link do AO UERJ na Play Store"
+                  accessibilityLabel={`QR com o link do AO UERJ na ${STORE_NAMES[qrStore]}`}
                 />
               </Plate>
               <Text variant="titleS" align="center">
                 Aponte a câmera do celular
               </Text>
               <Text variant="meta" tone="muted" align="center">
-                Abre o AO UERJ na Play Store. Por enquanto, só para Android.
+                {`Abre o AO UERJ na ${STORE_NAMES[qrStore]}.`}
               </Text>
             </QrBlock>
           )}

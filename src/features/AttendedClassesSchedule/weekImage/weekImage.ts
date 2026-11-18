@@ -295,8 +295,8 @@ export type WeekImageOptions = {
   /** Professores de cada disciplina (por `subjectKey`), na legenda. */
   teachers?: ReadonlyMap<string, readonly string[]>;
   /**
-   * O rodapé diz onde baixar ("grátis na Play Store"): só onde o app está
-   * numa loja (o Android).
+   * O rodapé diz onde baixar ("grátis para Android e iPhone"): só onde o
+   * app está numa loja (a Play ou a App Store).
    */
   store?: boolean;
 };
@@ -531,7 +531,7 @@ export function drawWeekImage(
     `<line x1="${PAD}" x2="${W - PAD}" y1="${y}" y2="${y}" stroke="${C.rule}" stroke-width="1.5"/>`,
   );
   const footer = store
-    ? 'Feito com o app AO UERJ · grátis na Play Store'
+    ? 'Feito com o app AO UERJ · grátis para Android e iPhone'
     : 'Feito com o app AO UERJ';
   const footerLogo = 50;
   const footerWidth = footerLogo + 14 + textWidth(footer, 'Inter-Medium', 22);

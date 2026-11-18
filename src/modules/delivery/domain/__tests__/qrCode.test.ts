@@ -40,9 +40,13 @@ function readFormat({ modules }: QrMatrix): number {
 // (cv2.QRCodeDetector) decodificou de volta no texto, em 04/11/2026, com as
 // versões 1 a 10, acentos e as oito máscaras.
 it('encodes the invite link in a version 6 code the readers decode', () => {
-  const qr = encodeQr(inviteLink('qr'));
+  const qr = encodeQr(inviteLink('qr', 'android'));
   expect(qr.size).toBe(41);
   expect(fingerprint(qr)).toBe('24e7069a');
+});
+
+it('fits the App Store link in a smaller code than the Play one', () => {
+  expect(encodeQr(inviteLink('qr', 'ios')).size).toBeLessThan(41);
 });
 
 it('keeps a short text in the smallest version', () => {
@@ -52,7 +56,7 @@ it('keeps a short text in the smallest version', () => {
 });
 
 it('draws the three finder patterns, the timing lines and the dark module', () => {
-  const qr = encodeQr(inviteLink('menu'));
+  const qr = encodeQr(inviteLink('menu', 'android'));
   const last = qr.size - 7;
   expect(hasFinder(qr, 0, 0)).toBe(true);
   expect(hasFinder(qr, 0, last)).toBe(true);
@@ -65,7 +69,7 @@ it('draws the three finder patterns, the timing lines and the dark module', () =
 });
 
 it('writes the level M format with the mask it chose, or the one asked for', () => {
-  const chosen = readFormat(encodeQr(inviteLink('qr')));
+  const chosen = readFormat(encodeQr(inviteLink('qr', 'android')));
   expect(Array.from({ length: 8 }, (_, mask) => formatBits(mask))).toContain(
     chosen,
   );

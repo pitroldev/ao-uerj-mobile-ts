@@ -554,8 +554,8 @@ it('shares the week with the teachers of each subject', async () => {
   );
   const svg = new TextDecoder().decode(bytes);
   expect(svg).toContain('Turma 1 · Ana Souza, João Lima');
-  // fora de uma loja: sem "Play Store" e sem legenda
-  expect(svg).not.toContain('Play Store');
+  // fora de uma loja: sem onde baixar e sem legenda
+  expect(svg).not.toContain('grátis');
   expect(mockShare.mock.calls[0][1]).toBeUndefined();
 });
 
@@ -575,10 +575,10 @@ it('says where to get the app on the shared week, with the link in the caption',
       char.charCodeAt(0),
     );
     expect(new TextDecoder().decode(bytes)).toContain(
-      'Feito com o app AO UERJ · grátis na Play Store',
+      'Feito com o app AO UERJ · grátis para Android e iPhone',
     );
     expect(caption).toMatch(
-      /^Minha grade de 2026\.2, feita no app AO UERJ: https:\/\/play\.google\.com\/.*utm_source%3Dgrade$/,
+      /^Minha grade de 2026\.2, feita no app AO UERJ:\nAndroid: https:\/\/play\.google\.com\/.*utm_source%3Dgrade\niPhone: https:\/\/apps\.apple\.com\/br\/app\/id6835308883$/,
     );
   } finally {
     mockCanInvite = false;

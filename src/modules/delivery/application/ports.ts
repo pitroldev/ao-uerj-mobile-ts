@@ -47,6 +47,8 @@ export type RunningUpdate = {
 /** Página do app na loja. */
 export interface StoreListingPort {
   readonly available: boolean;
+  /** Como a tela chama a loja: "Play Store" ou "App Store". */
+  readonly name: string;
   open(): Promise<void>;
 }
 

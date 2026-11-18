@@ -12,8 +12,9 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('@features/ErrorReport/ErrorReportModal', () => ({
   ErrorReportModal: 'ErrorReportModal',
 }));
-// sem loja (o iPhone, os testes sem provedor) até um teste pôr a Play
-let mockListing: { available: boolean; open: jest.Mock } | null = null;
+// sem loja (os testes sem provedor) até um teste pôr a Play ou a App Store
+let mockListing: { available: boolean; name: string; open: jest.Mock } | null =
+  null;
 // o JS da instalação até um teste pôr uma atualização OTA
 let mockUpdate: { id: string; createdAt: Date } | null = null;
 jest.mock('@root/modules/delivery/presentation/DeliveryProvider', () => ({
@@ -36,7 +37,11 @@ it('leaves rating and inviting out where the app is in no store', () => {
 });
 
 it('rates on the Play and invites the class where the app is in the store', async () => {
-  mockListing = { available: true, open: jest.fn(async () => undefined) };
+  mockListing = {
+    available: true,
+    name: 'Play Store',
+    open: jest.fn(async () => undefined),
+  };
   await renderWithProviders(<AboutPage />);
   const user = userEvent.setup();
   expect(
@@ -55,6 +60,7 @@ it('rates on the Play and invites the class where the app is in the store', asyn
 it('says so when the Play Store does not open', async () => {
   mockListing = {
     available: true,
+    name: 'Play Store',
     open: jest.fn(async () => Promise.reject(new Error('sem loja'))),
   };
   await renderWithProviders(<AboutPage />);
@@ -65,6 +71,24 @@ it('says so when the Play Store does not open', async () => {
   expect(showError).toHaveBeenCalledWith(
     'Não foi possível abrir a Play Store.',
   );
+});
+
+it('rates on the App Store on the iPhone', async () => {
+  mockListing = {
+    available: true,
+    name: 'App Store',
+    open: jest.fn(async () => Promise.reject(new Error('sem loja'))),
+  };
+  await renderWithProviders(<AboutPage />);
+  const showError = jest.spyOn(snackbar, 'error');
+  const rate = screen.getByRole('link', { name: /^Avaliar na App Store/ });
+  expect(rate).toHaveProp(
+    'accessibilityHint',
+    'Abre a página do AO UERJ na App Store',
+  );
+  await userEvent.setup().press(rate);
+  expect(mockListing.open).toHaveBeenCalledTimes(1);
+  expect(showError).toHaveBeenCalledWith('Não foi possível abrir a App Store.');
 });
 
 it('shows the approved copy and the blog link', () => {

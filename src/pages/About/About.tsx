@@ -61,7 +61,7 @@ export const AboutPage = () => {
   const theme = useTheme();
   const { fontScale } = useWindowDimensions();
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
-  // avaliar e indicar só onde o app está numa loja (o Android)
+  // avaliar e indicar só onde o app está numa loja (a Play ou a App Store)
   const store = useStoreListing();
   const update = useRunningUpdate();
   const [invite, setInvite] = useState<Invite | null>(null);
@@ -74,8 +74,9 @@ export const AboutPage = () => {
   };
 
   const rate = () => {
-    store?.open().catch(() => {
-      snackbar.error('Não foi possível abrir a Play Store.');
+    if (!store) return;
+    store.open().catch(() => {
+      snackbar.error(`Não foi possível abrir a ${store.name}.`);
     });
   };
 
@@ -171,12 +172,12 @@ export const AboutPage = () => {
               leading={
                 <Icon name="star" size={24} color={theme.colors.accent} />
               }
-              title="Avaliar na Play Store"
+              title={`Avaliar na ${store.name}`}
               titleWeight="medium"
               meta="Sua nota ajuda outros alunos a acharem o app"
               external
               accessibilityRole="link"
-              accessibilityHint="Abre a página do AO UERJ na Play Store"
+              accessibilityHint={`Abre a página do AO UERJ na ${store.name}`}
               onPress={rate}
             />
             <SupportRow

@@ -7,7 +7,7 @@ import { AoLogo, Button, Text } from '@components/ui';
 
 type Props = {
   appVersion: string;
-  /** Sem ação onde não há loja para abrir (iOS fora da App Store). */
+  /** Sem ação onde não há loja para abrir. */
   onUpdate?: () => Promise<void>;
 };
 
