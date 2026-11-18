@@ -1,7 +1,13 @@
 import styled from 'styled-components/native';
 
-/** Nome + "● Bom na P1" na primeira coluna (".gt-name" / ".gt-sub"). */
+/**
+ * Nome + "● Bom na P1" na primeira coluna (".gt-name" / ".gt-sub"). Ocupa a
+ * largura da coluna: a célula alinha à esquerda, e sem isso o rótulo de duas
+ * linhas ("Precisa de 4,5 na P2 para ter PF") não quebrava e passava por trás
+ * das notas.
+ */
 export const NameCell = styled.View`
+  align-self: stretch;
   gap: 3px;
 `;
 
