@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.18.0 (2026-11-18)
+
+### Novidades
+
+- iPhone na App Store: "Avaliar na App Store", no Sobre, e o "Atualizar" da tela de versão sem suporte abrem a página do app na loja da Apple.
+- Indicar o app para Android e iPhone: a mensagem, o "Copiar links" e as legendas da grade levam os links das duas lojas, e o QR deixa escolher Android ou iPhone, começando pelo do próprio celular. A imagem da grade diz "grátis para Android e iPhone".
+
 ## 2.17.3 (2026-11-18)
 
 ### Novidades
