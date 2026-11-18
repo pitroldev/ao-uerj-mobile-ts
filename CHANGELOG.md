@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.19.0 (2026-11-18)
+
+### Novidades
+
+- Relato de problema com a página do portal: nas telas que leem o Aluno Online, o relato leva a página daquela tela, anonimizada no celular (sem nome, matrícula, notas, nomes de disciplinas e professores ou salas: só a estrutura, os códigos das disciplinas e os horários), e o tipo de erro de cada leitura que estava falhando. Dá para desligar em "Mandar a página do portal".
+
+### Correções
+
+- Grade de Horários com erro o tempo todo: quando um código da grade não achava a disciplina na tabela (duas disciplinas no mesmo horário, disciplinas em mais de uma tabela, uma linha sem o local), a grade inteira dava erro e "Tentar novamente" não resolvia. Agora as outras aulas aparecem.
+- Quadro de notas: o aviso de duas linhas embaixo do nome da disciplina ("Precisa de 4,5 na P2 para ter PF") quebra na coluna do nome e não passa mais por trás das notas.
+
 ## 2.18.0 (2026-11-18)
 
 ### Novidades
