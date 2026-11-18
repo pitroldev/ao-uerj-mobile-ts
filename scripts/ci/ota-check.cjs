@@ -5,13 +5,13 @@
  *   node scripts/ci/ota-check.cjs
  *     No ota.yml, com PLATFORM (android, ios ou both), ROLLBACK (true ou
  *     false), GITHUB_TOKEN e as variáveis do Actions. Exige o run na main e,
- *     num update, o Quality verde neste commit. Acha a última build de cada
- *     plataforma na loja: o GitHub Release mais novo com o asset
- *     runtime-version-<plataforma>.txt, que o release.yml grava depois que a
- *     loja aceita a build. Num update, o package.json tem de estar na versão
- *     dessa release (um OTA não é bump) e o runtime deste código tem de ser o
- *     dela (o nativo não mudou). Grava android=<runtime> e ios=<runtime> no
- *     GITHUB_OUTPUT; a volta (rollback) usa o runtime da loja direto.
+ *     num update, o Quality verde neste commit. As builds na loja são os
+ *     GitHub Releases com o asset runtime-version-<plataforma>.txt, que o
+ *     release.yml grava depois que a loja aceita a build. Num update, o
+ *     runtime deste código tem de ser o de alguma delas: só o nativo barra um
+ *     OTA, não o bump (ele chega a todas as builds com o mesmo runtime). Grava
+ *     android=<runtime> e ios=<runtime> no GITHUB_OUTPUT; a volta (rollback)
+ *     usa o runtime da build mais nova da loja direto.
  *
  *   node scripts/ci/ota-check.cjs runtime <android|ios>
  *     No release.yml: o runtime da build que vai para a loja, validado, em
@@ -39,18 +39,30 @@ function compareTags(a, b) {
   return 0;
 }
 
+/**
+ * As releases vX.Y.Z com o runtime da plataforma registrado (as builds na
+ * loja), da versão mais nova para a mais velha.
+ */
+function storeReleases(releases, platform) {
+  const name = runtimeAssetName(platform);
+  return releases
+    .filter(
+      release =>
+        !release.draft &&
+        !release.prerelease &&
+        RELEASE_TAG.test(release.tag_name ?? ''),
+    )
+    .map(release => ({
+      tag: release.tag_name,
+      asset: release.assets?.find(candidate => candidate.name === name),
+    }))
+    .filter(release => release.asset)
+    .sort((a, b) => compareTags(b.tag, a.tag));
+}
+
 /** A release vX.Y.Z mais nova (pela versão) com o runtime da plataforma registrado. */
 function latestStoreRelease(releases, platform) {
-  const name = runtimeAssetName(platform);
-  let latest;
-  for (const release of releases) {
-    if (release.draft || release.prerelease) continue;
-    if (!RELEASE_TAG.test(release.tag_name ?? '')) continue;
-    const asset = release.assets?.find(candidate => candidate.name === name);
-    if (asset && (!latest || compareTags(release.tag_name, latest.tag) > 0))
-      latest = { tag: release.tag_name, asset };
-  }
-  return latest;
+  return storeReleases(releases, platform)[0];
 }
 
 /** O Quality deste commit na main: success, pending, failure ou missing. */
@@ -87,16 +99,12 @@ function platformsOf(value) {
 }
 
 /**
- * As conferências; `api`, `download`, `runtimeVersion` e `packageVersion`
- * são trocados nos testes. Devolve { [plataforma]: { runtime, tag } }.
+ * As conferências; `api`, `download` e `runtimeVersion` são trocados nos
+ * testes. Devolve { [plataforma]: { runtime, tag, tags } }: `tag` é a build
+ * mais nova que o update alcança, e `tags`, todas as da loja com o runtime
+ * dele (na volta, só a mais nova).
  */
-async function checkOta({
-  env,
-  api,
-  download,
-  runtimeVersion,
-  packageVersion,
-}) {
+async function checkOta({ env, api, download, runtimeVersion }) {
   if (env.GITHUB_REF !== 'refs/heads/main')
     throw new Error(
       `O OTA só sai da main, e este run é de ${env.GITHUB_REF}: escolha main em "Use workflow from".`,
@@ -112,30 +120,39 @@ async function checkOta({
     if (state !== 'success') throw new Error(QUALITY_PROBLEMS[state]);
   }
   const releases = await api('releases?per_page=100');
-  const version = rollback ? undefined : packageVersion();
   const result = {};
   for (const platform of platforms) {
-    const found = latestStoreRelease(releases, platform);
-    if (!found)
+    const builds = storeReleases(releases, platform);
+    if (!builds.length)
       throw new Error(
         `Nenhum GitHub Release registra uma build de ${platform} na loja (${runtimeAssetName(platform)}): sem build na loja, o OTA não tem para quem ir.`,
       );
-    const runtime = validateRuntimeVersion(
-      (await download(found.asset)).trim(),
-      `O ${runtimeAssetName(platform)} da ${found.tag}`,
-    );
-    if (!rollback) {
-      if (found.tag !== `v${version}`)
-        throw new Error(
-          `A main está na versão ${version}, e a última build de ${platform} na loja é a ${found.tag}. Um OTA não muda a versão: uma versão nova é release na loja (docs/release.md).`,
-        );
-      const current = runtimeVersion(platform);
-      if (current !== runtime)
-        throw new Error(
-          `O runtime de ${platform} mudou: ${current} neste commit, ${runtime} na ${found.tag}. O código nativo mudou, e isso pede uma release na loja, não um OTA.`,
-        );
+    const runtimeOf = async build =>
+      validateRuntimeVersion(
+        (await download(build.asset)).trim(),
+        `O ${runtimeAssetName(platform)} da ${build.tag}`,
+      );
+    if (rollback) {
+      const [latest] = builds;
+      result[platform] = {
+        runtime: await runtimeOf(latest),
+        tag: latest.tag,
+        tags: [latest.tag],
+      };
+      continue;
     }
-    result[platform] = { runtime, tag: found.tag };
+    // o bump não barra: o update vai para toda build da loja com este runtime
+    const current = runtimeVersion(platform);
+    const runtimes = [];
+    for (const build of builds) runtimes.push(await runtimeOf(build));
+    const tags = builds
+      .filter((_build, index) => runtimes[index] === current)
+      .map(build => build.tag);
+    if (!tags.length)
+      throw new Error(
+        `O runtime de ${platform} mudou: ${current} neste commit, ${runtimes[0]} na ${builds[0].tag}, e nenhuma build na loja tem o deste commit. O código nativo mudou, e isso pede uma release na loja, não um OTA.`,
+      );
+    result[platform] = { runtime: current, tag: tags[0], tags };
   }
   return result;
 }
@@ -190,15 +207,14 @@ async function main(argv, env = process.env) {
     env,
     ...githubClient(env),
     runtimeVersion: platform => currentRuntimeVersion(platform, ROOT, env),
-    packageVersion: () =>
-      JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'))
-        .version,
   });
   output(
     PLATFORMS.map(platform => `${platform}=${result[platform]?.runtime ?? ''}`),
   );
-  for (const [platform, { runtime, tag }] of Object.entries(result))
-    console.log(`${platform}: runtime ${runtime}, o da ${tag} na loja.`);
+  for (const [platform, { runtime, tags }] of Object.entries(result))
+    console.log(
+      `${platform}: runtime ${runtime}, o das builds ${tags.join(', ')} na loja.`,
+    );
 }
 
 if (require.main === module) {

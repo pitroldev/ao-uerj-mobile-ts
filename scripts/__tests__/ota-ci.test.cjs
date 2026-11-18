@@ -140,7 +140,6 @@ function scenario(overrides = {}) {
     releases: overrides.releases ?? [release('v2.15.2', ['android'])],
     stored: overrides.stored ?? { 'v2.15.2-android': 'rv-1\n' },
     current: overrides.current ?? { android: 'rv-1', ios: 'rv-ios' },
-    version: overrides.version ?? '2.15.2',
   };
   return {
     calls,
@@ -163,14 +162,13 @@ function scenario(overrides = {}) {
           calls.push(`runtime ${platform}`);
           return options.current[platform];
         },
-        packageVersion: () => options.version,
       }),
   };
 }
 
-test('an update for the store runtime and version passes and says which runtime to target', async () => {
+test('an update for the store runtime passes and says which runtime to target', async () => {
   assert.deepEqual(await scenario().run(), {
-    android: { runtime: 'rv-1', tag: 'v2.15.2' },
+    android: { runtime: 'rv-1', tag: 'v2.15.2', tags: ['v2.15.2'] },
   });
   const both = scenario({
     env: { PLATFORM: 'both' },
@@ -210,19 +208,45 @@ test('the OTA refuses other branches, a Quality that is not green and a missing 
   );
 });
 
-test('an OTA is not a version bump: main must be at the version of the store build', async () => {
-  const bumped = scenario({ version: '2.16.0' });
-  await assert.rejects(
-    bumped.run(),
-    /versão 2\.16\.0.*v2\.15\.2.*não muda a versão/,
-  );
-  assert.ok(!bumped.calls.includes('runtime android'));
+test('a bump does not block an update: it reaches every store build with this runtime', async () => {
+  // a 2.16.0 trocou o nativo; a 2.16.1 e a 2.16.2 só o JS, como a main agora
+  const bumped = scenario({
+    releases: [
+      release('v2.15.2', ['android']),
+      release('v2.16.2', ['android']),
+      release('v2.16.0', ['android']),
+      release('v2.16.1', ['android']),
+    ],
+    stored: {
+      'v2.15.2-android': 'rv-1',
+      'v2.16.0-android': 'rv-2',
+      'v2.16.1-android': 'rv-2',
+      'v2.16.2-android': 'rv-2',
+    },
+    current: { android: 'rv-2' },
+  });
+  assert.deepEqual(await bumped.run(), {
+    android: {
+      runtime: 'rv-2',
+      tag: 'v2.16.2',
+      tags: ['v2.16.2', 'v2.16.1', 'v2.16.0'],
+    },
+  });
+  // um runtime mais velho, de uma build que ainda está na loja, também vale
+  const older = scenario({
+    releases: [
+      release('v2.15.2', ['android']),
+      release('v2.16.0', ['android']),
+    ],
+    stored: { 'v2.15.2-android': 'rv-1', 'v2.16.0-android': 'rv-2' },
+  });
+  assert.deepEqual((await older.run()).android.tags, ['v2.15.2']);
 });
 
 test('changed native code (another runtime) is refused: it needs a store release', async () => {
   await assert.rejects(
     scenario({ current: { android: 'rv-2' } }).run(),
-    /rv-2 neste commit, rv-1 na v2\.15\.2.*release na loja/,
+    /rv-2 neste commit, rv-1 na v2\.15\.2, e nenhuma build.*release na loja/,
   );
 });
 
@@ -230,11 +254,10 @@ test('a rollback targets the store runtime without the Quality gate or this code
   const rollback = scenario({
     env: { ROLLBACK: 'true' },
     runs: [],
-    version: '9.9.9',
     current: {},
   });
   assert.deepEqual(await rollback.run(), {
-    android: { runtime: 'rv-1', tag: 'v2.15.2' },
+    android: { runtime: 'rv-1', tag: 'v2.15.2', tags: ['v2.15.2'] },
   });
   assert.deepEqual(rollback.calls, ['releases?per_page=100']);
 });

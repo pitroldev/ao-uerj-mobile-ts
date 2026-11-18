@@ -2,7 +2,7 @@ name: OTA
 
 # Publica um update OTA (o JavaScript e os assets deste commit) no servidor de
 # pitrol.dev, ou a volta ao JS que veio na build da loja. O código nativo não
-# vai por aqui, e um OTA não é bump: ver docs/ota.md.
+# vai por aqui; um OTA não é bump, e só o nativo (o runtime) o barra: ver docs/ota.md.
 #
 # O job `check`, sem segredos, confere a main, o Quality verde neste commit e
 # a última build na loja (versão e runtime). Só então o `publish` pede a

@@ -4,7 +4,7 @@ Como sai uma correção do JavaScript sem passar pela loja, para quem mantém o 
 
 ```mermaid
 flowchart LR
-  run["Run workflow OTA, na main"] --> check["check: Quality verde, versão e runtime da loja"]
+  run["Run workflow OTA, na main"] --> check["check: Quality verde e runtime de uma build na loja"]
   check --> approval["Aprovação do environment play"]
   approval --> export["expo export"]
   export --> sign["Manifest assinado"]
@@ -27,24 +27,23 @@ flowchart LR
 - os módulos nativos do app (`src/specs` e o codegen), o widget e o segundo plano;
 - permissões, ícone, splash, o nome do app e o que mais fica na configuração nativa;
 - React Native, Hermes, Expo e `expo-updates`;
-- o certificado de assinatura (ver [Chave e certificado](#chave-e-certificado));
-- a versão do app (ver [Um OTA não é bump](#um-ota-não-é-bump)).
+- o certificado de assinatura (ver [Chave e certificado](#chave-e-certificado)).
 
-Quem decide é o runtime version: se ele mudou, o nativo mudou, e o OTA é recusado.
+Quem decide é o runtime version: se ele mudou, o nativo mudou, e o OTA é recusado. A versão do app (o bump) não entra nele, nem no iPhone: as linhas `MARKETING_VERSION` e `CURRENT_PROJECT_VERSION` do `project.pbxproj` ficam fora do cálculo (`fingerprint.config.js`).
 
 ## A regra de compatibilidade
 
 - Cada build da loja embute um runtime version, o que `node scripts/ota/runtime-version.cjs <android|ios>` imprime para aquele código. O app só aceita updates do runtime dele.
 - Depois que a Play aceita o AAB, o job `runtime-version` do [Release](../.github/workflows/release.yml) grava esse valor no GitHub Release da versão, como o asset `runtime-version-android.txt`. Uma versão sem esse asset não conta como build na loja.
-- O workflow OTA acha a última build de cada plataforma na loja (o GitHub Release `vX.Y.Z` mais novo com o asset) e só publica se este commit tiver o mesmo runtime e a mesma versão no `package.json`.
+- O workflow OTA lê o runtime de cada build na loja (os GitHub Releases `vX.Y.Z` com o asset) e só publica se o deste commit for o de alguma delas. O update chega a todas as builds com esse runtime, de qualquer versão: o resumo do `check` diz quais.
 - Um update vai para um runtime só. Quem está numa build mais antiga, de outro runtime, continua com o JS que veio na loja.
-- **iPhone:** nenhum workflow grava o `runtime-version-ios.txt`. Quando a Apple libera uma build, ele vai à mão para o GitHub Release da versão, tirado do artefato do `ios-app-store.yml` (ver [Envio à App Store](ios.md#envio-à-app-store)). A primeira foi a `v2.17.2` (build 26, em 18/11/2026). Como a App Store chega depois da Play, as duas plataformas podem estar em versões diferentes; aí o OTA só vai para a que tem na loja a versão da `main` (o `both` é recusado), e a outra espera a build dela sair.
+- **iPhone:** nenhum workflow grava o `runtime-version-ios.txt`. Quando a Apple libera uma build, ele vai à mão para o GitHub Release da versão, tirado do artefato do `ios-app-store.yml` (ver [Envio à App Store](ios.md#envio-à-app-store)). A primeira foi a `v2.17.2` (build 26, em 18/11/2026). As builds até a 2.18.0 (build 28) ainda contavam a versão no runtime: um OTA de uma `main` com outra versão não chega a elas, e o do iPhone vale a partir da primeira build feita depois dessa mudança.
 
-## Um OTA não é bump
+## OTA e bump
 
-Um OTA não muda a versão: nada de `package.json`, tag, `CHANGELOG.md`, GitHub Release ou Play. Uma versão nova é sempre uma release na loja (bump = release, ver [Release](release.md)).
+Um OTA não faz bump: nada de tag, `CHANGELOG.md`, GitHub Release ou loja. E um bump não barra um OTA: só o nativo barra. Depois de um bump só de JS (a `main` na 2.18.1, a loja na 2.18.0 com o mesmo runtime), o OTA da `main` chega à 2.18.0.
 
-O JS lê a versão do `package.json`: ela aparece no Sobre, vai nos relatos de erro e é a que o `minSupportedVersion` do [aviso remoto](aviso-remoto.md#minsupportedversion) compara. Um OTA com outra versão faria uma build da loja se passar por uma versão que ela não é. Por isso a conferência recusa um commit cuja versão não seja a da última build na loja: com um bump na `main` ainda fora da loja, publique a release primeiro.
+O JS lê a versão do `package.json`, que é a do código que roda: com esse OTA, a build 2.18.0 mostra no Sobre "Versão 2.18.1 · atualização de dd/mm", manda `appVersion` 2.18.1 nos relatos (com o `updateId`, que diz que é um OTA) e compara 2.18.1 com o `minSupportedVersion` do [aviso remoto](aviso-remoto.md#minsupportedversion). Isso descreve o app de verdade: o mesmo runtime é o mesmo nativo, e só o JS mudou. Quem tem uma build de outro runtime (nativo diferente) não recebe o update e continua com a versão dela, então a versão mínima ainda prende quem precisa da loja.
 
 ## Publicar
 
@@ -55,7 +54,7 @@ O JS lê a versão do `package.json`: ela aparece no Sobre, vai nos relatos de e
    gh workflow run ota.yml --ref main -f platform=android -f message="Lê a nova página de horários do portal"
    ```
 
-3. O job `check`, sem segredos, confere que o run é da `main`, que o Quality passou neste commit (de um push ou de um run manual na `main`) e que a versão e o runtime são os da última build na loja. Uma recusa diz o motivo e o que fazer.
+3. O job `check`, sem segredos, confere que o run é da `main`, que o Quality passou neste commit (de um push ou de um run manual na `main`) e que o runtime deste commit é o de alguma build na loja, e diz a quais versões o update chega. Uma recusa diz o motivo e o que fazer.
 4. O job `publish` espera a aprovação do environment `play`.
 5. Aprovado, ele roda o `expo export`, monta o manifest, assina e envia os assets e, só depois, o manifest. O resumo do run mostra o id do update de cada plataforma.
 

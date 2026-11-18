@@ -18,7 +18,7 @@ flowchart LR
   ios -->|"revisão da Apple"| appstore["App Store"]
 ```
 
-Uma correção só do JavaScript pode sair sem a loja, por OTA, e um OTA não é bump: ver [Atualizações OTA](ota.md).
+Uma correção só do JavaScript pode sair sem a loja, por OTA. Um OTA não é bump, e um bump não barra o OTA: ele chega a toda build na loja com o mesmo nativo, de qualquer versão (ver [Atualizações OTA](ota.md)).
 
 ## Versão
 

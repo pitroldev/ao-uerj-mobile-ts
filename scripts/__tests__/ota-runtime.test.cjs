@@ -265,3 +265,41 @@ test('the fingerprint reads CRLF checkouts (Git for Windows) as the LF of CI', (
   );
   assert.equal(strip(source, null, true, 'utf8'), null);
 });
+
+test('a version bump in the Xcode project does not change the iPhone runtime', () => {
+  const strip = fingerprintConfig.fileHookTransform;
+  const hashed = (filePath, text, size = 7) => {
+    // como o fingerprint lê: pedaços pequenos, que cortam as linhas no meio
+    const source = { type: 'file', filePath };
+    const out = [];
+    for (let at = 0; at < text.length; at += size) {
+      const part = strip(source, Buffer.from(text.slice(at, at + size)), false);
+      if (part != null) out.push(Buffer.from(part));
+    }
+    const last = strip(source, null, true, 'utf8');
+    if (last != null) out.push(Buffer.from(last));
+    return Buffer.concat(out).toString('utf8');
+  };
+  const project = (version, build) =>
+    '\t\t\t\tCURRENT_PROJECT_VERSION = ' +
+    `${build};\r\n\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 16.4;\r\n` +
+    `\t\t\t\tMARKETING_VERSION = ${version};\r\n\t\t\t\tSWIFT_VERSION = 5.0;\r\n`;
+  const xcode = 'ios/AOUerjMobile.xcodeproj/project.pbxproj';
+  assert.equal(
+    hashed(xcode, project('2.18.0', 28)),
+    '\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 16.4;\n\t\t\t\tSWIFT_VERSION = 5.0;\n',
+  );
+  assert.equal(
+    hashed(xcode, project('2.18.0', 28)),
+    hashed(xcode, project('3.0.0', 99)),
+  );
+  // o caminho do Windows também, e nenhum outro arquivo perde essas linhas
+  assert.equal(
+    hashed(xcode.replaceAll('/', '\\'), project('2.18.0', 28)),
+    hashed(xcode, project('2.18.0', 28)),
+  );
+  assert.match(
+    hashed('ios/Outro.xcodeproj/project.pbxproj', project('2.18.0', 28)),
+    /MARKETING_VERSION = 2\.18\.0;/,
+  );
+});
