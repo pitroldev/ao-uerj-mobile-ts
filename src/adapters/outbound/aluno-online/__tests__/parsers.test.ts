@@ -545,6 +545,120 @@ it('keeps subjects without a time in the grid, after the classes', () => {
   expect(onlyUntimed.map(item => item.subject_id)).toEqual(['ABC01-54321']);
 });
 
+describe('a schedule page that differs from the usual one', () => {
+  // como o portal desenha em novembro de 2026: o código e o nome separados
+  // por dois &nbsp;, e cada tempo da grade seguido de uma linha vazia
+  const subjectTable = (rows: string[][]) =>
+    `<div class="divCenterContent"><table class="reportTable"><tbody><tr>
+      <th></th><th>Disciplina</th><th>Turma</th><th>Local AVA</th>
+      <th>Local de Aula</th></tr>${rows.map(cells).join('')}</tbody></table></div>`;
+  const grid = (slots: [label: string, monday: string][]) =>
+    `<div><table class="table"><tbody><tr id="id_th"><th>Tempo</th>
+      <th>Segunda</th><th>Terça</th><th>Quarta</th><th>Quinta</th>
+      <th>Sexta</th><th>Sábado</th></tr>${slots
+        .map(
+          ([label, monday]) =>
+            `<tr><th>${label}</th><td>${monday}</td><td></td><td></td>` +
+            '<td></td><td></td><td></td></tr><tr></tr>',
+        )
+        .join('')}</tbody></table></div>`;
+  const ALGEBRA = ['1.', 'ABC01-12345&nbsp;&nbsp;ÁLGEBRA', '1', '', 'Sala 1'];
+  const PHYSICS = ['2.', 'DEF02-67890&nbsp;&nbsp;FÍSICA', '3', '', 'Sala 2'];
+  const M1 = 'M1 &nbsp;<font size="1px">(07:00 - 07:50)</font>';
+  const M2 = 'M2 &nbsp;<font size="1px">(07:50 - 08:40)</font>';
+  const slots = (html: string) =>
+    parseSchedule(content(html)).map(item => [
+      item.subject_id,
+      item.dayNumber,
+      item.start_time_in_minutes,
+      item.end_time_in_minutes,
+    ]);
+
+  it('splits two subjects in the same time joined only by a <br>', () => {
+    expect(
+      slots(
+        subjectTable([ALGEBRA, PHYSICS]) +
+          grid([[M1, 'ABC01-12345<br>DEF02-67890']]),
+      ),
+    ).toEqual([
+      ['ABC01-12345', 1, 420, 470],
+      ['DEF02-67890', 1, 420, 470],
+    ]);
+  });
+
+  it('reads the subjects of every subject table on the page', () => {
+    expect(
+      slots(
+        subjectTable([ALGEBRA]) +
+          subjectTable([PHYSICS]) +
+          grid([
+            [M1, 'ABC01-12345'],
+            [M2, 'DEF02-67890'],
+          ]),
+      ),
+    ).toEqual([
+      ['ABC01-12345', 1, 420, 470],
+      ['DEF02-67890', 1, 470, 520],
+    ]);
+  });
+
+  it('keeps the other classes when a grid code has no subject row', () => {
+    expect(
+      slots(
+        subjectTable([ALGEBRA]) +
+          grid([
+            [M1, 'ABC01-12345'],
+            [M2, 'XYZ09-99999'],
+          ]),
+      ),
+    ).toEqual([['ABC01-12345', 1, 420, 470]]);
+  });
+
+  it('still reports a changed page when no grid code finds its subject', () => {
+    expect(() =>
+      slots(subjectTable([ALGEBRA]) + grid([[M1, 'XYZ09-99999']])),
+    ).toThrow('PORTAL_LAYOUT_CHANGED');
+  });
+
+  it('reads a subject row that comes without the last cells', () => {
+    const result = parseSchedule(
+      content(
+        subjectTable([['1.', 'ABC01-12345&nbsp;&nbsp;ÁLGEBRA', '1']]) +
+          grid([[M1, 'ABC01-12345']]),
+      ),
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0].class).toMatchObject({ name: 'Álgebra', class: '1' });
+  });
+
+  it('takes each time from the row label, not from where the row is', () => {
+    expect(
+      slots(
+        subjectTable([ALGEBRA]) +
+          grid([
+            ['N1 (18:00 - 18:50)', 'ABC01-12345'],
+            ['N2 (18:50 - 19:40)', 'ABC01-12345'],
+          ]),
+      ),
+    ).toEqual([['ABC01-12345', 1, 1080, 1180]]);
+  });
+
+  it('uses the times written on a row the app does not know', () => {
+    const [item] = parseSchedule(
+      content(
+        subjectTable([ALGEBRA]) + grid([['N6 (22:10 - 23:00)', 'ABC01-12345']]),
+      ),
+    );
+    expect(item).toMatchObject({
+      periodAlias: 'N6',
+      startTimeAlias: '22:10',
+      endTimeAlias: '23:00',
+      start_time_in_minutes: 1330,
+      end_time_in_minutes: 1380,
+    });
+  });
+});
+
 it('reads subject details and classes from a class table without an explicit tbody', () => {
   const subject = parseSubject(subjectPage);
   expect(subject).toMatchObject({
