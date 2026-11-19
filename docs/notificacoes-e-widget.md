@@ -25,7 +25,7 @@ Os das provas e trabalhos anotados (ver [Provas e trabalhos](funcionalidades.md#
 - **Atrasado** (aparelho desligado, ou o Doze segurando o alarme sem "Alarmes e lembretes"), no Android o lembrete ainda sai enquanto o título vale: "Amanhã" e "Em 3 dias" até o fim daquele dia, "Hoje, 8:00" até o início e "Em 1 hora" por 15 minutos. Depois disso, ou depois do início da avaliação, é descartado.
 - Os horários vão também como hora local: numa viagem com outro fuso, a prova das 8h continua lembrada às 7h da hora local, mesmo sem abrir o app.
 - **Um aviso por avaliação** (Android): o seguinte substitui o anterior na barra. Na tela de bloqueio que oculta conteúdo, aparece só o título; a observação fica escondida.
-- **No iPhone:** cada lembrete é um aviso separado (não substitui o anterior), o atraso não é recuperado e, com as prévias ocultas, a tela de bloqueio mostra "Toque para ver no AO UERJ.". O "Já fiz" funciona nos dois.
+- **No iPhone:** os lembretes de uma avaliação ficam num grupo só da Central de Notificações, e o app deixa só o mais recente quando roda (na abertura e nas rodadas em segundo plano): o iOS não troca o aviso local pelo seguinte sozinho. O atraso não é recuperado (um aviso local sai na hora ou não sai) e, com as prévias ocultas, a tela de bloqueio mostra "Toque para ver no AO UERJ.". O "Já fiz" funciona nos dois.
 
 ### Avisos do Aluno Online
 

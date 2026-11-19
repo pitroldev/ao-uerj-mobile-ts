@@ -375,7 +375,43 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
     [center removePendingNotificationRequestsWithIdentifiers:old];
     NSUInteger added = [self scheduleEvaluations:reminders center:center];
     [self makeRoomFor:added requests:requests center:center];
+    [self collapseDeliveredEvaluations:center];
     resolve(nil);
+  }];
+}
+
+/**
+ * Um aviso por avaliação, como no Android: dos lembretes já mostrados de uma
+ * mesma avaliação, só o mais recente fica na Central de Notificações. O iOS
+ * não troca um aviso local pelo seguinte quando ele aparece, então o app faz
+ * isso quando roda (na abertura e nas rodadas em segundo plano, que mandam o
+ * plano das avaliações). Enquanto isso, o grupo de cada avaliação
+ * (`threadIdentifier`) já os empilha.
+ */
+- (void)collapseDeliveredEvaluations:(UNUserNotificationCenter *)center
+{
+  [center getDeliveredNotificationsWithCompletionHandler:^(NSArray<UNNotification *> *delivered) {
+    NSMutableDictionary<NSString *, UNNotification *> *latest = [NSMutableDictionary dictionary];
+    NSMutableArray<NSString *> *older = [NSMutableArray array];
+    for (UNNotification *notification in delivered) {
+      NSString *identifier = notification.request.identifier;
+      id evaluation = notification.request.content.userInfo[@"evaluationId"];
+      if (![identifier hasPrefix:kEvaluationPrefix] || ![evaluation isKindOfClass:[NSString class]]) {
+        continue;
+      }
+      UNNotification *kept = latest[evaluation];
+      if (!kept) {
+        latest[evaluation] = notification;
+      } else if ([notification.date compare:kept.date] == NSOrderedDescending) {
+        [older addObject:kept.request.identifier];
+        latest[evaluation] = notification;
+      } else {
+        [older addObject:identifier];
+      }
+    }
+    if (older.count > 0) {
+      [center removeDeliveredNotificationsWithIdentifiers:older];
+    }
   }];
 }
 
@@ -417,9 +453,9 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
 
 /**
  * Cada lembrete é um aviso de data única, os mais próximos primeiro (no
- * máximo 20). Os que já passaram, os de avaliações já começadas e os das
- * marcadas com "Já fiz" (ainda não lidas pelo JS) ficam de fora. Devolve
- * quantos agendou.
+ * máximo 20), no grupo da avaliação. Os que já passaram, os de avaliações já
+ * começadas e os das marcadas com "Já fiz" (ainda não lidas pelo JS) ficam de
+ * fora. Devolve quantos agendou.
  */
 - (NSUInteger)scheduleEvaluations:(NSArray *)reminders center:(UNUserNotificationCenter *)center
 {
@@ -450,7 +486,9 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
     content.title = item[@"title"];
     content.body = [item[@"body"] isKindOfClass:[NSString class]] ? item[@"body"] : @"";
     content.sound = [UNNotificationSound defaultSound];
-    content.threadIdentifier = @"evaluations";
+    // um grupo por avaliação: "Em 3 dias", "Amanhã" e "Hoje" da mesma prova
+    // ficam empilhados, e não soltos entre os outros avisos
+    content.threadIdentifier = [NSString stringWithFormat:@"%@%@", kEvaluationPrefix, evaluation];
     content.categoryIdentifier = AONumber(item[@"completable"], 0) != 0 ? kEvaluationCategory : kPrivateCategory;
     content.userInfo = @{@"target" : @"home", @"evaluationId" : evaluation};
     NSDate *date = [NSDate dateWithTimeIntervalSince1970:AONumber(item[@"at"], 0) / 1000.0];
