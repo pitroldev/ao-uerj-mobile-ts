@@ -1,8 +1,11 @@
 import type { StudentActor } from '../students/ports.ts';
 import type {
   Call,
+  CallKind,
   CallReport,
   CallRequest,
+  CallWatch,
+  CallWatchView,
   DayStats,
   FeedEntry,
   HourStatKey,
@@ -10,6 +13,7 @@ import type {
   MemberCall,
   PhraseId,
   PublicCall,
+  PushDevice,
   ReportReason,
   StatKey,
 } from './domain.ts';
@@ -28,6 +32,20 @@ export type CallList = { calls: PublicCall[]; watching: number };
 
 /** O que a moderação conseguiu ao tirar uma chamada do ar. */
 export type ModerationResult = 'hidden' | 'gone';
+
+/** O "Me avise se abrirem" de quem pede: o pedido e o aparelho. */
+export type WatchRequest = {
+  kind: CallKind;
+  until: Date;
+  seen: string[];
+  device: PushDevice;
+};
+
+/**
+ * O pedido do aluno e se o aviso chega (`available`: o servidor manda push
+ * para o iPhone).
+ */
+export type WatchStatus = { available: boolean; watch: CallWatchView | null };
 
 /** Porta de entrada: a Companhia agora. */
 export interface Companion {
@@ -92,6 +110,21 @@ export interface Companion {
   hideByModerator(callId: string): Promise<ModerationResult>;
   /** Os números dos últimos `days` dias, do mais novo ao mais antigo. */
   statsForReview(days: number): Promise<DayStats[]>;
+  /** O "Me avise se abrirem" do aluno, se ainda vale. */
+  watchStatus(actor: StudentActor): Promise<WatchStatus>;
+  /**
+   * Pede o aviso da próxima chamada do tipo até `until`; o novo pedido fica
+   * no lugar do antigo (um por aluno).
+   */
+  watch(actor: StudentActor, request: WatchRequest): Promise<CallWatchView>;
+  unwatch(actor: StudentActor): Promise<void>;
+  /**
+   * Manda o aviso de cada pedido que já tem uma chamada, um aviso por
+   * pedido, e diz quantos chegaram à Apple. Quem abre uma chamada dispara na
+   * hora; o agendador, a cada minuto (a chamada aberta com horas de
+   * antecedência só aparece na lista uma hora antes, e uma vaga pode abrir).
+   */
+  deliverWatches(): Promise<number>;
 }
 
 /** Porta de saída: onde as chamadas ficam até sumir. */
@@ -154,6 +187,56 @@ export interface CompanionStatsRepository {
     until: Date,
   ): Promise<void>;
   listRecent(days: number): Promise<DayStats[]>;
+}
+
+/**
+ * Porta de saída: os pedidos de "Me avise se abrirem", um por aluno, até
+ * vencerem. Não confundir com `WatcherRepository`, a contagem de "de olho".
+ */
+export interface CallWatchRepository {
+  /** Grava o pedido do aluno no lugar do que houver. */
+  put(watch: CallWatch): Promise<void>;
+  /** O pedido do aluno que ainda vale em `now`; `null` sem ele. */
+  find(student: string, now: Date): Promise<CallWatch | null>;
+  /** Os pedidos que ainda valem em `now`. */
+  listActive(now: Date): Promise<CallWatch[]>;
+  /**
+   * Apaga o pedido se ele ainda for o mesmo (o mesmo `createdAt`), de uma vez
+   * só: dois envios ao mesmo tempo não mandam dois avisos. `false` se outro
+   * já o levou ou o aluno fez outro pedido.
+   */
+  claim(watch: CallWatch): Promise<boolean>;
+  /** Devolve o pedido cujo aviso não chegou, se o aluno não fez outro. */
+  restore(watch: CallWatch): Promise<void>;
+  remove(student: string): Promise<void>;
+}
+
+/** Um aviso no aparelho do aluno. */
+export type PushMessage = {
+  title: string;
+  body: string;
+  /** Agrupa os avisos no aparelho (`thread-id`). */
+  thread: string;
+  /** O aviso novo com a mesma chave fica no lugar do anterior. */
+  collapseId: string;
+  /** Para onde o toque leva no app. */
+  target: 'companion';
+  /** Depois disso, quem estava sem sinal já não recebe. */
+  expiresAt: Date;
+};
+
+/**
+ * `sent`: a Apple aceitou. `gone`: o aparelho não recebe mais por esse token
+ * (o app saiu, o token mudou). `failed`: não deu agora (rede, a Apple, a
+ * chave), e outro envio pode dar.
+ */
+export type PushResult = 'sent' | 'gone' | 'failed';
+
+/** Porta de saída: o push para o aparelho (o APNs, no iPhone). */
+export interface PushSender {
+  send(device: PushDevice, message: PushMessage): Promise<PushResult>;
+  /** Fecha a conexão no desligamento. */
+  close?(): Promise<void>;
 }
 
 /** Porta de saída: quem olhou a lista há pouco, pelo hash do passe. */

@@ -9,7 +9,10 @@ import {
   UnavailableError,
 } from '../../shared/errors.ts';
 import {
+  CALL_WATCH_SEEN_LIMIT,
+  callForWatch,
   checkName,
+  checkWatchWindow,
   COMPANION_LIMITS,
   hidesCall,
   isListed,
@@ -28,7 +31,9 @@ import {
   statSlot,
   STATS_RETENTION_MS,
   WATCH_WINDOW_MS,
+  watchMessage,
   type Call,
+  type CallWatch,
   type HourStatKey,
   type ReportReason,
   type ReportSource,
@@ -37,8 +42,12 @@ import {
 import type {
   CallReportRepository,
   CallRepository,
+  CallWatchRepository,
   Companion,
   CompanionStatsRepository,
+  PushMessage,
+  PushResult,
+  PushSender,
   WatcherRepository,
 } from './ports.ts';
 import type { StudentActor } from '../students/ports.ts';
@@ -67,6 +76,21 @@ const sessionRequired = () =>
 /** Quanto a contagem de "de olho agora" fica guardada antes de contar de novo. */
 export const WATCHING_CACHE_MS = 30 * 1000;
 
+const pushUnavailable = () =>
+  new UnavailableError(
+    'push_unavailable',
+    'Notifications to the iPhone are not available right now',
+  );
+
+/** O aviso da chamada no aparelho: até ela sair da lista, depois não serve. */
+const watchPush = (call: Call): PushMessage => ({
+  ...watchMessage(call),
+  thread: 'companion',
+  collapseId: 'companion-watch',
+  target: 'companion',
+  expiresAt: call.listedUntil,
+});
+
 type Counts = Partial<Record<StatKey | HourStatKey, number>>;
 
 /** Mais um em cada contagem. */
@@ -82,12 +106,19 @@ const one = (...keys: (StatKey | HourStatKey)[]): Counts =>
  *
  * Os números do dia (`stats`) são só contagens; uma falha ao gravá-los não
  * atrapalha o pedido de ninguém.
+ *
+ * O "Me avise se abrirem" (`watches` e `push`) manda um push para o iPhone
+ * de quem pediu quando aparece na lista uma chamada que serve. O envio não
+ * segura quem abriu, e a falha dele vai só para `onPushError`.
  */
 export function createCompanion({
   calls,
   reports,
   stats = null,
   watchers = null,
+  watches = null,
+  push = null,
+  onPushError = () => undefined,
   watchingCacheMs = WATCHING_CACHE_MS,
   now = systemClock,
 }: {
@@ -97,10 +128,50 @@ export function createCompanion({
   stats?: CompanionStatsRepository | null;
   /** `null`: sem a contagem de "de olho agora". */
   watchers?: WatcherRepository | null;
+  /** `null` (ou sem `push`): sem o "Me avise se abrirem" pelo servidor. */
+  watches?: CallWatchRepository | null;
+  /** `null`: sem a chave do APNs, o push fica desligado. */
+  push?: PushSender | null;
+  onPushError?: (err: unknown) => void;
   watchingCacheMs?: number;
   now?: Clock;
 }): Companion {
   const at = () => new Date(now());
+  const alerts = watches && push ? { watches, push } : null;
+
+  /** Manda o aviso e diz se chegou; erro do envio não sobe. */
+  async function sendWatch(watch: CallWatch, call: Call) {
+    if (!alerts) return false;
+    let result: PushResult;
+    try {
+      result = await alerts.push.send(watch.device, watchPush(call));
+    } catch (err) {
+      onPushError(err);
+      result = 'failed';
+    }
+    // não chegou agora: o pedido volta, e a próxima rodada tenta de novo (o
+    // aviso repetido fica no lugar do anterior, pelo `collapseId`). O token
+    // que a Apple recusou de vez vai embora com o pedido
+    if (result === 'failed')
+      await alerts.watches.restore(watch).catch(onPushError);
+    return result === 'sent';
+  }
+
+  async function deliverWatches() {
+    if (!alerts) return 0;
+    const time = at();
+    const pending = await alerts.watches.listActive(time);
+    if (!pending.length) return 0;
+    const listed = await calls.listListed(time);
+    let sent = 0;
+    for (const watch of pending) {
+      const call = callForWatch(watch, listed);
+      // um aviso por pedido: quem leva o pedido primeiro manda
+      if (!call || !(await alerts.watches.claim(watch))) continue;
+      if (await sendWatch(watch, call)) sent++;
+    }
+    return sent;
+  }
 
   /** Conta no dia de São Paulo; erro ao gravar não sobe. */
   async function bump(counts: Counts, time = at()) {
@@ -248,14 +319,12 @@ export function createCompanion({
       await bump(one(`opened_${call.kind}`), time);
       // uma chamada aberta por aluno: fica a mais nova, e as outras acabam.
       // Duas aberturas juntas chegam à mesma conta, e só uma fica
-      if (
-        actor &&
-        (await keepNewestHosted(actor.studentId, time)) !== call.id
-      ) {
-        const current = await calls.find(call.id, time);
-        if (current) return { call: memberView(current, host.id), memberKey };
-      }
-      return { call: memberView(call, host.id), memberKey };
+      let current = call;
+      if (actor && (await keepNewestHosted(actor.studentId, time)) !== call.id)
+        current = (await calls.find(call.id, time)) ?? call;
+      // quem pediu o aviso fica sabendo agora, sem segurar quem abriu
+      if (alerts) void deliverWatches().catch(onPushError);
+      return { call: memberView(current, host.id), memberKey };
     },
 
     async join(callId, name, actor) {
@@ -407,6 +476,7 @@ export function createCompanion({
 
     async dropStudent(studentId) {
       const time = at();
+      await watches?.remove(studentId);
       for (const call of await calls.listAliveWith(studentId, time)) {
         if (call.endedAt) continue;
         const mine = call.members.filter(item => item.student === studentId);
@@ -434,6 +504,39 @@ export function createCompanion({
     async statsForReview(days) {
       return stats ? stats.listRecent(days) : [];
     },
+
+    async watchStatus(actor) {
+      const watch = await watches?.find(actor.studentId, at());
+      return {
+        available: Boolean(alerts),
+        watch: watch ? { kind: watch.kind, until: watch.until } : null,
+      };
+    },
+
+    async watch(actor, request) {
+      if (!alerts) throw pushUnavailable();
+      const time = at();
+      checkWatchWindow(request.until, time);
+      const watch: CallWatch = {
+        student: actor.studentId,
+        kind: request.kind,
+        until: request.until,
+        seen: [...new Set(request.seen)].slice(0, CALL_WATCH_SEEN_LIMIT),
+        device: {
+          platform: request.device.platform,
+          token: request.device.token,
+        },
+        createdAt: time,
+      };
+      await alerts.watches.put(watch);
+      return { kind: watch.kind, until: watch.until };
+    },
+
+    async unwatch(actor) {
+      await watches?.remove(actor.studentId);
+    },
+
+    deliverWatches,
   };
 }
 

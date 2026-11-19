@@ -11,6 +11,7 @@ import type {
 import type {
   CallReportRepository,
   CallRepository,
+  CallWatchRepository,
   CompanionStatsRepository,
   WatcherRepository,
 } from '../../../modules/companion/ports.ts';
@@ -32,6 +33,7 @@ import {
 import {
   createCallReportRepository,
   createCallRepository,
+  createCallWatchRepository,
   createCompanionStatsRepository,
   createWatcherRepository,
 } from './companionRepository.ts';
@@ -61,6 +63,7 @@ export type Repositories = {
   companionReports: CallReportRepository;
   companionStats: CompanionStatsRepository;
   companionWatchers: WatcherRepository;
+  companionCallWatches: CallWatchRepository;
   students: StudentRepository;
   studentSessions: StudentSessionRepository;
   campusNotices: NoticeRepository;
@@ -83,6 +86,9 @@ export function createMongoRepositories(models: Models): Repositories {
     companionReports: createCallReportRepository(models.companionReports),
     companionStats: createCompanionStatsRepository(models.companionStats),
     companionWatchers: createWatcherRepository(models.companionWatchers),
+    companionCallWatches: createCallWatchRepository(
+      models.companionCallWatches,
+    ),
     students: createStudentRepository(models.students),
     studentSessions: createStudentSessionRepository(models.studentSessions),
     campusNotices: createNoticeRepository(models.campusNotices),

@@ -1,6 +1,10 @@
 import mongoose, { type Connection } from 'mongoose';
 
-import { COMPANION_LIMITS } from '../../../modules/companion/domain.ts';
+import {
+  CALL_KINDS,
+  CALL_WATCH_SEEN_LIMIT,
+  COMPANION_LIMITS,
+} from '../../../modules/companion/domain.ts';
 import { MESSAGE_LIMITS } from '../../../modules/mural/domain.ts';
 import { REPORT_LIMITS } from '../../../modules/reports/domain.ts';
 import { STUDENT_LIMITS } from '../../../modules/students/domain.ts';
@@ -234,6 +238,32 @@ const companionWatcherSchema = new mongoose.Schema(
 companionWatcherSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 /**
+ * O "Me avise se abrirem": um pedido por aluno (o `_id`), com o token de push
+ * do aparelho, até `until`, quando o índice TTL o apaga. O aviso também o
+ * apaga, então o token não fica além de um dia.
+ */
+const companionCallWatchSchema = new mongoose.Schema(
+  {
+    _id: { required: true, type: String },
+    kind: { required: true, type: String, enum: CALL_KINDS },
+    until: { required: true, type: Date },
+    seen: {
+      default: [],
+      type: [String],
+      validate: {
+        validator: (value: string[]) => value.length <= CALL_WATCH_SEEN_LIMIT,
+        message: `seen must have at most ${CALL_WATCH_SEEN_LIMIT} ids`,
+      },
+    },
+    platform: { required: true, type: String, enum: ['ios'] },
+    token: { required: true, maxlength: 200, type: String },
+    createdAt: { required: true, type: Date },
+  },
+  { versionKey: false, bufferCommands: false },
+);
+companionCallWatchSchema.index({ until: 1 }, { expireAfterSeconds: 0 });
+
+/**
  * Os alunos identificados (v2): matrícula e nome cifrados (AES-GCM), o HMAC
  * da matrícula para achar, os aparelhos (HMAC da instalação) e o banimento.
  */
@@ -453,6 +483,13 @@ export function defineModels(connection: Connection) {
     companionWatchers: connection.model(
       'CompanionWatchers',
       companionWatcherSchema,
+    ),
+    // o nome escrito: "companionwatches" seria fácil de trocar por
+    // "companionwatchers", a contagem de "de olho"
+    companionCallWatches: connection.model(
+      'CompanionCallWatches',
+      companionCallWatchSchema,
+      'companioncallwatches',
     ),
     students: connection.model('Students', studentSchema),
     studentSessions: connection.model('StudentSessions', studentSessionSchema),

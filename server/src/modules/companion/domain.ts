@@ -470,3 +470,88 @@ export function memberView(call: Call, member: string): MemberCall {
     })),
   };
 }
+
+/* ------------------------------------------------- Me avise se abrirem */
+
+/**
+ * Até quanto à frente vai o pedido: a janela livre do dia inteiro (das 9h às
+ * 18h, por exemplo), não só as 3 horas em que se abre uma chamada.
+ */
+export const CALL_WATCH_AHEAD_MS = 24 * 60 * MINUTE;
+/** As chamadas que o aluno via quando pediu, que não viram aviso. */
+export const CALL_WATCH_SEEN_LIMIT = 50;
+
+/** Onde o aviso chega: o iPhone, pelo APNs (o Android lê a lista sozinho). */
+export type PushDevice = { platform: 'ios'; token: string };
+
+/**
+ * O "Me avise se abrirem" de um aluno, um por aluno: com a lista vazia, ele
+ * pede um aviso para a janela livre em vez de abrir a própria mesa. Vira um
+ * aviso só, e o pedido acaba ali.
+ */
+export type CallWatch = {
+  student: string;
+  kind: CallKind;
+  /** Até quando vigiar: a chamada com o horário até aqui vale. */
+  until: Date;
+  /** As chamadas que o aluno já via quando pediu. */
+  seen: string[];
+  device: PushDevice;
+  /** Diferencia este pedido do próximo que o aluno fizer. */
+  createdAt: Date;
+};
+
+/** O pedido como o aluno o vê de volta, sem o aparelho. */
+export type CallWatchView = { kind: CallKind; until: Date };
+
+/** O pedido vale do momento até `CALL_WATCH_AHEAD_MS` à frente. */
+export function checkWatchWindow(until: Date, now: Date): void {
+  const time = until.getTime();
+  if (
+    !Number.isFinite(time) ||
+    time <= now.getTime() ||
+    time > now.getTime() + CALL_WATCH_AHEAD_MS
+  )
+    throw new InvalidInputError(
+      'until must be within the next 24 hours',
+      'invalid_window',
+    );
+}
+
+/**
+ * A chamada que o pedido avisa, entre as que estão na lista: do tipo pedido,
+ * com o horário até `until`, com vaga, que o aluno não via e em que ele não
+ * está (a dele inclusive). Com várias, a de horário mais cedo.
+ */
+export function callForWatch(watch: CallWatch, listed: Call[]): Call | null {
+  const fits = listed.filter(
+    call =>
+      call.kind === watch.kind &&
+      call.at <= watch.until &&
+      call.members.length < call.capacity &&
+      !watch.seen.includes(call.id) &&
+      !call.members.some(member => member.student === watch.student),
+  );
+  return fits.sort((a, b) => a.at.getTime() - b.at.getTime())[0] ?? null;
+}
+
+const CLOCK_TIME = new Intl.DateTimeFormat('pt-BR', {
+  timeZone: 'America/Sao_Paulo',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
+/** O texto do aviso, com o horário de São Paulo (HH:MM). */
+export function watchMessage(call: Call): { title: string; body: string } {
+  const time = CLOCK_TIME.format(call.at);
+  return call.kind === 'lunch'
+    ? {
+        title: 'Abriram uma mesa no seu intervalo',
+        body: `Mesa às ${time}. Toque para ver e sentar junto.`,
+      }
+    : {
+        title: 'Abriram um grupo para voltar',
+        body: `Saída às ${time}. Toque para ver e entrar no grupo.`,
+      };
+}

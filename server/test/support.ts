@@ -11,11 +11,13 @@ import {
   removedStudent,
   type Call,
   type CallReport,
+  type CallWatch,
   type DayStats,
 } from '../src/modules/companion/domain.ts';
 import type {
   CallReportRepository,
   CallRepository,
+  CallWatchRepository,
   CompanionStatsRepository,
   WatcherRepository,
 } from '../src/modules/companion/ports.ts';
@@ -213,6 +215,7 @@ export function memoryRepositories(clock = manualClock()) {
       callReports: companion.reports,
       companionStats: companion.stats,
       watched: companion.watched,
+      callWatches: companion.callWatches,
       campusNotices: campus.notices,
       campusAnswers: campus.answers,
       campusPeople: campus.people,
@@ -230,6 +233,7 @@ export function memoryRepositories(clock = manualClock()) {
       companionReports: companion.reportRepository,
       companionStats: companion.statsRepository,
       companionWatchers: companion.watcherRepository,
+      companionCallWatches: companion.callWatchRepository,
       campusNotices: campus.noticeRepository,
       campusAnswers: campus.answerRepository,
       campusPeople: campus.contributorRepository,
@@ -442,15 +446,49 @@ export function memoryCompanion() {
     },
   };
 
+  // os pedidos de "Me avise se abrirem", um por aluno, como no MongoDB: o
+  // `claim` leva o pedido uma vez só
+  const callWatches = new Map<string, CallWatch>();
+  const callWatchRepository: CallWatchRepository = {
+    async put(watch) {
+      callWatches.set(watch.student, structuredClone(watch));
+    },
+    async find(student, now) {
+      const watch = callWatches.get(student);
+      return watch && watch.until > now ? structuredClone(watch) : null;
+    },
+    async listActive(now) {
+      return [...callWatches.values()]
+        .filter(watch => watch.until > now)
+        .map(watch => structuredClone(watch));
+    },
+    async claim(watch) {
+      const stored = callWatches.get(watch.student);
+      if (stored?.createdAt.getTime() !== watch.createdAt.getTime())
+        return false;
+      callWatches.delete(watch.student);
+      return true;
+    },
+    async restore(watch) {
+      if (!callWatches.has(watch.student))
+        callWatches.set(watch.student, structuredClone(watch));
+    },
+    async remove(student) {
+      callWatches.delete(student);
+    },
+  };
+
   return {
     calls,
     reports,
     stats,
     watched,
+    callWatches,
     callRepository,
     reportRepository,
     statsRepository,
     watcherRepository,
+    callWatchRepository,
   };
 }
 

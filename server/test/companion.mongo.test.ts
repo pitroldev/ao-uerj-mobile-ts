@@ -237,3 +237,69 @@ test('the stored call keeps only hashes of the keys, the recent phrases and one 
     NotFoundError,
   );
 });
+
+test('the "Me avise" requests: one per student, gone by TTL, and a claim takes each one once', async () => {
+  const { models, repositories, clock } = await open();
+  assert.deepEqual(
+    (await models.companionCallWatches.collection.indexes())
+      .filter(index => !('_id' in index.key))
+      .map(index => [index.key, index.expireAfterSeconds ?? null]),
+    [[{ until: 1 }, 0]],
+  );
+  assert.equal(
+    models.companionCallWatches.collection.collectionName,
+    'companioncallwatches',
+  );
+  const watches = repositories.companionCallWatches;
+  const now = new Date(clock.now());
+  const watch = {
+    student: 'marina',
+    kind: 'lunch' as const,
+    until: new Date(now.getTime() + 60 * MINUTE),
+    seen: ['a', 'b'],
+    device: { platform: 'ios' as const, token: 'ab'.repeat(32) },
+    createdAt: now,
+  };
+  await watches.put(watch);
+  await watches.put({ ...watch, student: 'lucas', kind: 'home' });
+  assert.deepEqual(await watches.find('marina', now), watch);
+  assert.equal(
+    await watches.find('marina', new Date(now.getTime() + 60 * MINUTE)),
+    null,
+  );
+  assert.deepEqual(
+    (await watches.listActive(now)).map(item => item.student).sort(),
+    ['lucas', 'marina'],
+  );
+
+  // o novo fica no lugar do antigo
+  const newer = { ...watch, seen: [], createdAt: new Date(now.getTime() + 1) };
+  await watches.put(newer);
+  assert.equal(await models.companionCallWatches.countDocuments(), 2);
+  assert.equal(await watches.claim(watch), false);
+
+  // três envios ao mesmo tempo: um leva o pedido
+  const claims = await Promise.all([
+    watches.claim(newer),
+    watches.claim(newer),
+    watches.claim(newer),
+  ]);
+  assert.deepEqual(claims.filter(Boolean), [true]);
+  assert.equal(await watches.find('marina', now), null);
+
+  // o que não chegou volta; com outro pedido no lugar, fica o outro
+  await watches.restore(newer);
+  assert.deepEqual(await watches.find('marina', now), newer);
+  await watches.restore(watch);
+  assert.deepEqual(
+    (await watches.find('marina', now))?.createdAt,
+    newer.createdAt,
+  );
+
+  await watches.remove('marina');
+  await watches.remove('marina');
+  assert.deepEqual(
+    (await watches.listActive(now)).map(item => item.student),
+    ['lucas'],
+  );
+});

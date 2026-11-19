@@ -17,6 +17,7 @@ import { perKeyLimit, perMinuteLimit, requireDatabase } from '../middleware.ts';
 import { campusRoutes } from './campus.ts';
 import { campusNowRoutes } from './campusNow.ts';
 import { companionRoutes } from './companion.ts';
+import { companionWatchRoutes } from './companionWatch.ts';
 import { requireStudent } from './studentAuth.ts';
 import {
   actorOf,
@@ -135,6 +136,18 @@ export function createV2Router({
       campusLimit: perMinuteLimit(companionLimits.perIp),
       memberLimit: perKeyLimit(companionLimits.perMember, req =>
         req.get('x-member-key'),
+      ),
+    }),
+  );
+
+  // o "Me avise se abrirem" do iPhone: só com a sessão, contado por aluno
+  routes.use(
+    companionWatchRoutes({
+      companion,
+      withDatabase,
+      session: requireStudentSession,
+      studentLimit: perKeyLimit(companionLimits.perMember, (req: Request) =>
+        req.res ? actorOf(req.res)?.studentId : undefined,
       ),
     }),
   );

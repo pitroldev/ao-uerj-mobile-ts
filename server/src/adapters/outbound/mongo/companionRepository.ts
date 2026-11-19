@@ -5,6 +5,7 @@ import {
   type Call,
   type CallKind,
   type CallReport,
+  type CallWatch,
   type DayStats,
   type DestinationId,
   type Member,
@@ -14,10 +15,11 @@ import {
 import type {
   CallReportRepository,
   CallRepository,
+  CallWatchRepository,
   CompanionStatsRepository,
   WatcherRepository,
 } from '../../../modules/companion/ports.ts';
-import { guarded } from './guarded.ts';
+import { guarded, isDuplicateKey } from './guarded.ts';
 import type { Models } from './models.ts';
 
 /** O documento: a chave do membro fica em `key` (o `id` é do Mongoose). */
@@ -369,5 +371,85 @@ export function createWatcherRepository(
       }),
     count: now =>
       guarded(() => model.countDocuments({ expiresAt: { $gt: now } })),
+  };
+}
+
+/** O pedido de aviso no banco: o aluno no `_id`, o aparelho aberto em campos. */
+type StoredWatch = {
+  _id: string;
+  kind: CallKind;
+  until: Date;
+  seen?: string[];
+  platform: 'ios';
+  token: string;
+  createdAt: Date;
+};
+
+const toStoredWatch = (watch: CallWatch): StoredWatch => ({
+  _id: watch.student,
+  kind: watch.kind,
+  until: watch.until,
+  seen: watch.seen,
+  platform: watch.device.platform,
+  token: watch.device.token,
+  createdAt: watch.createdAt,
+});
+
+const toCallWatch = (doc: StoredWatch): CallWatch => ({
+  student: doc._id,
+  kind: doc.kind,
+  until: doc.until,
+  seen: doc.seen ?? [],
+  device: { platform: doc.platform, token: doc.token },
+  createdAt: doc.createdAt,
+});
+
+/**
+ * Os pedidos de "Me avise se abrirem", um por aluno (o `_id`). O índice TTL
+ * em `until` apaga os vencidos; até ele passar, as consultas os ignoram.
+ */
+export function createCallWatchRepository(
+  model: Models['companionCallWatches'],
+): CallWatchRepository {
+  return {
+    put: watch =>
+      guarded(async () => {
+        const { _id, ...fields } = toStoredWatch(watch);
+        await model.replaceOne({ _id }, fields, { upsert: true });
+      }),
+    find: (student, now) =>
+      guarded(async () => {
+        const doc = await model
+          .findOne({ _id: student, until: { $gt: now } })
+          .lean<StoredWatch>();
+        return doc ? toCallWatch(doc) : null;
+      }),
+    listActive: now =>
+      guarded(async () => {
+        const docs = await model
+          .find({ until: { $gt: now } })
+          .lean<StoredWatch[]>();
+        return docs.map(toCallWatch);
+      }),
+    claim: watch =>
+      guarded(async () => {
+        const doc = await model
+          .findOneAndDelete({ _id: watch.student, createdAt: watch.createdAt })
+          .lean<StoredWatch>();
+        return Boolean(doc);
+      }),
+    restore: watch =>
+      guarded(async () => {
+        try {
+          await model.create(toStoredWatch(watch));
+        } catch (err) {
+          // o aluno já fez outro pedido: fica o novo
+          if (!isDuplicateKey(err)) throw err;
+        }
+      }),
+    remove: student =>
+      guarded(async () => {
+        await model.deleteOne({ _id: student });
+      }),
   };
 }

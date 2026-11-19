@@ -1,4 +1,4 @@
-import { createPrivateKey, createPublicKey } from 'node:crypto';
+import { createPrivateKey, createPublicKey, type KeyObject } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -208,6 +208,51 @@ const appAttestAppId = z
     return null;
   });
 
+/** O Key ID e o Team ID da Apple: 10 letras maiúsculas e dígitos. */
+const APPLE_ID = /^[A-Z0-9]{10}$/;
+
+/** O Key ID da chave do APNs; vazio desliga o push. */
+const apnsKeyId = z
+  .string()
+  .optional()
+  .transform((value, ctx) => {
+    const id = value?.trim();
+    if (!id) return null;
+    if (APPLE_ID.test(id)) return id;
+    ctx.addIssue({
+      code: 'custom',
+      message: 'expected the 10-character Key ID of the APNs key',
+    });
+    return null;
+  });
+
+/**
+ * A chave .p8 do APNs, em PEM. O `\n` escrito vale como quebra de linha: no
+ * .env, a chave cabe numa linha só. Vazio desliga o push.
+ */
+const apnsPrivateKey = z
+  .string()
+  .optional()
+  .transform((value, ctx): KeyObject | null => {
+    const pem = value?.trim().replace(/\\n/g, '\n');
+    if (!pem) return null;
+    try {
+      const key = createPrivateKey(pem);
+      if (
+        key.asymmetricKeyType === 'ec' &&
+        key.asymmetricKeyDetails?.namedCurve === 'prime256v1'
+      )
+        return key;
+    } catch {
+      // o mesmo erro de uma chave de outro tipo
+    }
+    ctx.addIssue({
+      code: 'custom',
+      message: 'expected the .p8 key of APNs (EC P-256, in PEM)',
+    });
+    return null;
+  });
+
 const EnvSchema = z
   .object({
     NODE_ENV: z
@@ -301,6 +346,21 @@ const EnvSchema = z
     APPLE_APP_ATTEST_ENVIRONMENT: z
       .enum(['production', 'development'])
       .default('production'),
+    /**
+     * O push para o iPhone (o "Me avise se abrirem" da Companhia agora), com
+     * a chave .p8 do APNs. Sem o Key ID ou a chave, fica desligado.
+     */
+    APNS_KEY_ID: apnsKeyId,
+    APNS_PRIVATE_KEY: apnsPrivateKey,
+    APNS_TEAM_ID: z
+      .string()
+      .trim()
+      .regex(APPLE_ID, 'expected the 10-character Team ID')
+      .default('4L52AMB8J7'),
+    /** O bundle id do app (`apns-topic`). */
+    APNS_TOPIC: z.string().trim().min(1).default('com.aouerjmobile'),
+    /** `sandbox`: os builds do Xcode (debug); a loja e o TestFlight, `production`. */
+    APNS_ENVIRONMENT: z.enum(['production', 'sandbox']).default('production'),
     /**
      * Os tokens anônimos dos apps antigos (2.11.1 a 2.13) nas rotas de aluno:
      * `accept` enquanto eles estiverem por aí; `refuse` exige a sessão.
@@ -438,6 +498,11 @@ export type Config = {
     /** Por aluno, por minuto: os pedidos com uma sessão que o cache conhece. */
     sessionPerMinute: number;
   };
+  /** O push para o aparelho do aluno. */
+  push: {
+    /** `null`: sem `APNS_KEY_ID` ou `APNS_PRIVATE_KEY`, o iPhone não recebe. */
+    apns: ApnsSettings | null;
+  };
   /** As atualizações pelo ar (o protocolo 1 do expo-updates). */
   ota: {
     /** A pasta dos arquivos; por padrão, ao lado da dos anexos. */
@@ -471,6 +536,17 @@ export type AppAttestSettings = {
   appId: string;
   /** `development` aceita também as chaves dos builds do Xcode. */
   environment: 'production' | 'development';
+};
+
+/** O APNs, com a chave .p8 da conta da Apple. */
+export type ApnsSettings = {
+  keyId: string;
+  teamId: string;
+  privateKey: KeyObject;
+  /** O bundle id do app. */
+  topic: string;
+  /** `sandbox` só para os builds do Xcode. */
+  environment: 'production' | 'sandbox';
 };
 
 /** O diretório do pacote (server/), onde ficam os anexos por padrão. */
@@ -544,6 +620,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       acceptTokens: value.STUDENT_TOKENS === 'accept',
       perMinute: value.STUDENT_RATE_LIMIT_PER_MINUTE,
       sessionPerMinute: value.STUDENT_SESSION_LIMIT_PER_MINUTE,
+    },
+    push: {
+      apns:
+        value.APNS_KEY_ID && value.APNS_PRIVATE_KEY
+          ? {
+              keyId: value.APNS_KEY_ID,
+              teamId: value.APNS_TEAM_ID,
+              privateKey: value.APNS_PRIVATE_KEY,
+              topic: value.APNS_TOPIC,
+              environment: value.APNS_ENVIRONMENT,
+            }
+          : null,
     },
     studentAccess: {
       issuer: value.PRIVATE_TOKEN_ISSUER,

@@ -83,6 +83,7 @@ test('the connection opens on the old collections, with the indexes the queries 
       'campusnotices',
       'campuspeople',
       'companioncalls',
+      'companioncallwatches',
       'companionreports',
       'companionstats',
       'companionwatchers',

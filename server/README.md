@@ -485,6 +485,55 @@ Sem a chamada (acabou, saiu do ar, nunca existiu): 404 `call_not_found`; uma
 chave que não é dela: 403 `not_a_member`; uma chave tirada por quem chamou:
 403 `removed_from_call`. Os tipos estão em `contract.ts`.
 
+#### "Me avise se abrirem" no iPhone
+
+Com a lista vazia, o aluno pede um aviso para a janela livre dele em vez de
+abrir a própria mesa. No Android, uma tarefa do aparelho lê a lista a cada 15
+minutos; o iPhone não roda nada sem a tela, então o servidor manda um push
+pelo APNs.
+
+- **O pedido:** um por aluno (o novo fica no lugar do antigo), com o tipo, até
+  quando vigiar (`until`, de agora até 24 horas à frente: a janela livre do
+  dia inteiro), as chamadas que o aluno já via (`seen`, até 50) e o token do
+  APNs do aparelho. Fica na coleção `companioncallwatches` (o `_id` é o
+  aluno) até `until`, quando o índice TTL o apaga.
+- **O aviso:** sai quando aparece na lista uma chamada do tipo, com o horário
+  até `until`, com vaga, fora de `seen` e sem o aluno dentro (a dele também
+  não avisa); com várias, a de horário mais cedo. Um push só por pedido: quem
+  manda apaga o pedido na mesma operação que o lê, então duas rodadas juntas
+  (ou as duas cores na troca azul/verde) não mandam dois. Quem abre dispara a
+  rodada na hora, sem esperar o envio; um agendador roda a cada minuto,
+  porque a chamada aberta com antecedência só aparece na lista uma hora
+  antes, e uma vaga pode abrir.
+- **O push:** "Abriram uma mesa no seu intervalo" / "Mesa às HH:MM. Toque
+  para ver e sentar junto." (ou "Abriram um grupo para voltar" / "Saída às
+  HH:MM. Toque para ver e entrar no grupo."), com o horário de São Paulo,
+  `thread-id` `companion`, `apns-collapse-id` `companion-watch` e
+  `"target": "companion"` fora do `aps`. Vence (`apns-expiration`) quando a
+  chamada sai da lista.
+- **O APNs** (`adapters/outbound/push/apns.ts`): HTTP/2 com o token do
+  provedor, um JWT ES256 assinado com a chave .p8 e refeito a cada 40 minutos;
+  uma conexão só, reaberta quando cai. 410 e 400 `BadDeviceToken` (ou
+  `DeviceTokenNotForTopic`) descartam o token com o pedido; outra recusa, a
+  rede ou 10 segundos sem resposta devolvem o pedido para a próxima rodada (o
+  push repetido fica no lugar do anterior, pelo `apns-collapse-id`). O log
+  leva o status e o motivo da Apple, nunca o token do aparelho.
+- **A configuração:** `APNS_KEY_ID` e `APNS_PRIVATE_KEY` (a chave .p8, em PEM;
+  numa linha só, com `\n` no lugar das quebras), `APNS_TEAM_ID` (padrão
+  `4L52AMB8J7`), `APNS_TOPIC` (padrão `com.aouerjmobile`) e
+  `APNS_ENVIRONMENT` (`production`, a loja e o TestFlight; `sandbox`, os
+  builds do Xcode). Sem o Key ID ou a chave, o push fica desligado: o `GET`
+  diz `available: false`, e o pedido recebe 503 `push_unavailable`.
+
+| Rota                                     | Com    | O que faz                                                               |
+| ---------------------------------------- | ------ | ----------------------------------------------------------------------- |
+| `GET /aouerj/v2/companion/watch`         | sessão | `available` e o pedido que vale (`watch`, ou `null`)                    |
+| `POST /aouerj/v2/companion/watch`        | sessão | Pede o aviso: `{ watch }`; 400 `invalid_window`, 503 `push_unavailable` |
+| `POST /aouerj/v2/companion/watch/cancel` | sessão | Cancela (204, com ou sem pedido)                                        |
+
+Os pedidos contam no limite por aluno (`COMPANION_MEMBER_LIMIT_PER_MINUTE`).
+O banimento apaga o pedido do aluno.
+
 ### Agora no campus
 
 Avisos curtos dos próprios alunos sobre o campus, que somem sozinhos (o
@@ -815,8 +864,10 @@ O que mudou de propósito:
   e os hashes das chaves de membro) até pouco depois do horário, quando o
   índice TTL a apaga; as denúncias, por 30 dias; o hash do passe de quem olhou
   a lista, por 15 minutos; e as contagens de cada dia, por meio ano. Com a
-  sessão, também o id do aluno de cada membro e de quem denunciou. Sem IP e
-  sem localização.
+  sessão, também o id do aluno de cada membro e de quem denunciou. O "Me
+  avise se abrirem" do iPhone guarda o id do aluno, o tipo, o horário, os ids
+  das chamadas que ele via e o token do APNs do aparelho até o aviso sair ou
+  até `until` (no máximo um dia). Sem IP e sem localização.
 - **O que fica guardado em Agora no campus:** cada aviso (tipo, situação,
   lugar, o id de quem avisou, as contagens e as datas) por 70 dias, para o
   resumo do mês anterior; o que cada aluno fez com cada aviso (a resposta, o

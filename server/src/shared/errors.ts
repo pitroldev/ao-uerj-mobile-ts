@@ -13,10 +13,13 @@ export class DomainError extends Error {
   }
 }
 
-/** Entrada que as regras do domínio recusam (vira 400). */
+/**
+ * Entrada que as regras do domínio recusam (vira 400). O código padrão é o
+ * de todo pedido malformado; um mais preciso diz ao app o que corrigir.
+ */
 export class InvalidInputError extends DomainError {
-  constructor(message: string) {
-    super('invalid_request', message);
+  constructor(message: string, code = 'invalid_request') {
+    super(code, message);
   }
 }
 

@@ -29,8 +29,10 @@ import {
 } from './adapters/outbound/ota/certificate.ts';
 import { createOtaSignatureVerifier } from './adapters/outbound/ota/signature.ts';
 import { createPortalProbe } from './adapters/outbound/portal/probe.ts';
+import { createApnsSender } from './adapters/outbound/push/apns.ts';
 import { createThreadedSolver } from './adapters/outbound/scheduleSolver/threadedSolver.ts';
 import type {
+  ApnsSettings,
   AppAttestSettings,
   AttestationSettings,
   Config,
@@ -43,6 +45,7 @@ import {
 import type { AppAttester, AppAttestVerifier } from './modules/access/ports.ts';
 import { createCampusNow } from './modules/campus-now/application.ts';
 import { createCompanion } from './modules/companion/application.ts';
+import type { PushSender } from './modules/companion/ports.ts';
 import { createMural } from './modules/mural/application.ts';
 import { createOtaUpdates } from './modules/ota/application.ts';
 import type { OtaAssetStore, OtaUpdates } from './modules/ota/ports.ts';
@@ -74,6 +77,8 @@ export type Overrides = {
   attester?: AppAttester | null;
   /** O App Attest do iPhone; `null` desliga a entrada pelo iPhone. */
   appAttest?: AppAttestVerifier | null;
+  /** O push para o iPhone; `null` desliga o "Me avise se abrirem". */
+  push?: PushSender | null;
   /**
    * As atualizações pelo ar: o certificado do code signing (`null` desliga
    * as publicações), a assinatura pronta do "nada novo" e os arquivos. Com
@@ -88,6 +93,13 @@ export type Overrides = {
 
 /** O tempo que as conexões abertas têm para terminar no desligamento. */
 const SHUTDOWN_GRACE_MS = 10000;
+
+/**
+ * De quanto em quanto tempo os pedidos de "Me avise se abrirem" olham a
+ * lista: a chamada aberta com antecedência aparece uma hora antes, e uma
+ * vaga pode abrir. Quem abre avisa na hora.
+ */
+const WATCH_DELIVERY_INTERVAL_MS = 60 * 1000;
 
 /** O banco e os repositórios: os de teste ou os do MongoDB. */
 function storageFor(
@@ -218,6 +230,35 @@ function appAttestFor(
 }
 
 /**
+ * O push para o iPhone pelo APNs; sem a chave da conta da Apple, `null`, e o
+ * "Me avise se abrirem" do iPhone fica desligado (503 `push_unavailable`).
+ */
+function pushFor(
+  settings: ApnsSettings | null,
+  logger: Logger,
+): PushSender | null {
+  if (!settings) {
+    logger.warn(
+      'iPhone push is off: APNS_KEY_ID and APNS_PRIVATE_KEY are required',
+    );
+    return null;
+  }
+  return createApnsSender({
+    keyId: settings.keyId,
+    teamId: settings.teamId,
+    privateKey: settings.privateKey,
+    topic: settings.topic,
+    environment: settings.environment,
+    // o status e o motivo da Apple, nunca o token do aparelho
+    onError: err =>
+      logger.warn(
+        { status: err.status, reason: err.reason },
+        'APNs did not take a push',
+      ),
+  });
+}
+
+/**
  * A raiz de composição, o único lugar que conhece os dois lados do
  * hexágono: liga as portas de saída aos adaptadores (MongoDB, arquivos,
  * portal, threads), os casos de uso a elas, e os adaptadores de entrada (o
@@ -240,11 +281,18 @@ export function createServer(
       budgetMs: config.generator.budgetMs,
     });
 
+  const push =
+    overrides.push === undefined
+      ? pushFor(config.push.apns, logger)
+      : overrides.push;
   const companion = createCompanion({
     calls: repositories.companionCalls,
     reports: repositories.companionReports,
     stats: repositories.companionStats,
     watchers: repositories.companionWatchers,
+    watches: repositories.companionCallWatches,
+    push,
+    onPushError: err => logger.warn({ err }, 'companion watch delivery failed'),
   });
   const campusNow = createCampusNow({
     notices: repositories.campusNotices,
@@ -324,6 +372,14 @@ export function createServer(
     () => portal.check(),
     err => logger.warn({ err }, 'portal check failed'),
   );
+  // sem o banco, a rodada falha calada: os pedidos estão nele
+  const watchDeliveries = repeatEvery(
+    WATCH_DELIVERY_INTERVAL_MS,
+    async () => {
+      if (database.isReady()) await companion.deliverWatches();
+    },
+    err => logger.warn({ err }, 'companion watch delivery failed'),
+  );
 
   return {
     app,
@@ -345,6 +401,7 @@ export function createServer(
       );
       void database.connect();
       if (config.portalMonitor.enabled) portalChecks.start();
+      if (push) watchDeliveries.start();
       return address;
     },
 
@@ -356,6 +413,7 @@ export function createServer(
      */
     async stop(): Promise<void> {
       portalChecks.stop();
+      watchDeliveries.stop();
       const forceClose = setTimeout(
         () => server.closeAllConnections(),
         SHUTDOWN_GRACE_MS,
@@ -367,6 +425,7 @@ export function createServer(
       });
       clearTimeout(forceClose);
       await solver.close?.();
+      await push?.close?.();
       await database.disconnect();
     },
   };

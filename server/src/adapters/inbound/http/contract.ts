@@ -399,6 +399,52 @@ export type CompanionPhraseRequest = { phrase: CompanionPhrase };
  */
 export type CompanionReportRequest = { reason: CompanionReportReason };
 
+/*
+ * "Me avise se abrirem" (v2, sessão de aluno): com a lista vazia, o iPhone
+ * pede um push para a janela livre do aluno, em vez de abrir a própria mesa.
+ * Um pedido por aluno; o novo fica no lugar do antigo. Quando aparece na
+ * lista uma chamada do tipo, com o horário até `until`, com vaga, que o aluno
+ * não via (`seen`) e em que ele não está, sai um push só, e o pedido acaba.
+ * O Android não usa: lá, uma tarefa do aparelho lê a lista.
+ *
+ * - `GET /aouerj/v2/companion/watch` → `CompanionWatchStatusResponse`.
+ * - `POST /aouerj/v2/companion/watch` com `PutCompanionWatchRequest` →
+ *   `CompanionWatchResponse`.
+ * - `POST /aouerj/v2/companion/watch/cancel` (corpo `{}`) → 204, com ou sem
+ *   pedido.
+ *
+ * Erros: 401 `session_required`, 400 `invalid_request`, 400
+ * `invalid_window` (`until` no passado ou mais de 24 horas à frente), 503
+ * `push_unavailable` (o servidor está sem a chave do APNs) e 429
+ * `rate_limited`.
+ *
+ * O push: título "Abriram uma mesa no seu intervalo" (ou "Abriram um grupo
+ * para voltar"), `thread-id` `companion`, `apns-collapse-id`
+ * `companion-watch` e, fora do `aps`, `"target": "companion"`.
+ */
+
+/** O pedido como o aluno o vê. */
+export type CompanionWatchView = { kind: CompanionKind; until: string };
+
+/** `available`: o servidor manda o push (tem a chave do APNs). */
+export type CompanionWatchStatusResponse = {
+  available: boolean;
+  watch: CompanionWatchView | null;
+};
+
+/** O corpo de `POST /aouerj/v2/companion/watch`. */
+export type PutCompanionWatchRequest = {
+  kind: CompanionKind;
+  /** ISO 8601, de agora até 24 horas à frente. */
+  until: string;
+  /** Os ids das chamadas que o aluno via (até 50): não viram aviso. */
+  seen: string[];
+  /** O token do APNs do aparelho, em hexadecimal. */
+  push: { platform: 'ios'; token: string };
+};
+
+export type CompanionWatchResponse = { watch: CompanionWatchView };
+
 /* ------------------------------------------- Agora no campus (v2, sessão) */
 
 /*
