@@ -47,6 +47,10 @@ static id<AOBackgroundCheckAPI> SharedBackgroundCheck(void)
 
 /** Lembretes de aula: prefixo dos ids, para trocá-los sem tocar nos outros avisos. */
 static NSString *const kReminderPrefix = @"class:";
+/** Os semanais ("class:weekly:<lembrete>"), que se repetem até o app tirar. */
+static NSString *const kWeeklyPrefix = @"class:weekly:";
+/** A validade dos semanais (segundos desde 1970): o iOS não sabe pará-los sozinho. */
+static NSString *const kWeeklyExpiresKey = @"ao.classReminders.weeklyExpiresAt";
 /**
  * O iOS guarda só os 64 avisos agendados mais próximos: os lembretes usam até
  * 60 e deixam folga para os outros. As avaliações vêm primeiro (até 20); as
@@ -81,10 +85,49 @@ static double AONumber(id value, double fallback)
 }
 
 /**
+ * Tira os lembretes semanais de aula depois da validade (21 dias sem ler a
+ * grade): um aviso que se repete não para sozinho. Roda sempre que o JS
+ * começa (a abertura do app e as rodadas em segundo plano).
+ */
+static void CancelExpiredWeeklyReminders(void)
+{
+  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+  NSTimeInterval expiresAt = [defaults doubleForKey:kWeeklyExpiresKey];
+  if (expiresAt <= 0 || [NSDate date].timeIntervalSince1970 <= expiresAt) {
+    return;
+  }
+  [defaults removeObjectForKey:kWeeklyExpiresKey];
+  UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+  [center getPendingNotificationRequestsWithCompletionHandler:^(NSArray<UNNotificationRequest *> *requests) {
+    NSMutableArray<NSString *> *weekly = [NSMutableArray array];
+    for (UNNotificationRequest *request in requests) {
+      if ([request.identifier hasPrefix:kWeeklyPrefix]) {
+        [weekly addObject:request.identifier];
+      }
+    }
+    [center removePendingNotificationRequestsWithIdentifiers:weekly];
+  }];
+}
+
+/** O texto de um lembrete de aula (o mesmo nos de data única e nos semanais). */
+static UNMutableNotificationContent *ClassReminderContent(NSDictionary *item)
+{
+  UNMutableNotificationContent *content = [UNMutableNotificationContent new];
+  content.title = [item[@"title"] isKindOfClass:[NSString class]] ? item[@"title"] : @"Aula em breve";
+  content.body = [item[@"body"] isKindOfClass:[NSString class]] ? item[@"body"] : @"";
+  content.sound = [UNNotificationSound defaultSound];
+  content.threadIdentifier = @"class-reminders";
+  content.categoryIdentifier = kPrivateCategory;
+  content.userInfo = @{@"target" : @"home"};
+  return content;
+}
+
+/**
  * Avisos para o JS (spec: src/specs/NativeAppNotifications.ts), como o
  * AppNotificationsModule.kt do Android, nos limites do iOS: lembretes de
- * aula agendados como avisos de data única até `expiresAt`, lembretes das
- * avaliações (até 20 dos 60 lugares, com o "Já fiz" nos trabalhos),
+ * aula agendados como avisos de data única até `expiresAt` (semanais quando
+ * não cabem), lembretes das avaliações (até 20 dos 60 lugares, um grupo por
+ * avaliação, com o "Já fiz" nos trabalhos),
  * avisos na hora e as aberturas pelo toque. A verificação no portal e
  * "Avisar quando voltar" vão ao BGTaskScheduler (`BackgroundCheck`, no
  * AppDelegate.swift), que entrega as rodadas ao JS pelos eventos
@@ -137,6 +180,8 @@ static __weak AppNotificationsModule *gCurrentModule;
                                                options:UNNotificationCategoryOptionNone];
     [[UNUserNotificationCenter currentNotificationCenter]
         setNotificationCategories:[NSSet setWithObjects:category, evaluation, nil]];
+    // os lembretes semanais vencidos saem antes de qualquer plano novo
+    CancelExpiredWeeklyReminders();
     // um toque com o app em memória vira o evento; o destino sai em consumeLaunchTarget
     gCurrentModule = self;
     SharedLaunchCenter().onTarget = ^{
@@ -281,7 +326,9 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
 /**
  * Cada lembrete (1 = segunda … 7 = domingo, minutos desde 0h) nas datas de
  * agora até `expiresAt` (21 dias depois da leitura da grade), os mais
- * próximos primeiro, no máximo `limit`.
+ * próximos primeiro, no máximo `limit`. Avisos de data única param sozinhos
+ * na validade, como os alarmes do Android. Quando não cabem (muitas aulas e
+ * provas), cada horário vira um aviso semanal (`scheduleWeekly`).
  */
 - (void)schedule:(NSDictionary *)plan center:(UNUserNotificationCenter *)center limit:(NSUInteger)limit
 {
@@ -290,6 +337,7 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
   NSTimeInterval expiresAt = AONumber(plan[@"expiresAt"], 0) / 1000.0;
   NSDate *today = [calendar startOfDayForDate:now];
   NSMutableArray<NSDictionary *> *occurrences = [NSMutableArray array];
+  NSMutableArray<NSDictionary *> *slots = [NSMutableArray array];
   for (id item in plan[@"reminders"]) {
     if (![item isKindOfClass:[NSDictionary class]]) {
       continue;
@@ -302,6 +350,7 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
     }
     // NSCalendar: 1 = domingo … 7 = sábado
     NSInteger calendarWeekday = weekday % 7 + 1;
+    [slots addObject:@{@"item" : item, @"id" : identifier, @"weekday" : @(calendarWeekday), @"minutes" : @(minutes)}];
     for (NSInteger offset = 0; offset <= 31; offset++) {
       NSDate *day = [calendar dateByAddingUnit:NSCalendarUnitDay value:offset toDate:today options:0];
       if (!day || day.timeIntervalSince1970 > expiresAt) {
@@ -320,18 +369,18 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
   [occurrences sortUsingComparator:^NSComparisonResult(NSDictionary *a, NSDictionary *b) {
     return [a[@"date"] compare:b[@"date"]];
   }];
+  // as datas não cabem, mas um aviso por horário cabe: os semanais
+  if (occurrences.count > limit && slots.count > 0 && slots.count <= limit) {
+    [self scheduleWeekly:slots expiresAt:expiresAt center:center];
+    return;
+  }
+  [[NSUserDefaults standardUserDefaults] removeObjectForKey:kWeeklyExpiresKey];
   NSUInteger count = MIN(occurrences.count, limit);
   for (NSUInteger index = 0; index < count; index++) {
     NSDictionary *occurrence = occurrences[index];
     NSDictionary *item = occurrence[@"item"];
     NSDate *date = occurrence[@"date"];
-    UNMutableNotificationContent *content = [UNMutableNotificationContent new];
-    content.title = [item[@"title"] isKindOfClass:[NSString class]] ? item[@"title"] : @"Aula em breve";
-    content.body = [item[@"body"] isKindOfClass:[NSString class]] ? item[@"body"] : @"";
-    content.sound = [UNNotificationSound defaultSound];
-    content.threadIdentifier = @"class-reminders";
-    content.categoryIdentifier = kPrivateCategory;
-    content.userInfo = @{@"target" : @"home"};
+    UNMutableNotificationContent *content = ClassReminderContent(item);
     NSDateComponents *components =
         [calendar components:(NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour |
                               NSCalendarUnitMinute)
@@ -342,6 +391,35 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
         [NSString stringWithFormat:@"%@%@@%.0f", kReminderPrefix, occurrence[@"id"], date.timeIntervalSince1970];
     [center addNotificationRequest:[UNNotificationRequest requestWithIdentifier:requestId
                                                                         content:content
+                                                                        trigger:trigger]
+             withCompletionHandler:nil];
+  }
+}
+
+/**
+ * Um aviso por horário de aula que se repete toda semana, como os alarmes
+ * do Android: uma grade de 12 tempos usa 12 lugares, e não dezenas. Só
+ * quando os de data única não cabem, porque um aviso que se repete não para
+ * na validade: ela fica guardada, e `CancelExpiredWeeklyReminders` os tira
+ * quando o app roda depois dela. Sem o app rodar nesse tempo, eles seguem
+ * até a próxima abertura.
+ */
+- (void)scheduleWeekly:(NSArray<NSDictionary *> *)slots
+             expiresAt:(NSTimeInterval)expiresAt
+                center:(UNUserNotificationCenter *)center
+{
+  [[NSUserDefaults standardUserDefaults] setDouble:expiresAt forKey:kWeeklyExpiresKey];
+  for (NSDictionary *slot in slots) {
+    NSInteger minutes = [slot[@"minutes"] integerValue];
+    NSDateComponents *components = [NSDateComponents new];
+    components.weekday = [slot[@"weekday"] integerValue];
+    components.hour = minutes / 60;
+    components.minute = minutes % 60;
+    UNCalendarNotificationTrigger *trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:components
+                                                                                                     repeats:YES];
+    NSString *requestId = [NSString stringWithFormat:@"%@%@", kWeeklyPrefix, slot[@"id"]];
+    [center addNotificationRequest:[UNNotificationRequest requestWithIdentifier:requestId
+                                                                        content:ClassReminderContent(slot[@"item"])
                                                                         trigger:trigger]
              withCompletionHandler:nil];
   }
@@ -677,8 +755,9 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
   UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
   [center removeAllPendingNotificationRequests];
   [center removeAllDeliveredNotifications];
-  // os "Já fiz" não lidos eram da conta que saiu
+  // os "Já fiz" não lidos eram da conta que saiu, e a validade dos semanais também
   [[NSUserDefaults standardUserDefaults] removeObjectForKey:kDoneKey];
+  [[NSUserDefaults standardUserDefaults] removeObjectForKey:kWeeklyExpiresKey];
   // e o pedido de "Avisar quando voltar" também (o logout o apaga): sem isso,
   // o iOS abriria o app só para o JS descobrir que não há pedido
   [SharedBackgroundCheck() setReturnWatch:NO];

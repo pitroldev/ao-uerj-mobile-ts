@@ -15,7 +15,7 @@ A tela **Notificações** liga cada aviso separadamente; o Início convida uma v
 - Sem "Alarmes e lembretes" liberado (Android 12+), o sistema entrega o lembrete numa janela de até 10 minutos antes do horário. Se o app reagenda dentro dessa janela, o lembrete sai na hora. Com o celular parado (Doze), pode atrasar.
 - Um lembrete que chegaria depois do início da aula é descartado. Uma aula já avisada não é avisada de novo, nem ao mudar a antecedência.
 - Os lembretes param 21 dias depois da última leitura da grade e não conhecem feriados. Sem a grade salva (o cache em disco perdeu a validade ou foi apagado), os lembretes já agendados continuam até essa validade.
-- No iPhone, os lembretes são avisos de data única no `UNUserNotificationCenter`, agendados até a validade do plano.
+- No iPhone, os lembretes são avisos de data única no `UNUserNotificationCenter`, agendados até a validade do plano, que param sozinhos nela. Quando não cabem nos lugares livres (o iOS guarda só 64 avisos, ver [iOS](ios.md#módulos-nativos)), cada horário vira um aviso que se repete toda semana, como no Android; aí a validade fica com o app, que os tira na primeira vez que roda depois dela.
 
 ### Lembretes de avaliações
 
