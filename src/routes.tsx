@@ -31,6 +31,7 @@ import { DocumentsPage } from '@root/pages/Documents';
 import { NotificationsPage } from '@root/pages/Notifications';
 import { CompanionPage } from '@root/pages/Companion';
 import { CampusNowPage } from '@root/pages/CampusNow';
+import { MyIdeasPage } from '@root/pages/MyIdeas';
 import { showsAccount } from '@root/modules/identity/domain/identityState';
 
 export type RootDrawerParamList = {
@@ -60,6 +61,8 @@ export type RootDrawerParamList = {
   'Emissão de Documentos': undefined;
   Notificações: undefined;
   Sobre: undefined;
+  /** Aberta pelo Sobre (e pela confirmação de "Sugerir uma ideia"). */
+  'Minhas sugestões': undefined;
 
   Loading: undefined;
 };
@@ -96,6 +99,7 @@ export const MainRoutes = () => {
   const companionSupported = services.companion.supported;
   const studentSupported = services.studentSession.supported;
   const campusSupported = services.campusNow.supported;
+  const ideasSupported = services.ideas.supported;
   // a conta salva aparece antes do login da abertura terminar
   const showLoading = status === 'restoring' && !account;
   const isSignedIn = showsAccount({ status, account });
@@ -177,6 +181,9 @@ export const MainRoutes = () => {
             <Drawer.Screen name="Notificações" component={NotificationsPage} />
           ) : null}
           <Drawer.Screen name="Sobre" component={AboutPage} />
+          {ideasSupported ? (
+            <Drawer.Screen name="Minhas sugestões" component={MyIdeasPage} />
+          ) : null}
         </Drawer.Group>
       )}
       {!showLoading && !isSignedIn && (

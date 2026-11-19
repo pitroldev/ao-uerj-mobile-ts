@@ -65,6 +65,7 @@ import {
 import { COMPANION_WATCH_KEY } from '@root/modules/companion/application/CompanionWatch';
 import { HOME_LAYOUT_KEY } from '@root/modules/home/domain/homeLayout';
 import { CAMPUS_STATE_KEY } from '@root/modules/campus-now/application/campusState';
+import { IDEAS_STATE_KEY } from '@root/modules/ideas/application/Ideas';
 import { initializeIdentity } from './initializeIdentity';
 import { createDelivery } from './createDelivery';
 import { createNotifications } from './createNotifications';
@@ -72,6 +73,7 @@ import { createPortalMonitor } from './createPortalMonitor';
 import { forgetPreviousInstall } from './previousInstall';
 import { createCompanion } from './createCompanion';
 import { createCampusNow } from './createCampusNow';
+import { createIdeas } from './createIdeas';
 import { createStudentSession, followIdentity } from './createStudentSession';
 import { createWidget } from './createWidget';
 
@@ -92,6 +94,7 @@ const ACCOUNT_PREFERENCES = [
   COMPANION_INVITE_KEY,
   HOME_LAYOUT_KEY,
   CAMPUS_STATE_KEY,
+  IDEAS_STATE_KEY,
 ] as const;
 
 function createScope() {
@@ -176,6 +179,14 @@ export function createAppServices() {
     preferences,
     account: currentAccount,
   });
+  // as sugestões que viram issue no GitHub, com a sessão de aluno
+  const ideas = createIdeas({
+    server: backend.ideas,
+    session: studentSession,
+    preferences,
+    account: currentAccount,
+    appVersion: version,
+  });
   // no logout, sai das mesas e dos grupos (e tira do servidor o "Me avise" e
   // o aparelho do push do campus) e só então encerra a sessão
   followIdentity(studentSession, identity, {
@@ -248,6 +259,7 @@ export function createAppServices() {
     studentSession,
     companion,
     campusNow,
+    ideas,
     // faltas marcadas pelo aluno, só no aparelho (o logout apaga)
     attendance: new AttendanceRecords(preferences),
     // datas de provas e trabalhos anotadas, também só no aparelho

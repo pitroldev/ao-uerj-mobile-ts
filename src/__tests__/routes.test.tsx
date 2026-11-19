@@ -21,6 +21,12 @@ jest.mock('@root/app/providers/AppServicesProvider', () => ({
     // a Companhia agora e o Agora no campus ficam fora do menu no teste
     companion: { supported: false },
     campusNow: { supported: false },
+    // as sugestões seguem a sessão de aluno, como o mural
+    ideas: {
+      get supported() {
+        return mockStudentSupported;
+      },
+    },
     studentSession: {
       get supported() {
         return mockStudentSupported;
@@ -101,6 +107,7 @@ jest.mock('@root/pages/SubjectDetails', () => ({
   SubjectDetailPage: MockPage,
 }));
 jest.mock('@root/pages/About', () => ({ AboutPage: MockPage }));
+jest.mock('@root/pages/MyIdeas', () => ({ MyIdeasPage: MockPage }));
 jest.mock('@root/pages/Notifications', () => ({
   NotificationsPage: MockPage,
 }));
@@ -160,14 +167,20 @@ describe('MainRoutes authorization', () => {
     expect(navigation.getRootState()?.routeNames).not.toContain('Notificações');
   });
 
-  it('leaves the mural out where the app cannot sign in as a student (simulator, no Play)', async () => {
+  it('leaves the mural and Minhas sugestões out where the app cannot sign in as a student (simulator, no Play)', async () => {
     const { navigation } = await setup(signedIn, true, false);
     expect(navigation.getRootState()?.routeNames).not.toContain(
       'Mural de Mensagens',
     );
+    expect(navigation.getRootState()?.routeNames).not.toContain(
+      'Minhas sugestões',
+    );
     const supported = await setup(signedIn);
     expect(supported.navigation.getRootState()?.routeNames).toContain(
       'Mural de Mensagens',
+    );
+    expect(supported.navigation.getRootState()?.routeNames).toContain(
+      'Minhas sugestões',
     );
   });
 

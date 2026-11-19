@@ -3,7 +3,13 @@ import { Linking } from 'react-native';
 import { act, screen, userEvent } from '@testing-library/react-native';
 
 import { snackbar } from '@components/ui';
-import { renderWithProviders } from '@root/test-utils/render';
+import { Ideas, IDEAS_STATE_KEY } from '@root/modules/ideas/application/Ideas';
+import type { IdeasServerPort } from '@root/modules/ideas/application/ports';
+import type { MyIdea } from '@root/modules/ideas/domain/ideas';
+import {
+  createTestQueryClient,
+  renderWithProviders as renderWith,
+} from '@root/test-utils/render';
 import { AboutPage } from '../About';
 
 jest.mock('react-native-safe-area-context', () => ({
@@ -12,6 +18,54 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('@features/ErrorReport/ErrorReportModal', () => ({
   ErrorReportModal: 'ErrorReportModal',
 }));
+jest.mock('@features/Ideas/SuggestIdeaSheet', () => ({
+  SuggestIdeaSheet: 'SuggestIdeaSheet',
+}));
+// sem a sessão de aluno (o simulador) até um teste ligar as sugestões
+let mockServices: { ideas: Ideas };
+jest.mock('@root/app/providers/AppServicesProvider', () => ({
+  useAppServices: () => mockServices,
+  useIdentity: () => ({ account: { scope: 'conta-1' } }),
+}));
+const mockNavigate = jest.fn();
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: mockNavigate }),
+}));
+
+const DONE: MyIdea = {
+  id: 'd1',
+  kind: 'sent',
+  title: 'Modo escuro no widget',
+  area: 'home',
+  createdAt: 1,
+  status: 'done',
+  issue: { number: 21, url: 'https://github.com/o/r/issues/21' },
+  requests: 6,
+};
+let mockServer: jest.Mocked<IdeasServerPort>;
+
+function ideasService(supported: boolean, saved: Record<string, unknown>) {
+  mockServer = {
+    mine: jest.fn(async () => ({ ideas: [DONE], remainingToday: 3 })),
+    similar: jest.fn(),
+    submit: jest.fn(),
+    vote: jest.fn(),
+  };
+  return new Ideas({
+    server: supported ? mockServer : null,
+    store: {
+      read: async <T,>(scope: string, key: string) =>
+        (saved[`${scope}/${key}`] as T) ?? null,
+      write: async () => undefined,
+    },
+    account: () => ({ scope: 'conta-1' }),
+    app: { version: '2.20.0', platform: 'android' },
+  });
+}
+
+/** O Sobre com o cliente das consultas (as sugestões usam o React Query). */
+const renderWithProviders = (ui: React.ReactElement) =>
+  renderWith(ui, { queryClient: createTestQueryClient() });
 // sem loja (os testes sem provedor) até um teste pôr a Play ou a App Store
 let mockListing: { available: boolean; name: string; open: jest.Mock } | null =
   null;
@@ -26,6 +80,7 @@ jest.mock('@root/modules/delivery/presentation/DeliveryProvider', () => ({
 beforeEach(async () => {
   mockListing = null;
   mockUpdate = null;
+  mockServices = { ideas: ideasService(false, {}) };
   jest.mocked(Linking.openURL).mockReset().mockResolvedValue(undefined);
   await renderWithProviders(<AboutPage />);
 });
@@ -160,6 +215,48 @@ it('puts the privacy policy under "Seus dados"', () => {
   expect(
     screen.getByRole('link', { name: /^Política de privacidade/ }),
   ).toBeOnTheScreen();
+});
+
+describe('suggestions', () => {
+  // a folha simulada vira um elemento host: as props são o contrato com ela
+  const sheet = () =>
+    screen.container.queryAll(node => node.type === 'SuggestIdeaSheet')[0];
+
+  it('opens the suggestion sheet and Minhas sugestões where the app signs in as a student', async () => {
+    mockServices = { ideas: ideasService(true, {}) };
+    await renderWithProviders(<AboutPage />);
+    const user = userEvent.setup();
+    // no lugar do link para o GitHub
+    expect(
+      screen.queryByRole('link', { name: /^Sugerir melhoria/ }),
+    ).toBeNull();
+    expect(sheet()).toHaveProp('visible', false);
+    await user.press(
+      screen.getByRole('button', { name: /^Sugerir uma ideia/ }),
+    );
+    expect(sheet()).toHaveProp('visible', true);
+    // a confirmação do envio leva a Minhas sugestões e fecha a folha
+    await act(() => sheet().props.onShowMine());
+    expect(mockNavigate).toHaveBeenCalledWith('Minhas sugestões');
+    expect(sheet()).toHaveProp('visible', false);
+    await user.press(screen.getByRole('button', { name: /^Minhas sugestões/ }));
+    expect(mockNavigate).toHaveBeenCalledTimes(2);
+    // quem nunca sugeriu não passa pela confirmação de aluno ao abrir o Sobre
+    expect(mockServer.mine).not.toHaveBeenCalled();
+  });
+
+  it('counts the ideas done since the last look, for whoever has suggested', async () => {
+    mockServices = {
+      ideas: ideasService(true, {
+        [`conta-1/${IDEAS_STATE_KEY}`]: { known: true, seenDone: [] },
+      }),
+    };
+    await renderWithProviders(<AboutPage />);
+    expect(
+      await screen.findByRole('button', { name: 'Minhas sugestões, 1 feita' }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText('1 feita')).toBeOnTheScreen();
+  });
 });
 
 it.each(['pitrol.dev', 'GitHub', 'LinkedIn', 'E-mail'])(

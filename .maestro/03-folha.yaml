@@ -39,7 +39,7 @@ tags:
     notVisible: Passo 2 de 2
     timeout: 10000
 - scrollUntilVisible:
-    element: Sugerir melhoria
+    element: Ver código no GitHub
     direction: DOWN
     timeout: 15000
-- assertVisible: Sugerir melhoria
+- assertVisible: Ver código no GitHub

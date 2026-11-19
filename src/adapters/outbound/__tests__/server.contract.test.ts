@@ -25,6 +25,7 @@ import {
   type Membership,
 } from '@root/modules/companion/domain/companion';
 import { CampusNowError } from '@root/modules/campus-now/domain/campusNow';
+import { IdeaError, type NewIdea } from '@root/modules/ideas/domain/ideas';
 import { AppError } from '@root/shared/errors/AppError';
 
 import { createStudentSessionStore } from '../persistence/student-session-store';
@@ -44,6 +45,7 @@ import {
   createCompanionServer,
   createCompanionWatchServer,
 } from '../private-api/companion';
+import { createIdeasServer } from '../private-api/ideas';
 import { createSessionClient } from '../private-api/sessionClient';
 import { createStudentSessionApi } from '../private-api/studentSession';
 import {
@@ -640,5 +642,75 @@ describe('the student session (/aouerj/v2)', () => {
     await expect(marina.community('2000-01')).rejects.toEqual(
       new AppError('INVALID_INPUT'),
     );
+  });
+
+  it('sends suggestions, lists them, finds no similar ones without GitHub and explains the refusals', async () => {
+    const ideas = createIdeasServer(
+      studentSession('209900000031', 'RENATA ALVES').student,
+    );
+    await expect(ideas.mine()).resolves.toEqual({
+      ideas: [],
+      remainingToday: 3,
+    });
+    // o servidor do teste não tem o GitHub: nenhuma parecida, e somar o
+    // pedido a um issue não dá
+    await expect(
+      ideas.similar('Avisar quando abrir vaga no RID'),
+    ).resolves.toEqual([]);
+    await expect(ideas.vote(31)).rejects.toEqual(new IdeaError('github'));
+
+    const request: NewIdea = {
+      title: 'Avisar quando abrir vaga no RID',
+      area: 'rid',
+      problem: 'Pedi Cálculo II e fiquei na fila. Abro o portal toda hora.',
+      idea: 'Um aviso quando a vaga abrir',
+      portal: 'no',
+      appVersion: '2.20.0',
+      platform: 'android',
+      seenSimilar: [31],
+    };
+    const sent = await ideas.submit(request);
+    expect(sent).toEqual({
+      id: expect.any(String),
+      kind: 'sent',
+      title: request.title,
+      area: 'rid',
+      createdAt: expect.any(Number),
+      status: 'received',
+      issue: null,
+      requests: 1,
+    });
+
+    // fica pública: o contato não passa, e o servidor diz em qual campo
+    const refused = (change: Partial<NewIdea>) =>
+      ideas.submit({ ...request, ...change }).catch((error: unknown) => error);
+    const atProblem = await refused({
+      problem: 'Me chama no @dudauerj se precisar.',
+    });
+    expect(atProblem).toEqual(new IdeaError('contact', 'problem'));
+    expect((atProblem as IdeaError).field).toBe('problem');
+    const linkInIdea = await refused({ idea: 'Veja em www.exemplo.com' });
+    expect((linkInIdea as IdeaError).field).toBe('idea');
+    await expect(ideas.submit({ ...request, title: 'Oi' })).rejects.toEqual(
+      new AppError('INVALID_INPUT'),
+    );
+
+    // as recusadas não contam no dia
+    await expect(ideas.mine()).resolves.toEqual({
+      ideas: [sent],
+      remainingToday: 2,
+    });
+    await ideas.submit({ ...request, title: 'Pontos de ônibus no Mapa' });
+    await ideas.submit({ ...request, title: 'Cardápio do bandejão no Início' });
+    await expect(
+      ideas.submit({ ...request, title: 'Modo escuro no widget' }),
+    ).rejects.toEqual(new IdeaError('limit'));
+    const mine = await ideas.mine();
+    expect(mine.remainingToday).toBe(0);
+    expect(mine.ideas.map(idea => idea.title)).toEqual([
+      'Cardápio do bandejão no Início',
+      'Pontos de ônibus no Mapa',
+      request.title,
+    ]);
   });
 });

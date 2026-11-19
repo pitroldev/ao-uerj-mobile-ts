@@ -13,6 +13,7 @@ import type {
 } from '@root/modules/companion/application/ports';
 import type { SharedPortalStatusPort } from '@root/modules/connectivity/application/ports';
 import type { DocumentsPort } from '@root/modules/documents/application/ports';
+import type { IdeasServerPort } from '@root/modules/ideas/application/ports';
 import type { AuthenticationPort } from '@root/modules/identity/application/ports';
 import type {
   PortalReturnServerPort,
@@ -60,5 +61,7 @@ export type Backend = {
   portalReturn: PortalReturnServerPort;
   /** O cutucão da verificação no portal (iPhone). */
   portalPush: PushRegistrationServerPort;
+  /** "Sugerir uma ideia" e "Minhas sugestões". */
+  ideas: IdeasServerPort;
   studentSessionApi: StudentSessionApiPort;
 };

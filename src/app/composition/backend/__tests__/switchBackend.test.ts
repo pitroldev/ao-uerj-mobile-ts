@@ -43,6 +43,7 @@ function fakeBackend(name: string) {
     campusPush: port('status', 'register', 'unregister'),
     portalReturn: port('status', 'request', 'cancel'),
     portalPush: port('status', 'register', 'unregister'),
+    ideas: port('mine', 'similar', 'submit', 'vote'),
     studentSessionApi: port('challenge', 'create', 'end'),
   } as unknown as Backend;
   return { backend, answer };

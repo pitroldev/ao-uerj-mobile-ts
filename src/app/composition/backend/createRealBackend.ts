@@ -22,6 +22,7 @@ import {
   createCompanionServer,
   createCompanionWatchServer,
 } from '@root/adapters/outbound/private-api/companion';
+import { createIdeasServer } from '@root/adapters/outbound/private-api/ideas';
 import { createSessionClient } from '@root/adapters/outbound/private-api/sessionClient';
 import { createStudentSessionApi } from '@root/adapters/outbound/private-api/studentSession';
 import type { PortalMonitor } from '@root/modules/connectivity/application/PortalMonitor';
@@ -91,6 +92,7 @@ export function createRealBackend({
     campusPush: createCampusPushServer(student),
     portalReturn: createPortalReturnServer(student),
     portalPush: createPortalPushServer(student),
+    ideas: createIdeasServer(student),
     studentSessionApi: createStudentSessionApi(client),
   };
 }

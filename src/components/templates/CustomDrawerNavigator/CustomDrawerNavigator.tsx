@@ -128,7 +128,8 @@ const NAV: NavGroup[] = [
     label: null,
     items: [
       { route: 'Notificações', icon: 'notifications' },
-      { route: 'Sobre', icon: 'info' },
+      // "Minhas sugestões" abre pelo Sobre e deixa o Sobre aceso
+      { route: 'Sobre', icon: 'info', routes: ['Sobre', 'Minhas sugestões'] },
     ],
   },
 ];

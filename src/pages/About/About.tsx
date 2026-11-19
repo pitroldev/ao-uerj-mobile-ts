@@ -1,10 +1,21 @@
 import React, { useState } from 'react';
 import { Linking, useWindowDimensions } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { DrawerNavigationProp } from '@react-navigation/drawer';
 import { useTheme } from 'styled-components/native';
 
 import { ErrorReportModal } from '@features/ErrorReport/ErrorReportModal';
-import { AoLogo, Icon, Section, Text, snackbar } from '@components/ui';
+import { SuggestIdeaSheet } from '@features/Ideas/SuggestIdeaSheet';
+import { AoLogo, Icon, Section, Tag, Text, snackbar } from '@components/ui';
 import { ScreenPanel } from '@templates/ScreenPanel';
+import { useAppServices } from '@root/app/providers/AppServicesProvider';
+import { newlyDone } from '@root/modules/ideas/domain/ideas';
+import { doneText } from '@root/modules/ideas/presentation/ideasText';
+import {
+  useIdeasState,
+  useMyIdeas,
+} from '@root/modules/ideas/presentation/useIdeas';
+import type { RootDrawerParamList } from '@root/routes';
 import type { RunningUpdate } from '@root/modules/delivery/application/ports';
 import {
   useRunningUpdate,
@@ -65,6 +76,24 @@ export const AboutPage = () => {
   const store = useStoreListing();
   const update = useRunningUpdate();
   const [invite, setInvite] = useState<Invite | null>(null);
+  const navigation = useNavigation<DrawerNavigationProp<RootDrawerParamList>>();
+  // "Sugerir uma ideia" só onde o app entra como aluno; fora disso, o GitHub
+  const { ideas } = useAppServices();
+  const [suggesting, setSuggesting] = useState(false);
+  const ideasState = useIdeasState();
+  // as feitas só são lidas de quem já sugeriu (quem nunca sugeriu não
+  // passa pela confirmação de aluno ao abrir o Sobre)
+  const mine = useMyIdeas({
+    enabled: ideasState.known && ideasState.scope !== null,
+  });
+  const freshDone =
+    mine.data && ideasState.scope
+      ? newlyDone(mine.data.ideas, ideasState.seenDone).length
+      : 0;
+  const showMine = () => {
+    setSuggesting(false);
+    navigation.navigate('Minhas sugestões');
+  };
 
   const openUrl = (url: string) => {
     Linking.openURL(url).catch((err: Error) => {
@@ -208,19 +237,65 @@ export const AboutPage = () => {
             chevron
             onPress={() => setIsErrorModalOpen(true)}
           />
-          <SupportRow
-            inset={0}
-            leading={
-              <Icon name="lightbulb" size={24} color={theme.colors.accent} />
-            }
-            title="Sugerir melhoria"
-            titleWeight="medium"
-            meta="Deixe sua ideia no GitHub"
-            external
-            accessibilityRole="link"
-            accessibilityHint="Abre no navegador"
-            onPress={() => openUrl(`${GITHUB_REPO_URL}/issues`)}
-          />
+          {ideas.supported ? (
+            [
+              <SupportRow
+                key="suggest"
+                inset={0}
+                leading={
+                  <Icon
+                    name="lightbulb"
+                    size={24}
+                    color={theme.colors.accent}
+                  />
+                }
+                title="Sugerir uma ideia"
+                titleWeight="medium"
+                meta="O que falta no app?"
+                chevron
+                onPress={() => setSuggesting(true)}
+              />,
+              <SupportRow
+                key="mine"
+                inset={0}
+                leading={
+                  <Icon name="history" size={24} color={theme.colors.accent} />
+                }
+                title="Minhas sugestões"
+                titleWeight="medium"
+                meta={freshDone ? undefined : 'Veja o andamento'}
+                chevron
+                accessibilityLabel={
+                  freshDone
+                    ? `Minhas sugestões, ${doneText(freshDone)}`
+                    : undefined
+                }
+                onPress={showMine}
+              >
+                {freshDone ? (
+                  <Tag
+                    tone="good"
+                    icon="check_circle"
+                    label={doneText(freshDone)}
+                  />
+                ) : null}
+              </SupportRow>,
+            ]
+          ) : (
+            <SupportRow
+              inset={0}
+              leading={
+                <Icon name="lightbulb" size={24} color={theme.colors.accent} />
+              }
+              title="Sugerir melhoria"
+              titleWeight="medium"
+              meta="Deixe sua ideia no GitHub"
+              external
+              accessibilityRole="link"
+              accessibilityHint="Abre no navegador"
+              onPress={() => openUrl(`${GITHUB_REPO_URL}/issues`)}
+            />
+          )}
           <SupportRow
             inset={0}
             leading={<BrandIcon name="github" />}
@@ -251,6 +326,13 @@ export const AboutPage = () => {
         </SupportList>
       </Section>
       <InviteSheet invite={invite} onClose={() => setInvite(null)} />
+      {ideas.supported ? (
+        <SuggestIdeaSheet
+          visible={suggesting}
+          onClose={() => setSuggesting(false)}
+          onShowMine={showMine}
+        />
+      ) : null}
     </ScreenPanel>
   );
 };

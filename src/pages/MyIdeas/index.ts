@@ -1,0 +1,1 @@
+export { MyIdeasPage } from './MyIdeas';

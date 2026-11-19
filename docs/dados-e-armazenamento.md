@@ -49,6 +49,7 @@ Ficam no AsyncStorage, em `ao:v2:preferences:<conta>:<chave>`, e o logout as apa
 | `home-layout`                                           | O Início personalizado                                                                                                                                                       |
 | `companion-name`, `companion-invite`, `companion-watch` | O nome que o aluno mostra na Companhia agora, o "Agora não" do convite do Início e o "Me avise se tiver mesa"                                                                |
 | `campus-now`                                            | As salas da grade e o estado do Agora no campus, para a tarefa em segundo plano não entrar no portal                                                                         |
+| `ideas`                                                 | Se o aluno já mandou ou somou uma sugestão e quais feitas ele já viu (as sugestões em si ficam no servidor)                                                                  |
 | `app-info-version`                                      | A última versão cuja folha de novidades o aluno viu                                                                                                                          |
 
 A simulação de PF e CR não grava nada. O Plano até a formatura é calculado no aparelho.

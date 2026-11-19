@@ -66,6 +66,10 @@ jest.mock('../createStudentSession', () => ({
   createStudentSession: jest.fn(() => ({ supported: false })),
   followIdentity: jest.fn(),
 }));
+// as sugestões leem o sistema (o Platform do React Native) para o issue
+jest.mock('../createIdeas', () => ({
+  createIdeas: jest.fn(() => ({ supported: false })),
+}));
 jest.mock('@root/adapters/outbound/native/NativeLaunches', () => ({
   createLaunches: jest.fn(() => null),
 }));

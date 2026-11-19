@@ -27,6 +27,7 @@ import {
   createDemoTeacherDirectory,
 } from './ports/community';
 import { createDemoDocuments } from './ports/documents';
+import { createDemoIdeas } from './ports/ideas';
 import { createDemoRecords } from './ports/records';
 import { createDemoStudentSessionApi } from './ports/studentSession';
 
@@ -56,6 +57,8 @@ export function createDemoBackend(now: () => number = Date.now) {
     campusPush: createDemoCampusPush(),
     portalReturn: createDemoPortalReturn(),
     portalPush: createDemoPortalPush(),
+    // as sugestões de mentira: mandar e somar só mudam a lista daqui
+    ideas: createDemoIdeas(clock),
     studentSessionApi: createDemoStudentSessionApi(),
   };
 }
