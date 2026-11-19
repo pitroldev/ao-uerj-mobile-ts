@@ -23,7 +23,10 @@ import {
   type Standing,
   type YouSummary,
 } from '@root/modules/campus-now/domain/campusNow';
-import type { CampusNowServerPort } from '@root/modules/campus-now/application/ports';
+import type {
+  CampusNowServerPort,
+  CampusPushServerPort,
+} from '@root/modules/campus-now/application/ports';
 import type { DemoClock } from '../clock';
 import {
   DEMO_CAMPUS_WEEK,
@@ -593,5 +596,20 @@ export function createDemoCampus(clock: DemoClock): CampusNowServerPort {
     you: options => act(now => summary(now), options?.signal),
     community: (month, options) =>
       act(now => community(month, now), options?.signal),
+  };
+}
+
+/**
+ * O Agora no campus em segundo plano do iPhone na demo: sem servidor, não há
+ * push, e a chave de avisos do campus não aparece no iPhone. No Android, a
+ * demo segue pela tarefa sem tela, lendo a lista de mentira.
+ */
+export function createDemoCampusPush(): CampusPushServerPort {
+  return {
+    status: async () => ({ available: false, registered: false }),
+    register: async () => {
+      throw new AppError('SERVICE_UNAVAILABLE');
+    },
+    unregister: async () => undefined,
   };
 }

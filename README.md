@@ -31,24 +31,24 @@ App de código aberto, feito por aluno para aluno: notas, grade, documentos e fe
 
 O app está na Google Play e, desde 18/11/2026, na App Store do Brasil (iPhone com iOS 16.4 ou mais novo). A coluna do iPhone mostra onde o iOS limita alguma função.
 
-|     | Funcionalidade         | O que faz                                                                                             | Android |              iPhone               |
-| :-: | ---------------------- | ----------------------------------------------------------------------------------------------------- | :-----: | :-------------------------------: |
-| 🏠  | **Início**             | A próxima aula e a sala, a semana, as notas e as próximas provas numa tela só, do seu jeito           |   ✅    |                ✅                 |
-| 📝  | **Notas e PF**         | Quanto falta na PF de cada disciplina e a simulação do CR aproximado                                  |   ✅    |                ✅                 |
-| 🙋  | **Faltas**             | Você marca as faltas e vê quanto ainda pode faltar (fica só no aparelho)                              |   ✅    |                ✅                 |
-| 📌  | **Provas e trabalhos** | As datas anotadas aparecem no Início, na semana e nas notas, com lembretes                            |   ✅    |                ✅                 |
-| 🎓  | **Meu Progresso**      | O avanço no currículo, as horas complementares e o plano até a formatura                              |   ✅    |                ✅                 |
-| 📚  | **Consultas do AO**    | Histórico, currículo, disciplinas universais, pesquisa de disciplinas e RID                           |   ✅    |                ✅                 |
-| 📄  | **Documentos**         | Emite e compartilha os PDFs do portal e guarda até 5 no aparelho                                      |   ✅    |                ✅                 |
-| 🧩  | **Gerador de grades**  | Monta grades com os horários livres e o almoço que você escolher e manda a melhor para a turma        |   ✅    |                ✅                 |
-| 💬  | **Mural da turma**     | Mensagens por turma, com o nome que você escolher                                                     |   ✅    |                ✅                 |
-| 🍽️  | **Companhia agora**    | Uma mesa para almoçar junto ou um grupo para voltar depois da aula da noite                           |   ✅    |                ✅                 |
-| 📢  | **Agora no campus**    | Avisos dos alunos: elevador parado, fila do bandejão, sala trancada                                   |   ✅    | ✅ sem os avisos em segundo plano |
-| 🗺️  | **Mapa do campus**     | O campus e o Pavilhão andar por andar, com as salas, sem internet                                     |   ✅    |                ✅                 |
-| 🔔  | **Lembretes e avisos** | Lembrete de aula e de prova; aviso de nota nova, RID, inscrição, documento vencendo e portal de volta |   ✅    |      ✅ quando o iOS deixar       |
-| 📱  | **Widgets e atalhos**  | "Próxima aula" e "Hoje" na tela inicial e atalhos no ícone                                            |   ✅    |             ✅ e Siri             |
-| 📶  | **Sem internet**       | Abre na hora com os dados salvos, cifrados no aparelho, e avisa quando o portal cai                   |   ✅    |                ✅                 |
-| 🌙  | **Tema escuro**        | Claro, escuro ou o do sistema                                                                         |   ✅    |                ✅                 |
+|     | Funcionalidade         | O que faz                                                                                             | Android |         iPhone         |
+| :-: | ---------------------- | ----------------------------------------------------------------------------------------------------- | :-----: | :--------------------: |
+| 🏠  | **Início**             | A próxima aula e a sala, a semana, as notas e as próximas provas numa tela só, do seu jeito           |   ✅    |           ✅           |
+| 📝  | **Notas e PF**         | Quanto falta na PF de cada disciplina e a simulação do CR aproximado                                  |   ✅    |           ✅           |
+| 🙋  | **Faltas**             | Você marca as faltas e vê quanto ainda pode faltar (fica só no aparelho)                              |   ✅    |           ✅           |
+| 📌  | **Provas e trabalhos** | As datas anotadas aparecem no Início, na semana e nas notas, com lembretes                            |   ✅    |           ✅           |
+| 🎓  | **Meu Progresso**      | O avanço no currículo, as horas complementares e o plano até a formatura                              |   ✅    |           ✅           |
+| 📚  | **Consultas do AO**    | Histórico, currículo, disciplinas universais, pesquisa de disciplinas e RID                           |   ✅    |           ✅           |
+| 📄  | **Documentos**         | Emite e compartilha os PDFs do portal e guarda até 5 no aparelho                                      |   ✅    |           ✅           |
+| 🧩  | **Gerador de grades**  | Monta grades com os horários livres e o almoço que você escolher e manda a melhor para a turma        |   ✅    |           ✅           |
+| 💬  | **Mural da turma**     | Mensagens por turma, com o nome que você escolher                                                     |   ✅    |           ✅           |
+| 🍽️  | **Companhia agora**    | Uma mesa para almoçar junto ou um grupo para voltar depois da aula da noite                           |   ✅    |           ✅           |
+| 📢  | **Agora no campus**    | Avisos dos alunos: elevador parado, fila do bandejão, sala trancada                                   |   ✅    |           ✅           |
+| 🗺️  | **Mapa do campus**     | O campus e o Pavilhão andar por andar, com as salas, sem internet                                     |   ✅    |           ✅           |
+| 🔔  | **Lembretes e avisos** | Lembrete de aula e de prova; aviso de nota nova, RID, inscrição, documento vencendo e portal de volta |   ✅    | ✅ quando o iOS deixar |
+| 📱  | **Widgets e atalhos**  | "Próxima aula" e "Hoje" na tela inicial e atalhos no ícone                                            |   ✅    |       ✅ e Siri        |
+| 📶  | **Sem internet**       | Abre na hora com os dados salvos, cifrados no aparelho, e avisa quando o portal cai                   |   ✅    |           ✅           |
+| 🌙  | **Tema escuro**        | Claro, escuro ou o do sistema                                                                         |   ✅    |           ✅           |
 
 Como cada uma funciona por dentro está em [Funcionalidades](docs/funcionalidades.md).
 

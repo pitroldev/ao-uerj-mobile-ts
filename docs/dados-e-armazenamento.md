@@ -57,6 +57,11 @@ A simulação de PF e CR não grava nada. O Plano até a formatura é calculado 
 
 No AsyncStorage, valem para o app inteiro e **não** são apagadas no logout: o tema, a última cópia do aviso remoto, os avisos dispensados, a data do último pedido de atualização, a versão da App Store que o aluno dispensou no Início ("Agora não") e o histórico de uso que decide o pedido de avaliação. No iPhone, também a marca da instalação (`ao:v2:install`, da regra da reinstalação).
 
+No iPhone, com o Agora no campus em segundo plano, duas chaves do aparelho (`ao:v2:preferences:device:<chave>`) que a saída da conta apaga ou desliga:
+
+- `background-account`: o escopo da conta (um id aleatório, sem a matrícula), para a rodada do push silencioso achar a conta com a tela bloqueada, quando o Keychain não abre. Sai na saída da conta; uma restauração que falhou não a apaga.
+- `campus-push`: este aparelho está registrado no servidor para o push do campus. Só com ela o app pede a saída do registro.
+
 ### Fora do JS
 
 - **Lembretes:** os de aula (disciplina, horário e sala), os das avaliações (título e corpo já montados) e os da Companhia agora ficam nas SharedPreferences do Android ou agendados no iOS.
@@ -89,7 +94,7 @@ O backend é o [`server/`](../server/README.md), em `pitrol.dev`. O que ele guar
   - Todo pedido vai com a sessão de aluno, e cada membro guarda o aluno: um aluno abre uma por vez, entra uma vez em cada uma, e quem foi tirado não volta por outro aparelho.
   - O horário livre é calculado no aparelho, e não há localização ao vivo.
 - **Agora no campus:** o tipo, a situação e o lugar, de listas prontas, sem texto livre, mais as respostas, os "Valeu", os "Não é verdade" e os avisos vistos. O "no seu caminho" sai da grade, no aparelho; a grade não vai para o servidor.
-- **Avisos no aparelho:** os avisos são opt-in e montados no aparelho. Os do portal consultam só o portal. Os da Companhia agora ("Me avise se tiver mesa") e do Agora no campus leem as listas do servidor próprio, com a sessão de aluno. No iPhone, o "Me avise" vai ao servidor com o token de push do aparelho, que o servidor apaga ao avisar, no cancelamento, no logout ou no fim do horário pedido.
+- **Avisos no aparelho:** os avisos são opt-in e montados no aparelho. Os do portal consultam só o portal. Os da Companhia agora ("Me avise se tiver mesa") e do Agora no campus leem as listas do servidor próprio, com a sessão de aluno. No iPhone, o "Me avise" vai ao servidor com o token de push do aparelho, que o servidor apaga ao avisar, no cancelamento, no logout ou no fim do horário pedido. Os avisos do Agora no campus registram o token enquanto estão ligados (30 dias sem renovação, ou até desligar ou sair da conta); o filtro do "ainda está lá?" segue no aparelho, e a grade não vai ao servidor.
 
 ### Identificação do aluno
 

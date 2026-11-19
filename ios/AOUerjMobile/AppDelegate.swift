@@ -74,6 +74,22 @@ class AppDelegate: ExpoAppDelegate, ExpoReactNativeFactoryProvider {
     super.application(application, didFailToRegisterForRemoteNotificationsWithError: error)
     PushToken.shared.received(nil)
   }
+
+  // o push silencioso do Agora no campus vira uma rodada sem tela (ver
+  // BackgroundCheck.handleRemoteWake); os outros seguem para o Expo
+  override func application(
+    _ application: UIApplication,
+    didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+    fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+  ) {
+    guard userInfo["campus"] as? String == "wake" else {
+      super.application(
+        application, didReceiveRemoteNotification: userInfo,
+        fetchCompletionHandler: completionHandler)
+      return
+    }
+    BackgroundCheck.shared.handleRemoteWake(completionHandler)
+  }
 }
 
 /// O token de push (APNs) do aparelho, para o "Me avise se tiver mesa": o iOS
@@ -148,6 +164,8 @@ public final class BackgroundCheck: NSObject {
   private enum Mode {
     static let check = "check"
     static let portalReturn = "return"
+    /// O Agora no campus: o push silencioso do servidor (`handleRemoteWake`).
+    static let campus = "campus"
   }
 
   /// O que sobrevive ao processo: o iOS abre o app do zero para a rodada.
@@ -181,22 +199,31 @@ public final class BackgroundCheck: NSObject {
   private static let expirationGrace: TimeInterval = 2
   /// O teste do CI não tem a expiração do iOS: sem resposta do JS, falha.
   private static let smokeTimeout: TimeInterval = 40
+  /// O push silencioso dá uns 30 segundos e não avisa o fim: a rodada expira
+  /// antes, por conta própria (o JS para aos 25, IOS_DEADLINE).
+  private static let remoteWakeLimit: TimeInterval = 27
   /// Das 22h às 7h, nada (isQuietTime em src/modules/notifications/domain/checkState.ts).
   private static let quietStartHour = 22
   private static let quietEndHour = 7
 
-  /// Uma rodada: a do BGTaskScheduler ou, no teste do CI, sem tarefa.
+  /// Uma rodada: a do BGTaskScheduler, a de um push silencioso (com o
+  /// `completionHandler` do iOS) ou, no teste do CI, sem nenhum dos dois.
   private final class Round {
     let id: String
     let modes: [String]
     let task: BGTask?
+    let fetchCompletion: ((UIBackgroundFetchResult) -> Void)?
     var delivered = false
     var finished = false
 
-    init(id: String, modes: [String], task: BGTask?) {
+    init(
+      id: String, modes: [String], task: BGTask?,
+      fetchCompletion: ((UIBackgroundFetchResult) -> Void)? = nil
+    ) {
       self.id = id
       self.modes = modes
       self.task = task
+      self.fetchCompletion = fetchCompletion
     }
   }
 
@@ -271,6 +298,34 @@ public final class BackgroundCheck: NSObject {
     }
   }
 
+  /// O push silencioso do Agora no campus (`"campus": "wake"`): o servidor
+  /// acorda o app enquanto há aviso confirmado, e o JS confere com a grade,
+  /// no aparelho, se é do caminho do aluno ("ainda está lá?"). Diferente da
+  /// verificação, não espera o desbloqueio: o modo `campus` não usa a senha
+  /// salva (a conta vem do espelho fora do Keychain, a sessão do cofre). Na
+  /// thread principal.
+  func handleRemoteWake(_ completion: @escaping (UIBackgroundFetchResult) -> Void) {
+    let round = Round(
+      id: UUID().uuidString, modes: [Mode.campus], task: nil, fetchCompletion: completion)
+    if Self.isQuietTime(Date()) {
+      finish(round, success: true, by: "das 22h às 7h")
+      return
+    }
+    UNUserNotificationCenter.current().getNotificationSettings { settings in
+      DispatchQueue.main.async {
+        guard !round.finished else { return }
+        guard Self.allowsAlerts(settings.authorizationStatus) else {
+          self.finish(round, success: true, by: "sem permissão")
+          return
+        }
+        self.start(round)
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.remoteWakeLimit) { [weak self] in
+          self?.expire(round)
+        }
+      }
+    }
+  }
+
   /// O teste do CI (scripts/ci/ios-smoke.sh): uma rodada pelo mesmo caminho,
   /// sem o BGTaskScheduler e sem as condições do aparelho (horário,
   /// permissão, tela bloqueada). Sem conta, o JS encerra logo. Chamada no
@@ -326,6 +381,9 @@ public final class BackgroundCheck: NSObject {
     waiting.removeAll { $0 === round }
     Self.trace("rodada \(round.id) encerrada: \(reason) (success=\(success ? 1 : 0))")
     round.task?.setTaskCompleted(success: success)
+    // o iOS mede o push silencioso por aqui: o JS rodou (`newData`), nem
+    // precisou (`noData`) ou faltou rede ou tempo (`failed`)
+    round.fetchCompletion?(!success ? .failed : round.delivered ? .newData : .noData)
   }
 
   // MARK: - Pedidos ao iOS

@@ -192,6 +192,23 @@ test('the background check task is permitted in Info.plist, with background fetc
   );
 });
 
+test('the silent push of Agora no campus wakes the app into a campus round', () => {
+  // sem "remote-notification", o iOS não entrega o push silencioso ao app
+  assert.match(
+    read('ios/AOUerjMobile/Info.plist'),
+    /<key>UIBackgroundModes<\/key>\s*<array>[\s\S]*?<string>remote-notification<\/string>[\s\S]*?<\/array>/,
+  );
+  const delegate = read('ios/AOUerjMobile/AppDelegate.swift');
+  assert.match(delegate, /didReceiveRemoteNotification userInfo/);
+  assert.match(delegate, /userInfo\["campus"\] as\? String == "wake"/);
+  assert.match(delegate, /static let campus = "campus"/);
+  // o mesmo modo que o JS roda (src/app/background/portalCheckTask.ts)
+  assert.match(
+    read('src/app/background/portalCheckTask.ts'),
+    /data\?\.mode === 'campus'/,
+  );
+});
+
 test('the Swift background check answers every selector the notifications module sends it', () => {
   const module = read('ios/AOUerjMobile/Native/AppNotificationsModule.mm');
   const delegate = read('ios/AOUerjMobile/AppDelegate.swift');

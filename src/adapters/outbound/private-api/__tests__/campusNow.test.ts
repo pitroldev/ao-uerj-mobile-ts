@@ -1,7 +1,7 @@
 import { AxiosError, type AxiosResponse } from 'axios';
 import { CampusNowError } from '@root/modules/campus-now/domain/campusNow';
 import { AppError } from '@root/shared/errors/AppError';
-import { createCampusNowServer } from '../campusNow';
+import { createCampusNowServer, createCampusPushServer } from '../campusNow';
 import type { PrivateApiHttpClient } from '../index';
 
 const rejected = (status: number, error?: string) =>
@@ -245,4 +245,51 @@ it('turns the documented refusals into CampusNowError and the rest into AppError
   }
   client.get.mockRejectedValueOnce(new AxiosError('offline', 'ERR_NETWORK'));
   await expect(server.list()).rejects.toEqual(new AppError('NETWORK'));
+});
+
+describe('the iPhone push registration', () => {
+  const TOKEN = 'ab'.repeat(32);
+  const pushSetup = () => {
+    const client: jest.Mocked<PrivateApiHttpClient> = {
+      get: jest.fn(),
+      post: jest.fn(),
+    };
+    return { client, push: createCampusPushServer(client) };
+  };
+
+  it('reads whether the server sends push, registers the token and cancels it', async () => {
+    const { client, push } = pushSetup();
+    client.get.mockResolvedValueOnce({
+      data: { available: true, registered: false },
+    });
+    await expect(push.status()).resolves.toEqual({
+      available: true,
+      registered: false,
+    });
+    expect(client.get).toHaveBeenCalledWith('/v2/campus-now/push');
+
+    client.post.mockResolvedValue({ data: '' });
+    await push.register(TOKEN);
+    expect(client.post).toHaveBeenCalledWith('/v2/campus-now/push', {
+      platform: 'ios',
+      token: TOKEN,
+    });
+    await push.unregister();
+    expect(client.post).toHaveBeenLastCalledWith(
+      '/v2/campus-now/push/cancel',
+      {},
+    );
+  });
+
+  it('turns the refusal and a broken answer into app errors', async () => {
+    const { client, push } = pushSetup();
+    client.post.mockRejectedValueOnce(rejected(503, 'push_unavailable'));
+    await expect(push.register(TOKEN)).rejects.toEqual(
+      new AppError('SERVICE_UNAVAILABLE'),
+    );
+    client.get.mockResolvedValueOnce({ data: { available: 'yes' } });
+    await expect(push.status()).rejects.toEqual(
+      new AppError('SERVICE_UNAVAILABLE'),
+    );
+  });
 });

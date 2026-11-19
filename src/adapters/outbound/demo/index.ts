@@ -13,7 +13,7 @@
  */
 import { createDemoClock } from './clock';
 import { createDemoAuthentication } from './ports/authentication';
-import { createDemoCampus } from './ports/campus';
+import { createDemoCampus, createDemoCampusPush } from './ports/campus';
 import {
   createDemoCompanion,
   createDemoCompanionWatch,
@@ -49,6 +49,7 @@ export function createDemoBackend(now: () => number = Date.now) {
     companion: createDemoCompanion(clock),
     companionWatch: createDemoCompanionWatch(),
     campus: createDemoCampus(clock),
+    campusPush: createDemoCampusPush(),
     studentSessionApi: createDemoStudentSessionApi(),
   };
 }

@@ -148,19 +148,20 @@ A verificação no portal e "Avisar quando voltar" usam uma `BGAppRefreshTask` (
 
 Os intervalos de cada verificação estão em [Notificações](notificacoes-e-widget.md#notificações).
 
-## Push do "Me avise"
+## Push do servidor
 
-No Android, o "Me avise se tiver mesa" lê a lista a cada 15 minutos; o iOS não acorda o app com essa frequência. No iPhone, quem avisa é o servidor, por push (APNs). O fluxo está em [No campus](no-campus.md#companhia-agora) e o envio, no [README do servidor](../server/README.md#me-avise-se-abrirem-no-iphone).
+No Android, o "Me avise se tiver mesa" e o Agora no campus leem as listas a cada 15 minutos (`frequentWatches`); o iOS não acorda o app com essa frequência. No iPhone, quem avisa é o servidor, por push (APNs). Os fluxos estão em [No campus](no-campus.md) e o envio, no [README do servidor](../server/README.md#me-avise-se-abrirem-no-iphone).
 
-- **O token:** ao pedir o aviso, o JS chama `remoteNotificationToken`. A `PushToken` (`AppDelegate.swift`) chama `registerForRemoteNotifications`, e o `AppDelegate` recebe o token (ou a falha) e o repassa, também ao Expo, pelo `super`. Sem resposta em 10 segundos, o pedido não sai. O token vai ao servidor só junto com o pedido e some com ele.
-- **O aviso:** o push leva `target: companion` fora do `aps`, e a `LaunchCenter` abre a Companhia agora ao toque, como nos avisos locais. Com o app na frente, ele aparece do mesmo jeito.
+- **O token:** o JS chama `remoteNotificationToken`. A `PushToken` (`AppDelegate.swift`) chama `registerForRemoteNotifications`, e o `AppDelegate` recebe o token (ou a falha) e o repassa, também ao Expo, pelo `super`. Sem resposta em 10 segundos, nada sai. No "Me avise", o token vai só junto com o pedido e some com ele; no Agora no campus, o aparelho se registra (`CampusPush`) enquanto os avisos do campus estão ligados, de novo a cada abertura, e sai ao desligar e no logout.
+- **Os avisos:** o push leva `target` (`companion` ou `campus`) fora do `aps`, e a `LaunchCenter` abre a tela ao toque, como nos avisos locais. Com o app na frente, ele aparece do mesmo jeito.
+- **O silencioso do campus:** `{"aps":{"content-available":1},"campus":"wake"}`, com o modo de fundo `remote-notification` no `Info.plist`. O `AppDelegate` entrega à `BackgroundCheck.handleRemoteWake`, que abre uma rodada `campus` (das 7h às 22h, com a permissão de avisos) pelo mesmo caminho das rodadas do `BGTaskScheduler`, sem esperar o desbloqueio, e expira sozinha em 27 segundos; o fim volta ao iOS pelo `completionHandler` (`newData`, `noData` ou `failed`). O iOS decide quantos silenciosos entrega: é melhor esforço.
 - **Capability:** o entitlement `aps-environment` é `production`. O App ID `com.aouerjmobile` precisa de Push Notifications ligado no portal da Apple, e o perfil `IOS_APP_PROFILE` precisa ser gerado de novo depois disso: sem o `aps-environment`, o `ios-signing.sh` para o envio.
-- **No servidor:** a chave APNs (`.p8`, "Apple Push Notifications service") fica no `.env` privado da VM (`APNS_KEY_ID`, `APNS_PRIVATE_KEY`; ver [server/README.md](../server/README.md#me-avise-se-abrirem-no-iphone)). Sem ela, o servidor responde `available: false`, e o botão não aparece no iPhone.
+- **No servidor:** a chave APNs (`.p8`, "Apple Push Notifications service") fica no `.env` privado da VM (`APNS_KEY_ID`, `APNS_PRIVATE_KEY`; ver [server/README.md](../server/README.md#me-avise-se-abrirem-no-iphone)). Sem ela, o servidor responde `available: false`, e nem o botão do "Me avise" nem a chave dos avisos do campus aparecem no iPhone.
 - **No simulador:** o token de produção não existe, e o push de verdade precisa de iPhone físico. Um push de teste se manda ao simulador com `xcrun simctl push`.
 
 ## Fora do iPhone
 
-- As leituras a cada 15 minutos do Agora no campus ("ainda está lá?"): o iOS não acorda o app com essa frequência (`frequentWatches` no `NotificationDevicePort`). O "Me avise se tiver mesa" da Companhia agora chega por push (ver [Push do "Me avise"](#push-do-me-avise)).
+- As leituras a cada 15 minutos: no iPhone, o servidor manda push no lugar delas (ver [Push do servidor](#push-do-servidor)).
 - A atualização dentro do app (`InAppUpdates` é da Play): no iPhone, o app lê a versão mais nova na App Store, avisa no Início e o "Atualizar" abre a página do app. O pedido de avaliação existe nos dois, pela API de cada loja.
 
 ## Outros detalhes

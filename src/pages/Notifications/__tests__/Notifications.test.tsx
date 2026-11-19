@@ -340,10 +340,11 @@ it('turns the Agora no campus notices off where the app signs in as a student', 
   }
 });
 
-it('leaves the Agora no campus notices out without the student session or on the iPhone', async () => {
+it('leaves the Agora no campus notices out without the student session or on the iPhone without push', async () => {
   await mount();
   expect(screen.queryByText('Avisos no caminho das aulas')).toBeNull();
-  // no iPhone, mesmo com a sessão de aluno: o iOS não acorda o app a cada 15 minutos
+  // no iPhone, mesmo com a sessão de aluno: sem o push do servidor, nada
+  // acorda o app (o iOS não roda a leitura a cada 15 minutos)
   mockCampus = true;
   setOS('ios');
   try {

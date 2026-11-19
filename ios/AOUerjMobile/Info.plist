@@ -129,10 +129,12 @@
         <string>doc.text</string>
       </dict>
     </array>
-    <!-- "fetch": o BGAppRefreshTask da verificação em segundo plano (BGTaskSchedulerPermittedIdentifiers). -->
+    <!-- "fetch": o BGAppRefreshTask da verificação em segundo plano (BGTaskSchedulerPermittedIdentifiers).
+         "remote-notification": o push silencioso do Agora no campus, que acorda o app (BackgroundCheck.handleRemoteWake). -->
     <key>UIBackgroundModes</key>
     <array>
       <string>fetch</string>
+      <string>remote-notification</string>
     </array>
     <key>UILaunchStoryboardName</key>
     <string>BootSplash</string>

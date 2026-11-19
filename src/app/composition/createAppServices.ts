@@ -176,13 +176,14 @@ export function createAppServices() {
     preferences,
     account: currentAccount,
   });
-  // no logout, sai das mesas e dos grupos (e tira o "Me avise" do servidor)
-  // e só então encerra a sessão
+  // no logout, sai das mesas e dos grupos (e tira do servidor o "Me avise" e
+  // o aparelho do push do campus) e só então encerra a sessão
   followIdentity(studentSession, identity, {
     beforeClear: async () => {
       await Promise.all([
         companion.clear(),
         notifications.companionWatch?.signOut(),
+        notifications.campusPush?.signOut(),
       ]);
     },
   });
@@ -200,6 +201,7 @@ export function createAppServices() {
     companion,
     campusNow,
     companionWatchServer: backend.companionWatch,
+    campusPushServer: backend.campusPush,
   });
   return {
     campusMap: new CampusMap(bundledCampusMap),

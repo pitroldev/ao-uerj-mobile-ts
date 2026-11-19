@@ -40,6 +40,7 @@ function fakeBackend(name: string) {
     companion: port('pass', 'list', 'open', 'join', 'read', 'leave'),
     companionWatch: port('status', 'put', 'remove'),
     campus: port('list', 'report', 'you', 'community'),
+    campusPush: port('status', 'register', 'unregister'),
     studentSessionApi: port('challenge', 'create', 'end'),
   } as unknown as Backend;
   return { backend, answer };

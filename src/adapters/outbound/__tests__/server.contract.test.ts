@@ -32,7 +32,10 @@ import {
   createPrivateApiAdapters,
   createPrivateApiClient,
 } from '../private-api';
-import { createCampusNowServer } from '../private-api/campusNow';
+import {
+  createCampusNowServer,
+  createCampusPushServer,
+} from '../private-api/campusNow';
 import {
   createCompanionServer,
   createCompanionWatchServer,
@@ -492,6 +495,20 @@ describe('the student session (/aouerj/v2)', () => {
     ).rejects.toEqual(new AppError('SERVICE_UNAVAILABLE'));
     // sem pedido, cancelar também responde
     await expect(watch.remove()).resolves.toBeUndefined();
+  });
+
+  it('reads the Agora no campus push as off where the server has no APNs key, and refuses the registration', async () => {
+    const push = createCampusPushServer(
+      studentSession('209900000022', 'MARINA COSTA').student,
+    );
+    await expect(push.status()).resolves.toEqual({
+      available: false,
+      registered: false,
+    });
+    await expect(push.register('ab'.repeat(32))).rejects.toEqual(
+      new AppError('SERVICE_UNAVAILABLE'),
+    );
+    await expect(push.unregister()).resolves.toBeUndefined();
   });
 
   it('runs an Agora no campus notice end to end with two students: report, confirm, thanks, refusals and the end', async () => {

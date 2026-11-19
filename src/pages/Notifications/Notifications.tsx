@@ -330,7 +330,7 @@ export function NotificationsPage() {
         </Section>
       ) : null}
 
-      {campusSupported && snapshot.frequentWatches ? (
+      {campusSupported && snapshot.campusInBackground ? (
         <Section title="Agora no campus">
           <List>
             {row(

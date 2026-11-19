@@ -50,9 +50,15 @@ function setup(
   disabled: string[] = [],
   device = createDevice(),
   /** A Companhia agora e o Agora no campus, quando o teste precisa deles. */
-  extra: Pick<
-    Parameters<typeof createNotifications>[0],
-    'companion' | 'campusNow' | 'companionWatchServer'
+  extra: Partial<
+    Pick<
+      Parameters<typeof createNotifications>[0],
+      | 'companion'
+      | 'campusNow'
+      | 'companionWatchServer'
+      | 'campusPushServer'
+      | 'savedScope'
+    >
   > = {},
 ) {
   let state: IdentityState = {
@@ -144,6 +150,7 @@ function setup(
     records,
     flushCache,
     evaluations,
+    store,
   };
 }
 
@@ -351,6 +358,58 @@ it('on the iPhone, the "Me avise" goes to the server with the push token', async
   );
   // a tarefa a cada 15 minutos é só do Android
   expect(iphone.device.setCompanionWatch).not.toHaveBeenCalled();
+});
+
+it('on the iPhone, the Agora no campus registers for the push, and the round finds the account with the screen locked', async () => {
+  const campusPushServer = {
+    status: jest.fn(async () => ({ available: true, registered: false })),
+    register: jest.fn(async (_token: string) => undefined),
+    unregister: jest.fn(async () => undefined),
+  };
+  let locked = false;
+  const extra = {
+    campusNow: {
+      supported: true,
+      load: jest.fn(async () => undefined),
+      getSnapshot: jest.fn(() => ({ visited: true })),
+      subscribe: jest.fn(() => () => undefined),
+      list: jest.fn(),
+    },
+    campusPushServer,
+    // o Keychain fechado com a tela bloqueada
+    savedScope: async () => {
+      if (locked) throw new Error('STORAGE_FAILED');
+      return 'account-1';
+    },
+  } as unknown as Parameters<typeof setup>[3];
+  const token = 'ab'.repeat(32);
+  const iphone = setup(
+    { campusAlerts: true },
+    [],
+    createDevice({
+      frequentWatches: false,
+      pushWatches: true,
+      pushToken: token,
+    }),
+    extra,
+  );
+  expect(iphone.notifications.campusWatch).not.toBeNull();
+  expect(iphone.notifications.campusPush).not.toBeNull();
+  iphone.signIn();
+  await act(settle);
+  // a disponibilidade, e com ela o registro, saem na volta ao app
+  await act(() => iphone.notifications.settings.refreshDevice());
+  expect(campusPushServer.register).toHaveBeenCalledWith(token);
+  expect(iphone.notifications.settings.getSnapshot().campusInBackground).toBe(
+    true,
+  );
+  expect(iphone.device.setCampusWatch).not.toHaveBeenCalledWith(true);
+
+  // com a tela bloqueada, a rodada acha a conta pela cópia fora do Keychain
+  locked = true;
+  iphone.store.read.mockClear();
+  await iphone.notifications.campusWatch!.checkInBackground();
+  expect(iphone.store.read).toHaveBeenCalledWith('account-1', 'campus-now');
 });
 
 it('leaves the portal tasks out where the device has no background checks', async () => {

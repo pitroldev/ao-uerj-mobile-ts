@@ -46,6 +46,11 @@ import { evaluationsQueryKey } from '@root/modules/evaluations/presentation/quer
 import type { CampusNow } from '@root/modules/campus-now/application/CampusNow';
 import { CampusWatch } from '@root/modules/campus-now/application/CampusWatch';
 import {
+  CampusPush,
+  DEVICE_SCOPE,
+} from '@root/modules/campus-now/application/CampusPush';
+import type { CampusPushServerPort } from '@root/modules/campus-now/application/ports';
+import {
   askNotification,
   confirmedNotification,
   levelNotification,
@@ -90,8 +95,58 @@ type Dependencies = {
   >;
   /** O pedido de "Me avise" no servidor, para o push do iPhone. */
   companionWatchServer?: CompanionWatchServerPort;
+  /** O registro do iPhone para o push do Agora no campus. */
+  campusPushServer?: CampusPushServerPort;
   device?: NotificationDevicePort | null;
 };
+
+/** O escopo da conta, fora do Keychain, para a rodada do campus no iPhone. */
+const BACKGROUND_ACCOUNT_KEY = 'background-account';
+
+/**
+ * A conta da rodada do Agora no campus no iPhone, que o push silencioso abre
+ * com a tela bloqueada: a conta salva fica no Keychain, que só abre com o
+ * aparelho desbloqueado. O escopo (um id aleatório, sem a matrícula) fica
+ * também nas preferências do aparelho, gravado no login e apagado na saída
+ * (uma restauração que falhou, como a do Keychain fechado, não apaga). A
+ * rodada usa o Keychain e, só quando ele não abre, esta cópia; a sessão de
+ * aluno vem do cofre, que abre depois do primeiro desbloqueio.
+ */
+function mirrorBackgroundScope(
+  identity: Pick<IdentityController, 'getSnapshot' | 'subscribe'>,
+  preferences: PreferencesStore,
+  savedScope: () => Promise<string | null>,
+): () => Promise<string | null> {
+  let written: string | null | undefined;
+  const follow = () => {
+    const { status, account, error } = identity.getSnapshot();
+    const scope =
+      status === 'signedIn' || status === 'refreshing'
+        ? account.scope
+        : status === 'signedOut' && !error
+          ? null
+          : undefined;
+    if (scope === undefined || scope === written) return;
+    written = scope;
+    void preferences
+      .write(DEVICE_SCOPE, BACKGROUND_ACCOUNT_KEY, scope)
+      .catch(() => {
+        written = undefined;
+      });
+  };
+  identity.subscribe(follow);
+  follow();
+  return async () => {
+    try {
+      return await savedScope();
+    } catch {
+      const mirrored = await preferences
+        .read<unknown>(DEVICE_SCOPE, BACKGROUND_ACCOUNT_KEY)
+        .catch(() => null);
+      return typeof mirrored === 'string' && mirrored ? mirrored : null;
+    }
+  };
+}
 
 /**
  * Avisos: preferências por conta, lembretes de aula e a verificação no
@@ -113,6 +168,7 @@ export function createNotifications({
   companion,
   campusNow,
   companionWatchServer,
+  campusPushServer,
   device = createNativeNotifications(),
 }: Dependencies) {
   const campusDisabled = () =>
@@ -123,6 +179,18 @@ export function createNotifications({
   const background = device?.backgroundChecks ? device : null;
   const watching = background?.frequentWatches ? background : null;
   const account = activeAccount(identity);
+  // iPhone: o Agora no campus em segundo plano por push do servidor
+  const campusPush =
+    !watching && device?.pushWatches && campusNow?.supported && campusPushServer
+      ? new CampusPush({
+          server: campusPushServer,
+          token: () => device.remoteNotificationToken(),
+          store: preferences,
+        })
+      : null;
+  const campusScope = campusPush
+    ? mirrorBackgroundScope(identity, preferences, savedScope)
+    : savedScope;
   const key = (owner: ActiveAccount, resource: CachedResource) =>
     academicKeys.resource(owner.scope, owner.period, resource);
   const cache: AcademicCachePort = {
@@ -184,15 +252,17 @@ export function createNotifications({
           });
         }
       : undefined,
-    // a leitura a cada 15 min só para quem já abriu o Agora no campus
+    // a leitura a cada 15 min (ou, no iPhone, o registro para o push) só
+    // para quem já abriu o Agora no campus
     campusWatch:
-      watching && campusNow?.supported
+      (watching || campusPush) && campusNow?.supported
         ? async () => {
             if (campusDisabled()) return false;
             await campusNow.load();
             return campusNow.getSnapshot().visited;
           }
         : undefined,
+    campusBackground: campusPush ?? undefined,
   });
   /**
    * "Já fiz" tocado nos avisos: o aparelho já parou os lembretes; aqui a
@@ -277,13 +347,16 @@ export function createNotifications({
         })
       : null;
 
-  // Agora no campus no celular: a mesma tarefa sem tela, sem o portal
+  // Agora no campus no celular: a mesma tarefa sem tela, sem o portal. No
+  // iPhone, a rodada que o push silencioso abre, só com o "ainda está lá?"
+  const campusDevice = watching ?? (campusPush ? device : null);
   const campusWatch =
-    watching && campusNow?.supported
+    campusDevice && campusNow?.supported
       ? new CampusWatch({
-          device: watching,
+          device: campusDevice,
+          ownAlerts: !campusPush,
           store: preferences,
-          savedScope,
+          savedScope: campusScope,
           allowed: async scope => {
             const saved = await preferences.read<unknown>(
               scope,
@@ -349,6 +422,8 @@ export function createNotifications({
     portalReturn,
     companionWatch,
     campusWatch,
+    /** iPhone: o registro do aparelho para o push do Agora no campus. */
+    campusPush,
     consumeDone,
     // as boas notícias da verificação viram momento bom na abertura
     goodNews: new GoodNews({

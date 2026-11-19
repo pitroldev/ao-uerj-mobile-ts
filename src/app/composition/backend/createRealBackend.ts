@@ -10,7 +10,10 @@ import {
   createPrivateApiAdapters,
   type PrivateApiHttpClient,
 } from '@root/adapters/outbound/private-api';
-import { createCampusNowServer } from '@root/adapters/outbound/private-api/campusNow';
+import {
+  createCampusNowServer,
+  createCampusPushServer,
+} from '@root/adapters/outbound/private-api/campusNow';
 import {
   createCompanionServer,
   createCompanionWatchServer,
@@ -81,6 +84,7 @@ export function createRealBackend({
     companion: createCompanionServer(student, student),
     companionWatch: createCompanionWatchServer(student),
     campus: createCampusNowServer(student),
+    campusPush: createCampusPushServer(student),
     studentSessionApi: createStudentSessionApi(client),
   };
 }

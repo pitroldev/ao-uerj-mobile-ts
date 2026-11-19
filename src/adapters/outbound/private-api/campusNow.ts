@@ -18,7 +18,10 @@ import {
   type Standing,
   type YouSummary,
 } from '@root/modules/campus-now/domain/campusNow';
-import type { CampusNowServerPort } from '@root/modules/campus-now/application/ports';
+import type {
+  CampusNowServerPort,
+  CampusPushServerPort,
+} from '@root/modules/campus-now/application/ports';
 // O contrato do servidor (server/); só tipos, apagados no bundle.
 import type {
   CampusAnswerRequest,
@@ -27,8 +30,10 @@ import type {
   CampusNoticeResponse,
   CampusNoticeResultResponse,
   CampusNowResponse,
+  CampusPushStatusResponse,
   CampusSeenRequest,
   CampusYouResponse,
+  RegisterCampusPushRequest,
 } from '../../../../server/src/adapters/inbound/http/contract';
 import type { PrivateApiHttpClient } from './index';
 
@@ -321,6 +326,38 @@ export function createCampusNowServer(
             problems: list(summary.problems).map(problem),
           },
         } satisfies CommunitySummary;
+      }),
+  };
+}
+
+/**
+ * O registro do iPhone para o Agora no campus em segundo plano, com a sessão
+ * de aluno. As recusas (`push_unavailable`) chegam como `AppError`.
+ */
+export function createCampusPushServer(
+  client: PrivateApiHttpClient,
+): CampusPushServerPort {
+  const push = `${BASE}/push`;
+  return {
+    status: () =>
+      request(async () => {
+        const { data } = await client.get(push);
+        const body = object(data) as Partial<CampusPushStatusResponse>;
+        return {
+          available: flag(body.available),
+          registered: flag(body.registered),
+        };
+      }),
+    register: token =>
+      request(async () => {
+        await client.post(push, {
+          platform: 'ios',
+          token,
+        } satisfies RegisterCampusPushRequest);
+      }),
+    unregister: () =>
+      request(async () => {
+        await client.post(`${push}/cancel`, {});
       }),
   };
 }

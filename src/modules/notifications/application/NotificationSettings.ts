@@ -42,6 +42,12 @@ export type NotificationsSnapshot = {
    * campus): só no Android.
    */
   frequentWatches: boolean;
+  /**
+   * O Agora no campus avisa com o app fechado: no Android, pelas leituras a
+   * cada 15 minutos; no iPhone, por push do servidor, quando ele diz que
+   * manda (até a primeira resposta, não).
+   */
+  campusInBackground: boolean;
   /** Preferências da conta ativa já lidas. */
   ready: boolean;
   preferences: NotificationPreferences;
@@ -88,6 +94,15 @@ type Dependencies = {
    * minutos fica desligada.
    */
   campusWatch?: () => Promise<boolean>;
+  /**
+   * iPhone: o Agora no campus em segundo plano é o registro no servidor,
+   * para o push, no lugar da tarefa do Android (`setCampusWatch`).
+   * `available` diz se o servidor manda push.
+   */
+  campusBackground?: {
+    available(): Promise<boolean>;
+    apply(enabled: boolean): Promise<void>;
+  };
 };
 
 /**
@@ -125,6 +140,8 @@ export class NotificationSettings {
   private appliedCompanion: string | null = null;
   private appliedPortal: boolean | null = null;
   private appliedCampus: boolean | null = null;
+  /** iPhone: a conta cuja disponibilidade do push já foi perguntada. */
+  private campusAsked: string | null = null;
   private applying: Promise<void> = Promise.resolve();
   /** As escolhas são salvas uma de cada vez: a segunda parte da primeira. */
   private updating: Promise<unknown> = Promise.resolve();
@@ -136,6 +153,9 @@ export class NotificationSettings {
       supported: dependencies.device !== null,
       backgroundChecks: dependencies.device?.backgroundChecks ?? false,
       frequentWatches: dependencies.device?.frequentWatches ?? false,
+      campusInBackground:
+        !dependencies.campusBackground &&
+        (dependencies.device?.frequentWatches ?? false),
       ready: false,
       preferences: DEFAULT_NOTIFICATION_PREFERENCES,
       permission: null,
@@ -266,7 +286,37 @@ export class NotificationSettings {
       exactAlarms !== this.snapshot.exactAlarms
     )
       this.publish({ permission, exactAlarms });
+    await this.campusAvailability();
     await this.apply();
+  }
+
+  /**
+   * iPhone: pergunta ao servidor se ele manda push, com a conta (a pergunta
+   * leva a sessão de aluno), só de quem já abriu o Agora no campus e uma vez
+   * por conta a cada abertura do app. Sem rede, fica para a próxima volta ao
+   * app.
+   */
+  private async campusAvailability() {
+    const { campusBackground, campusWatch } = this.dependencies;
+    const scope = this.scope;
+    if (
+      !campusBackground ||
+      !campusWatch ||
+      !scope ||
+      this.snapshot.campusInBackground ||
+      this.campusAsked === scope
+    )
+      return;
+    if (!(await campusWatch().catch(() => false))) return;
+    this.campusAsked = scope;
+    let available = false;
+    try {
+      available = await campusBackground.available();
+    } catch {
+      this.campusAsked = null;
+    }
+    if (available && scope === this.scope)
+      this.publish({ campusInBackground: true });
   }
 
   /**
@@ -433,14 +483,17 @@ export class NotificationSettings {
     return build().catch(() => undefined);
   }
 
-  /** A leitura do Agora no campus a cada 15 minutos (só no Android). */
+  /**
+   * O Agora no campus em segundo plano: a leitura a cada 15 minutos no
+   * Android, o registro para o push no iPhone.
+   */
   private async campusDesired(account: ActiveAccount | null): Promise<boolean> {
     const watch = this.dependencies.campusWatch;
-    const { permission, remoteDisabled, preferences, frequentWatches } =
+    const { permission, remoteDisabled, preferences, campusInBackground } =
       this.snapshot;
     if (
       !watch ||
-      !frequentWatches ||
+      !campusInBackground ||
       !account ||
       permission !== 'granted' ||
       remoteDisabled ||
@@ -517,7 +570,10 @@ export class NotificationSettings {
         generation === this.generation
       ) {
         this.appliedCampus = campus;
-        await device.setCampusWatch(campus).catch(() => {
+        const background = this.dependencies.campusBackground;
+        await (
+          background ? background.apply(campus) : device.setCampusWatch(campus)
+        ).catch(() => {
           this.appliedCampus = null;
         });
       }

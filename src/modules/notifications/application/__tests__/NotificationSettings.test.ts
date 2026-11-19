@@ -385,3 +385,59 @@ it.each([
     expect(device!.clearPosted).not.toHaveBeenCalled();
   },
 );
+
+describe('the Agora no campus in the background on the iPhone (push)', () => {
+  function iphone(available: boolean) {
+    const device = createDevice({ frequentWatches: false, pushWatches: true });
+    const account = createAccount();
+    const store = createStore({
+      [`${ACCOUNT.scope}/${PREFERENCES_KEY}`]: { campusAlerts: true },
+    });
+    const background = {
+      available: jest.fn(async () => available),
+      apply: jest.fn(async (_enabled: boolean) => undefined),
+    };
+    const settings = new NotificationSettings({
+      device,
+      store,
+      account: account.get,
+      subscribeAccount: account.subscribe,
+      remote: createRemote(),
+      schedule: () => null,
+      reminderText: item => ({ title: item.class.name, body: '' }),
+      campusWatch: async () => true,
+      campusBackground: background,
+    });
+    settings.start();
+    return { settings, device, account, background };
+  }
+
+  it('registers for the push instead of the 15-minute task, once the server says it sends push', async () => {
+    const { settings, device, account, background } = iphone(true);
+    // até o servidor responder, a chave não aparece
+    expect(settings.getSnapshot().campusInBackground).toBe(false);
+    account.set(ACCOUNT);
+    await settle();
+    expect(settings.getSnapshot().campusInBackground).toBe(true);
+    expect(background.apply).toHaveBeenLastCalledWith(true);
+    expect(device.setCampusWatch).not.toHaveBeenCalled();
+    // a volta ao app não pergunta de novo
+    await settings.refreshDevice();
+    expect(background.available).toHaveBeenCalledTimes(1);
+
+    // desligado na tela: sai do servidor
+    await settings.update({ campusAlerts: false });
+    await settle();
+    expect(background.apply).toHaveBeenLastCalledWith(false);
+  });
+
+  it('keeps the campus notices off where the server has no push, asking once per opening', async () => {
+    const { settings, account, background } = iphone(false);
+    account.set(ACCOUNT);
+    await settle();
+    expect(settings.getSnapshot().campusInBackground).toBe(false);
+    expect(background.apply).not.toHaveBeenCalledWith(true);
+    await settings.refreshDevice();
+    expect(background.available).toHaveBeenCalledTimes(1);
+  });
+});

@@ -39,6 +39,12 @@ type Dependencies = {
   list: () => Promise<NoticeList>;
   messages: Messages;
   now: () => number;
+  /**
+   * `false` no iPhone: os avisos do próprio aviso e o nível novo chegam por
+   * push do servidor, e a rodada (acordada por um push silencioso) faz só o
+   * "ainda está lá?". Padrão: `true` (o Android avisa tudo daqui).
+   */
+  ownAlerts?: boolean;
 };
 
 export type WatchResult = 'stopped' | 'idle' | 'waiting' | 'done';
@@ -54,6 +60,10 @@ export type WatchResult = 'stopped' | 'idle' | 'waiting' | 'done';
  * - o aviso do aluno confirmado pela primeira vez;
  * - quando o aviso do aluno acaba, quantos agradeceram;
  * - o nível novo.
+ *
+ * No iPhone, a mesma rodada roda quando o servidor manda um push silencioso
+ * (enquanto há aviso confirmado), só com o "ainda está lá?": os outros três
+ * chegam por push do servidor (`ownAlerts: false`).
  */
 export class CampusWatch {
   constructor(private readonly dependencies: Dependencies) {}
@@ -76,7 +86,8 @@ export class CampusWatch {
       return 'stopped';
     }
     const spots = spotsAt(state.classes, new Date(at));
-    const open = state.own.filter(item => !item.done);
+    const ownAlerts = this.dependencies.ownAlerts ?? true;
+    const open = ownAlerts ? state.own.filter(item => !item.done) : [];
     if (!spots.length && !open.length) return 'idle';
 
     let current: NoticeList;
@@ -99,9 +110,13 @@ export class CampusWatch {
     spots: ReturnType<typeof spotsAt>,
     at: number,
   ): Promise<CampusState> {
-    const { device, messages } = this.dependencies;
+    const { device, messages, ownAlerts = true } = this.dependencies;
     const send = (content: CampusNotification) =>
       device.notify(content).catch(() => undefined);
+
+    // no iPhone, o servidor já avisou do aviso do aluno e do nível
+    if (!ownAlerts)
+      return { ...state, asked: await this.ask(state, current, spots, at) };
 
     const own = await Promise.all(
       state.own.map(async item => {
@@ -130,19 +145,29 @@ export class CampusWatch {
     if (state.level !== null && current.you.level > state.level)
       await send(messages.level(current.you.level));
 
-    const asked = [...state.asked];
-    if (spots.length && asked.length < MAX_ASKS_PER_DAY) {
-      const target = askTarget(current.notices, spots, {
-        skipped: [...state.skipped, ...asked],
-        now: at,
-        confirmedOnly: true,
-      });
-      if (target) {
-        await send(messages.ask(target.notice, target.near));
-        asked.push(target.notice.id);
-      }
-    }
-
+    const asked = await this.ask(state, current, spots, at);
     return { ...state, own, asked, level: current.you.level };
+  }
+
+  /** O "ainda está lá?" do caminho da próxima aula; devolve os já perguntados. */
+  private async ask(
+    state: CampusState,
+    current: NoticeList,
+    spots: ReturnType<typeof spotsAt>,
+    at: number,
+  ): Promise<string[]> {
+    const asked = [...state.asked];
+    if (!spots.length || asked.length >= MAX_ASKS_PER_DAY) return asked;
+    const target = askTarget(current.notices, spots, {
+      skipped: [...state.skipped, ...asked],
+      now: at,
+      confirmedOnly: true,
+    });
+    if (!target) return asked;
+    await this.dependencies.device
+      .notify(this.dependencies.messages.ask(target.notice, target.near))
+      .catch(() => undefined);
+    asked.push(target.notice.id);
+    return asked;
   }
 }

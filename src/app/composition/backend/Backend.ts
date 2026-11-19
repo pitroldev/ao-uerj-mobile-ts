@@ -1,5 +1,8 @@
 import type { AcademicRecordsPort } from '@root/modules/academics/application/ports';
-import type { CampusNowServerPort } from '@root/modules/campus-now/application/ports';
+import type {
+  CampusNowServerPort,
+  CampusPushServerPort,
+} from '@root/modules/campus-now/application/ports';
 import type {
   MessageBoardPort,
   TeacherDirectoryPort,
@@ -47,5 +50,7 @@ export type Backend = {
   /** O "Me avise se tiver mesa" por push (iPhone). */
   companionWatch: CompanionWatchServerPort;
   campus: CampusNowServerPort;
+  /** O Agora no campus em segundo plano por push (iPhone). */
+  campusPush: CampusPushServerPort;
   studentSessionApi: StudentSessionApiPort;
 };

@@ -40,6 +40,7 @@ function setup({
   allowed = true,
   disabled = false,
   now = NOW,
+  ownAlerts,
 }: {
   state?: Partial<CampusState>;
   list?: NoticeList | Error;
@@ -47,6 +48,8 @@ function setup({
   allowed?: boolean;
   disabled?: boolean;
   now?: number;
+  /** `false` como no iPhone: o servidor avisa do aviso do aluno e do nível. */
+  ownAlerts?: boolean;
 } = {}) {
   const saved = new Map<string, unknown>();
   if (state)
@@ -70,6 +73,7 @@ function setup({
   });
   const watch = new CampusWatch({
     device,
+    ownAlerts,
     store: {
       read: async <T>(owner: string, key: string) =>
         (saved.get(`${owner}/${key}`) as T) ?? null,
@@ -246,4 +250,49 @@ it('waits for the next round when the list fails', async () => {
   await expect(watch.checkInBackground()).resolves.toBe('waiting');
   expect(device.notify).not.toHaveBeenCalled();
   expect(device.setCampusWatch).not.toHaveBeenCalled();
+});
+
+it('on the iPhone, only asks "still there?": the server tells about the own notice and the level', async () => {
+  const own = {
+    id: 'meu',
+    kind: 'ru' as const,
+    status: 'short_queue' as const,
+    createdAt: NOW - 30 * 60_000,
+    thanks: 3,
+    views: 10,
+    confirmedTold: false,
+    done: false,
+  };
+  const mine = notice({
+    id: 'meu',
+    kind: 'ru',
+    status: 'short_queue',
+    place: { type: 'ru' },
+    mine: true,
+    confirmations: 1,
+  });
+  // perto da aula, com o aviso do aluno confirmado e um nível novo
+  const { watch, device, read, listFn } = setup({
+    state: { own: [own] },
+    list: { notices: [notice(), mine], helpersToday: 3, you: standing(3) },
+    ownAlerts: false,
+  });
+  await expect(watch.checkInBackground()).resolves.toBe('done');
+  expect(device.notify).toHaveBeenCalledTimes(1);
+  expect(device.notify).toHaveBeenCalledWith(
+    expect.objectContaining({ id: 'ask-lift' }),
+  );
+  expect(read().asked).toEqual(['lift']);
+  // o aviso do aluno fica como estava: quem conta é o servidor
+  expect(read().own[0]).toEqual(own);
+
+  // longe das aulas, o aviso do aluno em aberto não faz buscar a lista
+  const away = setup({
+    state: { own: [own] },
+    now: new Date(2026, 10, 23, 12, 30).getTime(),
+    ownAlerts: false,
+  });
+  await expect(away.watch.checkInBackground()).resolves.toBe('idle');
+  expect(away.listFn).not.toHaveBeenCalled();
+  expect(listFn).toHaveBeenCalledTimes(1);
 });

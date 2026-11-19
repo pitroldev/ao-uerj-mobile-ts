@@ -506,7 +506,7 @@ function LiveView({
 
         <Notes>
           {alerts.supported &&
-          alerts.frequentWatches &&
+          alerts.campusInBackground &&
           alerts.ready &&
           alerts.preferences.campusAlerts &&
           alerts.permission !== null &&
