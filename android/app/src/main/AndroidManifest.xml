@@ -9,6 +9,15 @@
   <!-- Refaz os lembretes depois de reiniciar o aparelho. -->
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+  <!--
+    A MainActivity fica em retrato, e o NetInfo pede ACCESS_WIFI_STATE: sem estas linhas, a Play
+    entende que o app exige uma tela em retrato e Wi-Fi, e não o deixa instalar em parte dos
+    tablets, Chromebooks e aparelhos Android XR. Nenhum dos dois é essencial: sem Wi-Fi o app usa
+    os dados móveis, e numa tela que só fica deitada ele abre em retrato, com faixas dos lados.
+  -->
+  <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
+  <uses-feature android:name="android.hardware.wifi" android:required="false" />
+
   <application
     android:name=".MainApplication"
     android:label="@string/app_name"
