@@ -89,7 +89,7 @@ O backend é o [`server/`](../server/README.md), em `pitrol.dev`. O que ele guar
   - Todo pedido vai com a sessão de aluno, e cada membro guarda o aluno: um aluno abre uma por vez, entra uma vez em cada uma, e quem foi tirado não volta por outro aparelho.
   - O horário livre é calculado no aparelho, e não há localização ao vivo.
 - **Agora no campus:** o tipo, a situação e o lugar, de listas prontas, sem texto livre, mais as respostas, os "Valeu", os "Não é verdade" e os avisos vistos. O "no seu caminho" sai da grade, no aparelho; a grade não vai para o servidor.
-- **Avisos no aparelho:** os avisos são opt-in e montados no aparelho. Os do portal consultam só o portal. Os da Companhia agora ("Me avise se tiver mesa") e do Agora no campus leem as listas do servidor próprio, com a sessão de aluno.
+- **Avisos no aparelho:** os avisos são opt-in e montados no aparelho. Os do portal consultam só o portal. Os da Companhia agora ("Me avise se tiver mesa") e do Agora no campus leem as listas do servidor próprio, com a sessão de aluno. No iPhone, o "Me avise" vai ao servidor com o token de push do aparelho, que o servidor apaga ao avisar, no cancelamento, no logout ou no fim do horário pedido.
 
 ### Identificação do aluno
 

@@ -130,6 +130,22 @@ test('App Attest has its entitlement and DeviceCheck linked into the app', () =>
   assert.match(frameworks, /DeviceCheck\.framework in Frameworks/);
 });
 
+test('push notifications have their entitlement and the app delegate hands the token over', () => {
+  // o "Me avise se tiver mesa" chega por push do servidor (APNs de produção)
+  assert.match(
+    read('ios/AOUerjMobile/AOUerjMobile.entitlements'),
+    /<key>aps-environment<\/key>\s*<string>production<\/string>/,
+  );
+  const delegate = read('ios/AOUerjMobile/AppDelegate.swift');
+  assert.match(delegate, /didRegisterForRemoteNotificationsWithDeviceToken/);
+  assert.match(delegate, /didFailToRegisterForRemoteNotificationsWithError/);
+  assert.match(delegate, /@objc\(AOPushToken\)/);
+  assert.match(
+    read('ios/AOUerjMobile/Native/AppNotificationsModule.mm'),
+    /NSClassFromString\(@"AOPushToken"\)/,
+  );
+});
+
 test('sharing a schedule declares both photo library purpose strings required by Apple', () => {
   const info = read('ios/AOUerjMobile/Info.plist');
   for (const key of [

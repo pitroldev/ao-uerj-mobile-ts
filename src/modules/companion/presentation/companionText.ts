@@ -317,6 +317,22 @@ export function watchRequestText(kind: CallKind, until: number): string {
     : `Se alguém abrir um grupo para voltar até as ${clockText(until)}, o app avisa.`;
 }
 
+/** O pedido de aviso que não saiu: sem os avisos ligados, ou sem o servidor (iPhone). */
+export function watchRefusalText(result: 'denied' | 'failed'): {
+  title: string;
+  body: string;
+} {
+  return result === 'denied'
+    ? {
+        title: 'Avisos desligados',
+        body: 'Sem os avisos do app ligados, não dá para avisar quando alguém abrir.',
+      }
+    : {
+        title: 'Não deu para pedir o aviso',
+        body: 'Confira a internet e tente de novo daqui a pouco.',
+      };
+}
+
 /** O botão de pedir o aviso. */
 export const WATCH_CTA: Readonly<Record<CallKind, string>> = {
   lunch: 'Me avise se tiver mesa',

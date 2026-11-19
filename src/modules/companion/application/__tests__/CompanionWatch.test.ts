@@ -1,5 +1,7 @@
-import type { CompanionCall } from '../../domain/companion';
+import { AppError } from '@root/shared/errors/AppError';
+import type { CallKind, CompanionCall } from '../../domain/companion';
 import { COMPANION_WATCH_KEY, CompanionWatch } from '../CompanionWatch';
+import type { CompanionWatchServerPort } from '../ports';
 
 const MINUTE = 60_000;
 // segunda, 23 de novembro de 2026, 12:05
@@ -32,12 +34,47 @@ const call = (extra: Partial<CompanionCall>): CompanionCall => ({
   ...extra,
 });
 
+/** O servidor do "Me avise" por push (iPhone), com um pedido por aluno. */
+function createPushServer({ available = true } = {}) {
+  let stored: { kind: CallKind; until: number } | null = null;
+  const server = {
+    status: jest.fn(async () => ({ available, watch: stored })),
+    put: jest.fn(
+      async (request: {
+        kind: CallKind;
+        until: number;
+        seen: readonly string[];
+        token: string;
+      }) => {
+        if (!available) throw new AppError('SERVICE_UNAVAILABLE');
+        stored = { kind: request.kind, until: request.until };
+        return stored;
+      },
+    ),
+    remove: jest.fn(async () => {
+      stored = null;
+    }),
+  };
+  return {
+    server: server satisfies CompanionWatchServerPort,
+    /** O servidor mandou o push: o pedido sumiu de lá. */
+    pushed: () => {
+      stored = null;
+    },
+  };
+}
+
 function setup({
   permission = 'granted',
   scope = 'conta',
+  push = null,
 }: {
   permission?: 'granted' | 'denied' | 'blocked';
   scope?: string | null;
+  push?: {
+    token: () => Promise<string | null>;
+    server: CompanionWatchServerPort;
+  } | null;
 } = {}) {
   let now = NOW;
   const saved = new Map<string, unknown>();
@@ -54,6 +91,7 @@ function setup({
   let disabled = false;
   const watch = new CompanionWatch({
     device,
+    push,
     store: {
       read: async <T>(owner: string, key: string) =>
         (saved.get(`${owner}:${key}`) as T) ?? null,
@@ -95,6 +133,7 @@ it('asks for the permission, keeps the request and starts the task', async () =>
   expect(watch.getSnapshot()).toEqual({
     scope: 'conta',
     request: { kind: 'lunch', until: at(13, 40) },
+    available: true,
   });
 });
 
@@ -157,4 +196,127 @@ it('waits when the list fails, and ends when the screen already shows a call', a
   expect(await watch.checkInBackground()).toBe('waiting');
   await watch.satisfied();
   expect(watch.getSnapshot().request).toBeNull();
+});
+
+describe('on the iPhone (push from the server)', () => {
+  const TOKEN = 'ab'.repeat(32);
+
+  it('is available only after the server says it sends push', async () => {
+    const { server } = createPushServer();
+    const { watch } = setup({ push: { token: async () => TOKEN, server } });
+    expect(watch.getSnapshot().available).toBe(false);
+    await watch.load();
+    expect(watch.getSnapshot().available).toBe(true);
+
+    const off = createPushServer({ available: false });
+    const without = setup({
+      push: { token: async () => TOKEN, server: off.server },
+    });
+    await without.watch.load();
+    expect(without.watch.getSnapshot().available).toBe(false);
+  });
+
+  it('sends the request with the push token and keeps a copy for the screen, without the task', async () => {
+    const { server } = createPushServer();
+    const { watch, device, saved } = setup({
+      push: { token: async () => TOKEN, server },
+    });
+    expect(await watch.request('lunch', at(13, 40), ['vista'])).toBe(
+      'requested',
+    );
+    expect(server.put).toHaveBeenCalledWith({
+      kind: 'lunch',
+      until: at(13, 40),
+      seen: ['vista'],
+      token: TOKEN,
+    });
+    expect(device.setCompanionWatch).not.toHaveBeenCalled();
+    expect(saved.get(`conta:${COMPANION_WATCH_KEY}`)).toEqual({
+      kind: 'lunch',
+      until: at(13, 40),
+      seen: ['vista'],
+    });
+    expect(watch.getSnapshot().request).toEqual({
+      kind: 'lunch',
+      until: at(13, 40),
+    });
+  });
+
+  it('does not keep the request without the token or the server', async () => {
+    const { server } = createPushServer();
+    const noToken = setup({ push: { token: async () => null, server } });
+    expect(await noToken.watch.request('lunch', at(13, 40), [])).toBe('failed');
+    expect(server.put).not.toHaveBeenCalled();
+    expect(noToken.watch.getSnapshot().request).toBeNull();
+
+    const down = createPushServer({ available: false });
+    const failing = setup({
+      push: { token: async () => TOKEN, server: down.server },
+    });
+    expect(await failing.watch.request('lunch', at(13, 40), [])).toBe('failed');
+    expect(failing.saved.size).toBe(0);
+
+    const denied = setup({
+      permission: 'denied',
+      push: { token: async () => TOKEN, server },
+    });
+    expect(await denied.watch.request('lunch', at(13, 40), [])).toBe('denied');
+  });
+
+  it('forgets the copy once the server already sent the push', async () => {
+    const { server, pushed } = createPushServer();
+    const { watch } = setup({ push: { token: async () => TOKEN, server } });
+    await watch.request('home', at(22, 0), []);
+    await watch.load();
+    expect(watch.getSnapshot().request).not.toBeNull();
+
+    pushed();
+    await watch.load();
+    expect(watch.getSnapshot().request).toBeNull();
+    // o servidor já apagou: nada a cancelar lá
+    expect(server.remove).not.toHaveBeenCalled();
+  });
+
+  it('a late answer from the server does not undo a newer request', async () => {
+    const { server } = createPushServer();
+    const { watch } = setup({ push: { token: async () => TOKEN, server } });
+    let answer!: (value: { available: boolean; watch: null }) => void;
+    server.status.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          answer = resolve;
+        }),
+    );
+    const loading = watch.load();
+    await watch.request('lunch', at(13, 40), []);
+    // a leitura saiu antes do pedido: o "sem pedido" dela é velho
+    answer({ available: true, watch: null });
+    await loading;
+    expect(watch.getSnapshot().request).toEqual({
+      kind: 'lunch',
+      until: at(13, 40),
+    });
+  });
+
+  it('cancels on the server, also when the screen shows a call and on sign out', async () => {
+    const { server } = createPushServer();
+    const { watch } = setup({ push: { token: async () => TOKEN, server } });
+    await watch.request('lunch', at(13, 40), []);
+    await watch.cancel();
+    expect(server.remove).toHaveBeenCalledTimes(1);
+    expect(watch.getSnapshot().request).toBeNull();
+
+    await watch.request('lunch', at(13, 40), []);
+    await watch.satisfied();
+    expect(server.remove).toHaveBeenCalledTimes(2);
+
+    await watch.signOut();
+    expect(server.remove).toHaveBeenCalledTimes(3);
+
+    // sem rede, o pedido do aparelho acaba mesmo assim
+    server.remove.mockRejectedValueOnce(new AppError('NETWORK'));
+    await watch.request('lunch', at(13, 40), []);
+    await watch.cancel();
+    expect(watch.getSnapshot().request).toBeNull();
+  });
 });

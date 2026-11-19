@@ -31,10 +31,9 @@ Encontros de minutos com outros alunos: uma mesa para almoçar junto ou um grupo
 - **No Início:** só quando faz sentido, logo abaixo da próxima aula: a mesa ou o grupo em que o aluno está, as mesas abertas no intervalo do almoço ou os grupos para voltar depois da última aula da noite.
   - Com a lista vazia nessa hora, aparece o convite: "Abrir a primeira mesa" (ou "Abrir um grupo para voltar"), que abre a folha já com o horário e o ponto, quantos estão de olho, "Me avise se tiver mesa" (ou "grupo") e "Agora não", que esconde o convite até o fim do dia.
   - Em aula, nada aparece.
-- **Me avise se tiver mesa ou grupo** (só no Android): para quem não quer abrir, na lista vazia ou no convite do Início.
-  - Fora do app, a mesma tarefa do WorkManager do portal lê a lista a cada 15 minutos, com rede, até o fim do horário livre (40 minutos antes da próxima aula na mesa, 40 minutos depois da última aula no grupo).
-  - Avisa uma vez no canal "Companhia agora" quando abre uma mesa ou um grupo do tipo pedido, com vaga. Com a tela aberta e a mesa ou o grupo à vista, o pedido termina. Sai no logout.
-  - O iPhone não acorda o app com essa frequência (ver [iOS](ios.md#fora-do-iphone)).
+- **Me avise se tiver mesa ou grupo:** para quem não quer abrir, na lista vazia ou no convite do Início. Vale até o fim do horário livre (40 minutos antes da próxima aula na mesa, 40 minutos depois da última aula no grupo) e avisa uma vez quando abre uma mesa ou um grupo do tipo pedido. Com a tela aberta e a mesa ou o grupo à vista, o pedido termina. Sai no logout.
+  - **No Android:** fora do app, a mesma tarefa do WorkManager do portal lê a lista a cada 15 minutos, com rede, e o aviso sai no canal "Companhia agora" se a chamada tiver vaga.
+  - **No iPhone:** o iOS não acorda o app com essa frequência, então o pedido vai ao servidor com o token de push do aparelho (`CompanionWatchServerPort`, `/v2/companion/watch`). Quando alguém abre uma chamada do tipo pedido, o servidor manda um push pelo APNs e apaga o pedido. O botão só aparece quando o servidor diz que manda push (a chave da Apple configurada). Ver [iOS](ios.md#push-do-me-avise).
 - **Código:** domínio e casos de uso em `src/modules/companion`, adaptador em `src/adapters/outbound/private-api/companion.ts`, telas em `src/pages/Companion` e o bloco do Início em `src/features/Companion`. A API está no [README do servidor](../server/README.md#companhia-agora).
 
 ## Agora no campus

@@ -14,7 +14,10 @@
 import { createDemoClock } from './clock';
 import { createDemoAuthentication } from './ports/authentication';
 import { createDemoCampus } from './ports/campus';
-import { createDemoCompanion } from './ports/companion';
+import {
+  createDemoCompanion,
+  createDemoCompanionWatch,
+} from './ports/companion';
 import {
   createDemoMessageBoard,
   createDemoTeacherDirectory,
@@ -44,6 +47,7 @@ export function createDemoBackend(now: () => number = Date.now) {
     // nenhuma página do portal: a demo não tem portal
     portalPages: { capture: async () => ({ pages: [], failures: {} }) },
     companion: createDemoCompanion(clock),
+    companionWatch: createDemoCompanionWatch(),
     campus: createDemoCampus(clock),
     studentSessionApi: createDemoStudentSessionApi(),
   };

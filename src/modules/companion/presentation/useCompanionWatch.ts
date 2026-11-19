@@ -6,12 +6,17 @@ import {
 import type { WatchSnapshot } from '../application/CompanionWatch';
 import type { CallKind } from '../domain/companion';
 
-const NO_WATCH: WatchSnapshot = { scope: null, request: null };
+const NO_WATCH: WatchSnapshot = {
+  scope: null,
+  request: null,
+  available: false,
+};
 const noSubscription = () => () => undefined;
 const noSnapshot = () => NO_WATCH;
 
 /**
- * "Me avise se abrirem": só no Android (a tarefa sem tela). `request` é o
+ * "Me avise se abrirem": no Android, a tarefa sem tela; no iPhone, o push do
+ * servidor (`supported` só depois de ele dizer que manda). `request` é o
  * pedido em curso da conta ativa (ainda valendo em `now`), ou `null`.
  */
 export function useCompanionWatch(now: number) {
@@ -35,7 +40,9 @@ export function useCompanionWatch(now: number) {
 
   const ask = useCallback(
     (kind: CallKind, until: number, seen: readonly string[]) =>
-      watch ? watch.request(kind, until, seen) : Promise.resolve('denied'),
+      watch
+        ? watch.request(kind, until, seen)
+        : Promise.resolve('denied' as const),
     [watch],
   );
   const cancel = useCallback(
@@ -47,5 +54,11 @@ export function useCompanionWatch(now: number) {
     [watch],
   );
 
-  return { supported: Boolean(watch), request: live, ask, cancel, satisfied };
+  return {
+    supported: Boolean(watch) && snapshot.available,
+    request: live,
+    ask,
+    cancel,
+    satisfied,
+  };
 }

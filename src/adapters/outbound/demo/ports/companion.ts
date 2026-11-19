@@ -20,6 +20,7 @@ import {
 } from '@root/modules/companion/domain/companion';
 import type {
   CompanionServerPort,
+  CompanionWatchServerPort,
   JoinedCall,
 } from '@root/modules/companion/application/ports';
 import type { DemoClock } from '../clock';
@@ -423,5 +424,20 @@ export function createDemoCompanion(clock: DemoClock): CompanionServerPort {
 
     report: (callId, reason, memberKey) =>
       act(now => report(callId, reason, memberKey, now)),
+  };
+}
+
+/**
+ * O "Me avise" por push (iPhone) na demo: sem servidor, não há push, e o
+ * botão não aparece. No Android, a demo vigia pela tarefa sem tela, lendo a
+ * lista de mentira.
+ */
+export function createDemoCompanionWatch(): CompanionWatchServerPort {
+  return {
+    status: async () => ({ available: false, watch: null }),
+    put: async () => {
+      throw new AppError('SERVICE_UNAVAILABLE');
+    },
+    remove: async () => undefined,
   };
 }

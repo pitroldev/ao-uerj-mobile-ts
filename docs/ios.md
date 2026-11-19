@@ -61,8 +61,9 @@ gh release upload vX.Y.Z /tmp/ios-app-store-N/runtime-version-ios.txt
 O app (`com.aouerjmobile`) e o widget (`com.aouerjmobile.NextClassWidget`)
 pertencem à equipe `4L52AMB8J7` e compartilham `group.com.aouerjmobile`.
 Os perfis de distribuição precisam incluir esse grupo; o do app também
-precisa permitir App Attest de produção. O workflow confere os perfis e o
-entitlement de produção no app assinado antes do envio.
+precisa permitir App Attest de produção e Push Notifications
+(`aps-environment` = `production`). O workflow confere os perfis e os dois
+entitlements de produção no app assinado antes do envio.
 
 Secrets do environment, nunca do código:
 
@@ -104,6 +105,7 @@ As specs de `src/specs` com implementação no iPhone ficam em `ios/AOUerjMobile
 - **`AppNotifications`:** permissão e lembretes no `UNUserNotificationCenter`, como avisos de data única até a validade do plano.
   - O iOS guarda só os 64 avisos agendados mais próximos. Os lembretes usam até 60: as provas e trabalhos primeiro (até 20, com o "Já fiz" tratado na `LaunchCenter.swift`, um grupo por avaliação e, a cada plano, só o lembrete mais recente de cada uma na Central de Notificações) e as aulas com o resto (sem avaliações anotadas, as aulas ficam com os 60). As aulas vão como avisos de data única até a validade; quando não cabem, um aviso semanal por horário (`class:weekly:`), com a validade guardada no UserDefaults e cobrada pelo módulo quando o JS começa. Os avisos da Companhia agora ficam nos 4 lugares livres.
   - Também lê o destino das aberturas, guardado pela `LaunchCenter.swift`, e leva a verificação em segundo plano ao `BGTaskScheduler` (abaixo).
+  - E dá o token de push do aparelho (`remoteNotificationToken`), pedido à `PushToken` do `AppDelegate.swift`, para o "Me avise se tiver mesa" (abaixo).
 - **`HomeWidget`:** grava a grade no App Group `group.com.aouerjmobile`, que a extensão `ios/NextClassWidget` (WidgetKit) lê para os widgets "Próxima aula" e "Hoje". A `WidgetStore.swift` (a grade, a regra da próxima aula e os textos) entra nos dois alvos.
 - **`AppAttest`:** a sessão de aluno (ver [Arquitetura](arquitetura.md#sessão-de-aluno)), com o App Attest do DeviceCheck no lugar da Play Integrity, mais o SHA-2 do CommonCrypto e o `SecRandomCopyBytes`. O `DeviceCheck.framework` é ligado à mão no alvo, e o entitlement `com.apple.developer.devicecheck.appattest-environment` é `production`. No simulador, o App Attest não existe e o app não entra como aluno.
 
@@ -146,9 +148,19 @@ A verificação no portal e "Avisar quando voltar" usam uma `BGAppRefreshTask` (
 
 Os intervalos de cada verificação estão em [Notificações](notificacoes-e-widget.md#notificações).
 
+## Push do "Me avise"
+
+No Android, o "Me avise se tiver mesa" lê a lista a cada 15 minutos; o iOS não acorda o app com essa frequência. No iPhone, quem avisa é o servidor, por push (APNs). O fluxo está em [No campus](no-campus.md#companhia-agora) e o envio, no [README do servidor](../server/README.md#me-avise-se-abrirem-no-iphone).
+
+- **O token:** ao pedir o aviso, o JS chama `remoteNotificationToken`. A `PushToken` (`AppDelegate.swift`) chama `registerForRemoteNotifications`, e o `AppDelegate` recebe o token (ou a falha) e o repassa, também ao Expo, pelo `super`. Sem resposta em 10 segundos, o pedido não sai. O token vai ao servidor só junto com o pedido e some com ele.
+- **O aviso:** o push leva `target: companion` fora do `aps`, e a `LaunchCenter` abre a Companhia agora ao toque, como nos avisos locais. Com o app na frente, ele aparece do mesmo jeito.
+- **Capability:** o entitlement `aps-environment` é `production`. O App ID `com.aouerjmobile` precisa de Push Notifications ligado no portal da Apple, e o perfil `IOS_APP_PROFILE` precisa ser gerado de novo depois disso: sem o `aps-environment`, o `ios-signing.sh` para o envio.
+- **No servidor:** a chave APNs (`.p8`, "Apple Push Notifications service") fica no `.env` privado da VM (`APNS_KEY_ID`, `APNS_PRIVATE_KEY`; ver [server/README.md](../server/README.md#me-avise-se-abrirem-no-iphone)). Sem ela, o servidor responde `available: false`, e o botão não aparece no iPhone.
+- **No simulador:** o token de produção não existe, e o push de verdade precisa de iPhone físico. Um push de teste se manda ao simulador com `xcrun simctl push`.
+
 ## Fora do iPhone
 
-- As leituras a cada 15 minutos da Companhia agora ("Me avise se tiver mesa") e do Agora no campus ("ainda está lá?"): o iOS não acorda o app com essa frequência (`frequentWatches` no `NotificationDevicePort`).
+- As leituras a cada 15 minutos do Agora no campus ("ainda está lá?"): o iOS não acorda o app com essa frequência (`frequentWatches` no `NotificationDevicePort`). O "Me avise se tiver mesa" da Companhia agora chega por push (ver [Push do "Me avise"](#push-do-me-avise)).
 - A atualização dentro do app (`InAppUpdates` é da Play): no iPhone, o app lê a versão mais nova na App Store, avisa no Início e o "Atualizar" abre a página do app. O pedido de avaliação existe nos dois, pela API de cada loja.
 
 ## Outros detalhes

@@ -20,13 +20,16 @@ type Options = {
   apiLevel?: number;
 };
 
+/** O token de push do APNs, em hex (hoje 64 caracteres; a Apple diz que pode crescer). */
+const PUSH_TOKEN = /^[0-9a-f]{64,200}$/i;
+
 /**
  * Avisos pelo módulo nativo local. No Android: canais, lembretes com
  * AlarmManager e as tarefas sem tela com WorkManager. No iOS: lembretes
- * agendados no UNUserNotificationCenter e a verificação no portal e "Avisar
- * quando voltar" pelo BGTaskScheduler, quando o iOS deixar (sem as leituras a
- * cada 15 minutos da Companhia agora e do Agora no campus). `null` onde o
- * módulo não existe.
+ * agendados no UNUserNotificationCenter, a verificação no portal e "Avisar
+ * quando voltar" pelo BGTaskScheduler, quando o iOS deixar, e o token de push
+ * do "Me avise se tiver mesa" (sem as leituras a cada 15 minutos da
+ * Companhia agora e do Agora no campus). `null` onde o módulo não existe.
  */
 export function createNativeNotifications(
   module: Spec | null | undefined = NativeAppNotifications,
@@ -42,6 +45,12 @@ export function createNativeNotifications(
   return {
     backgroundChecks: os === 'android' || os === 'ios',
     frequentWatches: os === 'android',
+    pushWatches: os === 'ios',
+    async remoteNotificationToken() {
+      if (os !== 'ios') return null;
+      const token: unknown = await module.remoteNotificationToken();
+      return typeof token === 'string' && PUSH_TOKEN.test(token) ? token : null;
+    },
     permission: enabled,
     async requestPermission(): Promise<PermissionState> {
       if ((await enabled()) === 'granted') return 'granted';

@@ -38,6 +38,7 @@ function nativeModule({ enabled = false, answer = 'granted' } = {}) {
     setPortalReturnWatch: jest.fn(async (_on: boolean) => undefined),
     setCompanionWatch: jest.fn(async (_on: boolean) => undefined),
     setCampusWatch: jest.fn(async (_on: boolean) => undefined),
+    remoteNotificationToken: jest.fn(async (): Promise<string | null> => null),
     notify: jest.fn(async () => undefined),
     clearNotifications: jest.fn(async () => undefined),
     consumeLaunchTarget: jest.fn(
@@ -85,6 +86,28 @@ it('runs the portal checks on Android and the iPhone, and the 15-minute watches 
   const ios = createNativeNotifications(module, { os: 'ios' })!;
   expect(ios.backgroundChecks).toBe(true);
   expect(ios.frequentWatches).toBe(false);
+  // o "Me avise" do iPhone vem por push do servidor
+  expect(ios.pushWatches).toBe(true);
+  expect(android.pushWatches).toBe(false);
+});
+
+it('reads the push token only on the iPhone, and only in the APNs format', async () => {
+  const { module } = nativeModule();
+  const ios = createNativeNotifications(module, { os: 'ios' })!;
+  module.remoteNotificationToken.mockResolvedValueOnce('AB'.repeat(32));
+  await expect(ios.remoteNotificationToken()).resolves.toBe('AB'.repeat(32));
+  module.remoteNotificationToken.mockResolvedValueOnce('nada');
+  await expect(ios.remoteNotificationToken()).resolves.toBeNull();
+  module.remoteNotificationToken.mockResolvedValueOnce(null);
+  await expect(ios.remoteNotificationToken()).resolves.toBeNull();
+
+  const android = createNativeNotifications(module, {
+    os: 'android',
+    apiLevel: 34,
+  })!;
+  module.remoteNotificationToken.mockClear();
+  await expect(android.remoteNotificationToken()).resolves.toBeNull();
+  expect(module.remoteNotificationToken).not.toHaveBeenCalled();
 });
 
 it.each([

@@ -56,6 +56,57 @@ class AppDelegate: ExpoAppDelegate, ExpoReactNativeFactoryProvider {
 
     return launched
   }
+
+  // o token de push do aparelho, que o "Me avise se tiver mesa" manda ao
+  // servidor (ver PushToken); o Expo recebe também, pelo super
+  override func application(
+    _ application: UIApplication,
+    didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+  ) {
+    super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
+    PushToken.shared.received(deviceToken.map { String(format: "%02x", $0) }.joined())
+  }
+
+  override func application(
+    _ application: UIApplication,
+    didFailToRegisterForRemoteNotificationsWithError error: Error
+  ) {
+    super.application(application, didFailToRegisterForRemoteNotificationsWithError: error)
+    PushToken.shared.received(nil)
+  }
+}
+
+/// O token de push (APNs) do aparelho, para o "Me avise se tiver mesa": o iOS
+/// não acorda o app a cada 15 minutos para olhar a lista, então quem avisa é o
+/// servidor, por push, quando abre uma mesa do tipo pedido. O token só vai ao
+/// servidor junto com o pedido e some com ele. Lido pelo AppNotificationsModule.mm
+/// pelo nome, como a `LaunchCenter`.
+@objc(AOPushToken)
+public final class PushToken: NSObject {
+  @objc public static let shared = PushToken()
+
+  private let lock = NSLock()
+  private var waiting: [(String?) -> Void] = []
+
+  /// Pede o token ao iOS: `completion` recebe o hex, ou `nil` se o iOS
+  /// recusar (sem a capacidade de push, sem rede na primeira vez).
+  @objc public func request(_ completion: @escaping (String?) -> Void) {
+    lock.lock()
+    waiting.append(completion)
+    lock.unlock()
+    DispatchQueue.main.async {
+      UIApplication.shared.registerForRemoteNotifications()
+    }
+  }
+
+  /// A resposta do iOS a todos os pedidos que esperavam.
+  func received(_ token: String?) {
+    lock.lock()
+    let pending = waiting
+    waiting = []
+    lock.unlock()
+    pending.forEach { $0(token) }
+  }
 }
 
 /// A verificação de avisos em segundo plano no iPhone, como o

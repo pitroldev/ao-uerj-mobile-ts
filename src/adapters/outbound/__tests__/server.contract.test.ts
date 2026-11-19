@@ -33,7 +33,10 @@ import {
   createPrivateApiClient,
 } from '../private-api';
 import { createCampusNowServer } from '../private-api/campusNow';
-import { createCompanionServer } from '../private-api/companion';
+import {
+  createCompanionServer,
+  createCompanionWatchServer,
+} from '../private-api/companion';
 import { createSessionClient } from '../private-api/sessionClient';
 import { createStudentSessionApi } from '../private-api/studentSession';
 import {
@@ -469,6 +472,26 @@ describe('the student session (/aouerj/v2)', () => {
     // quem chamou encerra: some da lista
     await host.leave(opened.id);
     expect((await guest.list()).calls).toEqual([]);
+  });
+
+  it('reads the "Me avise" by push as off where the server has no APNs key, and refuses the request', async () => {
+    const watch = createCompanionWatchServer(
+      studentSession('209900000021', 'RENATA ALVES').student,
+    );
+    await expect(watch.status()).resolves.toEqual({
+      available: false,
+      watch: null,
+    });
+    await expect(
+      watch.put({
+        kind: 'lunch',
+        until: Date.now() + 60 * 60_000,
+        seen: [],
+        token: 'ab'.repeat(32),
+      }),
+    ).rejects.toEqual(new AppError('SERVICE_UNAVAILABLE'));
+    // sem pedido, cancelar também responde
+    await expect(watch.remove()).resolves.toBeUndefined();
   });
 
   it('runs an Agora no campus notice end to end with two students: report, confirm, thanks, refusals and the end', async () => {

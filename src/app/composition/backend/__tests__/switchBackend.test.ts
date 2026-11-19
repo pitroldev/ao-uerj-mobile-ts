@@ -38,6 +38,7 @@ function fakeBackend(name: string) {
     teacherDirectory: port('list', 'find'),
     errorReporter: port('submit'),
     companion: port('pass', 'list', 'open', 'join', 'read', 'leave'),
+    companionWatch: port('status', 'put', 'remove'),
     campus: port('list', 'report', 'you', 'community'),
     studentSessionApi: port('challenge', 'create', 'end'),
   } as unknown as Backend;

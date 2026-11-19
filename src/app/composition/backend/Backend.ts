@@ -4,7 +4,10 @@ import type {
   MessageBoardPort,
   TeacherDirectoryPort,
 } from '@root/modules/community/application/ports';
-import type { CompanionServerPort } from '@root/modules/companion/application/ports';
+import type {
+  CompanionServerPort,
+  CompanionWatchServerPort,
+} from '@root/modules/companion/application/ports';
 import type { SharedPortalStatusPort } from '@root/modules/connectivity/application/ports';
 import type { DocumentsPort } from '@root/modules/documents/application/ports';
 import type { AuthenticationPort } from '@root/modules/identity/application/ports';
@@ -41,6 +44,8 @@ export type Backend = {
   /** As páginas do portal que vão no relato, anonimizadas no aparelho. */
   portalPages: PortalPagesPort;
   companion: CompanionServerPort;
+  /** O "Me avise se tiver mesa" por push (iPhone). */
+  companionWatch: CompanionWatchServerPort;
   campus: CampusNowServerPort;
   studentSessionApi: StudentSessionApiPort;
 };

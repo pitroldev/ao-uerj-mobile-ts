@@ -47,7 +47,7 @@ A verificação compara cada aviso com uma referência: o que o app mostrou (o c
 
 ### Outros avisos
 
-A mesma tarefa sem tela também leva "Avisar quando voltar" (ver [Funcionalidades](funcionalidades.md#sem-internet-ou-com-o-portal-fora-do-ar)) e, só no Android, as leituras da Companhia agora e do Agora no campus (ver [No campus](no-campus.md)).
+A mesma tarefa sem tela também leva "Avisar quando voltar" (ver [Funcionalidades](funcionalidades.md#sem-internet-ou-com-o-portal-fora-do-ar)) e, só no Android, as leituras da Companhia agora e do Agora no campus (ver [No campus](no-campus.md)). No iPhone, o "Me avise se tiver mesa" da Companhia agora chega por push do servidor (ver [iOS](ios.md#push-do-me-avise)).
 
 ### Privacidade, logout e desligamento remoto
 

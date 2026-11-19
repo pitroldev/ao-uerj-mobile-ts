@@ -60,6 +60,8 @@ for kind, bundle in [('app', 'com.aouerjmobile'), ('widget', 'com.aouerjmobile.N
         if isinstance(environments, str):
             environments = [environments]
         assert 'production' in environments, 'Perfil não permite App Attest de produção'
+        # o "Me avise se tiver mesa" chega por push: o App ID precisa de Push Notifications
+        assert entitlements.get('aps-environment') == 'production', 'Perfil sem Push Notifications (aps-environment)'
     uuid = profile['UUID']
     shutil.copyfile(temp / f'{kind}.mobileprovision', profiles / f'{uuid}.mobileprovision')
     export_profiles[bundle] = uuid

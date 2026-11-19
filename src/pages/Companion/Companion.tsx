@@ -69,6 +69,7 @@ import {
   SPOT_TEXT,
   WATCH_CTA,
   watchingText,
+  watchRefusalText,
   watchRequestText,
 } from '@root/modules/companion/presentation/companionText';
 import { useCompanionWatch } from '@root/modules/companion/presentation/useCompanionWatch';
@@ -411,11 +412,10 @@ function CompanionScreen({
         const result = await watch.ask(tab, until, []);
         if (result === 'requested')
           snackbar.success('Combinado', watchRequestText(tab, until));
-        else
-          snackbar.info(
-            'Avisos desligados',
-            'Sem os avisos do app ligados, não dá para avisar quando alguém abrir.',
-          );
+        else {
+          const refusal = watchRefusalText(result);
+          snackbar.info(refusal.title, refusal.body);
+        }
       } finally {
         setAsking(false);
       }

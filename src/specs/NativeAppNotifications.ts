@@ -63,6 +63,13 @@ export interface Spec extends TurboModule {
    */
   setCompanionReminders(plan: string): Promise<void>;
   /**
+   * iPhone: o token de push (APNs) do aparelho, em hex, para o "Me avise se
+   * tiver mesa" (o servidor avisa por push); `null` sem a capacidade de push
+   * ou sem resposta a tempo. No Android, sempre `null` (o WorkManager lê a
+   * lista).
+   */
+  remoteNotificationToken(): Promise<string | null>;
+  /**
    * Ids das avaliações com "Já fiz" tocado no aviso desde a última leitura
    * (os lembretes delas já pararam); lidos uma vez.
    */

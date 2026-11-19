@@ -67,7 +67,11 @@ const mockPreferences = {
     mockSaved.set(key, value);
   }),
 };
-const mockWatchSnapshot = { scope: 'account-1', request: null };
+const mockWatchSnapshot = {
+  scope: 'account-1',
+  request: null,
+  available: true,
+};
 const mockWatch = {
   load: jest.fn(async () => undefined),
   subscribe: () => () => undefined,

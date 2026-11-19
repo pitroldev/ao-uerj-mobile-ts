@@ -22,6 +22,13 @@ export interface NotificationDevicePort {
    * só no Android. O iPhone não acorda o app com essa frequência.
    */
   readonly frequentWatches: boolean;
+  /**
+   * O "Me avise se tiver mesa" chega por push do servidor: só no iPhone, que
+   * não tem as leituras a cada 15 minutos.
+   */
+  readonly pushWatches: boolean;
+  /** O token de push do aparelho (iPhone); `null` sem ele. */
+  remoteNotificationToken(): Promise<string | null>;
   permission(): Promise<PermissionState>;
   requestPermission(): Promise<PermissionState>;
   openSettings(): Promise<void>;

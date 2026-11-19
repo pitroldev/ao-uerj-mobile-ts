@@ -99,6 +99,11 @@ class AppNotificationsModule(reactContext: ReactApplicationContext) :
     }
   }
 
+  // sem push no Android: o "Me avise" lê a lista pelo WorkManager (setCompanionWatch)
+  override fun remoteNotificationToken(promise: Promise) {
+    promise.resolve(null)
+  }
+
   override fun consumeDoneEvaluations(promise: Promise) {
     val ids = Arguments.createArray()
     EvaluationReminders.consumeDone(reactApplicationContext).forEach { ids.pushString(it) }

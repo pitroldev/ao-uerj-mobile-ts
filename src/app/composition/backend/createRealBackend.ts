@@ -11,7 +11,10 @@ import {
   type PrivateApiHttpClient,
 } from '@root/adapters/outbound/private-api';
 import { createCampusNowServer } from '@root/adapters/outbound/private-api/campusNow';
-import { createCompanionServer } from '@root/adapters/outbound/private-api/companion';
+import {
+  createCompanionServer,
+  createCompanionWatchServer,
+} from '@root/adapters/outbound/private-api/companion';
 import { createSessionClient } from '@root/adapters/outbound/private-api/sessionClient';
 import { createStudentSessionApi } from '@root/adapters/outbound/private-api/studentSession';
 import type { PortalMonitor } from '@root/modules/connectivity/application/PortalMonitor';
@@ -76,6 +79,7 @@ export function createRealBackend({
     errorReporter: server.errorReporter,
     portalPages: createPortalPages(portal.diagnostics),
     companion: createCompanionServer(student, student),
+    companionWatch: createCompanionWatchServer(student),
     campus: createCampusNowServer(student),
     studentSessionApi: createStudentSessionApi(client),
   };

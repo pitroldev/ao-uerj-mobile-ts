@@ -1,4 +1,5 @@
 import type {
+  CallKind,
   CallList,
   MemberCall,
   Membership,
@@ -42,6 +43,28 @@ export interface CompanionServerPort {
     reason: ReportReason,
     memberKey: string | null,
   ): Promise<void>;
+}
+
+/** O pedido de "Me avise" guardado no servidor (um por aluno). */
+export type ServerWatch = { kind: CallKind; until: number };
+
+/**
+ * O "Me avise se tiver mesa" do iPhone (pitrol.dev/aouerj/v2/companion/watch):
+ * o iOS não acorda o app a cada 15 minutos, então o servidor guarda o pedido
+ * e manda um push quando abre uma chamada do tipo pedido. Tudo com a sessão
+ * de aluno; o token do aparelho só existe no servidor enquanto o pedido vale.
+ */
+export interface CompanionWatchServerPort {
+  /** `available`: o servidor manda push (sem a chave da Apple, não). */
+  status(): Promise<{ available: boolean; watch: ServerWatch | null }>;
+  /** Guarda (ou troca) o pedido; recusas e falhas como `AppError`. */
+  put(request: {
+    kind: CallKind;
+    until: number;
+    seen: readonly string[];
+    token: string;
+  }): Promise<ServerWatch>;
+  remove(): Promise<void>;
 }
 
 /** As participações, no cofre do aparelho (as chaves são segredos). */

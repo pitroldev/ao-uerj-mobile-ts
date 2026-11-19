@@ -32,6 +32,7 @@ import type { EvaluationRecords } from '@root/modules/evaluations/application/Ev
 import { buildEvaluationReminderPlan } from '@root/modules/evaluations/domain/reminders';
 import type { CompanionCalls } from '@root/modules/companion/application/CompanionCalls';
 import { CompanionWatch } from '@root/modules/companion/application/CompanionWatch';
+import type { CompanionWatchServerPort } from '@root/modules/companion/application/ports';
 import { buildCompanionReminderPlan } from '@root/modules/companion/domain/reminders';
 import {
   companionReminderText,
@@ -87,6 +88,8 @@ type Dependencies = {
     CampusNow,
     'supported' | 'list' | 'getSnapshot' | 'subscribe' | 'load'
   >;
+  /** O pedido de "Me avise" no servidor, para o push do iPhone. */
+  companionWatchServer?: CompanionWatchServerPort;
   device?: NotificationDevicePort | null;
 };
 
@@ -109,6 +112,7 @@ export function createNotifications({
   probePortal,
   companion,
   campusNow,
+  companionWatchServer,
   device = createNativeNotifications(),
 }: Dependencies) {
   const campusDisabled = () =>
@@ -243,11 +247,21 @@ export function createNotifications({
         now: () => Date.now(),
       })
     : null;
-  // "Me avise se abrirem": a mesma tarefa sem tela, lendo a lista
+  // "Me avise se abrirem": no Android, a mesma tarefa sem tela, lendo a
+  // lista; no iPhone, o pedido vai ao servidor, que avisa por push
+  const pushWatch =
+    !watching && device?.pushWatches && companionWatchServer
+      ? {
+          token: () => device.remoteNotificationToken(),
+          server: companionWatchServer,
+        }
+      : null;
+  const watchDevice = watching ?? (pushWatch ? device : null);
   const companionWatch =
-    watching && companion
+    watchDevice && companion
       ? new CompanionWatch({
-          device: watching,
+          device: watchDevice,
+          push: pushWatch,
           store: preferences,
           account,
           savedScope,

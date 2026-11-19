@@ -17,7 +17,9 @@ import {
 } from '@root/modules/companion/domain/companion';
 import type {
   CompanionServerPort,
+  CompanionWatchServerPort,
   JoinedCall,
+  ServerWatch,
 } from '@root/modules/companion/application/ports';
 // O contrato do servidor (server/); só tipos, apagados no bundle.
 import type {
@@ -26,8 +28,11 @@ import type {
   CompanionMembershipResponse,
   CompanionPhraseRequest,
   CompanionReportRequest,
+  CompanionWatchResponse,
+  CompanionWatchStatusResponse,
   JoinCompanionCallRequest,
   OpenCompanionCallRequest,
+  PutCompanionWatchRequest,
   StudentPassResponse,
 } from '../../../../server/src/adapters/inbound/http/contract';
 import type { PrivateApiHttpClient } from './index';
@@ -277,6 +282,53 @@ export function createCompanionServer(
         if (memberKey)
           await client.post(path, body, { headers: memberHeaders(memberKey) });
         else await student.post(path, body);
+      }),
+  };
+}
+
+function serverWatch(value: unknown): ServerWatch {
+  const data = object(value);
+  return {
+    kind: oneOf<CallKind>(CALL_KINDS, data.kind),
+    until: time(data.until),
+  };
+}
+
+/**
+ * O "Me avise se tiver mesa" do iPhone no servidor, sempre com a sessão de
+ * aluno: o pedido, com o token de push do aparelho, e a leitura de se o
+ * servidor manda push. As recusas (`invalid_window`, `push_unavailable`)
+ * chegam como `AppError`.
+ */
+export function createCompanionWatchServer(
+  student: PrivateApiHttpClient,
+): CompanionWatchServerPort {
+  const path = `${BASE}/watch`;
+  return {
+    status: () =>
+      request(async () => {
+        const { data } = await student.get(path);
+        const body = object(data) as Partial<CompanionWatchStatusResponse>;
+        return {
+          available: flag(body.available),
+          watch: body.watch === null ? null : serverWatch(body.watch),
+        };
+      }),
+    put: input =>
+      request(async () => {
+        const { data } = await student.post(path, {
+          kind: input.kind,
+          until: new Date(input.until).toISOString(),
+          seen: [...input.seen],
+          push: { platform: 'ios', token: input.token },
+        } satisfies PutCompanionWatchRequest);
+        return serverWatch(
+          (object(data) as Partial<CompanionWatchResponse>).watch,
+        );
+      }),
+    remove: () =>
+      request(async () => {
+        await student.post(`${path}/cancel`, {});
       }),
   };
 }

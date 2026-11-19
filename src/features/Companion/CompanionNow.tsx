@@ -35,6 +35,7 @@ import {
   SPOT_TEXT,
   WATCH_CTA,
   watchingText,
+  watchRefusalText,
   watchRequestText,
 } from '@root/modules/companion/presentation/companionText';
 import {
@@ -203,11 +204,10 @@ function CompanionSlot({ schedule, now }: Props) {
             const result = await watch.ask(moment, until, []);
             if (result === 'requested')
               snackbar.success('Combinado', watchRequestText(moment, until));
-            else
-              snackbar.info(
-                'Avisos desligados',
-                'Sem os avisos do app ligados, não dá para avisar quando alguém abrir.',
-              );
+            else {
+              const refusal = watchRefusalText(result);
+              snackbar.info(refusal.title, refusal.body);
+            }
           } finally {
             setAsking(false);
           }

@@ -42,7 +42,7 @@ O app está na Google Play e, desde 18/11/2026, na App Store do Brasil (iPhone c
 | 📄  | **Documentos**         | Emite e compartilha os PDFs do portal e guarda até 5 no aparelho                                      |   ✅    |                ✅                 |
 | 🧩  | **Gerador de grades**  | Monta grades com os horários livres e o almoço que você escolher e manda a melhor para a turma        |   ✅    |                ✅                 |
 | 💬  | **Mural da turma**     | Mensagens por turma, com o nome que você escolher                                                     |   ✅    |                ✅                 |
-| 🍽️  | **Companhia agora**    | Uma mesa para almoçar junto ou um grupo para voltar depois da aula da noite                           |   ✅    |        ✅ sem o "Me avise"        |
+| 🍽️  | **Companhia agora**    | Uma mesa para almoçar junto ou um grupo para voltar depois da aula da noite                           |   ✅    |                ✅                 |
 | 📢  | **Agora no campus**    | Avisos dos alunos: elevador parado, fila do bandejão, sala trancada                                   |   ✅    | ✅ sem os avisos em segundo plano |
 | 🗺️  | **Mapa do campus**     | O campus e o Pavilhão andar por andar, com as salas, sem internet                                     |   ✅    |                ✅                 |
 | 🔔  | **Lembretes e avisos** | Lembrete de aula e de prova; aviso de nota nova, RID, inscrição, documento vencendo e portal de volta |   ✅    |      ✅ quando o iOS deixar       |

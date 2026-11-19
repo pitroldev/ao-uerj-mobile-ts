@@ -45,6 +45,19 @@ static id<AOBackgroundCheckAPI> SharedBackgroundCheck(void)
   return [NSClassFromString(@"AOBackgroundCheck") valueForKey:@"shared"];
 }
 
+/** O que o módulo usa da `PushToken` (Swift, `AppDelegate.swift`): o token de push. */
+@protocol AOPushTokenAPI <NSObject>
+- (void)request:(void (^)(NSString *_Nullable token))completion;
+@end
+
+static id<AOPushTokenAPI> SharedPushToken(void)
+{
+  return [NSClassFromString(@"AOPushToken") valueForKey:@"shared"];
+}
+
+/** Sem resposta do iOS nesse tempo (sem rede na primeira vez), o pedido segue sem o token. */
+static const int64_t kPushTokenTimeoutSeconds = 10;
+
 /** Lembretes de aula: prefixo dos ids, para trocá-los sem tocar nos outros avisos. */
 static NSString *const kReminderPrefix = @"class:";
 /** Os semanais ("class:weekly:<lembrete>"), que se repetem até o app tirar. */
@@ -660,6 +673,39 @@ static BOOL IsAuthorized(UNAuthorizationStatus status)
     }
     resolve(nil);
   }];
+}
+
+/**
+ * O token de push do aparelho, em hex, para o "Me avise se tiver mesa"; `nil`
+ * sem a capacidade de push ou sem resposta do iOS a tempo. O iOS só entrega o
+ * token depois de pedido (`registerForRemoteNotifications`), e o pedido é
+ * barato: um token que já existe volta na hora.
+ */
+- (void)remoteNotificationToken:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
+{
+  id<AOPushTokenAPI> push = SharedPushToken();
+  if (!push) {
+    resolve(nil);
+    return;
+  }
+  NSObject *lock = [NSObject new];
+  __block BOOL settled = NO;
+  void (^finish)(NSString *) = ^(NSString *token) {
+    @synchronized(lock) {
+      if (settled) {
+        return;
+      }
+      settled = YES;
+    }
+    resolve(token.length > 0 ? token : nil);
+  };
+  [push request:^(NSString *token) {
+    finish(token);
+  }];
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, kPushTokenTimeoutSeconds * (int64_t)NSEC_PER_SEC),
+                 dispatch_get_main_queue(), ^{
+                   finish(nil);
+                 });
 }
 
 - (void)consumeDoneEvaluations:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject

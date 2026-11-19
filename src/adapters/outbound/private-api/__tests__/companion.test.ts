@@ -1,7 +1,10 @@
 import { AxiosError, type AxiosResponse } from 'axios';
 import { CompanionError } from '@root/modules/companion/domain/companion';
 import { AppError } from '@root/shared/errors/AppError';
-import { createCompanionServer } from '../companion';
+import {
+  createCompanionServer,
+  createCompanionWatchServer,
+} from '../companion';
 import type { PrivateApiHttpClient } from '../index';
 
 const rejected = (status: number, error?: string) =>
@@ -208,4 +211,84 @@ it('refuses a response the app does not read', async () => {
   await expect(server.list('pass')).rejects.toEqual(
     new AppError('SERVICE_UNAVAILABLE'),
   );
+});
+
+describe('the "Me avise" by push (iPhone)', () => {
+  const TOKEN = 'ab'.repeat(32);
+  const watchSetup = () => {
+    const student: jest.Mocked<PrivateApiHttpClient> = {
+      get: jest.fn(),
+      post: jest.fn(),
+    };
+    return { student, watch: createCompanionWatchServer(student) };
+  };
+
+  it('reads whether the server sends push and the request it keeps', async () => {
+    const { student, watch } = watchSetup();
+    student.get.mockResolvedValueOnce({
+      data: {
+        available: true,
+        watch: { kind: 'lunch', until: '2026-11-23T16:40:00.000Z' },
+      },
+    });
+    await expect(watch.status()).resolves.toEqual({
+      available: true,
+      watch: { kind: 'lunch', until: Date.parse('2026-11-23T16:40:00.000Z') },
+    });
+    expect(student.get).toHaveBeenCalledWith('/v2/companion/watch');
+
+    student.get.mockResolvedValueOnce({
+      data: { available: false, watch: null },
+    });
+    await expect(watch.status()).resolves.toEqual({
+      available: false,
+      watch: null,
+    });
+  });
+
+  it('sends the request with the token and cancels it, with the student session', async () => {
+    const { student, watch } = watchSetup();
+    const until = Date.parse('2026-11-23T16:40:00.000Z');
+    student.post.mockResolvedValueOnce({
+      data: { watch: { kind: 'lunch', until: '2026-11-23T16:40:00.000Z' } },
+    });
+    await expect(
+      watch.put({ kind: 'lunch', until, seen: ['vista'], token: TOKEN }),
+    ).resolves.toEqual({ kind: 'lunch', until });
+    expect(student.post).toHaveBeenCalledWith('/v2/companion/watch', {
+      kind: 'lunch',
+      until: '2026-11-23T16:40:00.000Z',
+      seen: ['vista'],
+      push: { platform: 'ios', token: TOKEN },
+    });
+
+    student.post.mockResolvedValueOnce({ data: '' });
+    await watch.remove();
+    expect(student.post).toHaveBeenLastCalledWith(
+      '/v2/companion/watch/cancel',
+      {},
+    );
+  });
+
+  it('turns the refusals and a broken answer into app errors', async () => {
+    const { student, watch } = watchSetup();
+    const request = {
+      kind: 'home' as const,
+      until: Date.parse('2026-11-24T01:00:00.000Z'),
+      seen: [],
+      token: TOKEN,
+    };
+    student.post.mockRejectedValueOnce(rejected(503, 'push_unavailable'));
+    await expect(watch.put(request)).rejects.toEqual(
+      new AppError('SERVICE_UNAVAILABLE'),
+    );
+    student.post.mockRejectedValueOnce(rejected(400, 'invalid_window'));
+    await expect(watch.put(request)).rejects.toEqual(
+      new AppError('INVALID_INPUT'),
+    );
+    student.get.mockResolvedValueOnce({ data: { available: 'yes' } });
+    await expect(watch.status()).rejects.toEqual(
+      new AppError('SERVICE_UNAVAILABLE'),
+    );
+  });
 });

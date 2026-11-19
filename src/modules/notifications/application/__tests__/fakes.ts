@@ -34,6 +34,8 @@ export function createDevice({
   exactAlarms = true,
   backgroundChecks = true,
   frequentWatches = backgroundChecks,
+  pushWatches = false,
+  pushToken = null,
 }: {
   permission?: PermissionState;
   request?: PermissionState;
@@ -42,6 +44,9 @@ export function createDevice({
   backgroundChecks?: boolean;
   /** `false` como no iPhone: sem as leituras a cada 15 minutos. */
   frequentWatches?: boolean;
+  /** `true` como no iPhone: o "Me avise" vai por push do servidor. */
+  pushWatches?: boolean;
+  pushToken?: string | null;
 } = {}) {
   const state: {
     permission: PermissionState;
@@ -59,6 +64,8 @@ export function createDevice({
     state,
     backgroundChecks,
     frequentWatches,
+    pushWatches,
+    remoteNotificationToken: jest.fn(async () => pushToken),
     permission: jest.fn(async () => state.permission),
     requestPermission: jest.fn(async () => {
       state.permission = request;

@@ -529,6 +529,78 @@ it('with nobody open, says who is watching and asks for a heads-up in the free w
   expect(device.setCompanionWatch).toHaveBeenLastCalledWith(false);
 });
 
+it('on the iPhone, asks the server for the heads-up by push, and says so when it fails', async () => {
+  const user = userEvent.setup();
+  const info = jest.spyOn(snackbar, 'info');
+  const device = {
+    requestPermission: jest.fn(async () => 'granted' as const),
+    notify: jest.fn(async () => undefined),
+    setCompanionWatch: jest.fn(async (_on: boolean) => undefined),
+  };
+  const server = {
+    status: jest.fn(async () => ({ available: true, watch: null })),
+    put: jest.fn(
+      async (request: { kind: 'lunch' | 'home'; until: number }) => ({
+        kind: request.kind,
+        until: request.until,
+      }),
+    ),
+    remove: jest.fn(async () => undefined),
+  };
+  const saved = new Map<string, unknown>();
+  mockServices.notifications = {
+    ...(mockServices.notifications as object),
+    companionWatch: new CompanionWatch({
+      device,
+      push: { token: async () => 'ab'.repeat(32), server },
+      store: {
+        read: async <T,>(_scope: string, key: string) =>
+          (saved.get(key) as T) ?? null,
+        write: async (_scope: string, key: string, value: unknown) => {
+          saved.set(key, value);
+        },
+      },
+      account: () => ({ scope: 'account-1' }),
+      savedScope: async () => 'account-1',
+      disabled: () => false,
+      list: async () => ({ calls: [] }),
+      memberships: async () => [],
+      message: () => {
+        throw new Error('sem aviso aqui');
+      },
+      now: () => mockNow.getTime(),
+    }),
+  };
+  mockServer.list.mockResolvedValue({ calls: [], watching: 0 });
+  await renderPage();
+  const ask = await screen.findByRole('button', {
+    name: 'Me avise se tiver mesa',
+  });
+  server.put.mockRejectedValueOnce(new Error('sem rede'));
+  await user.press(ask);
+  await waitFor(() =>
+    expect(info).toHaveBeenCalledWith(
+      'Não deu para pedir o aviso',
+      'Confira a internet e tente de novo daqui a pouco.',
+    ),
+  );
+  await user.press(
+    screen.getByRole('button', { name: 'Me avise se tiver mesa' }),
+  );
+  expect(
+    await screen.findByText(
+      'Se alguém abrir uma mesa até as 13:40, o app avisa.',
+    ),
+  ).toBeOnTheScreen();
+  expect(server.put).toHaveBeenLastCalledWith(
+    expect.objectContaining({ kind: 'lunch', token: 'ab'.repeat(32) }),
+  );
+  // sem a tarefa do Android
+  expect(device.setCompanionWatch).not.toHaveBeenCalled();
+  await user.press(screen.getByRole('button', { name: 'Cancelar o aviso' }));
+  await waitFor(() => expect(server.remove).toHaveBeenCalledTimes(1));
+});
+
 it('offers to sit at the table already open at that time instead of opening another', async () => {
   const user = userEvent.setup();
   await renderPage();

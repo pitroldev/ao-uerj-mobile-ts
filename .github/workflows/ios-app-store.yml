@@ -83,6 +83,7 @@ jobs:
           codesign --verify --deep --strict "$app"
           codesign -d --entitlements :- "$app" > "$RUNNER_TEMP/app-entitlements.plist" 2>/dev/null
           test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.devicecheck.appattest-environment' "$RUNNER_TEMP/app-entitlements.plist")" = 'production'
+          test "$(/usr/libexec/PlistBuddy -c 'Print :aps-environment' "$RUNNER_TEMP/app-entitlements.plist")" = 'production'
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")" = 'com.aouerjmobile'
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Info.plist")" = "$BUILD_NUMBER"
           test -n "$(/usr/libexec/PlistBuddy -c 'Print :NSPhotoLibraryUsageDescription' "$app/Info.plist")"

@@ -52,7 +52,7 @@ function setup(
   /** A Companhia agora e o Agora no campus, quando o teste precisa deles. */
   extra: Pick<
     Parameters<typeof createNotifications>[0],
-    'companion' | 'campusNow'
+    'companion' | 'campusNow' | 'companionWatchServer'
   > = {},
 ) {
   let state: IdentityState = {
@@ -307,6 +307,50 @@ it('has the portal tasks but not the 15-minute watches on the iPhone', () => {
   expect(iphone.notifications.portalReturn).not.toBeNull();
   expect(iphone.notifications.companionWatch).toBeNull();
   expect(iphone.notifications.campusWatch).toBeNull();
+});
+
+it('on the iPhone, the "Me avise" goes to the server with the push token', async () => {
+  const companionWatchServer = {
+    status: jest.fn(async () => ({ available: true, watch: null })),
+    put: jest.fn(
+      async (request: { kind: 'lunch' | 'home'; until: number }) => ({
+        kind: request.kind,
+        until: request.until,
+      }),
+    ),
+    remove: jest.fn(async () => undefined),
+  };
+  const extra = {
+    companion: {
+      load: jest.fn(async () => undefined),
+      getSnapshot: jest.fn(),
+      subscribe: jest.fn(() => () => undefined),
+      list: jest.fn(),
+    },
+    companionWatchServer,
+  } as unknown as Parameters<typeof setup>[3];
+  const token = 'ab'.repeat(32);
+  const iphone = setup(
+    { grades: true },
+    [],
+    createDevice({
+      frequentWatches: false,
+      pushWatches: true,
+      pushToken: token,
+    }),
+    extra,
+  );
+  const watch = iphone.notifications.companionWatch;
+  expect(watch).not.toBeNull();
+  iphone.signIn();
+  await act(settle);
+  const until = Date.now() + 60 * 60_000;
+  await expect(watch!.request('lunch', until, [])).resolves.toBe('requested');
+  expect(companionWatchServer.put).toHaveBeenCalledWith(
+    expect.objectContaining({ kind: 'lunch', until, token }),
+  );
+  // a tarefa a cada 15 minutos é só do Android
+  expect(iphone.device.setCompanionWatch).not.toHaveBeenCalled();
 });
 
 it('leaves the portal tasks out where the device has no background checks', async () => {

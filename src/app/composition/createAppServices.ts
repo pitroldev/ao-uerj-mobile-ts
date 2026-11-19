@@ -176,9 +176,15 @@ export function createAppServices() {
     preferences,
     account: currentAccount,
   });
-  // no logout, sai das mesas e dos grupos e só então encerra a sessão
+  // no logout, sai das mesas e dos grupos (e tira o "Me avise" do servidor)
+  // e só então encerra a sessão
   followIdentity(studentSession, identity, {
-    beforeClear: () => companion.clear(),
+    beforeClear: async () => {
+      await Promise.all([
+        companion.clear(),
+        notifications.companionWatch?.signOut(),
+      ]);
+    },
   });
   const notifications = createNotifications({
     queryClient,
@@ -193,6 +199,7 @@ export function createAppServices() {
     probePortal: async () => isPortalAnswer(await backend.portalProbe.status()),
     companion,
     campusNow,
+    companionWatchServer: backend.companionWatch,
   });
   return {
     campusMap: new CampusMap(bundledCampusMap),

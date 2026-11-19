@@ -1,6 +1,6 @@
 # Política de privacidade do AO UERJ
 
-**Última atualização:** 18 de novembro de 2026
+**Última atualização:** 19 de novembro de 2026
 
 O AO UERJ é um app não oficial e de código aberto para alunos da UERJ. Ele não tem vínculo com a universidade e usa a sua conta do Aluno Online. Esta política explica o que fica no seu celular, o que vai para o servidor do app, quem vê cada coisa e por quanto tempo. Ela vale para o app no Android, distribuído pela Google Play, e no iPhone, distribuído pela App Store.
 
@@ -68,6 +68,7 @@ Quem abre uma mesa no almoço ou um grupo para voltar manda o tipo, o horário, 
 - Para mostrar quantos alunos estão de olho na lista, o servidor guarda, por 15 minutos, um código de quem a abriu.
 - As denúncias ficam 30 dias. As contagens de cada dia, sem nome nem recado, ficam meio ano.
 - A moderação vê quem participou de cada mesa ou grupo.
+- **"Me avise se tiver mesa" no iPhone:** o iPhone não deixa o app olhar a lista de tempos em tempos, então quem avisa é o servidor. O app manda o tipo (mesa ou grupo), até que horas avisar, as mesas que você já viu e o código de notificação deste iPhone, criado pela Apple, que só serve para mandar avisos a este app. O servidor guarda esse pedido ligado à sua conta e o apaga quando avisa, quando você cancela, quando sai da conta ou no fim do horário pedido, o que vier primeiro. O aviso passa pelo serviço de notificações da Apple e leva só o tipo e o horário da mesa ou do grupo, sem nomes. No Android, o próprio celular olha a lista, e nada disso vai ao servidor.
 
 ### Agora no campus
 
@@ -102,7 +103,7 @@ O servidor do app registra cada pedido sem o IP, sem o User-Agent e sem o conte�
 
 - **UERJ (Aluno Online):** o app conversa com o portal em seu nome, com o seu login.
 - **Google (Android):** a Play Integrity confirma que o app é o original. O Google vê que o app pediu a verificação, mas não recebe a sua matrícula nem o seu nome, só um código calculado a partir deles. Atualizar e avaliar o app usam a própria Play Store, sem dados do AO UERJ. Esses serviços seguem a [política de privacidade do Google](https://policies.google.com/privacy).
-- **Apple (iPhone):** o App Attest confirma que o app é o original. O iPhone cria uma chave nova a cada entrada, e a Apple recebe essa chave e um código calculado a partir do pedido, nunca a sua matrícula nem o seu nome. Atualizar e avaliar o app usam a própria App Store, sem dados do AO UERJ. Para avisar de versão nova, o app lê a ficha pública dele na App Store, uma consulta que só leva o código do app, sem nada seu. Esses serviços seguem a [política de privacidade da Apple](https://www.apple.com/br/legal/privacy/).
+- **Apple (iPhone):** o App Attest confirma que o app é o original. O iPhone cria uma chave nova a cada entrada, e a Apple recebe essa chave e um código calculado a partir do pedido, nunca a sua matrícula nem o seu nome. Atualizar e avaliar o app usam a própria App Store, sem dados do AO UERJ. Para avisar de versão nova, o app lê a ficha pública dele na App Store, uma consulta que só leva o código do app, sem nada seu. O aviso do "Me avise se tiver mesa" sai do servidor pelo serviço de notificações da Apple (APNs), com o código de notificação do iPhone e o texto do aviso, sem a sua matrícula nem o seu nome. Esses serviços seguem a [política de privacidade da Apple](https://www.apple.com/br/legal/privacy/).
 - **GitHub (Microsoft):** o app baixa, no máximo a cada 15 minutos, um arquivo de avisos e de configuração deste repositório, em `raw.githubusercontent.com`. O pedido não leva dados seus, mas o GitHub vê o IP, o horário e o User-Agent ([declaração de privacidade do GitHub](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement)).
 - **Oracle Cloud e MongoDB Atlas:** o servidor roda numa máquina da Oracle Cloud, e o banco de dados fica no MongoDB Atlas. Eles guardam os dados em nome do AO UERJ e não os usam para outra coisa. Esses serviços podem ficar fora do Brasil, inclusive nos Estados Unidos.
 - **Links e compartilhamento:** "Como chegar", no mapa, abre o Google Maps só com o destino. Os links do Sobre abrem o GitHub, o LinkedIn e a loja do app (a Play Store ou a App Store). Quando você compartilha a grade ou o convite do app, você escolhe o app de destino (o WhatsApp, por exemplo), e o que você manda segue as regras dele.
@@ -125,6 +126,7 @@ O servidor do app registra cada pedido sem o IP, sem o User-Agent e sem o conte�
 | Mensagens do mural e relatos de erro           | servidor           | sem prazo, até você pedir a exclusão                                   |
 | Mesas e grupos da Companhia agora              | servidor           | até 30 minutos (mesa) ou 2 horas (grupo para voltar) depois do horário |
 | Denúncias da Companhia agora                   | servidor           | 30 dias                                                                |
+| "Me avise" no iPhone (com o código de aviso)   | servidor           | até avisar, você cancelar ou o fim do horário pedido                   |
 | Avisos do Agora no campus                      | servidor           | 70 dias                                                                |
 | Respostas, "Valeu", denúncias e o que você viu | servidor           | cerca de 2 dias depois do fim do aviso                                 |
 | Pontos e nível do Agora no campus              | servidor           | enquanto a conta existir                                               |
