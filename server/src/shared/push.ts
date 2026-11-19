@@ -1,6 +1,7 @@
 /*
- * O push para o aparelho do aluno, comum à Companhia agora e ao Agora no
- * campus: hoje só o iPhone, pelo APNs (o Android lê as listas sozinho).
+ * O push para o aparelho do aluno, comum à Companhia agora, ao Agora no
+ * campus e aos avisos do portal: hoje só o iPhone, pelo APNs (o Android lê
+ * as listas e testa o portal sozinho).
  */
 
 /** Onde o aviso chega: o iPhone, pelo token do APNs. */
@@ -14,8 +15,8 @@ export type PushMessage = {
   thread: string;
   /** O aviso novo com a mesma chave fica no lugar do anterior. */
   collapseId: string;
-  /** Para onde o toque leva no app. */
-  target: 'companion' | 'campus';
+  /** Para onde o toque leva no app (`home`: o Início, o portal de volta). */
+  target: 'companion' | 'campus' | 'home';
   /** Depois disso, quem estava sem sinal já não recebe. */
   expiresAt: Date;
 };

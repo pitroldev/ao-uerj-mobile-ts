@@ -41,6 +41,14 @@ import type { MessageRepository } from '../src/modules/mural/ports.ts';
 import type { OtaEntry } from '../src/modules/ota/domain.ts';
 import type { OtaEntryRepository } from '../src/modules/ota/ports.ts';
 import type {
+  PortalPushDeviceRepository,
+  ReturnAlertRepository,
+} from '../src/modules/portal/ports.ts';
+import type {
+  PortalPushDevice,
+  ReturnAlert,
+} from '../src/modules/portal/push.ts';
+import type {
   ErrorReport,
   ReviewFilter,
 } from '../src/modules/reports/domain.ts';
@@ -200,6 +208,7 @@ export function memoryRepositories(clock = manualClock()) {
   const companion = memoryCompanion();
   const people = memoryStudents();
   const campus = memoryCampusNow();
+  const portal = memoryPortalAlerts();
   const ota = memoryOtaEntries();
 
   return {
@@ -222,6 +231,8 @@ export function memoryRepositories(clock = manualClock()) {
       campusAnswers: campus.answers,
       campusPeople: campus.people,
       campusPushDevices: campus.pushDevices,
+      portalReturnAlerts: portal.returnAlerts,
+      portalPushDevices: portal.pushDevices,
       otaEntries: ota.entries,
     },
     repositories: {
@@ -242,6 +253,8 @@ export function memoryRepositories(clock = manualClock()) {
       campusPeople: campus.contributorRepository,
       campusDays: campus.dayRepository,
       campusPushDevices: campus.pushDeviceRepository,
+      portalReturnAlerts: portal.returnAlertRepository,
+      portalPushDevices: portal.pushDeviceRepository,
       students: people.studentRepository,
       studentSessions: people.sessionRepository,
       otaEntries: ota.repository,
@@ -823,6 +836,104 @@ export function memoryCampusNow() {
 }
 
 /** Os alunos e as sessões, como no MongoDB (o `lookup` é único). */
+/**
+ * Os avisos do portal no iPhone, como no MongoDB: um pedido e um aparelho por
+ * aluno, um dono por token.
+ */
+export function memoryPortalAlerts() {
+  const copy = <T>(value: T): T => structuredClone(value);
+  const returnAlerts = new Map<string, ReturnAlert>();
+  const returnAlertRepository: ReturnAlertRepository = {
+    async find(student, now) {
+      const found = returnAlerts.get(student);
+      return found && found.expiresAt > now ? copy(found) : null;
+    },
+    async put(alert) {
+      for (const [student, other] of returnAlerts)
+        if (
+          student !== alert.student &&
+          other.device.token === alert.device.token
+        )
+          returnAlerts.delete(student);
+      returnAlerts.set(alert.student, copy(alert));
+    },
+    async remove(student) {
+      returnAlerts.delete(student);
+    },
+    async listRequestedBefore(now, before) {
+      return [...returnAlerts.values()]
+        .filter(alert => alert.expiresAt > now && alert.requestedAt < before)
+        .map(copy);
+    },
+    async claim(alert) {
+      const current = returnAlerts.get(alert.student);
+      if (current?.requestedAt.getTime() !== alert.requestedAt.getTime())
+        return false;
+      returnAlerts.delete(alert.student);
+      return true;
+    },
+    async restore(alert) {
+      if (!returnAlerts.has(alert.student))
+        returnAlerts.set(alert.student, copy(alert));
+    },
+  };
+
+  const pushDevices = new Map<string, PortalPushDevice>();
+  const pushDeviceRepository: PortalPushDeviceRepository = {
+    async find(student, now) {
+      const found = pushDevices.get(student);
+      return found && found.expiresAt > now ? copy(found) : null;
+    },
+    async put(entry) {
+      for (const [student, other] of pushDevices)
+        if (
+          student !== entry.student &&
+          other.device.token === entry.device.token
+        )
+          pushDevices.delete(student);
+      const current = pushDevices.get(entry.student);
+      pushDevices.set(entry.student, {
+        ...copy(entry),
+        wokenAt: current?.wokenAt ?? null,
+      });
+    },
+    async remove(student) {
+      pushDevices.delete(student);
+    },
+    async forget(student, token) {
+      if (pushDevices.get(student)?.device.token === token)
+        pushDevices.delete(student);
+    },
+    async listWakeable(now, since) {
+      return [...pushDevices.values()]
+        .filter(
+          entry =>
+            entry.expiresAt > now &&
+            (entry.wokenAt === null || entry.wokenAt < since),
+        )
+        .map(copy);
+    },
+    async claimWake(student, now, since) {
+      const entry = pushDevices.get(student);
+      if (
+        !entry ||
+        entry.expiresAt <= now ||
+        (entry.wokenAt !== null && entry.wokenAt >= since)
+      )
+        return false;
+      entry.wokenAt = now;
+      return true;
+    },
+  };
+
+  return {
+    returnAlerts,
+    pushDevices,
+    returnAlertRepository,
+    pushDeviceRepository,
+  };
+}
+
 export function memoryStudents() {
   const students = new Map<string, StoredStudent>();
   const sessions = new Map<string, StoredSession>();

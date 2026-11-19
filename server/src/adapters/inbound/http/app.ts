@@ -10,6 +10,7 @@ import type {
 import type { CampusNow } from '../../../modules/campus-now/ports.ts';
 import type { Companion } from '../../../modules/companion/ports.ts';
 import type { OtaUpdates } from '../../../modules/ota/ports.ts';
+import type { PortalAlerts } from '../../../modules/portal/ports.ts';
 import type { ScheduleGenerator } from '../../../modules/schedules/ports.ts';
 import type { StudentIdentity } from '../../../modules/students/ports.ts';
 import { createAoUerjRouter, type AoUerjServices } from './aouerj/router.ts';
@@ -32,6 +33,8 @@ export type Services = AoUerjServices & {
   companion: Companion;
   /** Agora no campus, na v2. */
   campusNow: CampusNow;
+  /** Os avisos do portal no iPhone, na v2. */
+  portalAlerts: PortalAlerts;
   /** A identificação do aluno (v2) e a moderação dos alunos. */
   students: StudentIdentity;
   /** As atualizações pelo ar (expo-updates). */
@@ -128,6 +131,7 @@ export function createHttpApp({
       tokens: services.tokens,
       companion: services.companion,
       campusNow: services.campusNow,
+      portalAlerts: services.portalAlerts,
       students: services.students,
       mural: services.mural,
       teachers: services.teachers,

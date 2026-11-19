@@ -19,6 +19,10 @@ import type {
 import type { MessageRepository } from '../../../modules/mural/ports.ts';
 import type { OtaEntryRepository } from '../../../modules/ota/ports.ts';
 import type {
+  PortalPushDeviceRepository,
+  ReturnAlertRepository,
+} from '../../../modules/portal/ports.ts';
+import type {
   StudentRepository,
   StudentSessionRepository,
 } from '../../../modules/students/ports.ts';
@@ -44,6 +48,10 @@ import { createIssuanceCounterRepository } from './issuanceCounterRepository.ts'
 import { createMessageRepository } from './messageRepository.ts';
 import type { Models } from './models.ts';
 import { createOtaEntryRepository } from './otaEntryRepository.ts';
+import {
+  createPortalPushDeviceRepository,
+  createReturnAlertRepository,
+} from './portalRepository.ts';
 import { createSingleUseRepository } from './singleUseRepository.ts';
 import {
   createStudentRepository,
@@ -73,6 +81,8 @@ export type Repositories = {
   campusPeople: ContributorRepository;
   campusDays: DayRepository;
   campusPushDevices: CampusPushDeviceRepository;
+  portalReturnAlerts: ReturnAlertRepository;
+  portalPushDevices: PortalPushDeviceRepository;
   otaEntries: OtaEntryRepository;
 };
 
@@ -100,6 +110,10 @@ export function createMongoRepositories(models: Models): Repositories {
     campusDays: createDayRepository(models.campusDays),
     campusPushDevices: createCampusPushDeviceRepository(
       models.campusPushDevices,
+    ),
+    portalReturnAlerts: createReturnAlertRepository(models.portalReturnAlerts),
+    portalPushDevices: createPortalPushDeviceRepository(
+      models.portalPushDevices,
     ),
     otaEntries: createOtaEntryRepository(models.otaEntries),
   };

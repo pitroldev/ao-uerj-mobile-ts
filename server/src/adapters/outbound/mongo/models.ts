@@ -444,6 +444,43 @@ campusPushDeviceSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 campusPushDeviceSchema.index({ token: 1 });
 
 /**
+ * Os pedidos de "Avisar quando voltar" do iPhone, um por aluno (o `_id`),
+ * com o token do APNs. O índice TTL apaga em `expiresAt`, 3 dias depois do
+ * pedido; o aviso que sai apaga antes.
+ */
+const portalReturnAlertSchema = new mongoose.Schema(
+  {
+    _id: { required: true, type: String },
+    platform: { required: true, type: String, enum: ['ios'] },
+    token: { required: true, maxlength: 200, type: String },
+    requestedAt: { required: true, type: Date },
+    expiresAt: { required: true, type: Date },
+  },
+  { versionKey: false, bufferCommands: false },
+);
+portalReturnAlertSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+portalReturnAlertSchema.index({ token: 1 });
+
+/**
+ * O iPhone de cada aluno para o cutucão da verificação no portal, um por
+ * aluno (o `_id`) e um dono por token. O índice TTL apaga em `expiresAt`, 7
+ * dias depois do último registro (o app registra de novo a cada abertura).
+ */
+const portalPushDeviceSchema = new mongoose.Schema(
+  {
+    _id: { required: true, type: String },
+    platform: { required: true, type: String, enum: ['ios'] },
+    token: { required: true, maxlength: 200, type: String },
+    updatedAt: { required: true, type: Date },
+    expiresAt: { required: true, type: Date },
+    wokenAt: { default: null, type: Date },
+  },
+  { versionKey: false, bufferCommands: false },
+);
+portalPushDeviceSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+portalPushDeviceSchema.index({ token: 1 });
+
+/**
  * As publicações das atualizações pelo ar: cada manifesto ou diretiva como o
  * CI assinou (o texto exato e a assinatura), sem prazo. Os arquivos ficam em
  * disco (`OTA_DIR`); aqui só os hashes, para a limpeza saber quais guardar.
@@ -537,6 +574,17 @@ export function defineModels(connection: Connection) {
       'CampusPushDevices',
       campusPushDeviceSchema,
       'campuspushdevices',
+    ),
+    // os avisos do portal no iPhone
+    portalReturnAlerts: connection.model(
+      'PortalReturnAlerts',
+      portalReturnAlertSchema,
+      'portalreturnalerts',
+    ),
+    portalPushDevices: connection.model(
+      'PortalPushDevices',
+      portalPushDeviceSchema,
+      'portalpushdevices',
     ),
     otaEntries: connection.model('OtaEntries', otaEntrySchema, 'otaentries'),
   };

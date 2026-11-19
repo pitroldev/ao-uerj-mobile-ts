@@ -711,6 +711,57 @@ export type RegisterCampusPushRequest = {
   token: string;
 };
 
+/*
+ * Os avisos do portal no iPhone, que não testa o portal a cada 15 minutos
+ * nem roda a verificação na hora certa como o Android. O servidor testa o
+ * portal sozinho e nunca tem a senha do aluno.
+ *
+ * "Avisar quando voltar":
+ * - `GET /aouerj/v2/portal/return-alert` → `PortalReturnAlertStatusResponse`.
+ * - `POST /aouerj/v2/portal/return-alert` com `RequestPortalReturnAlertRequest`
+ *   → 204: um pedido por aluno (o novo fica no lugar), por 3 dias. O
+ *   primeiro teste do portal no ar depois do pedido manda o aviso com alerta
+ *   (das 22h às 7h, espera) e apaga o pedido.
+ * - `POST /aouerj/v2/portal/return-alert/cancel` com `{}` → 204.
+ *
+ * O cutucão da verificação no portal:
+ * - `GET /aouerj/v2/portal/push` → `PortalPushStatusResponse`.
+ * - `POST /aouerj/v2/portal/push` com `RegisterPortalPushRequest` → 204:
+ *   registra (ou troca) o iPhone do aluno por 7 dias (o app registra de novo
+ *   a cada abertura). Um por aluno e um dono por token. Das 7h às 22h, um
+ *   push silencioso (`{"aps":{"content-available":1},"portal":"wake"}`) a
+ *   cada 4 horas acorda o app para a verificação.
+ * - `POST /aouerj/v2/portal/push/cancel` com `{}` → 204.
+ *
+ * Erros: 400 `invalid_request` (o corpo fora do formato) e 503
+ * `push_unavailable` (sem a chave do APNs; no "Avisar quando voltar",
+ * também com o monitor do portal desligado).
+ */
+
+/** `available`: o servidor avisa quando o portal volta; `requested`: este aluno pediu. */
+export type PortalReturnAlertStatusResponse = {
+  available: boolean;
+  requested: boolean;
+};
+
+export type RequestPortalReturnAlertRequest = {
+  platform: 'ios';
+  /** O token do APNs do aparelho, em hex (de 64 a 200 dígitos). */
+  token: string;
+};
+
+/** `available`: o servidor manda push; `registered`: este aluno tem um iPhone registrado. */
+export type PortalPushStatusResponse = {
+  available: boolean;
+  registered: boolean;
+};
+
+export type RegisterPortalPushRequest = {
+  platform: 'ios';
+  /** O token do APNs do aparelho, em hex (de 64 a 200 dígitos). */
+  token: string;
+};
+
 /* --------------------------------------------- identificação do aluno (v2) */
 
 /** `GET /aouerj/v2/students/challenge`: o desafio de entrada (uso único, 5 min). */

@@ -49,7 +49,10 @@ import type { PushSender } from './modules/companion/ports.ts';
 import { createMural } from './modules/mural/application.ts';
 import { createOtaUpdates } from './modules/ota/application.ts';
 import type { OtaAssetStore, OtaUpdates } from './modules/ota/ports.ts';
-import { createPortalWatch } from './modules/portal/application.ts';
+import {
+  createPortalAlerts,
+  createPortalWatch,
+} from './modules/portal/application.ts';
 import type { PortalWatch } from './modules/portal/ports.ts';
 import { createErrorReports } from './modules/reports/application.ts';
 import type { AttachmentStore } from './modules/reports/ports.ts';
@@ -72,14 +75,19 @@ export type Overrides = {
   repositories?: Repositories;
   attachments?: AttachmentStore;
   portal?: PortalWatch;
+  /**
+   * O monitor do portal ligado (os testes, que têm `PORTAL_MONITOR` sempre
+   * desligado): os testes agendados e o "Avisar quando voltar" por push.
+   */
+  portalMonitor?: boolean;
   solver?: ScheduleSolver;
   /** Quem atesta o app; `null` desliga a emissão. */
   attester?: AppAttester | null;
   /** O App Attest do iPhone; `null` desliga a entrada pelo iPhone. */
   appAttest?: AppAttestVerifier | null;
   /**
-   * O push para o iPhone; `null` desliga o "Me avise se abrirem" e os avisos
-   * do Agora no campus.
+   * O push para o iPhone; `null` desliga o "Me avise se abrirem", os avisos
+   * do Agora no campus e os do portal.
    */
   push?: PushSender | null;
   /**
@@ -110,6 +118,12 @@ const WATCH_DELIVERY_INTERVAL_MS = 60 * 1000;
  * hora por aparelho).
  */
 const CAMPUS_PUSH_INTERVAL_MS = 60 * 1000;
+
+/**
+ * De quanto em quanto tempo o cutucão da verificação no portal olha quem
+ * cutucar (cada aparelho, no máximo a cada 4 horas).
+ */
+const PORTAL_WAKE_ROUND_MS = 60 * 1000;
 
 /** O banco e os repositórios: os de teste ou os do MongoDB. */
 function storageFor(
@@ -313,6 +327,14 @@ export function createServer(
     push,
     onPushError: err => logger.warn({ err }, 'campus push failed'),
   });
+  const portalMonitor = overrides.portalMonitor ?? config.portalMonitor.enabled;
+  const portalAlerts = createPortalAlerts({
+    returnAlerts: repositories.portalReturnAlerts,
+    devices: repositories.portalPushDevices,
+    push,
+    monitoring: portalMonitor,
+    onPushError: err => logger.warn({ err }, 'portal push failed'),
+  });
   const services: Services = {
     mural: createMural(repositories.messages),
     teachers: createTeacherDirectory(repositories.teachers, {
@@ -347,6 +369,7 @@ export function createServer(
     }),
     companion,
     campusNow,
+    portalAlerts,
     students: createStudentIdentity({
       students: repositories.students,
       sessions: repositories.studentSessions,
@@ -364,10 +387,12 @@ export function createServer(
           : overrides.appAttest,
       dataKey: config.students.dataKey,
       // o banido sai das mesas na hora, sem esperar ninguém denunciar de
-      // novo, e os avisos dele que valem saem do ar
+      // novo, os avisos dele que valem saem do ar, e o iPhone dele deixa de
+      // receber os avisos do portal
       onBan: async studentId => {
         await companion.dropStudent(studentId);
         await campusNow.dropStudent(studentId);
+        await portalAlerts.dropStudent(studentId);
       },
     }),
     ota: otaFor(config, logger, repositories, overrides.ota),
@@ -380,9 +405,17 @@ export function createServer(
     database,
   });
   const server = http.createServer(app);
+  // depois de cada teste, com o portal no ar, quem pediu "Avisar quando
+  // voltar" recebe o aviso; sem o banco, a entrega fica para o próximo
   const portalChecks = repeatEvery(
     config.portalMonitor.intervalMs,
-    () => portal.check(),
+    async () => {
+      const status = await portal.check();
+      if (push && database.isReady())
+        await portalAlerts
+          .portalChecked(status)
+          .catch(err => logger.warn({ err }, 'portal push failed'));
+    },
     err => logger.warn({ err }, 'portal check failed'),
   );
   // sem o banco, a rodada falha calada: os pedidos estão nele
@@ -399,6 +432,13 @@ export function createServer(
       if (database.isReady()) await campusNow.deliverPush();
     },
     err => logger.warn({ err }, 'campus push failed'),
+  );
+  const portalWakes = repeatEvery(
+    PORTAL_WAKE_ROUND_MS,
+    async () => {
+      if (database.isReady()) await portalAlerts.wakeDevices();
+    },
+    err => logger.warn({ err }, 'portal push failed'),
   );
 
   return {
@@ -420,10 +460,11 @@ export function createServer(
         'listening',
       );
       void database.connect();
-      if (config.portalMonitor.enabled) portalChecks.start();
+      if (portalMonitor) portalChecks.start();
       if (push) {
         watchDeliveries.start();
         campusPushes.start();
+        portalWakes.start();
       }
       return address;
     },
@@ -438,6 +479,7 @@ export function createServer(
       portalChecks.stop();
       watchDeliveries.stop();
       campusPushes.stop();
+      portalWakes.stop();
       const forceClose = setTimeout(
         () => server.closeAllConnections(),
         SHUTDOWN_GRACE_MS,

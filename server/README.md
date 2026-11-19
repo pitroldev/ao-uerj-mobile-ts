@@ -158,6 +158,50 @@ que o app também importa.
   é 503 `generator_timeout`. Entrada inválida diz onde
   (`classes[0].schedules[0].week_day`).
 
+### Avisos do portal no iPhone
+
+O `/portal-status` vem do teste que o servidor faz sozinho na página inicial
+do portal (`PORTAL_MONITOR`, a cada `PORTAL_MONITOR_INTERVAL_MS`). No Android,
+o celular testa o portal a cada 15 minutos para o "Avisar quando voltar" e faz
+a verificação dos avisos (notas, RID, inscrição, documentos) a cada 4 horas,
+com o celular bloqueado inclusive. O iPhone não roda nada nessa frequência, e
+o servidor ajuda de dois jeitos, sem nunca entrar no portal pelo aluno (ele
+não tem a senha; `modules/portal/push.ts`):
+
+- **"Avisar quando voltar" por push:** com o portal fora, o app pede o aviso
+  com o token do APNs do aparelho (`POST /aouerj/v2/portal/return-alert`, em
+  hex, guardado em minúsculas). Fica em `portalreturnalerts` (o `_id` é o
+  aluno) por 3 dias, quando o índice TTL apaga. Um por aluno (o novo fica no
+  lugar) e um dono por token. Depois de cada teste do portal com ele no ar,
+  os pedidos feitos antes desse teste recebem "O Aluno Online voltou" /
+  "Toque para atualizar seus dados no AO UERJ." (o `portalBackMessage` do
+  app), com `thread-id` `portal`, `"target": "home"` fora do `aps`,
+  `apns-collapse-id` `portal-back` e vencimento em 6 horas, e o pedido sai na
+  mesma operação que o lê (as duas cores do azul/verde não avisam duas
+  vezes). Das 22h às 7h (São Paulo), o pedido espera o primeiro teste no ar
+  depois das 7h. O envio que falha devolve o pedido para o próximo teste; o
+  token que a Apple recusou de vez (410, `BadDeviceToken`,
+  `DeviceTokenNotForTopic`) vai embora com ele.
+- **O cutucão da verificação:** com os avisos do portal ligados, o app
+  registra o aparelho (`POST /aouerj/v2/portal/push`) a cada abertura. Fica
+  em `portalpushdevices` por 7 dias desde o último registro. Das 7h às 22h,
+  uma rodada a cada minuto manda um push silencioso
+  (`{"aps":{"content-available":1},"portal":"wake"}`, `apns-push-type`
+  `background`, prioridade 5, vence em 1 hora) a cada aparelho que não recebe
+  um há 4 horas (`wokenAt`, marcado numa gravação só). O iPhone acorda para a
+  verificação, que o próprio celular faz no portal; o iOS decide quando
+  acorda, então é o melhor possível, não garantido.
+- **As rotas**, todas com a sessão de aluno: `GET`, `POST` e `POST …/cancel`
+  em `/aouerj/v2/portal/return-alert` e em `/aouerj/v2/portal/push`. Os `GET`
+  dizem `available` e se há pedido (`requested`) ou registro (`registered`);
+  os cancelamentos respondem 204 mesmo sem nada. Os `POST` contam no limite
+  por aluno (`COMPANION_MEMBER_LIMIT_PER_MINUTE`); as leituras, não.
+- **Sem a chave do APNs** (`APNS_KEY_ID` e `APNS_PRIVATE_KEY`, a mesma do "Me
+  avise se abrirem"), os dois dizem `available: false`, e os pedidos recebem
+  503 `push_unavailable`. O "Avisar quando voltar" também fica assim com
+  `PORTAL_MONITOR=off`: sem o teste, o servidor não sabe quando o portal
+  volta. O banimento apaga os dois registros do aluno.
+
 ### Administração no navegador
 
 `https://pitrol.dev/aouerj/admin` pede o `ADMIN_TOKEN` e grava um cookie de 30
@@ -926,6 +970,13 @@ O que mudou de propósito:
   banimento e o token recusado pela Apple apagam antes). O push leva só o
   tipo, a situação, o lugar, a hora e os números do aviso do próprio aluno,
   nunca quem confirmou ou agradeceu; o silencioso não leva nada do aviso.
+- **O que fica guardado dos avisos do portal no iPhone:** o id do aluno com
+  o token do APNs do aparelho e a hora do pedido de "Avisar quando voltar",
+  até o aviso sair, o cancelamento ou 3 dias; e, para o cutucão, o id do
+  aluno com o token e a hora do último push silencioso, por 7 dias desde o
+  último registro. O banimento e o token recusado pela Apple apagam antes.
+  Nada do portal: o servidor não tem a senha do aluno, e o aviso de volta e
+  o silencioso não levam nada dele.
 - **O que fica guardado dos alunos identificados:** a matrícula e o nome do
   portal, cifrados, o HMAC da matrícula, os HMACs das instalações e as datas
   de entrada, sem prazo de remoção; as sessões, pelo hash, até vencerem; o id
