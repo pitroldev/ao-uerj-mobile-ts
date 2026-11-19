@@ -98,7 +98,11 @@ function hashAttester(): AppAttester & { seen: string[]; trust: boolean } {
       seen.push(requestHash);
       return this.trust && token === `ok:${requestHash}`
         ? { trusted: true }
-        : { trusted: false, reason: 'device_integrity' };
+        : {
+            trusted: false,
+            reason: 'device_integrity',
+            verdict: { app: 'UNEVALUATED', device: [] },
+          };
     },
   };
 }
@@ -254,6 +258,12 @@ test('a reused challenge, a foreign attestation or a bad matrícula do not sign 
     { ok: foreign.ok, reason: !foreign.ok && foreign.reason },
     { ok: false, reason: 'attestation_failed' },
   );
+  // o motivo e os rótulos do veredito seguem para o log
+  assert.equal(!foreign.ok && foreign.detail, 'device_integrity');
+  assert.deepEqual(!foreign.ok && foreign.verdict, {
+    app: 'UNEVALUATED',
+    device: [],
+  });
   // o desafio já foi gasto na tentativa acima
   const reused = await students.enroll({
     ...request,

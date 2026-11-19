@@ -5,6 +5,7 @@ import { z } from 'zod';
 import type {
   AppAttester,
   Attestation,
+  VerdictLabels,
 } from '../../../modules/access/ports.ts';
 import { systemClock, type Clock } from '../../../shared/clock.ts';
 import { UnavailableError } from '../../../shared/errors.ts';
@@ -59,18 +60,50 @@ const verdictSchema = z.object({
   accountDetails: z
     .object({ appLicensingVerdict: z.string().optional() })
     .optional(),
+  environmentDetails: z
+    .object({ playProtectVerdict: z.string().optional() })
+    .optional(),
 });
 
-const untrusted = (reason: string): Attestation => ({
-  trusted: false,
-  reason,
-});
+/** Um rótulo da Play ("MEETS_DEVICE_INTEGRITY"); outro texto não vai para o log. */
+const LABEL = /^[A-Z][A-Z_]{0,59}$/;
+const label = (value: string | undefined) =>
+  value !== undefined && LABEL.test(value) ? value : undefined;
+
+/** Os rótulos do veredito, para o log dizer por que uma entrada foi recusada. */
+function labelsOf({
+  appIntegrity,
+  deviceIntegrity,
+  accountDetails,
+  environmentDetails,
+}: z.infer<typeof verdictSchema>): VerdictLabels {
+  const labels: VerdictLabels = {
+    device: (deviceIntegrity?.deviceRecognitionVerdict ?? [])
+      .filter(value => LABEL.test(value))
+      .slice(0, 5),
+  };
+  const app = label(appIntegrity.appRecognitionVerdict);
+  const licensing = label(accountDetails?.appLicensingVerdict);
+  const playProtect = label(environmentDetails?.playProtectVerdict);
+  if (app) labels.app = app;
+  if (licensing) labels.licensing = licensing;
+  if (playProtect) labels.playProtect = playProtect;
+  return labels;
+}
+
+const untrusted = (reason: string, verdict?: VerdictLabels): Attestation =>
+  verdict ? { trusted: false, reason, verdict } : { trusted: false, reason };
 
 /**
  * O veredito decifrado, conferido como a documentação recomenda: o pedido é
- * deste app e deste lote, recente, o binário é o da Play, assinado pelo
- * nosso certificado, e o aparelho é íntegro (`MEETS_DEVICE_INTEGRITY`). O
- * motivo da recusa vai para o log e não identifica ninguém.
+ * deste app e deste lote, recente, o aparelho é íntegro
+ * (`MEETS_DEVICE_INTEGRITY`), e o binário é o da Play, assinado pelo nosso
+ * certificado. O motivo da recusa e os rótulos do veredito vão para o log e
+ * não identificam ninguém.
+ *
+ * O aparelho vem antes do app: num aparelho que não passa, a Play nem avalia
+ * o binário (`appRecognitionVerdict: UNEVALUATED`), e a recusa diria "app não
+ * reconhecido" quando o motivo é o aparelho.
  */
 export function judgeVerdict(
   payload: unknown,
@@ -80,34 +113,35 @@ export function judgeVerdict(
   if (!parsed.success) return untrusted('unreadable_verdict');
   const { requestDetails, appIntegrity, deviceIntegrity, accountDetails } =
     parsed.data;
+  const verdict = labelsOf(parsed.data);
   if (requestDetails.requestPackageName !== expected.packageName)
-    return untrusted('request_package');
+    return untrusted('request_package', verdict);
   if (requestDetails.requestHash !== expected.requestHash)
-    return untrusted('request_hash');
+    return untrusted('request_hash', verdict);
   const age = expected.now - requestDetails.timestampMillis;
   if (!(age <= expected.maxAgeMs && age >= -CLOCK_SKEW_MS))
-    return untrusted('stale_token');
-  if (appIntegrity.appRecognitionVerdict !== 'PLAY_RECOGNIZED')
-    return untrusted('app_not_recognized');
-  if (appIntegrity.packageName !== expected.packageName)
-    return untrusted('app_package');
-  const signedByUs = (appIntegrity.certificateSha256Digest ?? []).some(digest =>
-    expected.certificateDigests.some(ours =>
-      ours.equals(Buffer.from(digest, 'base64url')),
-    ),
-  );
-  if (!signedByUs) return untrusted('app_certificate');
+    return untrusted('stale_token', verdict);
   if (
     !deviceIntegrity?.deviceRecognitionVerdict?.includes(
       'MEETS_DEVICE_INTEGRITY',
     )
   )
-    return untrusted('device_integrity');
+    return untrusted('device_integrity', verdict);
+  if (appIntegrity.appRecognitionVerdict !== 'PLAY_RECOGNIZED')
+    return untrusted('app_not_recognized', verdict);
+  if (appIntegrity.packageName !== expected.packageName)
+    return untrusted('app_package', verdict);
+  const signedByUs = (appIntegrity.certificateSha256Digest ?? []).some(digest =>
+    expected.certificateDigests.some(ours =>
+      ours.equals(Buffer.from(digest, 'base64url')),
+    ),
+  );
+  if (!signedByUs) return untrusted('app_certificate', verdict);
   if (
     expected.requireLicensed &&
     accountDetails?.appLicensingVerdict !== 'LICENSED'
   )
-    return untrusted('app_unlicensed');
+    return untrusted('app_unlicensed', verdict);
   return { trusted: true };
 }
 

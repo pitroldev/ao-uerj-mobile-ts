@@ -205,6 +205,7 @@ export function createStudentIdentity({
           ok: false,
           reason: 'attestation_failed',
           detail: attestation.reason,
+          ...(attestation.verdict ? { verdict: attestation.verdict } : {}),
         };
 
       const lookup = matriculaLookup(keys, matricula);

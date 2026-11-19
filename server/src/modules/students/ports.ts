@@ -1,4 +1,4 @@
-import type { AppAttestation } from '../access/ports.ts';
+import type { AppAttestation, VerdictLabels } from '../access/ports.ts';
 import type {
   Ban,
   BanDays,
@@ -48,6 +48,8 @@ export type Enrollment =
       ban?: Ban;
       /** No `attestation_failed`, o motivo, só para o log. */
       detail?: string;
+      /** No `attestation_failed`, os rótulos do veredito, só para o log. */
+      verdict?: VerdictLabels;
     };
 
 /** Quem fez o pedido, para os casos de uso que registram o aluno. */

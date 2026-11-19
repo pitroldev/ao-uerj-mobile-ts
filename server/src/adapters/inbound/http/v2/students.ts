@@ -345,7 +345,12 @@ export function studentRoutes({
       return;
     }
     req.log.info(
-      { reason: result.reason, detail: result.detail, platform },
+      {
+        reason: result.reason,
+        detail: result.detail,
+        verdict: result.verdict,
+        platform,
+      },
       'student sign-in refused',
     );
     const refusal =

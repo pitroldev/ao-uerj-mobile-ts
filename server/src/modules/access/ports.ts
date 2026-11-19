@@ -68,6 +68,8 @@ export type Issuance =
       reason: IssuanceRefusal;
       /** O motivo da atestação recusada, para o log. */
       detail?: string;
+      /** Os rótulos do veredito recusado, para o log. */
+      verdict?: VerdictLabels;
       /** Quando a instalação volta a poder pedir (no limite do dia). */
       retryAt?: Date;
     };
@@ -79,9 +81,27 @@ export interface TokenIssuer {
   issue(request: IssuanceRequest): Promise<Issuance>;
 }
 
+/**
+ * Os rótulos que quem atesta deu ao pedido, como vieram (na Play Integrity,
+ * "PLAY_RECOGNIZED", "MEETS_BASIC_INTEGRITY", "LICENSED"…). São só os nomes
+ * dos vereditos, sem nada do aluno nem do aparelho: dizem no log por que uma
+ * entrada foi recusada (o aparelho, o binário ou a instalação).
+ */
+export type VerdictLabels = {
+  /** O reconhecimento do app ("UNRECOGNIZED_VERSION", "UNEVALUATED"…). */
+  app?: string;
+  /** A integridade do aparelho; vazia num aparelho sem rótulo. */
+  device?: string[];
+  /** A licença: o app instalado pela Play nesta conta. */
+  licensing?: string;
+  /** O Play Protect, quando o Play Console manda. */
+  playProtect?: string;
+};
+
 /** O veredito de quem atesta o app. */
 export type Attestation =
-  { trusted: true } | { trusted: false; reason: string };
+  | { trusted: true }
+  | { trusted: false; reason: string; verdict?: VerdictLabels };
 
 /**
  * Porta de saída: quem atesta que o pedido veio do app genuíno, num aparelho

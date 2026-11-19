@@ -129,7 +129,7 @@ export function tokenRoutes({
       return;
     }
     req.log.info(
-      { reason: result.reason, detail: result.detail },
+      { reason: result.reason, detail: result.detail, verdict: result.verdict },
       'token issuance refused',
     );
     // a data, não os segundos: o relógio é o do caso de uso

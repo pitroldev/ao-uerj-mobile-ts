@@ -50,7 +50,11 @@ const attester: AppAttester = {
   async verify(integrityToken, requestHash) {
     return integrityToken === `ok:${requestHash}`
       ? { trusted: true }
-      : { trusted: false, reason: 'device_integrity' };
+      : {
+          trusted: false,
+          reason: 'device_integrity',
+          verdict: { app: 'UNEVALUATED', device: ['MEETS_BASIC_INTEGRITY'] },
+        };
   },
 };
 
@@ -312,10 +316,16 @@ test('the log says how many tokens and why a batch was refused, never the instal
         tokens?: number;
         reason?: string;
         detail?: string;
+        verdict?: unknown;
       },
   );
   assert.equal(entries.find(line => line.msg === 'tokens issued')?.tokens, 3);
   const refused = entries.find(line => line.msg === 'token issuance refused');
   assert.equal(refused?.reason, 'attestation_failed');
   assert.equal(refused?.detail, 'device_integrity');
+  // os rótulos do veredito vão junto: dizem se foi o aparelho ou o app
+  assert.deepEqual(refused?.verdict, {
+    app: 'UNEVALUATED',
+    device: ['MEETS_BASIC_INTEGRITY'],
+  });
 });

@@ -255,6 +255,7 @@ export function createTokenIssuer({
           issued: false,
           reason: 'attestation_failed',
           detail: attestation.reason,
+          ...(attestation.verdict ? { verdict: attestation.verdict } : {}),
         };
 
       const day = new Date(at).toISOString().slice(0, 10);

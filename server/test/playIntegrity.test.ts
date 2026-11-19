@@ -94,9 +94,10 @@ test('a verdict is trusted only for this app, this request, a Play binary signed
       'app_not_recognized',
       verdict({ app: { appRecognitionVerdict: 'UNRECOGNIZED_VERSION' } }),
     ],
-    // um token repetido volta com os vereditos limpos
+    // um aparelho sem rótulo (ou um token repetido) volta sem nada avaliado:
+    // o motivo é o aparelho, não o app
     [
-      'app_not_recognized',
+      'device_integrity',
       verdict({ app: { appRecognitionVerdict: 'UNEVALUATED' }, device: [] }),
     ],
     ['app_package', verdict({ app: { packageName: 'com.outro' } })],
@@ -111,12 +112,74 @@ test('a verdict is trusted only for this app, this request, a Play binary signed
     ['device_integrity', verdict({ device: ['MEETS_BASIC_INTEGRITY'] })],
     ['device_integrity', verdict({ device: null })],
   ];
-  for (const [reason, payload] of cases)
-    assert.deepEqual(
-      judgeVerdict(payload, EXPECTED),
-      { trusted: false, reason },
-      reason,
-    );
+  for (const [reason, payload] of cases) {
+    const judged = judgeVerdict(payload, EXPECTED);
+    assert.equal(judged.trusted, false, reason);
+    assert.equal(!judged.trusted && judged.reason, reason, reason);
+  }
+});
+
+test('a refusal carries the labels of the verdict for the log, and only the labels', () => {
+  // o aparelho que não passa: a Play nem avalia o binário
+  assert.deepEqual(
+    judgeVerdict(
+      verdict({
+        app: { appRecognitionVerdict: 'UNEVALUATED' },
+        device: ['MEETS_BASIC_INTEGRITY'],
+      }),
+      EXPECTED,
+    ),
+    {
+      trusted: false,
+      reason: 'device_integrity',
+      verdict: {
+        app: 'UNEVALUATED',
+        device: ['MEETS_BASIC_INTEGRITY'],
+        licensing: 'LICENSED',
+      },
+    },
+  );
+  // o binário que não é o da Play, num aparelho íntegro, com o Play Protect
+  const sideloaded = {
+    ...verdict({ app: { appRecognitionVerdict: 'UNRECOGNIZED_VERSION' } }),
+    accountDetails: { appLicensingVerdict: 'UNLICENSED' },
+    environmentDetails: { playProtectVerdict: 'NO_ISSUES' },
+  };
+  assert.deepEqual(judgeVerdict(sideloaded, EXPECTED), {
+    trusted: false,
+    reason: 'app_not_recognized',
+    verdict: {
+      app: 'UNRECOGNIZED_VERSION',
+      device: ['MEETS_DEVICE_INTEGRITY'],
+      licensing: 'UNLICENSED',
+      playProtect: 'NO_ISSUES',
+    },
+  });
+  // a instalação de fora da Play, quando a licença é exigida
+  const unlicensed = {
+    ...verdict(),
+    accountDetails: { appLicensingVerdict: 'UNLICENSED' },
+  };
+  const refused = judgeVerdict(unlicensed, {
+    ...EXPECTED,
+    requireLicensed: true,
+  });
+  assert.equal(!refused.trusted && refused.reason, 'app_unlicensed');
+  assert.equal(!refused.trusted && refused.verdict?.licensing, 'UNLICENSED');
+  // o que não tem cara de rótulo não vai para o log
+  const odd = judgeVerdict(
+    verdict({
+      app: { appRecognitionVerdict: 'Fulano <b>' },
+      device: ['MEETS_BASIC_INTEGRITY', 'texto qualquer'],
+    }),
+    EXPECTED,
+  );
+  assert.deepEqual(!odd.trusted && odd.verdict, {
+    device: ['MEETS_BASIC_INTEGRITY'],
+    licensing: 'LICENSED',
+  });
+  // o aceito não leva rótulo nenhum
+  assert.deepEqual(judgeVerdict(verdict(), EXPECTED), { trusted: true });
 });
 
 /** Um Google de mentira: o OAuth e o decodeIntegrityToken. */

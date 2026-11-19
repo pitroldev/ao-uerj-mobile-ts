@@ -302,9 +302,13 @@ continuam iguais, sem nada disso, para os apps publicados.
    matrícula, naquele aparelho, agora.
 3. **As checagens:** o desafio é nosso, vale e é gasto; no Android, o Google
    decifra o token e o servidor confere o pacote, o `requestHash`, a idade,
-   `PLAY_RECOGNIZED`, o certificado da Play, `MEETS_DEVICE_INTEGRITY` e o app
+   `MEETS_DEVICE_INTEGRITY`, `PLAY_RECOGNIZED`, o certificado da Play e o app
    instalado pela loja (`LICENSED`); no iPhone, o servidor mesmo confere o
-   App Attest (abaixo).
+   App Attest (abaixo). O aparelho vem antes do app: num aparelho que não
+   passa, a Play nem avalia o binário (`UNEVALUATED`). A recusa vai para o
+   log (`student sign-in refused`) com o motivo (`detail`) e os rótulos do
+   veredito (`verdict`: `app`, `device`, `licensing` e, se vier, o
+   `playProtect`), só os nomes dos vereditos, sem nada do aluno.
 4. **A sessão:** 32 bytes ao acaso, em `Authorization: Student <sessão>` em
    cada pedido. Vale 30 dias sem uso (cada uso empurra o prazo, uma vez por
    hora). O banco guarda só o SHA-256 (`studentsessions`, índice TTL). Uma
@@ -437,9 +441,10 @@ tokens assinados às cegas:
    Os formatos estão em `contract.ts`.
 3. **As checagens:** o desafio é nosso, vale e é gasto; cada pedido é para a
    chave atual; o Google decifra o token de integridade, e o servidor confere o
-   pacote, o `requestHash`, a idade, `PLAY_RECOGNIZED`, o certificado de
-   assinatura da Play e `MEETS_DEVICE_INTEGRITY`; a instalação não passou de
-   `TOKEN_BATCHES_PER_DAY` lotes (4) no dia.
+   pacote, o `requestHash`, a idade, `MEETS_DEVICE_INTEGRITY`,
+   `PLAY_RECOGNIZED` e o certificado de assinatura da Play (a recusa vai para
+   o log com os mesmos rótulos da entrada do aluno); a instalação não passou
+   de `TOKEN_BATCHES_PER_DAY` lotes (4) no dia.
 4. **A resposta:** as assinaturas cegas (RSA crua, conferida com a pública).
    O servidor não vê os tokens que saem delas, então o resgate não se liga à
    emissão.
