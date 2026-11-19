@@ -57,6 +57,7 @@ export function createNativeAppUpdates(
 ): AppUpdatesPort | null {
   if (!module) return null;
   return {
+    inApp: true,
     async check() {
       try {
         return toUpdate(await module.checkUpdate());

@@ -55,7 +55,7 @@ A simulação de PF e CR não grava nada. O Plano até a formatura é calculado 
 
 ### Preferências do app
 
-No AsyncStorage, valem para o app inteiro e **não** são apagadas no logout: o tema, a última cópia do aviso remoto, os avisos dispensados, a data do último pedido de atualização e o histórico de uso que decide o pedido de avaliação. No iPhone, também a marca da instalação (`ao:v2:install`, da regra da reinstalação).
+No AsyncStorage, valem para o app inteiro e **não** são apagadas no logout: o tema, a última cópia do aviso remoto, os avisos dispensados, a data do último pedido de atualização, a versão da App Store que o aluno dispensou no Início ("Agora não") e o histórico de uso que decide o pedido de avaliação. No iPhone, também a marca da instalação (`ao:v2:install`, da regra da reinstalação).
 
 ### Fora do JS
 
@@ -110,7 +110,7 @@ O aviso remoto (ver [Aviso remoto](aviso-remoto.md)) está sempre ligado. O app 
 
 ### Para as lojas
 
-A atualização (In-App Updates da Play, só no Android; no iPhone, o "Atualizar" só abre a página da App Store) e a avaliação (In-App Review da Play; no iPhone, o `SKStoreReviewController`) usam as APIs da própria loja, que passam pelo app da loja no aparelho. O app não envia dados próprios nesses fluxos.
+A atualização (In-App Updates da Play, só no Android) e a avaliação (In-App Review da Play; no iPhone, o `SKStoreReviewController`) usam as APIs da própria loja, que passam pelo app da loja no aparelho. O app não envia dados próprios nesses fluxos. No iPhone, para saber se há versão nova, o app lê a ficha pública do app na App Store (`itunes.apple.com/lookup?id=6835308883&country=br`, no máximo a cada 6 horas), que só leva o código do app; o "Atualizar" abre a página dele.
 
 ### Para o Sentry
 

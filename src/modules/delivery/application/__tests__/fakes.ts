@@ -67,12 +67,17 @@ export type FakeUpdatesPort = AppUpdatesPort & {
   readonly listening: boolean;
 };
 
-/** Play In-App Updates simulada; `null` = app fora da Play. */
+/**
+ * Play In-App Updates simulada; `null` = app fora da Play. Com `inApp`
+ * falso, a App Store: só diz a versão, sem fluxos dentro do app.
+ */
 export function createUpdatesPort(
   update: AppUpdate | null = appUpdate(),
+  { inApp = true }: { inApp?: boolean } = {},
 ): FakeUpdatesPort {
   let listener: ((progress: InstallProgress) => void) | null = null;
   return {
+    inApp,
     check: jest.fn(async () => update),
     start: jest.fn(async (_type: UpdateType): Promise<UpdateFlowResult> => {
       return 'accepted';

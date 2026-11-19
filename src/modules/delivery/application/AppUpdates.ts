@@ -1,5 +1,6 @@
 import {
   chooseUpdate,
+  FLEXIBLE_AFTER_DAYS,
   FLEXIBLE_PROMPT_INTERVAL,
   type AppUpdate,
 } from '../domain/updatePolicy';
@@ -18,19 +19,28 @@ import type {
 } from './ports';
 
 export const FLEXIBLE_PROMPT_KEY = 'flexible-update-prompted-at';
+/** A versão da loja que o aluno dispensou no Início ("Agora não"). */
+const OFFER_DISMISSED_KEY = 'store-update-dismissed';
 
 export type UpdateSnapshot = UpdateDownload & {
   /**
    * A loja respondeu que não há versão mais nova para este aparelho (rollout
    * parcial, versão ainda não promovida para produção, aparelho fora dos
-   * requisitos dela). `false` enquanto ela não responde e onde não há
-   * atualização dentro do app.
+   * requisitos dela). `false` enquanto ela não responde e onde não há como
+   * perguntar.
    */
   storeUpToDate: boolean;
+  /** A versão mais nova na loja, quando ela diz qual (a App Store); senão `null`. */
+  storeVersion: string | null;
+  /**
+   * A versão nova que o Início oferece, onde a loja não instala dentro do app
+   * (a App Store): há alguns dias na loja e não dispensada. Senão `null`.
+   */
+  offer: string | null;
 };
 
 type Dependencies = {
-  /** `null` onde não há atualização pela loja dentro do app. */
+  /** `null` onde não há como perguntar à loja (app fora dela, testes). */
   updates: AppUpdatesPort | null;
   storeListing: StoreListingPort;
   store: AppKeyValueStore;
@@ -47,11 +57,18 @@ const isUpToDate = (update: AppUpdate) =>
   update.availability === 'none' && update.installStatus !== 'downloaded';
 
 /**
- * Atualizações pela loja. A checagem nunca lança: fora da Play (debug,
- * emulador) ou no iOS ela simplesmente não encontra nada.
+ * Atualizações pela loja. A checagem nunca lança: fora da loja (debug,
+ * emulador) ou sem rede ela simplesmente não encontra nada. Na Play, abre os
+ * fluxos de atualização dentro do app; na App Store, que não tem esses
+ * fluxos, oferece a versão nova no Início e o "Atualizar" abre a loja.
  */
 export class AppUpdates {
-  private snapshot: UpdateSnapshot = { ...IDLE_DOWNLOAD, storeUpToDate: false };
+  private snapshot: UpdateSnapshot = {
+    ...IDLE_DOWNLOAD,
+    storeUpToDate: false,
+    storeVersion: null,
+    offer: null,
+  };
   /** Eventos da loja invalidam respostas atrasadas da tela de consentimento. */
   private downloadRevision = 0;
   private listeners = new Set<() => void>();
@@ -132,7 +149,16 @@ export class AppUpdates {
     const { updates, store, now } = this.dependencies;
     const update = await updates?.check().catch(() => null);
     if (!updates || !update) return;
-    this.publish({ ...this.snapshot, storeUpToDate: isUpToDate(update) });
+    this.publish({
+      ...this.snapshot,
+      storeUpToDate: isUpToDate(update),
+      storeVersion: update.version ?? null,
+    });
+    // a App Store não instala daqui: nada de fluxo, o Início oferece a loja
+    if (!updates.inApp) {
+      await this.refreshOffer(update);
+      return;
+    }
     if (update.installStatus === 'downloaded') {
       this.onProgress({
         status: 'downloaded',
@@ -161,6 +187,41 @@ export class AppUpdates {
           this.transition({ type: 'accepted' });
       });
     }
+  }
+
+  /**
+   * A oferta do Início, onde a loja não instala dentro do app: a versão nova
+   * só depois de alguns dias na loja (o iPhone costuma se atualizar sozinho
+   * antes disso), e nunca a que o aluno já dispensou.
+   */
+  private async refreshOffer(update: AppUpdate) {
+    const aged = (update.stalenessDays ?? 0) >= FLEXIBLE_AFTER_DAYS;
+    let offer =
+      update.availability === 'available' && aged
+        ? (update.version ?? null)
+        : null;
+    if (offer) {
+      const dismissed = await this.dependencies.store
+        .read<string>(OFFER_DISMISSED_KEY)
+        .catch(() => null);
+      if (dismissed === offer) offer = null;
+    }
+    this.publish({ ...this.snapshot, offer });
+  }
+
+  /** "Agora não" na oferta do Início: a mesma versão não volta. */
+  async dismissOffer(): Promise<void> {
+    const { offer } = this.snapshot;
+    if (!offer) return;
+    this.publish({ ...this.snapshot, offer: null });
+    await this.dependencies.store
+      .write(OFFER_DISMISSED_KEY, offer)
+      .catch(() => undefined);
+  }
+
+  /** "Atualizar" na oferta do Início: a página do app na loja. */
+  async openStore(): Promise<void> {
+    await this.dependencies.storeListing.open();
   }
 
   private async start(
@@ -192,13 +253,15 @@ export class AppUpdates {
    * "Atualizar" da tela de versão sem suporte: instala a baixada, abre a
    * imediata da loja ou, se não der, a página do app na loja. Passa pela fila
    * como o check e vale como o pedido da sessão: o check automático não abre
-   * outra imediata por cima.
+   * outra imediata por cima. Onde a loja não instala dentro do app (a App
+   * Store), vai direto à página dela.
    */
   async updateNow(): Promise<void> {
     const { updates, storeListing } = this.dependencies;
     this.immediateAsked = true;
     const before = this.lastImmediate;
     const step = await this.enqueue(async (): Promise<UpdateNowStep> => {
+      if (updates && !updates.inApp) return { kind: 'storeListing' };
       const update = await updates?.check().catch(() => null);
       if (!update) return { kind: 'storeListing' };
       this.publish({ ...this.snapshot, storeUpToDate: isUpToDate(update) });

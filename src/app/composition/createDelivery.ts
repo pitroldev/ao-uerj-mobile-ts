@@ -1,5 +1,6 @@
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { createAppKeyValueStore } from '@root/adapters/outbound/delivery/appStore';
+import { createAppStoreUpdates } from '@root/adapters/outbound/delivery/appStoreUpdates';
 import { createRemoteAppStatusSource } from '@root/adapters/outbound/delivery/remoteAppStatus';
 import { readRunningUpdate } from '@root/adapters/outbound/delivery/runningUpdate';
 import { createNativeAppUpdates } from '@root/adapters/outbound/native/NativeAppUpdates';
@@ -60,7 +61,10 @@ export function createDelivery({
       now,
     }),
     updates: new AppUpdates({
-      updates: createNativeAppUpdates(),
+      // a Play dentro do app; no iPhone, a versão mais nova da App Store
+      updates:
+        createNativeAppUpdates() ??
+        (Platform.OS === 'ios' ? createAppStoreUpdates({ appVersion }) : null),
       storeListing: nativeStoreListing,
       store,
       now,

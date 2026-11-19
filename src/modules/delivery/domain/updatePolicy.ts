@@ -2,11 +2,13 @@ const DAY = 24 * 60 * 60 * 1000;
 
 export type UpdateType = 'flexible' | 'immediate';
 
-/** Atualização oferecida pela loja (Play In-App Updates). */
+/** Atualização oferecida pela loja (Play In-App Updates ou a App Store). */
 export type AppUpdate = {
   /** `inProgress`: fluxo já iniciado pelo app (download flexível ou imediata interrompida). */
   availability: 'available' | 'inProgress' | 'none';
   versionCode: number;
+  /** A versão mais nova na loja, quando ela diz qual (a App Store); a Play só dá o `versionCode`. */
+  version?: string;
   /** Dias desde que a loja conhece a versão nova; `null` se ela não informar. */
   stalenessDays: number | null;
   /** 0 a 5, definida no envio do release. */

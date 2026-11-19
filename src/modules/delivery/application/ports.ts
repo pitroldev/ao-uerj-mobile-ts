@@ -24,9 +24,18 @@ export type InstallProgress = {
   totalBytes: number;
 };
 
-/** Atualização pela loja dentro do app (Play In-App Updates). */
+/**
+ * Atualização pela loja: dentro do app (Play In-App Updates) ou, na App
+ * Store, só a versão mais nova, para o Início avisar e o botão abrir a loja.
+ */
 export interface AppUpdatesPort {
-  /** `null` quando não há como saber (iOS, app fora da Play, erro). */
+  /**
+   * A loja instala dentro do app (a Play, com os fluxos flexível e imediato).
+   * Sem isso (a App Store), `start` e `complete` não fazem nada: atualizar é
+   * abrir a página do app na loja.
+   */
+  readonly inApp: boolean;
+  /** `null` quando não há como saber (app fora da loja, sem rede, erro). */
   check(): Promise<AppUpdate | null>;
   start(type: UpdateType): Promise<UpdateFlowResult>;
   /** Reinicia o app para instalar a atualização flexível baixada. */

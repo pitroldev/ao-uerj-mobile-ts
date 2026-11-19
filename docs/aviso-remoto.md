@@ -34,9 +34,9 @@ Alguns param mais que a tela:
 
 Abaixo dessa versão (MAJOR.MINOR.PATCH, a do `package.json`), o app fica na tela de bloqueio com "Atualizar", mesmo sem rede, porque a cópia fica salva.
 
-- No Android instalado pela Play, o bloqueio só aparece se a Play oferecer uma versão nova para o aparelho: abaixo da mínima, mas sem nada a instalar (rollout parcial, versão ainda não promovida, mínima errada), o app não bloqueia. No iOS e fora da Play, a versão mínima vale sozinha: no iPhone, o "Atualizar" abre a página do app na App Store.
+- No Android instalado pela Play, o bloqueio só aparece se a Play oferecer uma versão nova para o aparelho: abaixo da mínima, mas sem nada a instalar (rollout parcial, versão ainda não promovida, mínima errada), o app não bloqueia. No iPhone, o app pergunta à App Store a versão mais nova: o bloqueio só aparece se ela já tiver a mínima (ou mais), e o "Atualizar" abre a página do app. Sem resposta da loja (sem rede, fora dela), a versão mínima vale sozinha.
 - Só suba o valor para uma versão que já esteja em produção na Play com rollout de 100% e liberada na App Store. O release publica no teste interno; antes da promoção, parte dos usuários ficaria sem ter o que instalar.
-- O valor vale para as duas lojas, e a App Store costuma chegar depois, por causa da revisão da Apple. Como o iPhone não consulta a loja antes de bloquear, uma mínima acima da versão da App Store prende todos os alunos do iPhone na tela de bloqueio, sem nada para instalar.
+- O valor vale para as duas lojas, e a App Store costuma chegar depois, por causa da revisão da Apple. Enquanto a App Store estiver abaixo da mínima, o iPhone não bloqueia; sem rede para perguntar à loja, bloqueia, então não suba a mínima antes de a versão sair lá.
 
 ### `enrollment`
 

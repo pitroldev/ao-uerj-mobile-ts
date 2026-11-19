@@ -152,6 +152,38 @@ describe('unsupported version', () => {
     ).not.toBeOnTheScreen();
   });
 
+  describe('on the iPhone (the App Store says its version)', () => {
+    const appStore = (version: string) =>
+      createUpdatesPort(appUpdate({ version }), { inApp: false });
+
+    it('blocks and opens the App Store when it has the minimum version', async () => {
+      const user = userEvent.setup();
+      const { delivery, storeListing } = createDelivery({
+        saved: doc({ minSupportedVersion: '1.4.0' }),
+        port: appStore('1.4.2'),
+      });
+      await mount(delivery);
+      await screen.findByRole('header', { name: 'Atualize o app' });
+      await user.press(screen.getByRole('button', { name: 'Atualizar' }));
+      expect(storeListing.open).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not block while the App Store is still below the minimum (the review is late)', async () => {
+      const { delivery, port } = createDelivery({
+        saved: doc({ minSupportedVersion: '1.4.0' }),
+        port: appStore('1.3.9'),
+      });
+      await mount(delivery);
+      await waitFor(() => expect(port!.check).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('header', { name: 'Atualize o app' }),
+        ).not.toBeOnTheScreen(),
+      );
+      expect(screen.getByText('Conteúdo do app')).toBeOnTheScreen();
+    });
+  });
+
   it('leaves a supported version alone', async () => {
     const { delivery } = createDelivery({ saved: doc() });
     await mount(delivery);
@@ -232,6 +264,35 @@ describe('store updates', () => {
       }),
     );
     expect(port!.complete).toHaveBeenCalled();
+  });
+
+  it('offers the new App Store version at the top of Início, with "Atualizar" and "Agora não"', async () => {
+    const user = userEvent.setup();
+    const storeListing = { ...createStoreListing(), name: 'App Store' };
+    const { delivery } = createDelivery({
+      port: createUpdatesPort(appUpdate({ version: '2.20.0' }), {
+        inApp: false,
+      }),
+      storeListing,
+    });
+    await mount(delivery, <RemoteNotices />);
+    expect(
+      await screen.findByRole('header', { name: 'Versão 2.20.0 na App Store' }),
+    ).toBeOnTheScreen();
+    await user.press(
+      screen.getByRole('link', {
+        name: 'Atualizar para a versão 2.20.0 na App Store',
+      }),
+    );
+    expect(storeListing.open).toHaveBeenCalledTimes(1);
+    await user.press(
+      screen.getByRole('button', {
+        name: 'Agora não: versão 2.20.0 na App Store',
+      }),
+    );
+    expect(
+      screen.queryByRole('header', { name: 'Versão 2.20.0 na App Store' }),
+    ).not.toBeOnTheScreen();
   });
 
   it('warns when the store cannot install the download, and drops a download that is gone', async () => {

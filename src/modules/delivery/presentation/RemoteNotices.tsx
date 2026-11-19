@@ -31,16 +31,50 @@ const Actions = styled.View`
 `;
 
 /**
- * Topo do Início: atualização baixada esperando o reinício e os avisos do
- * aviso remoto (dispensáveis por id). Cada aviso recebe `style` (margem).
+ * Topo do Início: atualização baixada esperando o reinício, a versão nova da
+ * App Store (onde a loja não instala dentro do app) e os avisos do aviso
+ * remoto (dispensáveis por id). Cada aviso recebe `style` (margem).
  */
 export function RemoteNotices({ style }: { style?: StyleProp<ViewStyle> }) {
   const delivery = useDelivery();
-  const { phase } = useUpdateSnapshot();
+  const { phase, offer } = useUpdateSnapshot();
   const { notices, dismiss } = useRemoteNotices();
+  const storeName = delivery?.storeListing.name ?? 'loja';
 
   return (
     <>
+      {offer ? (
+        <Notice tone="info" icon="new_releases" style={style}>
+          <Text variant="meta" weight="semibold" accessibilityRole="header">
+            {`Versão ${offer} na ${storeName}`}
+          </Text>
+          <Actions>
+            <Button
+              variant="text"
+              size="xs"
+              icon="open_in_new"
+              iconPosition="end"
+              label="Atualizar"
+              accessibilityRole="link"
+              accessibilityLabel={`Atualizar para a versão ${offer} na ${storeName}`}
+              onPress={() => {
+                delivery?.updates.openStore().catch(() => {
+                  snackbar.error(`Não foi possível abrir a ${storeName}.`);
+                });
+              }}
+            />
+            <Button
+              variant="text"
+              size="xs"
+              label="Agora não"
+              accessibilityLabel={`Agora não: versão ${offer} na ${storeName}`}
+              onPress={() => {
+                void delivery?.updates.dismissOffer();
+              }}
+            />
+          </Actions>
+        </Notice>
+      ) : null}
       {phase === 'downloaded' ? (
         <Notice
           tone="good"

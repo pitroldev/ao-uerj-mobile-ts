@@ -8,7 +8,7 @@ O app está na [App Store](https://apps.apple.com/br/app/ao-uerj-aluno-online/id
 ## Estado atual
 
 - **App Store:** o app `6835308883` ("AO UERJ: Aluno Online") está na loja do Brasil, gratuito, só para iPhone. A primeira versão publicada é a `2.17.2`, build `26`, compilada do tag `v2.17.2` e liberada em 18/11/2026. O `ios-app-store.yml` assina e envia a compilação; a revisão e o lançamento são acompanhados no App Store Connect. O `release.yml` continua publicando o Android.
-- **No app:** "Avaliar na App Store", no Sobre, e o "Atualizar" da tela de versão sem suporte abrem a página do app na App Store (`itms-apps://` e, sem o app da loja, o site). Os convites levam os links das duas lojas, e o QR deixa escolher Android ou iPhone.
+- **No app:** "Avaliar na App Store", no Sobre, o "Atualizar" da tela de versão sem suporte e o aviso "Versão X na App Store" do Início abrem a página do app na App Store (`itms-apps://` e, sem o app da loja, o site). O aviso vem da ficha pública do app na App Store (`adapters/outbound/delivery/appStoreUpdates.ts`), alguns dias depois de a versão sair, e o bloqueio por versão mínima só aparece se a App Store já tiver essa versão. Os convites levam os links das duas lojas, e o QR deixa escolher Android ou iPhone.
 - **OTA:** o Release `v2.17.2` tem o `runtime-version-ios.txt` da build 26, e o OTA de `ios` vale para ela (ver [Atualizações OTA](ota.md#a-regra-de-compatibilidade)).
 - **Compila no CI:** o `ios.yml` (macOS, manual) compila o app e a extensão do widget em Release e abre o app num simulador.
 - **Identificação do aluno:** a implantação do servidor carrega `APPLE_APP_ATTEST_APP_ID=4L52AMB8J7.com.aouerjmobile` de `deploy/server/app-store.env`; o `.env` privado da VM tem prioridade (ver [server/README.md](../server/README.md#identificação-do-aluno-v2)). O App Attest precisa de iPhone físico.
@@ -148,7 +148,7 @@ Os intervalos de cada verificação estão em [Notificações](notificacoes-e-wi
 ## Fora do iPhone
 
 - As leituras a cada 15 minutos da Companhia agora ("Me avise se tiver mesa") e do Agora no campus ("ainda está lá?"): o iOS não acorda o app com essa frequência (`frequentWatches` no `NotificationDevicePort`).
-- A atualização dentro do app (`InAppUpdates` é da Play): no iPhone, o "Atualizar" abre a página do app na App Store. O pedido de avaliação existe nos dois, pela API de cada loja.
+- A atualização dentro do app (`InAppUpdates` é da Play): no iPhone, o app lê a versão mais nova na App Store, avisa no Início e o "Atualizar" abre a página do app. O pedido de avaliação existe nos dois, pela API de cada loja.
 
 ## Outros detalhes
 

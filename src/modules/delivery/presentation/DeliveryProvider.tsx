@@ -16,7 +16,11 @@ import type {
 } from '../application/RemoteStatus';
 import type { RunningUpdate, StoreListingPort } from '../application/ports';
 import type { ReviewPrompter } from '../application/ReviewPrompter';
-import { isVersionSupported, visibleNotices } from '../domain/appStatus';
+import {
+  compareVersions,
+  isVersionSupported,
+  visibleNotices,
+} from '../domain/appStatus';
 import { UpdateRequired } from './UpdateRequired';
 
 export type Delivery = {
@@ -38,6 +42,8 @@ const NO_UPDATE: UpdateSnapshot = {
   phase: 'idle',
   progress: null,
   storeUpToDate: false,
+  storeVersion: null,
+  offer: null,
 };
 const noSubscription = () => () => undefined;
 const noStatus = () => NO_STATUS;
@@ -60,17 +66,23 @@ export function DeliveryProvider({ delivery, ready, children }: Props) {
     status.getSnapshot,
     status.getSnapshot,
   );
-  const { storeUpToDate } = useSyncExternalStore(
+  const { storeUpToDate, storeVersion } = useSyncExternalStore(
     updates.subscribe,
     updates.getSnapshot,
     updates.getSnapshot,
   );
   const supported = isVersionSupported(appVersion, current);
-  // Abaixo da mínima, mas a Play diz que não há versão nova para este
-  // aparelho (rollout parcial, versão ainda não promovida, mínima errada ou
-  // adulterada no aviso): bloquear prenderia o aluno sem nada a instalar. No
-  // iOS e fora da Play não há como confirmar, e a versão mínima vale sozinha.
-  const blocked = !supported && !storeUpToDate;
+  // Abaixo da mínima, mas a loja diz que não há versão nova para este
+  // aparelho (rollout parcial, versão ainda não promovida ou na revisão da
+  // Apple, mínima errada ou adulterada no aviso): bloquear prenderia o aluno
+  // sem nada a instalar. A App Store diz a versão: se nem ela chega à
+  // mínima, atualizar não resolve, e o bloqueio também não vem. Sem resposta
+  // (sem rede, fora da loja), a versão mínima vale sozinha.
+  const storeBelowMinimum =
+    storeVersion !== null &&
+    current !== null &&
+    compareVersions(storeVersion, current.minSupportedVersion) < 0;
+  const blocked = !supported && !storeUpToDate && !storeBelowMinimum;
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {

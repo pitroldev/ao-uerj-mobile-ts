@@ -32,7 +32,7 @@ const setup = ({
   updates: create(port, store, storeListing),
 });
 
-/** Sem atualização pela loja dentro do app (iOS). */
+/** Sem como perguntar à loja (app fora dela). */
 const setupWithoutPort = (storeListing = createStoreListing()) => ({
   storeListing,
   updates: create(null, createMemoryStore(), storeListing),
@@ -70,6 +70,8 @@ it('stays quiet when the store cannot be asked (debug, emulator, sideload)', asy
     phase: 'idle',
     progress: null,
     storeUpToDate: false,
+    storeVersion: null,
+    offer: null,
   });
 });
 
@@ -118,6 +120,8 @@ it('asks for the flexible update at most every two days and tracks the download'
     phase: 'downloading',
     progress: null,
     storeUpToDate: false,
+    storeVersion: null,
+    offer: null,
   });
 
   // nova sessão, dentro do intervalo: não pergunta de novo
@@ -319,15 +323,79 @@ describe('updateNow (unsupported version screen)', () => {
     expect(outside.port.start).not.toHaveBeenCalled();
     expect(outside.storeListing.open).toHaveBeenCalled();
 
-    // o iPhone não tem atualização dentro do app: vai direto à App Store
-    const ios = setupWithoutPort();
-    expect(ios.updates.canUpdate).toBe(true);
-    await ios.updates.updateNow();
-    expect(ios.storeListing.open).toHaveBeenCalledTimes(1);
+    // sem como perguntar à loja, mas com a página dela: abre a página
+    const unknown = setupWithoutPort();
+    expect(unknown.updates.canUpdate).toBe(true);
+    await unknown.updates.updateNow();
+    expect(unknown.storeListing.open).toHaveBeenCalledTimes(1);
 
     const noStore = setupWithoutPort(createStoreListing(false));
     expect(noStore.updates.canUpdate).toBe(false);
     await noStore.updates.updateNow();
     expect(noStore.storeListing.open).not.toHaveBeenCalled();
+  });
+});
+
+describe('the App Store, which does not install inside the app', () => {
+  const appStore = (update = appUpdate({ version: '2.20.0' })) =>
+    setup({ port: createUpdatesPort(update, { inApp: false }) });
+
+  it('offers the new version at the top of Início and never opens a flow by itself', async () => {
+    const { port, updates } = appStore();
+    await updates.check({ required: false });
+    await updates.check({ required: true });
+    expect(updates.getSnapshot()).toMatchObject({
+      offer: '2.20.0',
+      storeVersion: '2.20.0',
+      storeUpToDate: false,
+      phase: 'idle',
+    });
+    expect(port.start).not.toHaveBeenCalled();
+  });
+
+  it('waits a few days before offering: the iPhone usually updates by itself first', async () => {
+    const { updates } = appStore(
+      appUpdate({ version: '2.20.0', stalenessDays: 1 }),
+    );
+    await updates.check({ required: false });
+    expect(updates.getSnapshot()).toMatchObject({
+      offer: null,
+      storeVersion: '2.20.0',
+    });
+  });
+
+  it('lifts the offer with "Agora não" for that version, and offers the next one', async () => {
+    const { port, store, updates } = appStore();
+    await updates.check({ required: false });
+    await updates.dismissOffer();
+    expect(updates.getSnapshot().offer).toBeNull();
+    await updates.check({ required: false });
+    expect(updates.getSnapshot().offer).toBeNull();
+    expect(store.data.get('store-update-dismissed')).toBe('2.20.0');
+
+    port.check.mockResolvedValue(appUpdate({ version: '2.21.0' }));
+    await updates.check({ required: false });
+    expect(updates.getSnapshot().offer).toBe('2.21.0');
+  });
+
+  it('opens the store page from the offer and from the blocking screen', async () => {
+    const { port, storeListing, updates } = appStore();
+    await updates.openStore();
+    expect(storeListing.open).toHaveBeenCalledTimes(1);
+    await updates.updateNow();
+    expect(storeListing.open).toHaveBeenCalledTimes(2);
+    expect(port.start).not.toHaveBeenCalled();
+  });
+
+  it('says the store has nothing newer, which lifts a block with nothing to install', async () => {
+    const { updates } = appStore(
+      appUpdate({ availability: 'none', version: '2.19.0' }),
+    );
+    await updates.check({ required: true });
+    expect(updates.getSnapshot()).toMatchObject({
+      storeUpToDate: true,
+      storeVersion: '2.19.0',
+      offer: null,
+    });
   });
 });
