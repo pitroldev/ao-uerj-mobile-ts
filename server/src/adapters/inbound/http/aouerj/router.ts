@@ -2,6 +2,7 @@ import express from 'express';
 
 import type { CampusNow } from '../../../../modules/campus-now/ports.ts';
 import type { Companion } from '../../../../modules/companion/ports.ts';
+import type { Ideas } from '../../../../modules/ideas/ports.ts';
 import type { Mural } from '../../../../modules/mural/ports.ts';
 import type { PortalWatch } from '../../../../modules/portal/ports.ts';
 import type { ErrorReports } from '../../../../modules/reports/ports.ts';
@@ -24,6 +25,8 @@ export type AoUerjServices = {
   teachers: TeacherDirectory;
   reports: ErrorReports;
   suggestions: Suggestions;
+  /** As sugestões do app (2.x), que a moderação publica no GitHub. */
+  ideas: Ideas;
   portal: Pick<PortalWatch, 'snapshot'>;
   /** Só a carga, para o `GET /status`. */
   schedules: Pick<ScheduleGenerator, 'load'>;
@@ -103,6 +106,7 @@ export function createAoUerjRouter({
       adminRoutes({
         reports: services.reports,
         suggestions: services.suggestions,
+        ideas: services.ideas,
         companion: services.companion,
         campusNow: services.campusNow,
         students: services.students,

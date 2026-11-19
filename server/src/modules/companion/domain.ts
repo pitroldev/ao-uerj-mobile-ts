@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 
+import { hasContact } from '../../shared/contact.ts';
 import { DomainError, InvalidInputError } from '../../shared/errors.ts';
 import type { PushDevice as SharedPushDevice } from '../../shared/push.ts';
 
@@ -390,15 +391,8 @@ export function checkName(raw: string): string {
   return name;
 }
 
-/**
- * Telefone, @, link ou o nome de um aplicativo de conversa: o recado
- * combina o encontro, não o contato. Oito algarismos seguidos (com espaço,
- * ponto, traço ou parêntese no meio) já são um telefone; um horário não.
- */
-const CONTACT =
-  /(?:\d[\s().-]*){8,}|@|https?:|www\.|\.(?:com|br|me)\b|whats|wpp|\bzap\b|insta|telegram|t\.me|discord|tiktok/i;
-
-export const hasContact = (text: string) => CONTACT.test(text);
+/** O recado combina o encontro, não o contato (o filtro é o das sugestões também). */
+export { hasContact };
 
 /** O recado numa linha, sem os espaços repetidos. */
 export const normalizeNote = (text: string) => text.replace(/\s+/g, ' ').trim();

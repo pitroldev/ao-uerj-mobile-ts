@@ -5,6 +5,7 @@ import {
   CALL_WATCH_SEEN_LIMIT,
   COMPANION_LIMITS,
 } from '../../../modules/companion/domain.ts';
+import { IDEA_LIMITS } from '../../../modules/ideas/domain.ts';
 import { MESSAGE_LIMITS } from '../../../modules/mural/domain.ts';
 import { REPORT_LIMITS } from '../../../modules/reports/domain.ts';
 import { STUDENT_LIMITS } from '../../../modules/students/domain.ts';
@@ -524,6 +525,65 @@ otaEntrySchema.index(
   { partialFilterExpression: { launchAsset: { $type: 'string' } } },
 );
 
+/**
+ * As sugestões do app (2.x): o aluno, a ideia e a decisão da moderação. Não
+ * vence: o aluno vê as dele em "Minhas sugestões".
+ */
+const ideaSchema = new mongoose.Schema(
+  {
+    studentId: { required: true, type: String },
+    title: { required: true, type: String, maxlength: IDEA_LIMITS.title.max },
+    area: { required: true, type: String },
+    problem: {
+      required: true,
+      type: String,
+      maxlength: IDEA_LIMITS.problem.max,
+    },
+    idea: { default: null, type: String, maxlength: IDEA_LIMITS.idea.max },
+    portal: { required: true, type: String },
+    appVersion: { required: true, type: String },
+    platform: { required: true, type: String },
+    /** As parecidas que o app mostrou e o aluno seguiu mesmo assim. */
+    seenSimilar: { default: [], type: [Number] },
+    /** received, published, merged ou archived. */
+    status: { required: true, type: String },
+    /** O issue do GitHub (publicada ou juntada). */
+    issue: { default: null, type: Number },
+    createdAt: { required: true, type: Date },
+    reviewedAt: { default: null, type: Date },
+  },
+  { versionKey: false, bufferCommands: false },
+);
+ideaSchema.index({ studentId: 1, createdAt: -1 });
+ideaSchema.index({ status: 1, createdAt: -1 });
+
+/** Os pedidos somados a um issue: `_id` `<issue>:<aluno>`, um por aluno. */
+const ideaVoteSchema = new mongoose.Schema(
+  {
+    _id: { required: true, type: String },
+    issue: { required: true, type: Number },
+    studentId: { required: true, type: String },
+    createdAt: { required: true, type: Date },
+  },
+  { versionKey: false, bufferCommands: false },
+);
+ideaVoteSchema.index({ studentId: 1 });
+ideaVoteSchema.index({ issue: 1 });
+
+/** O que o GitHub disse por último de cada issue acompanhado: `_id` é o número. */
+const trackedIssueSchema = new mongoose.Schema(
+  {
+    _id: { required: true, type: Number },
+    title: { required: true, type: String },
+    url: { required: true, type: String },
+    status: { required: true, type: String },
+    plusOnes: { default: 0, type: Number },
+    fromApp: { default: false, type: Boolean },
+    updatedAt: { required: true, type: Date },
+  },
+  { versionKey: false, bufferCommands: false },
+);
+
 /** Os modelos registrados numa conexão. */
 export function defineModels(connection: Connection) {
   return {
@@ -593,6 +653,14 @@ export function defineModels(connection: Connection) {
       'portalpushdevices',
     ),
     otaEntries: connection.model('OtaEntries', otaEntrySchema, 'otaentries'),
+    // as sugestões do app que viram issue no GitHub
+    ideas: connection.model('Ideas', ideaSchema, 'ideas'),
+    ideaVotes: connection.model('IdeaVotes', ideaVoteSchema, 'ideavotes'),
+    trackedIssues: connection.model(
+      'TrackedIssues',
+      trackedIssueSchema,
+      'trackedissues',
+    ),
   };
 }
 

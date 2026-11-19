@@ -90,6 +90,8 @@ test('the connection opens on the old collections, with the indexes the queries 
       'companionwatchers',
       'docentes',
       'errorreports',
+      'ideas',
+      'ideavotes',
       'issuancecounters',
       'muralmessages',
       'otaentries',
@@ -99,6 +101,7 @@ test('the connection opens on the old collections, with the indexes the queries 
       'students',
       'studentsessions',
       'suggestions',
+      'trackedissues',
       'usedchallenges',
     ],
   );
@@ -140,6 +143,17 @@ test('the connection opens on the old collections, with the indexes the queries 
     { platform: 1, runtimeVersion: 1, updateId: 1 },
     { launchAsset: 1 },
   ]);
+  // as sugestões do app: as do aluno (e o limite do dia) e a fila da
+  // moderação; os pedidos, por aluno e por issue
+  assert.deepEqual(await indexesOf(models.ideas), [
+    { studentId: 1, createdAt: -1 },
+    { status: 1, createdAt: -1 },
+  ]);
+  assert.deepEqual(await indexesOf(models.ideaVotes), [
+    { studentId: 1 },
+    { issue: 1 },
+  ]);
+  assert.deepEqual(await indexesOf(models.trackedIssues), []);
 
   await db.disconnect();
   assert.equal(db.status(), 'disconnected');
@@ -538,4 +552,118 @@ test('the whole server runs on MongoDB: writes, reads, attachments and the statu
     await server.stop();
     await fs.rm(reportsDir, { recursive: true, force: true });
   }
+});
+
+test('an app suggestion is decided once, a vote counts once per student, and the issue state is kept', async () => {
+  const { db, repositories } = await open();
+  opened.push(db);
+  const { ideas, ideaVotes, trackedIssues } = repositories;
+
+  const base = {
+    title: 'Cardápio do bandejão no Início',
+    area: 'home' as const,
+    problem: 'Tenho que abrir o site do RU toda vez.',
+    idea: null,
+    portal: 'no' as const,
+    appVersion: '2.20.0',
+    platform: 'android' as const,
+    seenSimilar: [31],
+    studentId: 'aluno-1',
+    status: 'received' as const,
+    issue: null,
+    reviewedAt: null,
+  };
+  const first = await ideas.create({
+    ...base,
+    createdAt: new Date('2026-11-19T10:00:00Z'),
+  });
+  const second = await ideas.create({
+    ...base,
+    title: 'Avisar vaga no RID',
+    createdAt: new Date('2026-11-19T12:00:00Z'),
+  });
+  await ideas.create({
+    ...base,
+    studentId: 'aluno-2',
+    createdAt: new Date('2026-11-19T11:00:00Z'),
+  });
+
+  assert.match(first.id, /^[0-9a-f]{24}$/);
+  assert.deepEqual((await ideas.find(first.id))?.seenSimilar, [31]);
+  assert.equal(await ideas.find('nao-existe'), null);
+  assert.deepEqual(
+    (await ideas.listByStudent('aluno-1', 10)).map(idea => idea.title),
+    ['Avisar vaga no RID', 'Cardápio do bandejão no Início'],
+  );
+  assert.equal(
+    await ideas.countByStudentSince(
+      'aluno-1',
+      new Date('2026-11-19T11:00:00Z'),
+    ),
+    1,
+  );
+
+  // a decisão só vale saindo do estado esperado: duas abas não publicam duas vezes
+  const at = new Date('2026-11-19T13:00:00Z');
+  const claimed = await ideas.decide(first.id, 'received', {
+    status: 'published',
+    issue: null,
+    at,
+  });
+  assert.equal(claimed?.status, 'published');
+  assert.equal(
+    await ideas.decide(first.id, 'received', {
+      status: 'archived',
+      issue: null,
+      at,
+    }),
+    null,
+  );
+  await ideas.decide(first.id, 'published', {
+    status: 'published',
+    issue: 42,
+    at,
+  });
+  await ideas.decide(second.id, 'received', {
+    status: 'merged',
+    issue: 31,
+    at,
+  });
+  assert.deepEqual(
+    (await ideas.listIssueNumbers()).sort((a, b) => a - b),
+    [31, 42],
+  );
+  assert.deepEqual(
+    (await ideas.listByStatus(['received'], 10)).map(idea => idea.studentId),
+    ['aluno-2'],
+  );
+
+  // um pedido por aluno e issue
+  const vote = { issue: 31, studentId: 'aluno-1', createdAt: at };
+  assert.equal(await ideaVotes.add(vote), true);
+  assert.equal(await ideaVotes.add(vote), false);
+  assert.equal(await ideaVotes.add({ ...vote, studentId: 'aluno-2' }), true);
+  assert.equal(await ideaVotes.count(31), 2);
+  assert.deepEqual(
+    (await ideaVotes.listByStudent('aluno-1')).map(item => item.issue),
+    [31],
+  );
+  assert.deepEqual(await ideaVotes.listIssueNumbers(), [31]);
+
+  // o estado do issue é o último que o GitHub disse
+  const issue = {
+    number: 31,
+    title: '[Sugestão] Aviso de vaga',
+    url: 'https://github.com/pitroldev/ao-uerj-mobile-ts/issues/31',
+    status: 'open' as const,
+    plusOnes: 2,
+    fromApp: false,
+    updatedAt: at,
+  };
+  await trackedIssues.put(issue);
+  await trackedIssues.put({ ...issue, status: 'planned', plusOnes: 3 });
+  assert.deepEqual(await trackedIssues.findMany([31, 99]), [
+    { ...issue, status: 'planned', plusOnes: 3 },
+  ]);
+  assert.deepEqual(await trackedIssues.findMany([]), []);
 });

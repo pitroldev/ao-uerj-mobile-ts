@@ -323,3 +323,48 @@ test('the iPhone App Attest needs the App ID, in production by default', () => {
     /APPLE_APP_ATTEST_APP_ID/,
   );
 });
+
+test('the GitHub App of the suggestions needs the id and the RSA key, written in one line', () => {
+  // sem o app, as sugestões chegam mas nada é publicado
+  assert.equal(loadConfig({}).ideas.github, null);
+  assert.equal(loadConfig({ GITHUB_APP_ID: '123456' }).ideas.github, null);
+  assert.equal(loadConfig({}).ideas.syncIntervalMs, 30 * 60 * 1000);
+
+  const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+  const pem = privateKey.export({ type: 'pkcs1', format: 'pem' }).toString();
+  // no .env, a chave numa linha, com o \n escrito
+  const oneLine = pem
+    .trim()
+    .split('\n')
+    .join(String.raw`\n`);
+  const github = loadConfig({
+    GITHUB_APP_ID: ' 123456 ',
+    GITHUB_APP_PRIVATE_KEY: oneLine,
+    GITHUB_APP_INSTALLATION_ID: '98765',
+  }).ideas.github;
+  assert.equal(github?.appId, '123456');
+  assert.equal(github?.installationId, '98765');
+  assert.equal(github?.repository, 'pitroldev/ao-uerj-mobile-ts');
+  assert.equal(github?.privateKey.asymmetricKeyType, 'rsa');
+
+  // uma chave de outro tipo, um id que não é número, um repositório sem dono
+  const { privateKey: ec } = generateKeyPairSync('ec', {
+    namedCurve: 'prime256v1',
+  });
+  assert.throws(
+    () =>
+      loadConfig({
+        GITHUB_APP_ID: 'app',
+        GITHUB_APP_PRIVATE_KEY: ec
+          .export({ type: 'pkcs8', format: 'pem' })
+          .toString(),
+        GITHUB_REPOSITORY: 'ao-uerj',
+      }),
+    (err: Error) =>
+      /GITHUB_APP_ID: expected a numeric id/.test(err.message) &&
+      /GITHUB_APP_PRIVATE_KEY: expected the private key of the GitHub App/.test(
+        err.message,
+      ) &&
+      /GITHUB_REPOSITORY/.test(err.message),
+  );
+});

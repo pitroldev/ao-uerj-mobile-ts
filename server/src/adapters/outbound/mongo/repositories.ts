@@ -27,6 +27,11 @@ import type {
   StudentSessionRepository,
 } from '../../../modules/students/ports.ts';
 import type { ErrorReportRepository } from '../../../modules/reports/ports.ts';
+import type {
+  IdeaRepository,
+  IdeaVoteRepository,
+  TrackedIssueRepository,
+} from '../../../modules/ideas/ports.ts';
 import type { SuggestionRepository } from '../../../modules/suggestions/ports.ts';
 import type { TeacherRepository } from '../../../modules/teachers/ports.ts';
 import {
@@ -44,6 +49,11 @@ import {
   createWatcherRepository,
 } from './companionRepository.ts';
 import { createErrorReportRepository } from './errorReportRepository.ts';
+import {
+  createIdeaRepository,
+  createIdeaVoteRepository,
+  createTrackedIssueRepository,
+} from './ideaRepository.ts';
 import { createIssuanceCounterRepository } from './issuanceCounterRepository.ts';
 import { createMessageRepository } from './messageRepository.ts';
 import type { Models } from './models.ts';
@@ -84,6 +94,9 @@ export type Repositories = {
   portalReturnAlerts: ReturnAlertRepository;
   portalPushDevices: PortalPushDeviceRepository;
   otaEntries: OtaEntryRepository;
+  ideas: IdeaRepository;
+  ideaVotes: IdeaVoteRepository;
+  trackedIssues: TrackedIssueRepository;
 };
 
 export function createMongoRepositories(models: Models): Repositories {
@@ -116,5 +129,8 @@ export function createMongoRepositories(models: Models): Repositories {
       models.portalPushDevices,
     ),
     otaEntries: createOtaEntryRepository(models.otaEntries),
+    ideas: createIdeaRepository(models.ideas),
+    ideaVotes: createIdeaVoteRepository(models.ideaVotes),
+    trackedIssues: createTrackedIssueRepository(models.trackedIssues),
   };
 }

@@ -5,6 +5,7 @@ import path from 'node:path';
 import { z } from 'zod';
 
 import type { ServiceAccount } from './adapters/outbound/attestation/playIntegrity.ts';
+import type { GitHubAppSettings } from './adapters/outbound/github/issueTracker.ts';
 import {
   issuerKey,
   signingKey,
@@ -253,6 +254,42 @@ const apnsPrivateKey = z
     return null;
   });
 
+/**
+ * A chave privada do GitHub App das sugestões (RSA, em PEM). O `\n` escrito
+ * vale como quebra de linha: no .env, a chave cabe numa linha só. Vazio
+ * desliga a publicação.
+ */
+const githubAppPrivateKey = z
+  .string()
+  .optional()
+  .transform((value, ctx): KeyObject | null => {
+    const pem = value?.trim().replace(/\\n/g, '\n');
+    if (!pem) return null;
+    try {
+      const key = createPrivateKey(pem);
+      if (key.asymmetricKeyType === 'rsa') return key;
+    } catch {
+      // o mesmo erro de uma chave de outro tipo
+    }
+    ctx.addIssue({
+      code: 'custom',
+      message: 'expected the private key of the GitHub App (RSA, in PEM)',
+    });
+    return null;
+  });
+
+/** O id numérico do GitHub App ou da instalação; vazio é `null`. */
+const githubId = z
+  .string()
+  .optional()
+  .transform((value, ctx) => {
+    const id = value?.trim();
+    if (!id) return null;
+    if (/^\d{1,15}$/.test(id)) return id;
+    ctx.addIssue({ code: 'custom', message: 'expected a numeric id' });
+    return null;
+  });
+
 const EnvSchema = z
   .object({
     NODE_ENV: z
@@ -361,6 +398,22 @@ const EnvSchema = z
     APNS_TOPIC: z.string().trim().min(1).default('com.aouerjmobile'),
     /** `sandbox`: os builds do Xcode (debug); a loja e o TestFlight, `production`. */
     APNS_ENVIRONMENT: z.enum(['production', 'sandbox']).default('production'),
+    /**
+     * O GitHub App das sugestões ("AO UERJ Sugestões"), que abre os issues.
+     * Sem o id ou a chave, as sugestões do app chegam, mas nada é publicado.
+     */
+    GITHUB_APP_ID: githubId,
+    GITHUB_APP_PRIVATE_KEY: githubAppPrivateKey,
+    /** A instalação do app no repositório; sem ela, o servidor pergunta ao GitHub. */
+    GITHUB_APP_INSTALLATION_ID: githubId,
+    /** O repositório dos issues ("dono/nome"). */
+    GITHUB_REPOSITORY: z
+      .string()
+      .trim()
+      .regex(/^[\w.-]+\/[\w.-]+$/, 'expected owner/name')
+      .default('pitroldev/ao-uerj-mobile-ts'),
+    /** De quanto em quanto tempo o servidor lê o estado dos issues acompanhados. */
+    IDEA_SYNC_INTERVAL_MS: milliseconds(30 * 60 * 1000),
     /**
      * Os tokens anônimos dos apps antigos (2.11.1 a 2.13) nas rotas de aluno:
      * `accept` enquanto eles estiverem por aí; `refuse` exige a sessão.
@@ -503,6 +556,13 @@ export type Config = {
     /** `null`: sem `APNS_KEY_ID` ou `APNS_PRIVATE_KEY`, o iPhone não recebe. */
     apns: ApnsSettings | null;
   };
+  /** As sugestões do app, que viram issue no GitHub. */
+  ideas: {
+    /** `null`: sem `GITHUB_APP_ID` ou `GITHUB_APP_PRIVATE_KEY`, nada é publicado. */
+    github: GitHubAppSettings | null;
+    /** A rodada que lê o estado dos issues acompanhados. */
+    syncIntervalMs: number;
+  };
   /** As atualizações pelo ar (o protocolo 1 do expo-updates). */
   ota: {
     /** A pasta dos arquivos; por padrão, ao lado da dos anexos. */
@@ -632,6 +692,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
               environment: value.APNS_ENVIRONMENT,
             }
           : null,
+    },
+    ideas: {
+      github:
+        value.GITHUB_APP_ID && value.GITHUB_APP_PRIVATE_KEY
+          ? {
+              appId: value.GITHUB_APP_ID,
+              privateKey: value.GITHUB_APP_PRIVATE_KEY,
+              repository: value.GITHUB_REPOSITORY,
+              installationId: value.GITHUB_APP_INSTALLATION_ID,
+            }
+          : null,
+      syncIntervalMs: value.IDEA_SYNC_INTERVAL_MS,
     },
     studentAccess: {
       issuer: value.PRIVATE_TOKEN_ISSUER,

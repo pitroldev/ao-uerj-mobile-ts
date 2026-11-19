@@ -257,6 +257,10 @@ a.person .mat{color:var(--text-3);text-decoration:none}
 .radio span{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:6px;border:1px solid var(--line-2);color:var(--text-2);font-size:12.5px;font-weight:500;cursor:pointer}
 .radio input:checked+span{background:var(--text);border-color:var(--text);color:var(--bg)}
 .radio input:focus-visible+span{outline:2px solid var(--text);outline-offset:2px}
+.similar{list-style:none;margin:0;padding:0;display:grid;gap:10px;max-width:62ch}
+.similar li{display:grid;gap:2px;font-size:13px}
+.similar a{color:var(--text);font-weight:500;text-decoration:none}
+.similar a:hover{text-decoration:underline}
 .reasons{display:flex;gap:6px;flex-wrap:wrap}
 .reasons button{height:24px;padding:0 8px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--text-2);font-size:12px}
 .reasons button:hover{color:var(--text);border-color:var(--line-2)}

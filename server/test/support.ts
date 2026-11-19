@@ -1,6 +1,7 @@
 import { pino } from 'pino';
 
 import { loadConfig, type Config } from '../src/config.ts';
+import { memoryIdeas } from './ideasSupport.ts';
 import type { Overrides } from '../src/composition.ts';
 import type {
   IssuanceCounter,
@@ -111,6 +112,7 @@ export function memoryRepositories(clock = manualClock()) {
   const teachers: Teacher[] = [];
   const reports: ErrorReport[] = [];
   const suggestions: Suggestion[] = [];
+  const appIdeas = memoryIdeas();
 
   const messageRepository: MessageRepository = {
     async listThread(thread, limit) {
@@ -271,6 +273,9 @@ export function memoryRepositories(clock = manualClock()) {
       portalReturnAlerts: portal.returnAlerts,
       portalPushDevices: portal.pushDevices,
       otaEntries: ota.entries,
+      ideas: appIdeas.ideas,
+      ideaVotes: appIdeas.votes,
+      trackedIssues: appIdeas.tracked,
     },
     repositories: {
       messages: messageRepository,
@@ -295,6 +300,7 @@ export function memoryRepositories(clock = manualClock()) {
       students: people.studentRepository,
       studentSessions: people.sessionRepository,
       otaEntries: ota.repository,
+      ...appIdeas.repositories,
     },
   };
 }

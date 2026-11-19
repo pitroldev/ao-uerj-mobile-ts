@@ -208,16 +208,13 @@ não tem a senha; `modules/portal/push.ts`):
 dias. A página de login não diz o que protege nem onde fica o token, e cada IP
 tem 10 tentativas erradas a cada 15 minutos (acertar não conta).
 
-- **O cookie:** `HttpOnly`, `SameSite=Strict`, `Secure` em HTTPS e no caminho
-  `/aouerj`. O valor é tirado do token por HMAC, não é o próprio token. Trocar
-  o `ADMIN_TOKEN` derruba todos os logins; "Sair" apaga o deste navegador.
-  Uma área para cada coisa, na barra lateral: **Moderação** (Companhia agora,
-  Agora no campus e Alunos), **Suporte** (Relatos e Sugestões) e **Sistema**
-  (Status). Cada área mostra quantas coisas pedem você, com uma lâmpada
-  vermelha quando algo denunciado ainda está no ar. Dentro da área, as abas
-  separam o que pede você, o que está no ar agora, o que já foi feito (7 dias)
-  e os números; a lista fica à esquerda e a prévia do item escolhido, à
-  direita. O Início mostra um cartão por área.
+Uma área para cada coisa, na barra lateral: **Moderação** (Companhia agora,
+Agora no campus e Alunos), **Suporte** (Relatos e Sugestões) e **Sistema**
+(Status). Cada área mostra quantas coisas pedem você, com uma lâmpada
+vermelha quando algo denunciado ainda está no ar. Dentro da área, as abas
+separam o que pede você, o que está no ar agora, o que já foi feito (7 dias)
+e os números; a lista fica à esquerda e a prévia do item escolhido, à
+direita. O Início mostra um cartão por área.
 
 - **O cookie:** `HttpOnly`, `SameSite=Strict`, `Secure` em HTTPS e no caminho
   `/aouerj`. O valor é tirado do token por HMAC, não é o próprio token. Trocar
@@ -242,8 +239,16 @@ tem 10 tentativas erradas a cada 15 minutos (acertar não conta).
   sem script, numa origem própria e sem buscar nada na rede, então não lê o
   cookie nem as outras páginas. Só abre o anexo do próprio relato. A da 1.x
   (com dado pessoal) nunca aparece aberta na prévia, só pelo link.
-- **Sugestões:** as novas e as arquivadas (`archivedAt`); "Arquivar" tira das
-  novas, com o "Desfazer".
+- **Sugestões:** as novas e as decididas, das duas origens. As dos apps 1.x
+  (nome e e-mail) só se leem: "Arquivar" (`archivedAt`) tira das novas, com
+  o "Desfazer". As do app 2.x mostram a área, a versão, o aluno (com o link
+  para a página dele) e as respostas, e as parecidas abertas no GitHub, com
+  a marca das que o aluno viu e dispensou. "Publicar no GitHub" abre o issue
+  (a marca vem antes da chamada: duas abas não abrem dois; o GitHub falhando
+  devolve a sugestão às novas e a página diz isso, com 502). "Juntar à #N"
+  (uma das parecidas ou o número digitado) soma o pedido do aluno a um issue
+  aberto com `enhancement`, sem abrir outro. "Arquivar sem publicar" mostra
+  ao aluno que não foi publicada, com o "Desfazer".
 - **Companhia agora:** as denúncias juntadas por chamada. Pedem você as das
   chamadas que ainda valem e têm denúncia sem decisão. A prévia mostra a
   chamada como estava (sem as chaves), quem estava e quem denunciou, com o
@@ -268,7 +273,8 @@ tem 10 tentativas erradas a cada 15 minutos (acertar não conta).
   entrada por qualquer aparelho, e o aluno sai das mesas da Companhia (as
   que ele abriu acabam). Sem `STUDENT_DATA_KEY`, a área avisa que a
   identificação está desligada.
-- **Status:** o Aluno Online visto pelo servidor, o banco e a versão no ar.
+- **Status:** o Aluno Online visto pelo servidor, o banco, a versão no ar e
+  em que repositório as sugestões viram issue (ou que o GitHub App falta).
   Abre mesmo sem o banco.
 
 As páginas são HTML montado no servidor (`http/aouerj/admin/`), no visual
@@ -734,6 +740,64 @@ então o servidor entra em dois papéis (`modules/campus-now/push.ts`):
   avise se abrirem"), o `GET` diz `available: false`, e o registro recebe 503
   `push_unavailable`. O registro e o cancelamento contam no limite por aluno
   (`COMPANION_MEMBER_LIMIT_PER_MINUTE`); a leitura, não.
+
+### Sugestões do app (v2)
+
+O "Sugerir uma ideia" do app (`modules/ideas`). O aluno identificado manda a
+ideia, a moderação olha na administração e a publica como issue no GitHub
+(público), e o estado do issue volta para "Minhas sugestões". As sugestões
+dos apps 1.x (`POST /aouerj/suggestions`, com nome e e-mail) continuam como
+estavam.
+
+| Rota                            | O que faz                                                                   |
+| ------------------------------- | --------------------------------------------------------------------------- |
+| `GET /aouerj/v2/ideas`          | As do aluno e os pedidos que ele somou, e quantas ainda pode mandar hoje    |
+| `POST /aouerj/v2/ideas/similar` | Até 3 issues de sugestão abertos parecidos com o texto (`{ text }`)         |
+| `POST /aouerj/v2/ideas`         | Guarda para a moderação (201); nada vai para o GitHub ainda                 |
+| `POST /aouerj/v2/ideas/votes`   | Soma o pedido do aluno a um issue de sugestão aberto (`{ issue }`), uma vez |
+
+- **Quem manda:** só com a sessão de aluno; banido recebe o 403 de sempre.
+  Três por dia por aluno (o dia de São Paulo): a quarta é 429 `idea_limit`.
+  As gravações e as buscas contam no limite por aluno, por minuto, das
+  outras rotas com sessão.
+- **O que é recusado:** título de 4 a 80 letras, problema de 10 a 1000, a
+  ideia (opcional) até 1000, e a área, a resposta do "O Aluno Online já faz
+  isso?" e a plataforma de listas fechadas (400 `invalid_request`).
+  Telefone, e-mail, @, link ou nome de app de conversa em qualquer campo é
+  422 `idea_contact`, com o campo na mensagem: é o mesmo filtro do recado da
+  Companhia agora (`shared/contact.ts`), porque a sugestão fica pública.
+- **O issue:** `[Sugestão] <título>`, nas mesmas seções do formulário de
+  sugestão do repositório, com a versão do app e a plataforma, sem nome,
+  matrícula, e-mail nem aparelho. As etiquetas são `enhancement`, `sugestão
+do app` e `área: <onde no app>`. Sai pela conta do GitHub App "AO UERJ
+  Sugestões" (instalado só neste repositório, com Issues para ler e escrever
+  e nada mais): o servidor assina um JWT com a chave do app e troca pelo token
+  da instalação, que guarda até cinco minutos antes de vencer. Sem biblioteca
+  do GitHub, só `fetch`.
+- **Os pedidos repetidos:** antes de enviar, o app mostra as parecidas
+  (palavras em comum com o título dos issues abertos com `enhancement`, sem
+  acento e sem plural; a lista vem do GitHub com dez minutos de cache). "Somar
+  meu pedido" grava um voto por aluno e issue, e o app guarda as parecidas que
+  o aluno viu e dispensou (`seenSimilar`), que a moderação vê. O servidor
+  mantém um comentário só, escrito pelo próprio app, com "N alunos pediram
+  isto pelo app" (num issue que veio do app, a partir do segundo pedido); um
+  comentário com a mesma marca escrito por outra pessoa não é editado.
+- **O estado:** `received` (esperando a moderação), `not_published` (ela
+  arquivou), e, no GitHub, `open`, `planned` (etiqueta `planejada`),
+  `in_progress` (`em andamento`), `done` (fechado como concluído) e `closed`
+  (fechado de outro jeito). As etiquetas de estado quem põe é você, no GitHub.
+  Uma rodada a cada 30 minutos (`IDEA_SYNC_INTERVAL_MS`) lê os issues que as
+  sugestões e os votos apontam e guarda o último estado (`trackedissues`).
+  `requests` soma os alunos pelo app e os 👍 do issue.
+- **Sem o GitHub App** (`GITHUB_APP_ID` e `GITHUB_APP_PRIVATE_KEY`; a chave
+  em PEM, numa linha só, com `\n`): as sugestões chegam e a moderação vê,
+  mas nada é publicado, as parecidas vêm vazias e o voto é 503
+  `suggestions_unavailable`. Com o GitHub fora do ar, a busca e o voto são
+  503 `github_unavailable`. `GITHUB_APP_INSTALLATION_ID` é opcional (sem ele,
+  o servidor pergunta ao GitHub) e `GITHUB_REPOSITORY` tem como padrão
+  `pitroldev/ao-uerj-mobile-ts`.
+- **No banco:** `ideas` (o aluno, a ideia e a decisão; não vence, porque o
+  aluno vê as dele), `ideavotes` (`<issue>:<aluno>`) e `trackedissues`.
 
 ### Atualizações pelo ar (OTA)
 

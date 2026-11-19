@@ -10,6 +10,7 @@ import { rateLimit } from 'express-rate-limit';
 
 import type { CampusNow } from '../../../../../modules/campus-now/ports.ts';
 import type { Companion } from '../../../../../modules/companion/ports.ts';
+import type { Ideas } from '../../../../../modules/ideas/ports.ts';
 import type { PortalStatus } from '../../../../../modules/portal/domain.ts';
 import type { ErrorReports } from '../../../../../modules/reports/ports.ts';
 import {
@@ -37,6 +38,7 @@ import {
   campusAsks,
   campusDone,
   decidedCases,
+  ideaKey,
   sideCounts,
   studentFacts,
   type Desk,
@@ -63,8 +65,10 @@ import {
   type StudentsTab,
 } from './studentsView.ts';
 import {
+  selectedSuggestion,
   SUGGESTIONS_TABS,
   suggestionsPage,
+  type IdeaExtras,
   type SuggestionsTab,
 } from './suggestionsView.ts';
 import { diagnosticPage, loginPage, messagePage } from './views.ts';
@@ -112,6 +116,7 @@ const tabOf = <T extends string>(
 export function adminRoutes({
   reports,
   suggestions,
+  ideas,
   companion,
   campusNow,
   students,
@@ -126,6 +131,8 @@ export function adminRoutes({
 }: {
   reports: ErrorReports;
   suggestions: Suggestions;
+  /** As sugestões do app (2.x): publicar no GitHub, juntar ou arquivar. */
+  ideas: Ideas;
   /** As denúncias, o que está no ar e os números da Companhia agora. */
   companion: Pick<
     Companion,
@@ -231,7 +238,23 @@ export function adminRoutes({
     (handler: (req: Request, res: Response) => Promise<void>): RequestHandler =>
     (req: Request, res: Response, next: NextFunction) => {
       handler(req, res).catch((err: unknown) => {
-        if (err instanceof UnavailableError)
+        // o GitHub fora do ar não é o banco fora do ar
+        if (
+          err instanceof UnavailableError &&
+          err.code === 'github_unavailable'
+        )
+          send(
+            res,
+            502,
+            messagePage({
+              base: req.baseUrl,
+              title: 'O GitHub não respondeu',
+              text: 'Nada foi publicado. A sugestão continua nas novas; tente de novo daqui a pouco.',
+              csrf: session!.csrf,
+              retry: true,
+            }),
+          );
+        else if (err instanceof UnavailableError)
           databaseOut(
             req,
             res,
@@ -279,13 +302,14 @@ export function adminRoutes({
 
   async function loadDesk(): Promise<Desk> {
     const time = now();
-    const [callReports, listed, moderation, open, suggested, banned] =
+    const [callReports, listed, moderation, open, suggested, review, banned] =
       await Promise.all([
         companion.reportsForReview(COMPANION_REPORTS_PAGE),
         companion.listedForReview(),
         campusNow.moderation(),
         reports.groups('open'),
         suggestions.listRecent(),
+        ideas.forReview(),
         students.available()
           ? students.banned(STUDENTS_PAGE)
           : Promise.resolve([] as Student[]),
@@ -316,6 +340,7 @@ export function adminRoutes({
           .filter(item => item.archivedAt)
           .sort((a, b) => b.archivedAt!.getTime() - a.archivedAt!.getTime()),
       },
+      ideas: review,
       banned,
     };
   }
@@ -372,6 +397,13 @@ export function adminRoutes({
         top: index < 5,
       }),
     );
+    for (const idea of desk.ideas.received)
+      entries.push({
+        group: 'Sugestões',
+        label: idea.title,
+        meta: 'pelo app',
+        href: tabHref(base, 'sugestoes', 'fila', 'fila', ideaKey(idea.id)),
+      });
     for (const suggestion of desk.suggestions.fresh)
       entries.push({
         group: 'Sugestões',
@@ -501,6 +533,31 @@ export function adminRoutes({
           undo: { action: `${admin}/sugestoes/${id}/desarquivar` },
         },
         devolvida: { text: 'Voltou para as novas' },
+        publicada: {
+          text: `Publicada como #${n}`,
+          sub: 'o aluno vê o andamento em Minhas sugestões',
+        },
+        juntada: {
+          text: `Juntada à #${n}`,
+          sub: 'o pedido do aluno conta lá',
+        },
+        guardada: {
+          text: 'Arquivada sem publicar',
+          sub: 'o aluno vê que não foi publicada',
+          undo: {
+            action: `${admin}/sugestoes/app/${encodeURIComponent(ref.replace(/^app-/, ''))}/desarquivar`,
+          },
+        },
+        decidida: { text: 'Essa sugestão já foi decidida', error: true },
+        'sem-issue': {
+          text: 'Esse issue não está aberto como sugestão',
+          sub: 'precisa estar aberto e com a etiqueta enhancement',
+          error: true,
+        },
+        'sem-github': {
+          text: 'O GitHub não está configurado no servidor',
+          error: true,
+        },
       },
       alunos: {
         banido: {
@@ -681,13 +738,33 @@ export function adminRoutes({
         'fila',
       );
       const desk = await loadDesk();
+      const item = textOf(req.query.item, 64);
+      const selected = selectedSuggestion({ desk }, tab, item);
+      let extras: IdeaExtras | undefined;
+      if (selected?.kind === 'app') {
+        const waiting = selected.idea.status === 'received';
+        extras = {
+          publishing: ideas.publishing(),
+          repository: ideas.repository(),
+          // as parecidas vêm do GitHub (com cache); fora do ar, a página abre
+          similar:
+            waiting && ideas.publishing()
+              ? await ideas.similarFor(selected.idea).catch(() => null)
+              : [],
+        };
+      }
       send(
         res,
         200,
-        suggestionsPage(await contextFor(req, 'sugestoes', desk), {
-          tab,
-          item: textOf(req.query.item, 64),
-        }),
+        suggestionsPage(
+          await contextFor(
+            req,
+            'sugestoes',
+            desk,
+            selected?.kind === 'app' ? [selected.idea.studentId] : [],
+          ),
+          { tab, item, extras },
+        ),
       );
     }),
   );
@@ -706,6 +783,7 @@ export function adminRoutes({
           database: { ready: isDatabaseReady(), status: databaseStatus() },
           release,
           startedAt,
+          github: ideas.repository(),
           openLayoutGroups: desk
             ? desk.reports.filter(group =>
                 Object.values(group.diagnostic?.portalErrors ?? {}).includes(
@@ -1117,6 +1195,85 @@ export function adminRoutes({
       );
     });
   }
+
+  // as do app: publicar, juntar a um issue aberto, arquivar e desfazer
+  const ideaBack = (
+    req: Request,
+    done: string,
+    id: string,
+    options: { stay?: boolean; n?: number } = {},
+  ) =>
+    backTo(req, 'sugestoes', SUGGESTIONS_TABS, 'fila', done, ideaKey(id), {
+      stay: options.stay,
+      extra: options.n ? { n: String(options.n) } : {},
+    });
+
+  action('/admin/sugestoes/app/:id/publicar', async (req, res) => {
+    const id = String(req.params.id);
+    const result = await ideas.publish(id);
+    if (result.result === 'published') {
+      res.redirect(
+        303,
+        ideaBack(req, 'publicada', id, { n: result.issue.number }),
+      );
+      return;
+    }
+    res.redirect(
+      303,
+      ideaBack(req, result.result === 'gone' ? 'decidida' : 'sem-github', id, {
+        stay: true,
+      }),
+    );
+  });
+
+  action('/admin/sugestoes/app/:id/juntar', async (req, res) => {
+    const id = String(req.params.id);
+    const typed = textOf((req.body as Record<string, unknown>).issue, 12) ?? '';
+    const number = Number(typed.trim().replace(/^#/, ''));
+    const result =
+      Number.isInteger(number) && number > 0
+        ? await ideas.merge(id, number)
+        : 'issue_not_found';
+    const done = {
+      merged: 'juntada',
+      gone: 'decidida',
+      issue_not_found: 'sem-issue',
+      unavailable: 'sem-github',
+    }[result];
+    res.redirect(
+      303,
+      ideaBack(
+        req,
+        done,
+        id,
+        result === 'merged' ? { n: number } : { stay: true },
+      ),
+    );
+  });
+
+  action('/admin/sugestoes/app/:id/arquivar', async (req, res) => {
+    const id = String(req.params.id);
+    const result = await ideas.archive(id);
+    res.redirect(
+      303,
+      ideaBack(req, result === 'archived' ? 'guardada' : 'decidida', id, {
+        stay: result !== 'archived',
+      }),
+    );
+  });
+
+  action('/admin/sugestoes/app/:id/desarquivar', async (req, res) => {
+    const id = String(req.params.id);
+    if ((await ideas.reopen(id)) === 'gone') {
+      notThere(
+        req,
+        res,
+        'Essa sugestão não está arquivada (ou não existe mais).',
+      );
+      return;
+    }
+    res.redirect(303, ideaBack(req, 'devolvida', id, { stay: true }));
+  });
 
   /* ----------------------------------------------------- entrar e sair */
 

@@ -132,6 +132,7 @@ export function createHttpApp({
       companion: services.companion,
       campusNow: services.campusNow,
       portalAlerts: services.portalAlerts,
+      ideas: services.ideas,
       students: services.students,
       mural: services.mural,
       teachers: services.teachers,

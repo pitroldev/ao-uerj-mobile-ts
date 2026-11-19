@@ -8,6 +8,8 @@ import type {
   HiddenBy,
   ListedCall,
 } from '../../../../../modules/companion/domain.ts';
+import type { Idea } from '../../../../../modules/ideas/domain.ts';
+import type { IdeaReview } from '../../../../../modules/ideas/ports.ts';
 import type { ReportGroup } from '../../../../../modules/reports/ports.ts';
 import type { Student } from '../../../../../modules/students/domain.ts';
 import type { Suggestion } from '../../../../../modules/suggestions/domain.ts';
@@ -61,6 +63,8 @@ export type Desk = {
   /** Os grupos de relatos abertos, os maiores primeiro. */
   reports: ReportGroup[];
   suggestions: { fresh: Suggestion[]; archived: Suggestion[] };
+  /** As sugestões do app (2.x): as que esperam e as decididas em 30 dias. */
+  ideas: IdeaReview;
   /** Os banidos agora (vazio sem a identificação). */
   banned: Student[];
 };
@@ -160,7 +164,7 @@ export function sideCounts(desk: Desk, trouble: boolean): SideCounts {
     campus: desk.campus.asks.length,
     campusLive: desk.campus.asks.some(notice => isActive(notice, desk.now)),
     reports: desk.reports.length,
-    suggestions: desk.suggestions.fresh.length,
+    suggestions: desk.suggestions.fresh.length + desk.ideas.received.length,
     trouble,
   };
 }
@@ -219,3 +223,48 @@ export function studentFacts(desk: Desk) {
       noticesRemoved: 0,
     };
 }
+
+/**
+ * Uma sugestão na área: a dos apps 1.x (nome e e-mail, só para ler) ou a do
+ * app 2.x (aluno identificado, que vira issue). A chave da do app leva
+ * `app-`: são coleções diferentes.
+ */
+export type SuggestionItem =
+  | { kind: 'old'; key: string; at: Date; suggestion: Suggestion }
+  | { kind: 'app'; key: string; at: Date; idea: Idea };
+
+export const ideaKey = (id: string) => `app-${id}`;
+
+const oldItem = (suggestion: Suggestion): SuggestionItem => ({
+  kind: 'old',
+  key: suggestion.id,
+  at: suggestion.createdAt,
+  suggestion,
+});
+const appItem = (idea: Idea, at: Date): SuggestionItem => ({
+  kind: 'app',
+  key: ideaKey(idea.id),
+  at,
+  idea,
+});
+const newestFirst = (a: SuggestionItem, b: SuggestionItem) =>
+  b.at.getTime() - a.at.getTime();
+
+/** As novas, das duas origens: a mais nova primeiro. */
+export const suggestionQueue = (desk: Desk): SuggestionItem[] =>
+  [
+    ...desk.suggestions.fresh.map(oldItem),
+    ...desk.ideas.received.map(idea => appItem(idea, idea.createdAt)),
+  ].sort(newestFirst);
+
+/** As decididas: as antigas arquivadas e as do app publicadas, juntadas ou arquivadas. */
+export const suggestionsDone = (desk: Desk): SuggestionItem[] =>
+  [
+    ...desk.suggestions.archived.map(suggestion => ({
+      ...oldItem(suggestion),
+      at: suggestion.archivedAt ?? suggestion.createdAt,
+    })),
+    ...desk.ideas.decided.map(idea =>
+      appItem(idea, idea.reviewedAt ?? idea.createdAt),
+    ),
+  ].sort(newestFirst);

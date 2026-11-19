@@ -6,6 +6,7 @@ import type {
 } from '../../../../modules/access/ports.ts';
 import type { CampusNow } from '../../../../modules/campus-now/ports.ts';
 import type { Companion } from '../../../../modules/companion/ports.ts';
+import type { Ideas } from '../../../../modules/ideas/ports.ts';
 import type { Mural } from '../../../../modules/mural/ports.ts';
 import type { PortalAlerts } from '../../../../modules/portal/ports.ts';
 import type { ErrorReports } from '../../../../modules/reports/ports.ts';
@@ -19,6 +20,7 @@ import { campusRoutes } from './campus.ts';
 import { campusNowRoutes } from './campusNow.ts';
 import { companionRoutes } from './companion.ts';
 import { companionWatchRoutes } from './companionWatch.ts';
+import { ideaRoutes } from './ideas.ts';
 import { portalRoutes } from './portal.ts';
 import { requireStudent } from './studentAuth.ts';
 import {
@@ -44,6 +46,7 @@ export function createV2Router({
   companion,
   campusNow,
   portalAlerts,
+  ideas,
   students,
   mural,
   teachers,
@@ -63,6 +66,8 @@ export function createV2Router({
   campusNow: CampusNow;
   /** Os avisos do portal no iPhone (o "Avisar quando voltar" e o cutucão). */
   portalAlerts: PortalAlerts;
+  /** As sugestões do app ("Sugerir uma ideia"), só com a sessão. */
+  ideas: Ideas;
   students: StudentIdentity;
   mural: Mural;
   teachers: TeacherDirectory;
@@ -186,6 +191,18 @@ export function createV2Router({
   routes.use(
     portalRoutes({
       portalAlerts,
+      withDatabase,
+      session: requireStudentSession,
+      studentLimit: perKeyLimit(companionLimits.perMember, (req: Request) =>
+        req.res ? actorOf(req.res)?.studentId : undefined,
+      ),
+    }),
+  );
+
+  // as sugestões do app: só com a sessão, contadas por aluno
+  routes.use(
+    ideaRoutes({
+      ideas,
       withDatabase,
       session: requireStudentSession,
       studentLimit: perKeyLimit(companionLimits.perMember, (req: Request) =>

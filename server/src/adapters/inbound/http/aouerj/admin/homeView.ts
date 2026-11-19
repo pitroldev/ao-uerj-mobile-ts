@@ -3,6 +3,7 @@ import type { PortalStatus } from '../../../../../modules/portal/domain.ts';
 import { isBanned } from '../../../../../modules/students/domain.ts';
 import type { Release } from '../status.ts';
 import { tabHref, type PageContext } from './context.ts';
+import { suggestionQueue } from './desk.ts';
 import {
   ago,
   count,
@@ -74,7 +75,7 @@ export function homePage(
   { portal }: { portal: PortalStatus },
 ) {
   const { base, desk, now, csrf } = ctx;
-  const { companion, campus, reports, suggestions, banned } = desk;
+  const { companion, campus, reports, banned } = desk;
   const companionRows = companion.asks.slice(0, CARD_ROWS).map(entry =>
     row({
       href: tabHref(base, 'companhia', 'fila', 'fila', entry.callId),
@@ -108,14 +109,18 @@ export function homePage(
       times: group.reports.length,
     }),
   );
-  const suggestionRows = suggestions.fresh.slice(0, CARD_ROWS).map(suggestion =>
+  const queue = suggestionQueue(desk);
+  const suggestionRows = queue.slice(0, CARD_ROWS).map(entry =>
     row({
-      href: tabHref(base, 'sugestoes', 'fila', 'fila', suggestion.id),
+      href: tabHref(base, 'sugestoes', 'fila', 'fila', entry.key),
       selected: false,
-      lamp: null,
-      title: excerpt(suggestion.content, 70),
-      meta: suggestion.name,
-      age: ago(suggestion.createdAt, now),
+      lamp: entry.kind === 'app' ? 'ask' : null,
+      title:
+        entry.kind === 'app'
+          ? entry.idea.title
+          : excerpt(entry.suggestion.content, 70),
+      meta: entry.kind === 'app' ? 'pelo app' : entry.suggestion.name,
+      age: ago(entry.at, now),
     }),
   );
   const bannedRows = banned.slice(0, CARD_ROWS).map(student =>
@@ -163,7 +168,7 @@ export function homePage(
     <section class="hgroup g2">
       <h2>Suporte</h2>
       ${card(base, 'relatos', reports.length ? count(reports.length, 'grupo aberto', 'grupos abertos') : 'nada aberto', reports.length > 0, reportRows.length ? html`${reportRows}${more(base, 'relatos', reports.length - CARD_ROWS)}` : calm('Nenhum relato aberto.'), totalReports ? html`<span>${count(totalReports, 'relato', 'relatos')} · ${count(reportsToday, 'hoje', 'hoje')}</span>` : null)}
-      ${card(base, 'sugestoes', suggestions.fresh.length ? count(suggestions.fresh.length, 'nova', 'novas') : 'nada novo', suggestions.fresh.length > 0, suggestionRows.length ? html`${suggestionRows}${more(base, 'sugestoes', suggestions.fresh.length - CARD_ROWS)}` : calm('Nenhuma sugestão nova.'), null)}
+      ${card(base, 'sugestoes', queue.length ? count(queue.length, 'nova', 'novas') : 'nada novo', queue.length > 0, suggestionRows.length ? html`${suggestionRows}${more(base, 'sugestoes', queue.length - CARD_ROWS)}` : calm('Nenhuma sugestão nova.'), null)}
     </section>
     <section class="hgroup">
       <h2>Sistema</h2>
@@ -206,6 +211,7 @@ export function statusPage({
   database,
   release,
   startedAt,
+  github = null,
   openLayoutGroups,
   palette,
 }: {
@@ -217,6 +223,8 @@ export function statusPage({
   database: { ready: boolean; status: string };
   release: Release;
   startedAt: Date;
+  /** O repositório em que as sugestões do app viram issue; `null` desligado. */
+  github?: string | null;
   /** Os grupos de relatos abertos com a página do portal mudada. */
   openLayoutGroups: number;
   palette?: PageContext['palette'];
@@ -264,6 +272,10 @@ export function statusPage({
           </dd>
           <dt>No ar desde</dt>
           <dd>${stamp(startedAt)}</dd>
+          <dt>Sugestões no GitHub</dt>
+          <dd class="${github ? '' : 'quiet'}">
+            ${github ? html`publica em <span class="code">${github}</span>` : 'desligado (falta o GitHub App no .env)'}
+          </dd>
         </dl>
       </div>
     </section>

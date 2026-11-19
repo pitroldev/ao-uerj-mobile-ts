@@ -837,3 +837,100 @@ export type StudentBannedError = ApiError & {
 
 /** `POST /aouerj/v2/reports`, com a sessão: o relato sem e-mail (o aluno é conhecido). */
 export type StudentErrorReportRequest = Omit<ErrorReportRequest, 'email'>;
+
+/*
+ * As sugestões do app ("Sugerir uma ideia"), com a sessão. A moderação olha
+ * cada uma antes de publicar como issue no GitHub (público, sem nada de quem
+ * mandou); o estado do issue volta para "Minhas sugestões".
+ */
+
+/** Onde no app a ideia mexe. */
+export type IdeaArea =
+  | 'home'
+  | 'schedule'
+  | 'grades'
+  | 'rid'
+  | 'subjects'
+  | 'generator'
+  | 'companion'
+  | 'campus'
+  | 'map'
+  | 'mural'
+  | 'other';
+
+/**
+ * `received`: esperando a moderação; `not_published`: ela não publicou;
+ * `open`: no GitHub; `planned` e `in_progress`: as etiquetas do issue;
+ * `done`: fechado como feito; `closed`: fechado sem fazer.
+ */
+export type IdeaStatus =
+  | 'received'
+  | 'not_published'
+  | 'open'
+  | 'planned'
+  | 'in_progress'
+  | 'done'
+  | 'closed';
+
+/** Uma sugestão do aluno: a que ele mandou (`sent`) ou o pedido que somou (`joined`). */
+export type MyIdea = {
+  id: string;
+  kind: 'sent' | 'joined';
+  title: string;
+  /** `null` nos pedidos somados. */
+  area: IdeaArea | null;
+  createdAt: string;
+  status: IdeaStatus;
+  issue: { number: number; url: string } | null;
+  /** Quantos pediram: os alunos pelo app e os 👍 no GitHub. */
+  requests: number;
+};
+
+/** `GET /aouerj/v2/ideas`: as do aluno, as mais novas primeiro. */
+export type MyIdeasResponse = {
+  ideas: MyIdea[];
+  /** Quantas o aluno ainda pode mandar hoje. */
+  remainingToday: number;
+};
+
+/** `POST /aouerj/v2/ideas/similar`: o título e o problema, para achar as parecidas. */
+export type SimilarIdeasRequest = { text: string };
+
+export type SimilarIdea = {
+  number: number;
+  title: string;
+  url: string;
+  status: Exclude<IdeaStatus, 'received' | 'not_published'>;
+  requests: number;
+};
+
+export type SimilarIdeasResponse = { similar: SimilarIdea[] };
+
+/**
+ * `POST /aouerj/v2/ideas` (201). Recusas: 400 `invalid_request` (tamanhos),
+ * 422 `idea_contact` (telefone, e-mail, @ ou link), 429 `idea_limit` (três
+ * por dia).
+ */
+export type NewIdeaRequest = {
+  /** De 4 a 80 letras. */
+  title: string;
+  area: IdeaArea;
+  /** De 10 a 1000 letras. */
+  problem: string;
+  /** Até 1000 letras; opcional. */
+  idea?: string;
+  /** "O Aluno Online já faz isso?" */
+  portal: 'yes_bad' | 'no' | 'unknown';
+  appVersion: string;
+  platform: 'android' | 'ios';
+  /** Os issues parecidos que o app mostrou e o aluno seguiu mesmo assim (até 5). */
+  seenSimilar?: number[];
+};
+
+export type IdeaResponse = { idea: MyIdea };
+
+/**
+ * `POST /aouerj/v2/ideas/votes` (200): soma o pedido do aluno a um issue de
+ * sugestão aberto (uma vez por aluno). 404 `issue_not_found` se fechou.
+ */
+export type IdeaVoteRequest = { issue: number };

@@ -97,6 +97,14 @@ Nas telas que leem o Aluno Online (a grade, as notas, o RID, o histórico, o cur
 
 Os relatos das versões 1.x do app levavam a página do portal em que o erro aconteceu, que pode ter dados pessoais. Eles ficam só no servidor, fora do código público, e podem ser apagados a pedido.
 
+### Sugestões
+
+Quando você manda uma ideia em "Sugerir uma ideia", o app manda o título, o que você escreveu, a parte do app em que ela mexe, a sua resposta para "O Aluno Online já faz isso?", a versão do app e o sistema (Android ou iPhone). Com a identificação, o servidor sabe quem mandou, para limitar a três por dia e mostrar a você as suas em "Minhas sugestões".
+
+- **A sugestão fica pública.** A moderação lê antes e, se publicar, ela vira um issue no [repositório do app no GitHub](https://github.com/pitroldev/ao-uerj-mobile-ts/issues), aberto pela conta do próprio projeto. Vão o título, as respostas, a parte do app, a versão e o sistema. Não vão o seu nome, a matrícula, o e-mail nem o aparelho. Por isso o app recusa telefone, e-mail, @ e links no texto.
+- Quando você soma o seu pedido a uma sugestão que já existe, o issue mostra só quantos alunos pediram, sem dizer quem.
+- O servidor guarda as suas sugestões e os pedidos somados enquanto a conta existir, e lê no GitHub o andamento de cada uma (planejada, em andamento, feita) para mostrar no app. Um issue já publicado fica no GitHub; se ele tiver algo seu por engano, peça e a gente apaga.
+
 ### Situação do portal
 
 Quando o Aluno Online cai, o app pergunta ao servidor se o portal voltou, no máximo a cada 2 minutos. Esse pedido não leva dados seus.
@@ -114,7 +122,7 @@ O servidor do app registra cada pedido sem o IP, sem o User-Agent e sem o conte�
 - **UERJ (Aluno Online):** o app conversa com o portal em seu nome, com o seu login.
 - **Google (Android):** a Play Integrity confirma que o app é o original. O Google vê que o app pediu a verificação, mas não recebe a sua matrícula nem o seu nome, só um código calculado a partir deles. Atualizar e avaliar o app usam a própria Play Store, sem dados do AO UERJ. Esses serviços seguem a [política de privacidade do Google](https://policies.google.com/privacy).
 - **Apple (iPhone):** o App Attest confirma que o app é o original. O iPhone cria uma chave nova a cada entrada, e a Apple recebe essa chave e um código calculado a partir do pedido, nunca a sua matrícula nem o seu nome. Atualizar e avaliar o app usam a própria App Store, sem dados do AO UERJ. Para avisar de versão nova, o app lê a ficha pública dele na App Store, uma consulta que só leva o código do app, sem nada seu. Os avisos que o servidor manda ao iPhone (o "Me avise se tiver mesa", o Agora no campus, o "Avisar quando voltar" e o sinal dos avisos do portal) saem do servidor pelo serviço de notificações da Apple (APNs), com o código de notificação do iPhone e o texto do aviso, sem a sua matrícula nem o seu nome. Esses serviços seguem a [política de privacidade da Apple](https://www.apple.com/br/legal/privacy/).
-- **GitHub (Microsoft):** o app baixa, no máximo a cada 15 minutos, um arquivo de avisos e de configuração deste repositório, em `raw.githubusercontent.com`. O pedido não leva dados seus, mas o GitHub vê o IP, o horário e o User-Agent ([declaração de privacidade do GitHub](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement)).
+- **GitHub (Microsoft):** o app baixa, no máximo a cada 15 minutos, um arquivo de avisos e de configuração deste repositório, em `raw.githubusercontent.com`. O pedido não leva dados seus, mas o GitHub vê o IP, o horário e o User-Agent. As sugestões publicadas viram issues públicos no repositório, abertos pelo servidor do AO UERJ, sem nada que diga quem mandou ([declaração de privacidade do GitHub](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement)).
 - **Oracle Cloud e MongoDB Atlas:** o servidor roda numa máquina da Oracle Cloud, e o banco de dados fica no MongoDB Atlas. Eles guardam os dados em nome do AO UERJ e não os usam para outra coisa. Esses serviços podem ficar fora do Brasil, inclusive nos Estados Unidos.
 - **Links e compartilhamento:** "Como chegar", no mapa, abre o Google Maps só com o destino. Os links do Sobre abrem o GitHub, o LinkedIn e a loja do app (a Play Store ou a App Store). Quando você compartilha a grade ou o convite do app, você escolhe o app de destino (o WhatsApp, por exemplo), e o que você manda segue as regras dele.
 
@@ -143,6 +151,8 @@ O servidor do app registra cada pedido sem o IP, sem o User-Agent e sem o conte�
 | Avisos do Agora no campus                      | servidor           | 70 dias                                                                |
 | Respostas, "Valeu", denúncias e o que você viu | servidor           | cerca de 2 dias depois do fim do aviso                                 |
 | Pontos e nível do Agora no campus              | servidor           | enquanto a conta existir                                               |
+| Sugestões e pedidos somados                    | servidor           | enquanto a conta existir, ou até você pedir a exclusão                 |
+| Sugestão publicada (sem identificação)         | GitHub, público    | enquanto o repositório existir                                         |
 | Contagens sem nome                             | servidor           | até meio ano                                                           |
 
 ## Seus direitos

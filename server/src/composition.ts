@@ -61,6 +61,9 @@ import { createStudentIdentity } from './modules/students/application.ts';
 import { STUDENT_CHALLENGE_TTL_MS } from './modules/students/domain.ts';
 import type { ScheduleSolver } from './modules/schedules/ports.ts';
 import { createSuggestions } from './modules/suggestions/application.ts';
+import { createIdeas } from './modules/ideas/application.ts';
+import type { IssueTracker } from './modules/ideas/ports.ts';
+import { createGitHubIssueTracker } from './adapters/outbound/github/issueTracker.ts';
 import { createTeacherDirectory } from './modules/teachers/application.ts';
 
 /** O banco como o servidor o usa: a saúde e a conexão. */
@@ -81,6 +84,8 @@ export type Overrides = {
    */
   portalMonitor?: boolean;
   solver?: ScheduleSolver;
+  /** Os issues do GitHub; `null` desliga a publicação das sugestões. */
+  issueTracker?: IssueTracker | null;
   /** Quem atesta o app; `null` desliga a emissão. */
   attester?: AppAttester | null;
   /** O App Attest do iPhone; `null` desliga a entrada pelo iPhone. */
@@ -335,6 +340,16 @@ export function createServer(
     monitoring: portalMonitor,
     onPushError: err => logger.warn({ err }, 'portal push failed'),
   });
+  const ideas = createIdeas({
+    ideas: repositories.ideas,
+    votes: repositories.ideaVotes,
+    tracked: repositories.trackedIssues,
+    tracker:
+      overrides.issueTracker === undefined
+        ? config.ideas.github && createGitHubIssueTracker(config.ideas.github)
+        : overrides.issueTracker,
+    onError: err => logger.warn({ err }, 'suggestion comment failed'),
+  });
   const services: Services = {
     mural: createMural(repositories.messages),
     teachers: createTeacherDirectory(repositories.teachers, {
@@ -345,6 +360,7 @@ export function createServer(
       overrides.attachments ?? createFileAttachmentStore(config.reportsDir),
     ),
     suggestions: createSuggestions(repositories.suggestions),
+    ideas,
     portal,
     schedules: createScheduleGenerator(solver),
     access: createStudentAccess({
@@ -441,6 +457,17 @@ export function createServer(
     err => logger.warn({ err }, 'portal push failed'),
   );
 
+  // o estado dos issues das sugestões (planejada, feita…), para o app
+  const ideaSyncs = ideas.publishing()
+    ? repeatEvery(
+        config.ideas.syncIntervalMs,
+        async () => {
+          if (database.isReady()) await ideas.syncIssues();
+        },
+        err => logger.warn({ err }, 'suggestion sync failed'),
+      )
+    : null;
+
   return {
     app,
     server,
@@ -480,6 +507,7 @@ export function createServer(
       watchDeliveries.stop();
       campusPushes.stop();
       portalWakes.stop();
+      ideaSyncs?.stop();
       const forceClose = setTimeout(
         () => server.closeAllConnections(),
         SHUTDOWN_GRACE_MS,
