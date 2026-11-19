@@ -15,6 +15,10 @@ import {
   createCampusPushServer,
 } from '@root/adapters/outbound/private-api/campusNow';
 import {
+  createPortalPushServer,
+  createPortalReturnServer,
+} from '@root/adapters/outbound/private-api/portalPush';
+import {
   createCompanionServer,
   createCompanionWatchServer,
 } from '@root/adapters/outbound/private-api/companion';
@@ -85,6 +89,8 @@ export function createRealBackend({
     companionWatch: createCompanionWatchServer(student),
     campus: createCampusNowServer(student),
     campusPush: createCampusPushServer(student),
+    portalReturn: createPortalReturnServer(student),
+    portalPush: createPortalPushServer(student),
     studentSessionApi: createStudentSessionApi(client),
   };
 }

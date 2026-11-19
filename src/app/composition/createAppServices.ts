@@ -184,6 +184,8 @@ export function createAppServices() {
         companion.clear(),
         notifications.companionWatch?.signOut(),
         notifications.campusPush?.signOut(),
+        notifications.portalPush?.signOut(),
+        notifications.portalReturn?.signOut(),
       ]);
     },
   });
@@ -202,6 +204,8 @@ export function createAppServices() {
     campusNow,
     companionWatchServer: backend.companionWatch,
     campusPushServer: backend.campusPush,
+    portalReturnServer: backend.portalReturn,
+    portalPushServer: backend.portalPush,
   });
   return {
     campusMap: new CampusMap(bundledCampusMap),

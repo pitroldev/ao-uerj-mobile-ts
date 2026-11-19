@@ -15,6 +15,10 @@ import { createDemoClock } from './clock';
 import { createDemoAuthentication } from './ports/authentication';
 import { createDemoCampus, createDemoCampusPush } from './ports/campus';
 import {
+  createDemoPortalPush,
+  createDemoPortalReturn,
+} from './ports/portalPush';
+import {
   createDemoCompanion,
   createDemoCompanionWatch,
 } from './ports/companion';
@@ -50,6 +54,8 @@ export function createDemoBackend(now: () => number = Date.now) {
     companionWatch: createDemoCompanionWatch(),
     campus: createDemoCampus(clock),
     campusPush: createDemoCampusPush(),
+    portalReturn: createDemoPortalReturn(),
+    portalPush: createDemoPortalPush(),
     studentSessionApi: createDemoStudentSessionApi(),
   };
 }

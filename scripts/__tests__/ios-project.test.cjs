@@ -192,6 +192,33 @@ test('the background check task is permitted in Info.plist, with background fetc
   );
 });
 
+test('a locked screen only postpones the round when the saved account does not open', () => {
+  const delegate = read('ios/AOUerjMobile/AppDelegate.swift');
+  // o mesmo serviço do Keychain da conta salva, lido pelo Swift e gravado pelo JS
+  const [, swiftService] = delegate.match(
+    /static let credentialsService = "([^"]+)"/,
+  );
+  const [, jsService] = read(
+    'src/adapters/outbound/persistence/credential-store.ts',
+  ).match(/const service = '([^']+)'/);
+  assert.equal(swiftService, jsService);
+  assert.match(
+    delegate,
+    /isProtectedDataAvailable \|\| Self\.savedAccountReadable\(\)/,
+  );
+  // a conta salva abre depois do primeiro desbloqueio, e só neste aparelho
+  assert.match(
+    read('src/adapters/outbound/persistence/credential-store.ts'),
+    /Keychain\.ACCESSIBLE\.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY/,
+  );
+});
+
+test('the server nudge wakes the app into the portal check round', () => {
+  const delegate = read('ios/AOUerjMobile/AppDelegate.swift');
+  assert.match(delegate, /userInfo\["portal"\] as\? String == "wake"/);
+  assert.match(delegate, /func handlePortalWake\(/);
+});
+
 test('the silent push of Agora no campus wakes the app into a campus round', () => {
   // sem "remote-notification", o iOS não entrega o push silencioso ao app
   assert.match(

@@ -41,6 +41,8 @@ function fakeBackend(name: string) {
     companionWatch: port('status', 'put', 'remove'),
     campus: port('list', 'report', 'you', 'community'),
     campusPush: port('status', 'register', 'unregister'),
+    portalReturn: port('status', 'request', 'cancel'),
+    portalPush: port('status', 'register', 'unregister'),
     studentSessionApi: port('challenge', 'create', 'end'),
   } as unknown as Backend;
   return { backend, answer };

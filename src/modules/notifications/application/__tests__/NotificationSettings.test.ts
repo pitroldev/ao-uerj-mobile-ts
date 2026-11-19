@@ -441,3 +441,35 @@ describe('the Agora no campus in the background on the iPhone (push)', () => {
     expect(background.available).toHaveBeenCalledTimes(1);
   });
 });
+
+it('on the iPhone, registers for the server nudge together with the portal check, and leaves with it', async () => {
+  const device = createDevice({ frequentWatches: false, pushWatches: true });
+  const account = createAccount();
+  const store = createStore({
+    [`${ACCOUNT.scope}/${PREFERENCES_KEY}`]: { grades: true },
+  });
+  const nudge = { apply: jest.fn(async (_enabled: boolean) => undefined) };
+  const settings = new NotificationSettings({
+    device,
+    store,
+    account: account.get,
+    subscribeAccount: account.subscribe,
+    remote: createRemote(),
+    schedule: () => null,
+    reminderText: item => ({ title: item.class.name, body: '' }),
+    portalBackground: nudge,
+  });
+  settings.start();
+  account.set(ACCOUNT);
+  await settle();
+  expect(device.setPortalCheck).toHaveBeenLastCalledWith(true, 4);
+  expect(nudge.apply).toHaveBeenLastCalledWith(true);
+  // a volta ao app não registra de novo
+  await settings.refreshDevice();
+  expect(nudge.apply).toHaveBeenCalledTimes(1);
+
+  await settings.update({ grades: false });
+  await settle();
+  expect(device.setPortalCheck).toHaveBeenLastCalledWith(false, 4);
+  expect(nudge.apply).toHaveBeenLastCalledWith(false);
+});

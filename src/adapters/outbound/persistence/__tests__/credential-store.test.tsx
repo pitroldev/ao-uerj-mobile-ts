@@ -5,7 +5,10 @@ jest.mock('react-native-keychain', () => ({
   getGenericPassword: jest.fn(),
   setGenericPassword: jest.fn(),
   resetGenericPassword: jest.fn(),
-  ACCESSIBLE: { WHEN_UNLOCKED_THIS_DEVICE_ONLY: 'WhenUnlockedThisDeviceOnly' },
+  ACCESSIBLE: {
+    AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY:
+      'AccessibleAfterFirstUnlockThisDeviceOnly',
+  },
   STORAGE_TYPE: { AES_GCM_NO_AUTH: 'AES_GCM_NO_AUTH' },
 }));
 const saved = {
@@ -30,7 +33,11 @@ it('verifies the native persisted value before accepting a write', async () => {
   expect(Keychain.setGenericPassword).toHaveBeenCalledWith(
     'local',
     JSON.stringify(saved),
-    expect.objectContaining({ accessible: 'WhenUnlockedThisDeviceOnly' }),
+    // a tela bloqueada não fecha a conta salva (as rodadas sem tela), mas ela
+    // não sai do aparelho
+    expect.objectContaining({
+      accessible: 'AccessibleAfterFirstUnlockThisDeviceOnly',
+    }),
   );
   jest.mocked(Keychain.getGenericPassword).mockResolvedValueOnce(false);
   await expect(vault.write(saved)).rejects.toMatchObject({

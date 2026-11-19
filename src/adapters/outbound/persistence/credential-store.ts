@@ -37,12 +37,17 @@ export function createCredentialStore(): CredentialStore {
     async write(saved) {
       try {
         if (!isSavedAccount(saved)) throw new AppError('STORAGE_FAILED');
+        // Depois do primeiro desbloqueio desde que o aparelho ligou, e só neste
+        // aparelho (fora do backup): a verificação no portal e "Avisar quando
+        // voltar" rodam também com a tela bloqueada, como no Android. As
+        // contas gravadas antes (só desbloqueado) passam para esta na
+        // próxima entrada, que regrava a conta.
         await Keychain.setGenericPassword(
           saved.account.scope,
           JSON.stringify(saved),
           {
             service,
-            accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+            accessible: Keychain.ACCESSIBLE.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
           },
         );
         const verified = await Keychain.getGenericPassword({ service });

@@ -1,7 +1,8 @@
 import { AppError } from '@root/shared/errors/AppError';
-import { CAMPUS_PUSH_KEY, CampusPush, DEVICE_SCOPE } from '../CampusPush';
+import { DEVICE_SCOPE, PushRegistration } from '../PushRegistration';
 
 const TOKEN = 'ab'.repeat(32);
+const KEY = 'portal-push';
 
 function setup({
   token = TOKEN,
@@ -10,10 +11,12 @@ function setup({
   const saved = new Map<string, unknown>();
   const server = {
     status: jest.fn(async () => ({ available, registered: false })),
-    register: jest.fn(async (_token: string) => undefined),
+    register: jest.fn(async (_token: string) => {
+      if (!available) throw new AppError('SERVICE_UNAVAILABLE');
+    }),
     unregister: jest.fn(async () => undefined),
   };
-  const push = new CampusPush({
+  const push = new PushRegistration({
     server,
     token: async () => token,
     store: {
@@ -23,6 +26,7 @@ function setup({
         saved.set(`${scope}/${key}`, value);
       },
     },
+    key: KEY,
   });
   return { push, server, saved };
 }
@@ -38,11 +42,11 @@ it('registers the push token and remembers that this device did', async () => {
   const { push, server, saved } = setup();
   await push.apply(true);
   expect(server.register).toHaveBeenCalledWith(TOKEN);
-  expect(saved.get(`${DEVICE_SCOPE}/${CAMPUS_PUSH_KEY}`)).toBe(true);
+  expect(saved.get(`${DEVICE_SCOPE}/${KEY}`)).toBe(true);
 
   await push.apply(false);
   expect(server.unregister).toHaveBeenCalledTimes(1);
-  expect(saved.get(`${DEVICE_SCOPE}/${CAMPUS_PUSH_KEY}`)).toBeNull();
+  expect(saved.get(`${DEVICE_SCOPE}/${KEY}`)).toBeNull();
 });
 
 it('makes no request to turn off a device that never registered', async () => {
@@ -58,6 +62,14 @@ it('fails without the token, so the next opening tries again', async () => {
     'Sem o token de push do aparelho',
   );
   expect(server.register).not.toHaveBeenCalled();
+});
+
+it('stops asking a server without push until the app opens again', async () => {
+  const { push, server, saved } = setup({ available: false });
+  await expect(push.apply(true)).resolves.toBeUndefined();
+  await push.apply(true);
+  expect(server.register).toHaveBeenCalledTimes(1);
+  expect(saved.size).toBe(0);
 });
 
 it('leaves the server on sign out, and a failure there does not stop the sign out', async () => {

@@ -15,6 +15,10 @@ import type { SharedPortalStatusPort } from '@root/modules/connectivity/applicat
 import type { DocumentsPort } from '@root/modules/documents/application/ports';
 import type { AuthenticationPort } from '@root/modules/identity/application/ports';
 import type {
+  PortalReturnServerPort,
+  PushRegistrationServerPort,
+} from '@root/modules/notifications/application/ports';
+import type {
   ErrorReporterPort,
   PortalPagesPort,
 } from '@root/modules/support/application/ports';
@@ -52,5 +56,9 @@ export type Backend = {
   campus: CampusNowServerPort;
   /** O Agora no campus em segundo plano por push (iPhone). */
   campusPush: CampusPushServerPort;
+  /** "Avisar quando voltar" por push do servidor (iPhone). */
+  portalReturn: PortalReturnServerPort;
+  /** O cutucão da verificação no portal (iPhone). */
+  portalPush: PushRegistrationServerPort;
   studentSessionApi: StudentSessionApiPort;
 };

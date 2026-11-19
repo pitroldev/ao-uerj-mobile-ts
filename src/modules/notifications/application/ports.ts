@@ -9,6 +9,30 @@ import type { NotificationContent } from '../domain/messages';
  */
 export type PermissionState = 'granted' | 'denied' | 'blocked';
 
+/**
+ * "Avisar quando voltar" no iPhone (pitrol.dev/aouerj/v2/portal/return-alert),
+ * com a sessão de aluno: o servidor já testa o portal a cada pouco e manda um
+ * push quando o vê de volta, sem esperar o iOS acordar o app. `available`:
+ * o servidor manda push e acompanha o portal. Recusas e falhas, como
+ * `AppError`.
+ */
+export interface PortalReturnServerPort {
+  status(): Promise<{ available: boolean; requested: boolean }>;
+  request(token: string): Promise<void>;
+  cancel(): Promise<void>;
+}
+
+/**
+ * O registro de um aparelho para um push do servidor (o cutucão da
+ * verificação no portal, o Agora no campus), com a sessão de aluno.
+ * `push_unavailable` chega como `AppError('SERVICE_UNAVAILABLE')`.
+ */
+export interface PushRegistrationServerPort {
+  status(): Promise<{ available: boolean; registered: boolean }>;
+  register(token: string): Promise<void>;
+  unregister(): Promise<void>;
+}
+
 /** Recursos do aparelho para avisos (módulo nativo do Android e do iOS). */
 export interface NotificationDevicePort {
   /**

@@ -21,6 +21,8 @@ import type {
   ActiveAccount,
   CachedResource,
   NotificationDevicePort,
+  PortalReturnServerPort,
+  PushRegistrationServerPort,
   RemoteSwitch,
 } from '@root/modules/notifications/application/ports';
 import { reminderText } from '@root/modules/notifications/presentation/reminderText';
@@ -46,9 +48,9 @@ import { evaluationsQueryKey } from '@root/modules/evaluations/presentation/quer
 import type { CampusNow } from '@root/modules/campus-now/application/CampusNow';
 import { CampusWatch } from '@root/modules/campus-now/application/CampusWatch';
 import {
-  CampusPush,
   DEVICE_SCOPE,
-} from '@root/modules/campus-now/application/CampusPush';
+  PushRegistration,
+} from '@root/modules/notifications/application/PushRegistration';
 import type { CampusPushServerPort } from '@root/modules/campus-now/application/ports';
 import {
   askNotification,
@@ -97,11 +99,19 @@ type Dependencies = {
   companionWatchServer?: CompanionWatchServerPort;
   /** O registro do iPhone para o push do Agora no campus. */
   campusPushServer?: CampusPushServerPort;
+  /** "Avisar quando voltar" por push do servidor (iPhone). */
+  portalReturnServer?: PortalReturnServerPort;
+  /** O registro do iPhone para o cutucão da verificação no portal. */
+  portalPushServer?: PushRegistrationServerPort;
   device?: NotificationDevicePort | null;
 };
 
 /** O escopo da conta, fora do Keychain, para a rodada do campus no iPhone. */
 const BACKGROUND_ACCOUNT_KEY = 'background-account';
+/** Este iPhone está registrado para o push do Agora no campus. */
+const CAMPUS_PUSH_KEY = 'campus-push';
+/** Este iPhone está registrado para o cutucão da verificação no portal. */
+const PORTAL_PUSH_KEY = 'portal-push';
 
 /**
  * A conta da rodada do Agora no campus no iPhone, que o push silencioso abre
@@ -169,6 +179,8 @@ export function createNotifications({
   campusNow,
   companionWatchServer,
   campusPushServer,
+  portalReturnServer,
+  portalPushServer,
   device = createNativeNotifications(),
 }: Dependencies) {
   const campusDisabled = () =>
@@ -179,13 +191,28 @@ export function createNotifications({
   const background = device?.backgroundChecks ? device : null;
   const watching = background?.frequentWatches ? background : null;
   const account = activeAccount(identity);
-  // iPhone: o Agora no campus em segundo plano por push do servidor
+  // iPhone: o push do servidor no lugar das leituras a cada 15 minutos
+  const pushing = !watching && device?.pushWatches ? device : null;
+  const token = () =>
+    pushing?.remoteNotificationToken() ?? Promise.resolve(null);
+  // o Agora no campus em segundo plano
   const campusPush =
-    !watching && device?.pushWatches && campusNow?.supported && campusPushServer
-      ? new CampusPush({
+    pushing && campusNow?.supported && campusPushServer
+      ? new PushRegistration({
           server: campusPushServer,
-          token: () => device.remoteNotificationToken(),
+          token,
           store: preferences,
+          key: CAMPUS_PUSH_KEY,
+        })
+      : null;
+  // o cutucão da verificação no portal, que o iOS adia
+  const portalPush =
+    pushing && background && portalPushServer
+      ? new PushRegistration({
+          server: portalPushServer,
+          token,
+          store: preferences,
+          key: PORTAL_PUSH_KEY,
         })
       : null;
   const campusScope = campusPush
@@ -263,6 +290,7 @@ export function createNotifications({
           }
         : undefined,
     campusBackground: campusPush ?? undefined,
+    portalBackground: portalPush ?? undefined,
   });
   /**
    * "Já fiz" tocado nos avisos: o aparelho já parou os lembretes; aqui a
@@ -309,6 +337,11 @@ export function createNotifications({
   const portalReturn = background
     ? new PortalReturnAlert({
         device: background,
+        // no iPhone, o servidor avisa quando vê o portal de volta
+        push:
+          pushing && portalReturnServer
+            ? { token, server: portalReturnServer }
+            : null,
         store: preferences,
         account,
         savedScope,
@@ -424,6 +457,8 @@ export function createNotifications({
     campusWatch,
     /** iPhone: o registro do aparelho para o push do Agora no campus. */
     campusPush,
+    /** iPhone: o registro do aparelho para o cutucão da verificação no portal. */
+    portalPush,
     consumeDone,
     // as boas notícias da verificação viram momento bom na abertura
     goodNews: new GoodNews({

@@ -103,6 +103,11 @@ type Dependencies = {
     available(): Promise<boolean>;
     apply(enabled: boolean): Promise<void>;
   };
+  /**
+   * iPhone: o registro para o cutucão do servidor (um push silencioso a cada
+   * 4 horas), que acompanha a verificação no portal ligada.
+   */
+  portalBackground?: { apply(enabled: boolean): Promise<void> };
 };
 
 /**
@@ -142,6 +147,7 @@ export class NotificationSettings {
   private appliedCampus: boolean | null = null;
   /** iPhone: a conta cuja disponibilidade do push já foi perguntada. */
   private campusAsked: string | null = null;
+  private appliedPortalPush: boolean | null = null;
   private applying: Promise<void> = Promise.resolve();
   /** As escolhas são salvas uma de cada vez: a segunda parte da primeira. */
   private updating: Promise<unknown> = Promise.resolve();
@@ -584,6 +590,14 @@ export class NotificationSettings {
           .catch(() => {
             this.appliedPortal = null;
           });
+      }
+      // iPhone: o cutucão do servidor acompanha a verificação
+      const nudge = this.dependencies.portalBackground;
+      if (nudge && desired.portal !== this.appliedPortalPush) {
+        this.appliedPortalPush = desired.portal;
+        await nudge.apply(desired.portal).catch(() => {
+          this.appliedPortalPush = null;
+        });
       }
     });
     this.applying = task.catch(() => undefined);

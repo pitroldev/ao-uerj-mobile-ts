@@ -9,7 +9,7 @@ O que o app guarda, onde e o que sai do aparelho, no nível do código. É a ref
 
 ### Conta e portal
 
-- **Credenciais e identificação da conta:** no Keychain (iPhone) ou no Keystore (Android), por `react-native-keychain`.
+- **Credenciais e identificação da conta:** no Keychain (iPhone) ou no Keystore (Android), por `react-native-keychain`. No iPhone, o item abre depois do primeiro desbloqueio desde que o aparelho ligou e só neste aparelho (`AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY`, fora do backup), para a verificação no portal rodar com a tela bloqueada, como no Android. As contas gravadas antes, só com o aparelho desbloqueado, passam para esta na próxima entrada no app, que regrava a conta.
 - **Cookies, token e IDs de requisição:** efêmeros, pertencem ao adaptador do Aluno Online.
 - **Migração do app antigo:** a migração do antigo Redux persistido transfere as credenciais para o armazenamento seguro e remove a cópia em texto simples. Se a transferência falhar, um novo login pode ser necessário.
 - **Reinstalação no iPhone:** o Keychain sobrevive à desinstalação; ver [iOS](ios.md#outros-detalhes).
@@ -57,10 +57,10 @@ A simulação de PF e CR não grava nada. O Plano até a formatura é calculado 
 
 No AsyncStorage, valem para o app inteiro e **não** são apagadas no logout: o tema, a última cópia do aviso remoto, os avisos dispensados, a data do último pedido de atualização, a versão da App Store que o aluno dispensou no Início ("Agora não") e o histórico de uso que decide o pedido de avaliação. No iPhone, também a marca da instalação (`ao:v2:install`, da regra da reinstalação).
 
-No iPhone, com o Agora no campus em segundo plano, duas chaves do aparelho (`ao:v2:preferences:device:<chave>`) que a saída da conta apaga ou desliga:
+No iPhone, com o push do servidor, três chaves do aparelho (`ao:v2:preferences:device:<chave>`) que a saída da conta apaga ou desliga:
 
-- `background-account`: o escopo da conta (um id aleatório, sem a matrícula), para a rodada do push silencioso achar a conta com a tela bloqueada, quando o Keychain não abre. Sai na saída da conta; uma restauração que falhou não a apaga.
-- `campus-push`: este aparelho está registrado no servidor para o push do campus. Só com ela o app pede a saída do registro.
+- `background-account`: o escopo da conta (um id aleatório, sem a matrícula), para a rodada do push silencioso achar a conta com a tela bloqueada, quando o Keychain não abre (a conta gravada antes, só desbloqueado). Sai na saída da conta; uma restauração que falhou não a apaga.
+- `campus-push` e `portal-push`: este aparelho está registrado no servidor para o push do campus e para o cutucão da verificação no portal. Só com elas o app pede a saída do registro.
 
 ### Fora do JS
 

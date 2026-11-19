@@ -37,6 +37,10 @@ import {
   createCampusPushServer,
 } from '../private-api/campusNow';
 import {
+  createPortalPushServer,
+  createPortalReturnServer,
+} from '../private-api/portalPush';
+import {
   createCompanionServer,
   createCompanionWatchServer,
 } from '../private-api/companion';
@@ -509,6 +513,29 @@ describe('the student session (/aouerj/v2)', () => {
       new AppError('SERVICE_UNAVAILABLE'),
     );
     await expect(push.unregister()).resolves.toBeUndefined();
+  });
+
+  it('reads the portal pushes ("Avisar quando voltar" and the nudge) as off without the APNs key', async () => {
+    const { student } = studentSession('209900000023', 'BIA SANTOS');
+    const returnAlert = createPortalReturnServer(student);
+    await expect(returnAlert.status()).resolves.toEqual({
+      available: false,
+      requested: false,
+    });
+    await expect(returnAlert.request('ab'.repeat(32))).rejects.toEqual(
+      new AppError('SERVICE_UNAVAILABLE'),
+    );
+    await expect(returnAlert.cancel()).resolves.toBeUndefined();
+
+    const nudge = createPortalPushServer(student);
+    await expect(nudge.status()).resolves.toEqual({
+      available: false,
+      registered: false,
+    });
+    await expect(nudge.register('ab'.repeat(32))).rejects.toEqual(
+      new AppError('SERVICE_UNAVAILABLE'),
+    );
+    await expect(nudge.unregister()).resolves.toBeUndefined();
   });
 
   it('runs an Agora no campus notice end to end with two students: report, confirm, thanks, refusals and the end', async () => {

@@ -23,11 +23,11 @@ A UERJ não opera o app e não responde por ele. O que acontece dentro do Aluno 
 
 O app entra no Aluno Online direto do seu celular, como um navegador faria. Tudo nesta seção fica no aparelho e não passa pelo servidor do AO UERJ.
 
-- **Login:** a matrícula e a senha ficam no armazenamento seguro do sistema (o Android Keystore ou o Keychain do iPhone). A senha e os cookies do portal só vão para o Aluno Online (`alunoonline.uerj.br`).
+- **Login:** a matrícula e a senha ficam no armazenamento seguro do sistema (o Android Keystore ou o Keychain do iPhone), só neste aparelho e fora do backup. No iPhone, elas abrem depois do primeiro desbloqueio desde que o celular ligou, para os avisos do portal chegarem também com a tela bloqueada, como no Android. A senha e os cookies do portal só vão para o Aluno Online (`alunoonline.uerj.br`).
 - **Dados do portal:** grade, notas, histórico, currículo, Síntese da Formação, RID e disciplinas ficam num cofre cifrado (no Android, AES-256-GCM com a chave no Android Keystore; no iPhone, com uma chave P-256 no Keychain, só deste aparelho), fora do backup do celular, para o app abrir sem internet ou com o portal fora do ar. Essa cópia vale até 180 dias (o RID e os detalhes de disciplinas, 7 dias).
 - **Documentos:** os PDFs que você escolhe guardar ficam no mesmo cofre, no máximo 5 por conta.
 - **O que você anota:** faltas, provas e trabalhos, o Plano até a formatura e as escolhas dos lembretes e dos avisos.
-- **Lembretes e avisos:** os lembretes de aula e os avisos de nota nova, do RID e da inscrição são montados no celular. Para os avisos, o app consulta o portal em segundo plano, do próprio celular.
+- **Lembretes e avisos:** os lembretes de aula e os avisos de nota nova, do RID e da inscrição são montados no celular. Para os avisos, o app consulta o portal em segundo plano, do próprio celular. No iPhone, o servidor do AO UERJ só manda um sinal sem conteúdo, a cada 4 horas, para o celular fazer essa consulta; a consulta e as notas continuam no celular (ver "Avisos com o app fechado, no iPhone", abaixo).
 - **Widget "Próxima aula":** guarda a disciplina, o horário e a sala das suas aulas, para aparecer com o app fechado.
 - **Preferências do app:** o tema, os avisos que você dispensou e o histórico de uso que decide quando o app pede uma avaliação na loja.
 
@@ -70,6 +70,15 @@ Quem abre uma mesa no almoço ou um grupo para voltar manda o tipo, o horário, 
 - A moderação vê quem participou de cada mesa ou grupo.
 - **"Me avise se tiver mesa" no iPhone:** o iPhone não deixa o app olhar a lista de tempos em tempos, então quem avisa é o servidor. O app manda o tipo (mesa ou grupo), até que horas avisar, as mesas que você já viu e o código de notificação deste iPhone, criado pela Apple, que só serve para mandar avisos a este app. O servidor guarda esse pedido ligado à sua conta e o apaga quando avisa, quando você cancela, quando sai da conta ou no fim do horário pedido, o que vier primeiro. O aviso passa pelo serviço de notificações da Apple e leva só o tipo e o horário da mesa ou do grupo, sem nomes. No Android, o próprio celular olha a lista, e nada disso vai ao servidor.
 
+### Avisos com o app fechado, no iPhone
+
+O iPhone não deixa o app olhar o portal de tempos em tempos sozinho, então o servidor ajuda, sempre com o código de notificação deste iPhone, criado pela Apple, ligado à sua conta:
+
+- **Avisos do portal:** com algum aviso do portal ligado (nota nova, RID, inscrição, documento), o código fica registrado no servidor, que manda um sinal sem conteúdo a cada 4 horas, das 7h às 22h, para o celular consultar o portal. O servidor não entra no portal nem recebe as suas notas. O registro sai quando você desliga esses avisos ou sai da conta, e some sozinho depois de 7 dias sem o app abrir.
+- **"Avisar quando voltar":** o pedido vai ao servidor com o código, e o servidor, que já testa se o portal está no ar, manda "O Aluno Online voltou" quando ele responde. O pedido sai quando o servidor avisa, quando você cancela, quando sai da conta ou depois de 3 dias.
+
+No Android, o próprio celular faz isso, e nada vai ao servidor.
+
 ### Agora no campus
 
 Quando você avisa algo sobre o campus (por exemplo, "elevadores parados no hall do bloco C"), o app manda o tipo, a situação e o lugar, escolhidos de listas prontas, sem texto livre. Também vão as suas respostas "Continua" e "Acabou", os "Valeu", os "Não é verdade" e quais avisos você viu, para contar quantos alunos viram cada um.
@@ -104,7 +113,7 @@ O servidor do app registra cada pedido sem o IP, sem o User-Agent e sem o conte�
 
 - **UERJ (Aluno Online):** o app conversa com o portal em seu nome, com o seu login.
 - **Google (Android):** a Play Integrity confirma que o app é o original. O Google vê que o app pediu a verificação, mas não recebe a sua matrícula nem o seu nome, só um código calculado a partir deles. Atualizar e avaliar o app usam a própria Play Store, sem dados do AO UERJ. Esses serviços seguem a [política de privacidade do Google](https://policies.google.com/privacy).
-- **Apple (iPhone):** o App Attest confirma que o app é o original. O iPhone cria uma chave nova a cada entrada, e a Apple recebe essa chave e um código calculado a partir do pedido, nunca a sua matrícula nem o seu nome. Atualizar e avaliar o app usam a própria App Store, sem dados do AO UERJ. Para avisar de versão nova, o app lê a ficha pública dele na App Store, uma consulta que só leva o código do app, sem nada seu. O aviso do "Me avise se tiver mesa" e os do Agora no campus saem do servidor pelo serviço de notificações da Apple (APNs), com o código de notificação do iPhone e o texto do aviso, sem a sua matrícula nem o seu nome. Esses serviços seguem a [política de privacidade da Apple](https://www.apple.com/br/legal/privacy/).
+- **Apple (iPhone):** o App Attest confirma que o app é o original. O iPhone cria uma chave nova a cada entrada, e a Apple recebe essa chave e um código calculado a partir do pedido, nunca a sua matrícula nem o seu nome. Atualizar e avaliar o app usam a própria App Store, sem dados do AO UERJ. Para avisar de versão nova, o app lê a ficha pública dele na App Store, uma consulta que só leva o código do app, sem nada seu. Os avisos que o servidor manda ao iPhone (o "Me avise se tiver mesa", o Agora no campus, o "Avisar quando voltar" e o sinal dos avisos do portal) saem do servidor pelo serviço de notificações da Apple (APNs), com o código de notificação do iPhone e o texto do aviso, sem a sua matrícula nem o seu nome. Esses serviços seguem a [política de privacidade da Apple](https://www.apple.com/br/legal/privacy/).
 - **GitHub (Microsoft):** o app baixa, no máximo a cada 15 minutos, um arquivo de avisos e de configuração deste repositório, em `raw.githubusercontent.com`. O pedido não leva dados seus, mas o GitHub vê o IP, o horário e o User-Agent ([declaração de privacidade do GitHub](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement)).
 - **Oracle Cloud e MongoDB Atlas:** o servidor roda numa máquina da Oracle Cloud, e o banco de dados fica no MongoDB Atlas. Eles guardam os dados em nome do AO UERJ e não os usam para outra coisa. Esses serviços podem ficar fora do Brasil, inclusive nos Estados Unidos.
 - **Links e compartilhamento:** "Como chegar", no mapa, abre o Google Maps só com o destino. Os links do Sobre abrem o GitHub, o LinkedIn e a loja do app (a Play Store ou a App Store). Quando você compartilha a grade ou o convite do app, você escolhe o app de destino (o WhatsApp, por exemplo), e o que você manda segue as regras dele.
@@ -129,6 +138,8 @@ O servidor do app registra cada pedido sem o IP, sem o User-Agent e sem o conte�
 | Denúncias da Companhia agora                   | servidor           | 30 dias                                                                |
 | "Me avise" no iPhone (com o código de aviso)   | servidor           | até avisar, você cancelar ou o fim do horário pedido                   |
 | Código de aviso do Agora no campus (iPhone)    | servidor           | até você desligar os avisos ou sair, ou 30 dias sem abrir o app        |
+| Código de aviso dos avisos do portal (iPhone)  | servidor           | até você desligar os avisos ou sair, ou 7 dias sem abrir o app         |
+| "Avisar quando voltar" no iPhone               | servidor           | até avisar, você cancelar ou sair, ou 3 dias                           |
 | Avisos do Agora no campus                      | servidor           | 70 dias                                                                |
 | Respostas, "Valeu", denúncias e o que você viu | servidor           | cerca de 2 dias depois do fim do aviso                                 |
 | Pontos e nível do Agora no campus              | servidor           | enquanto a conta existir                                               |

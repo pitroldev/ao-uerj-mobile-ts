@@ -100,13 +100,14 @@ export function PortalStatusProvider({
           async request() {
             const result = await alert.request().catch(() => 'denied' as const);
             const texts = systemTexts();
-            if (result !== 'requested')
+            if (result === 'denied')
               snackbar.error(
                 'Não foi possível pedir o aviso.',
                 texts.returnDeniedHint,
               );
-            // no iPhone, quem escolhe a hora de olhar o portal é o iOS
-            else if (texts.returnRequestedHint)
+            // no iPhone, sem o servidor vigiando, quem escolhe a hora de
+            // olhar o portal é o iOS
+            else if (result === 'requested' && texts.returnRequestedHint)
               snackbar.success(
                 'Vamos avisar quando o Aluno Online voltar.',
                 texts.returnRequestedHint,

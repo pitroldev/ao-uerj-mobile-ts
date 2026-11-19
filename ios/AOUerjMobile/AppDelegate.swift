@@ -2,6 +2,7 @@ import BackgroundTasks
 internal import Expo
 import React
 import React_RCTAppDelegate
+import Security
 import UIKit
 import UserNotifications
 import os
@@ -75,20 +76,23 @@ class AppDelegate: ExpoAppDelegate, ExpoReactNativeFactoryProvider {
     PushToken.shared.received(nil)
   }
 
-  // o push silencioso do Agora no campus vira uma rodada sem tela (ver
-  // BackgroundCheck.handleRemoteWake); os outros seguem para o Expo
+  // os pushes silenciosos do servidor viram rodadas sem tela: o do Agora no
+  // campus (BackgroundCheck.handleRemoteWake) e o cutucão da verificação no
+  // portal (handlePortalWake); os outros seguem para o Expo
   override func application(
     _ application: UIApplication,
     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
   ) {
-    guard userInfo["campus"] as? String == "wake" else {
+    if userInfo["campus"] as? String == "wake" {
+      BackgroundCheck.shared.handleRemoteWake(completionHandler)
+    } else if userInfo["portal"] as? String == "wake" {
+      BackgroundCheck.shared.handlePortalWake(completionHandler)
+    } else {
       super.application(
         application, didReceiveRemoteNotification: userInfo,
         fetchCompletionHandler: completionHandler)
-      return
     }
-    BackgroundCheck.shared.handleRemoteWake(completionHandler)
   }
 }
 
@@ -190,8 +194,8 @@ public final class BackgroundCheck: NSObject {
   /// Os limites do Android (AppNotificationsModule.kt).
   private static let minIntervalHours = 1.0
   private static let maxIntervalHours = 24.0
-  /// Com a tela bloqueada, a senha salva (Keychain, só com o aparelho
-  /// desbloqueado) não abre: a rodada fica para logo mais.
+  /// Com a tela bloqueada, a conta salva de antes (Keychain, só com o
+  /// aparelho desbloqueado) não abre: a rodada fica para logo mais.
   private static let lockedRetry: TimeInterval = 15 * 60
   /// O que venceria até lá vai junto, na mesma rodada.
   private static let batchWindow: TimeInterval = 15 * 60
@@ -260,20 +264,26 @@ public final class BackgroundCheck: NSObject {
     }
   }
 
-  /// Uma rodada do iOS (na thread principal). Antes de abrir o React Native,
-  /// decide com o que está no aparelho, como o Android: horário, tela
-  /// bloqueada e permissão de avisos. O JS confere o resto.
+  /// Uma rodada do iOS (na thread principal).
   private func handle(_ task: BGAppRefreshTask) {
     let now = Date()
-    let modes = takeDueModes(at: now)
-    let round = Round(id: UUID().uuidString, modes: modes, task: task)
+    let round = Round(id: UUID().uuidString, modes: takeDueModes(at: now), task: task)
     task.expirationHandler = { [weak self] in
       DispatchQueue.main.async { self?.expire(round) }
     }
     // o próximo pedido sai já, como a Apple recomenda: a rodada pode ser
     // interrompida a qualquer momento
     defer { submit() }
-    if modes.isEmpty {
+    begin(round, at: now)
+  }
+
+  /// Antes de abrir o React Native, decide com o que está no aparelho, como o
+  /// Android: o que venceu, o horário, a conta salva e a permissão de avisos.
+  /// O JS confere o resto. Com a tela bloqueada, a rodada segue se a conta
+  /// salva abre (gravada para abrir depois do primeiro desbloqueio); a de
+  /// antes, "só desbloqueado", espera a próxima entrada no app, que a regrava.
+  private func begin(_ round: Round, at now: Date) {
+    if round.modes.isEmpty {
       finish(round, success: true, by: "nada venceu")
       return
     }
@@ -281,9 +291,9 @@ public final class BackgroundCheck: NSObject {
       finish(round, success: true, by: "das 22h às 7h")
       return
     }
-    guard UIApplication.shared.isProtectedDataAvailable else {
-      postpone(modes, to: now.addingTimeInterval(Self.lockedRetry))
-      finish(round, success: false, by: "tela bloqueada")
+    guard UIApplication.shared.isProtectedDataAvailable || Self.savedAccountReadable() else {
+      postpone(round.modes, to: now.addingTimeInterval(Self.lockedRetry))
+      finish(round, success: false, by: "conta salva fechada (tela bloqueada)")
       return
     }
     UNUserNotificationCenter.current().getNotificationSettings { settings in
@@ -296,6 +306,25 @@ public final class BackgroundCheck: NSObject {
         self.start(round)
       }
     }
+  }
+
+  /// O serviço do Keychain da conta salva (o `service` do credential-store.ts).
+  static let credentialsService = "br.uerj.ao.credentials.v2"
+
+  /// A conta salva abre agora? Com a tela bloqueada, só se foi gravada para
+  /// abrir depois do primeiro desbloqueio. Lê o item de verdade (o iOS só
+  /// recusa a leitura do conteúdo), e o conteúdo é descartado: quem o usa é
+  /// o JS, logo depois.
+  static func savedAccountReadable() -> Bool {
+    let query: [String: Any] = [
+      kSecClass as String: kSecClassGenericPassword,
+      kSecAttrService as String: credentialsService,
+      kSecUseDataProtectionKeychain as String: true,
+      kSecReturnData as String: true,
+      kSecMatchLimit as String: kSecMatchLimitOne,
+    ]
+    var item: CFTypeRef?
+    return SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess
   }
 
   /// O push silencioso do Agora no campus (`"campus": "wake"`): o servidor
@@ -324,6 +353,22 @@ public final class BackgroundCheck: NSObject {
         }
       }
     }
+  }
+
+  /// O cutucão do servidor (`"portal": "wake"`, a cada 4 horas, das 7h às
+  /// 22h), para a verificação que o BGTaskScheduler adia: roda o que venceu
+  /// (ou vence nos 15 minutos seguintes) pelas mesmas conferências da rodada
+  /// do iOS, e expira sozinha, como a do campus. Na thread principal.
+  func handlePortalWake(_ completion: @escaping (UIBackgroundFetchResult) -> Void) {
+    let now = Date()
+    let round = Round(
+      id: UUID().uuidString, modes: takeDueModes(at: now), task: nil,
+      fetchCompletion: completion)
+    defer { submit() }
+    DispatchQueue.main.asyncAfter(deadline: .now() + Self.remoteWakeLimit) { [weak self] in
+      self?.expire(round)
+    }
+    begin(round, at: now)
   }
 
   /// O teste do CI (scripts/ci/ios-smoke.sh): uma rodada pelo mesmo caminho,
