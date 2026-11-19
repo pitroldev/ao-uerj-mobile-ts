@@ -13,6 +13,8 @@
  *   src/components/ui/AoLogo/logoPaths.ts caminhos do logo AO (preenchimento único)
  *   android/app/src/main/res/drawable/ic_launcher_monochrome.xml
  *                                         logo AO do ícone temático (Material You)
+ *   ios/AOUerjMobile/Images.xcassets/AppIcon.appiconset/AppIcon-1024-{dark,tinted}.png
+ *                                         ícone escuro e tingido do iPhone (iOS 18)
  *
  * Para acrescentar um ícone: inclua o nome em OUTLINED (e em FILLED se a
  * variante preenchida for usada, como no item ativo do menu lateral) e rode o
@@ -513,6 +515,23 @@ export const AO_LOGO_PATHS: readonly string[] = ${JSON.stringify(shapes)};
   );
   fs.writeFileSync(MONOCHROME_FILE, monochromeIcon(viewBox, shapes));
   console.log(`OK: ${path.relative(ROOT, MONOCHROME_FILE)}`);
+  writeIosIconVariants(viewBox, shapes);
+}
+
+/** As formas do logo AO como `writeLogo` as lê (para os testes). */
+function logoShapes() {
+  const svg = fs.readFileSync(LOGO_SOURCE, 'utf8');
+  const viewBox = /viewBox="([^"]+)"/.exec(svg)[1];
+  const shapes = [];
+  for (const m of svg.matchAll(/<(path|polygon)\b([^>]*)\/?>/g)) {
+    const attrs = m[2];
+    shapes.push(
+      m[1] === 'path'
+        ? /\sd="([^"]+)"/.exec(attrs)[1].replace(/\s+/g, ' ').trim()
+        : polygonToPath(/points="([^"]+)"/.exec(attrs)[1]),
+    );
+  }
+  return { viewBox, shapes };
 }
 
 /**
@@ -553,6 +572,250 @@ ${paths}
 `;
 }
 
+/* -------------------------------------- ícone do iPhone: escuro e tingido */
+/*
+ * O iOS 18 troca o ícone pelo modo da tela de início: o claro de sempre
+ * (AppIcon-1024.png, a arte azul), o escuro (o logo sobre fundo transparente:
+ * o sistema põe o fundo escuro dele) e o tingido (em tons de cinza: o
+ * sistema pinta com a cor que o aluno escolheu, pela luminância). O logo fica
+ * no mesmo lugar e no mesmo tamanho do ícone claro (859 px, centralizado),
+ * para não pular quando o modo muda. Rasterizado aqui mesmo, sem dependência:
+ * o logo só usa linhas e curvas cúbicas.
+ */
+const IOS_ICON_DIR = path.join(
+  ROOT,
+  'ios/AOUerjMobile/Images.xcassets/AppIcon.appiconset',
+);
+const IOS_ICON_SIZE = 1024;
+const IOS_LOGO_WIDTH = 859;
+/** Linhas de amostra por pixel (o antisserrilhado vertical; o horizontal é exato). */
+const SAMPLES = 8;
+/** Segmentos por curva cúbica: no tamanho do ícone, a curva fica lisa. */
+const CURVE_STEPS = 24;
+
+/** Os contornos de um caminho do logo, em pontos do viewBox (M, L, H, V, C, S, Z). */
+function subpathsOf(d) {
+  const subpaths = [];
+  let current = null;
+  let x = 0;
+  let y = 0;
+  let startX = 0;
+  let startY = 0;
+  let control = null;
+  const moveTo = (nx, ny) => {
+    current = [[nx, ny]];
+    subpaths.push(current);
+    startX = nx;
+    startY = ny;
+  };
+  const lineTo = (nx, ny) => {
+    if (!current) moveTo(x, y);
+    current.push([nx, ny]);
+  };
+  const curveTo = (c1, c2, end) => {
+    if (!current) moveTo(x, y);
+    for (let step = 1; step <= CURVE_STEPS; step++) {
+      const t = step / CURVE_STEPS;
+      const u = 1 - t;
+      const a = u * u * u;
+      const b = 3 * u * u * t;
+      const c = 3 * u * t * t;
+      const e = t * t * t;
+      current.push([
+        a * x + b * c1[0] + c * c2[0] + e * end[0],
+        a * y + b * c1[1] + c * c2[1] + e * end[1],
+      ]);
+    }
+  };
+  parsePath(d).forEach(({ cmd, args }, index) => {
+    const upper = cmd.toUpperCase();
+    const rel = !isAbsolute(cmd, index);
+    const point = (px, py) => (rel ? [x + px, y + py] : [px, py]);
+    switch (upper) {
+      case 'M': {
+        [x, y] = point(args[0], args[1]);
+        moveTo(x, y);
+        control = null;
+        break;
+      }
+      case 'L':
+      case 'H':
+      case 'V': {
+        if (upper === 'L') [x, y] = point(args[0], args[1]);
+        else if (upper === 'H') x = rel ? x + args[0] : args[0];
+        else y = rel ? y + args[0] : args[0];
+        lineTo(x, y);
+        control = null;
+        break;
+      }
+      case 'C':
+      case 'S': {
+        const second = upper === 'C' ? 2 : 0;
+        const c1 =
+          upper === 'C'
+            ? point(args[0], args[1])
+            : control
+              ? [2 * x - control[0], 2 * y - control[1]]
+              : [x, y];
+        const c2 = point(args[second], args[second + 1]);
+        const end = point(args[second + 2], args[second + 3]);
+        curveTo(c1, c2, end);
+        control = c2;
+        [x, y] = end;
+        break;
+      }
+      case 'Z': {
+        if (current) current.push([startX, startY]);
+        x = startX;
+        y = startY;
+        current = null;
+        control = null;
+        break;
+      }
+      default:
+        throw new Error(`Comando sem suporte no ícone do iPhone: ${cmd}`);
+    }
+  });
+  return subpaths;
+}
+
+/**
+ * A cobertura (0 a 1) de um caminho, pela regra nonzero do SVG, em
+ * `size` × `size` pixels. Cada caminho é preenchido sozinho: os vãos do selo
+ * são contornos ao contrário dentro do mesmo caminho.
+ */
+function pathCoverage(subpaths, size, toPixel) {
+  const edges = [];
+  for (const subpath of subpaths) {
+    const points = subpath.map(toPixel);
+    for (let i = 0; i < points.length; i++) {
+      const [x0, y0] = points[i];
+      const [x1, y1] = points[(i + 1) % points.length];
+      if (y0 !== y1) edges.push([x0, y0, x1, y1]);
+    }
+  }
+  const cover = new Float64Array(size * size);
+  const crossings = [];
+  for (let row = 0; row < size; row++) {
+    for (let sample = 0; sample < SAMPLES; sample++) {
+      const sy = row + (sample + 0.5) / SAMPLES;
+      crossings.length = 0;
+      for (const [x0, y0, x1, y1] of edges) {
+        if ((y0 <= sy && sy < y1) || (y1 <= sy && sy < y0))
+          crossings.push([
+            x0 + ((sy - y0) * (x1 - x0)) / (y1 - y0),
+            y1 > y0 ? 1 : -1,
+          ]);
+      }
+      crossings.sort((a, b) => a[0] - b[0]);
+      let winding = 0;
+      for (let i = 0; i < crossings.length - 1; i++) {
+        winding += crossings[i][1];
+        if (winding === 0) continue;
+        const from = Math.max(0, crossings[i][0]);
+        const to = Math.min(size, crossings[i + 1][0]);
+        for (let px = Math.floor(from); px < to; px++) {
+          const overlap = Math.min(to, px + 1) - Math.max(from, px);
+          if (overlap > 0) cover[row * size + px] += overlap / SAMPLES;
+        }
+      }
+    }
+  }
+  return cover;
+}
+
+/** A cobertura do logo inteiro: os caminhos somados como tinta sobre tinta. */
+function logoCoverage(viewBox, shapes, size = IOS_ICON_SIZE) {
+  const [minX, minY, width, height] = viewBox.split(/\s+/).map(Number);
+  const scale = IOS_LOGO_WIDTH / width;
+  const left = (size - width * scale) / 2;
+  const top = (size - height * scale) / 2;
+  const toPixel = ([px, py]) => [
+    left + (px - minX) * scale,
+    top + (py - minY) * scale,
+  ];
+  const alpha = new Float64Array(size * size);
+  for (const d of shapes) {
+    const cover = pathCoverage(subpathsOf(d), size, toPixel);
+    for (let i = 0; i < alpha.length; i++) {
+      const a = Math.min(1, cover[i]);
+      alpha[i] = alpha[i] + a * (1 - alpha[i]);
+    }
+  }
+  return { alpha, top, height: height * scale };
+}
+
+/** Um PNG de 8 bits: RGB (`channels` 3) ou RGBA (4), sem entrelaçamento. */
+function encodePng(size, channels, pixels) {
+  const zlib = require('node:zlib');
+  const stride = size * channels;
+  const raw = Buffer.alloc((stride + 1) * size);
+  for (let row = 0; row < size; row++)
+    pixels.copy(raw, row * (stride + 1) + 1, row * stride, (row + 1) * stride);
+  const chunk = (type, data) => {
+    const length = Buffer.alloc(4);
+    length.writeUInt32BE(data.length);
+    const body = Buffer.concat([Buffer.from(type, 'ascii'), data]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(zlib.crc32(body));
+    return Buffer.concat([length, body, crc]);
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(size, 0);
+  header.writeUInt32BE(size, 4);
+  header[8] = 8;
+  header[9] = channels === 4 ? 6 : 2;
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', header),
+    chunk('IDAT', zlib.deflateSync(raw, { level: 9 })),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
+}
+
+/**
+ * As duas variantes do iOS 18, do mesmo logo:
+ * - escura: o logo de branco a azul-claro de cima para baixo (a profundidade
+ *   que o ícone claro tem na sombra), sobre fundo transparente;
+ * - tingida: o mesmo degradê em cinza (100% a 80%), sobre preto opaco.
+ */
+function iosIconVariants(viewBox, shapes) {
+  const size = IOS_ICON_SIZE;
+  const { alpha, top, height } = logoCoverage(viewBox, shapes, size);
+  const dark = Buffer.alloc(size * size * 4);
+  const tinted = Buffer.alloc(size * size * 3);
+  // de #FFFFFF a #C9D9EC (o on-brand-muted do app), no alto do logo
+  const from = [255, 255, 255];
+  const to = [201, 217, 236];
+  for (let row = 0; row < size; row++) {
+    const t = Math.min(1, Math.max(0, (row - top) / height));
+    const color = from.map((c, i) => Math.round(c + (to[i] - c) * t));
+    const gray = 255 - 51 * t;
+    for (let col = 0; col < size; col++) {
+      const i = row * size + col;
+      const a = alpha[i];
+      dark.set([...color, Math.round(a * 255)], i * 4);
+      const value = Math.round(gray * a);
+      tinted.set([value, value, value], i * 3);
+    }
+  }
+  return {
+    dark: encodePng(size, 4, dark),
+    tinted: encodePng(size, 3, tinted),
+  };
+}
+
+function writeIosIconVariants(viewBox, shapes) {
+  const { dark, tinted } = iosIconVariants(viewBox, shapes);
+  for (const [name, png] of [
+    ['AppIcon-1024-dark.png', dark],
+    ['AppIcon-1024-tinted.png', tinted],
+  ]) {
+    fs.writeFileSync(path.join(IOS_ICON_DIR, name), png);
+    console.log(`OK: ${path.relative(ROOT, path.join(IOS_ICON_DIR, name))}`);
+  }
+}
+
 async function main() {
   await writeLogo();
   if (process.argv.includes('--logo')) return;
@@ -571,6 +834,8 @@ module.exports = {
   FILLED,
   TARGET_VIEWBOX,
   absolutePoints,
+  iosIconVariants,
+  logoShapes,
   monochromeIcon,
   normalizePath,
   parsePath,

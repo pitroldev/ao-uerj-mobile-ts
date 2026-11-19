@@ -109,6 +109,7 @@ As specs de `src/specs` com implementação no iPhone ficam em `ios/AOUerjMobile
 
 ## Widgets, atalhos e App Intents
 
+- **Ícone:** o `AppIcon` do `Images.xcassets` é de tamanho único (o Xcode gera os menores) e tem as três aparências do iOS 18: a clara, a escura (fundo transparente) e a tingida (cinza sobre preto). As duas últimas saem de `node scripts/generate-icons.cjs --logo` (ver [Ícone temático](notificacoes-e-widget.md#ícone-temático)). Antes do iOS 18, vale a clara.
 - **Widgets:** "Próxima aula" nos tamanhos pequeno e médio, mais o retangular da tela de bloqueio no iOS 16+; "Hoje" nos tamanhos médio e grande, com 3 ou 7 aulas. Eles se redesenham pela linha do tempo do WidgetKit, e não por alarmes como no Android.
 - **App Intents:** "Próxima aula" e "Aulas de hoje" respondem pela Siri, pelo app Atalhos e pelo Spotlight com a grade salva, sem abrir o app (`AppShortcuts.swift`, com frases prontas do iOS 16 em diante). "Abrir no AO UERJ" (`OpenAppIntent.swift`, nos dois alvos) abre o Início, as notas, o mapa ou os documentos, e é a ação do controle "Próxima aula" da Central de Controle (iOS 18).
 - **Aberturas:** o toque no aviso chega pelo delegate do `UNUserNotificationCenter`. Os atalhos do ícone (`UIApplicationShortcutItems` no `Info.plist`, com os mesmos destinos do Android) e o toque no widget (`aouerj://open?target=home`) chegam pela `SceneDelegate`, na abertura (`connectionOptions`) e com o app aberto.

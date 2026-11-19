@@ -146,3 +146,23 @@ test('normaliza caminhos de viewBox 24×24 para o viewBox comum', () => {
   );
   assert.throws(() => normalizePath('M0 0Z', [0, 0, 24, 12]));
 });
+
+test('os ícones escuro e tingido do iPhone saem do logo AO, como o gerador os faz', () => {
+  const { iosIconVariants, logoShapes } = require('../generate-icons.cjs');
+  const { viewBox, shapes } = logoShapes();
+  const { dark, tinted } = iosIconVariants(viewBox, shapes);
+  const directory = 'ios/AOUerjMobile/Images.xcassets/AppIcon.appiconset';
+  // node scripts/generate-icons.cjs --logo refaz os dois depois de mudar o SVG
+  assert.ok(
+    dark.equals(
+      fs.readFileSync(path.join(root, directory, 'AppIcon-1024-dark.png')),
+    ),
+    'AppIcon-1024-dark.png desatualizado',
+  );
+  assert.ok(
+    tinted.equals(
+      fs.readFileSync(path.join(root, directory, 'AppIcon-1024-tinted.png')),
+    ),
+    'AppIcon-1024-tinted.png desatualizado',
+  );
+});

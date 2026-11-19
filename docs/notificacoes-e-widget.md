@@ -83,6 +83,8 @@ Nenhum deles acessa o portal: usam a grade salva. No iPhone, os widgets ficam na
 
 Material You, Android 13+: o ícone é adaptativo, com a arte de sempre na frente (`drawable-nodpi/ic_launcher_art.png`) e o logo AO na camada `monochrome`, que o sistema pinta com as cores do tema. O vetor sai de `src/assets/AO_Logo.svg` por `node scripts/generate-icons.cjs --logo`.
 
+No iPhone (iOS 18+), o ícone muda com o modo da tela de início: o claro de sempre (`AppIcon-1024.png`), o escuro (o logo sobre fundo transparente, e o sistema põe o fundo escuro dele) e o tingido (o logo em cinza sobre preto, que o sistema pinta com a cor escolhida). O logo fica no mesmo lugar e tamanho nos três. Os dois novos saem do mesmo SVG pelo mesmo comando (`--logo`), e o `pnpm test:tooling` acusa se ficarem desatualizados.
+
 ### Atalhos do ícone
 
 Tocar e segurar: Próxima aula, Notas, Mapa e Documentos ([shortcuts.xml](../android/app/src/main/res/xml/shortcuts.xml)).

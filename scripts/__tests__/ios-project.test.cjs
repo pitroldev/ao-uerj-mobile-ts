@@ -48,28 +48,44 @@ test('iOS source resources exist with exact casing and privacy manifest is bundl
   assert.match(resources, /PrivacyInfo\.xcprivacy in Resources/);
 });
 
-test('App Store icon catalog contains opaque PNGs at the required dimensions', () => {
+test('the app icon catalog has the light, dark and tinted 1024 px icons of iOS 18', () => {
   const directory = 'ios/AOUerjMobile/Images.xcassets/AppIcon.appiconset';
   const { images } = JSON.parse(read(`${directory}/Contents.json`));
-  assert.ok(
-    images.some(
-      image => image.idiom === 'ios-marketing' && image.size === '1024x1024',
-    ),
+  // um 1024 por modo (o Xcode gera os tamanhos menores)
+  const mode = image =>
+    image.appearances?.find(({ appearance }) => appearance === 'luminosity')
+      ?.value ?? 'light';
+  assert.deepEqual(
+    images.map(mode).sort((a, b) => a.localeCompare(b)),
+    ['dark', 'light', 'tinted'],
   );
   for (const image of images) {
-    assert.ok(image.filename, `${image.idiom} ${image.size} ${image.scale}`);
+    assert.deepEqual(
+      [image.idiom, image.platform, image.size],
+      ['universal', 'ios', '1024x1024'],
+      image.filename,
+    );
     const png = fs.readFileSync(path.join(root, directory, image.filename));
     assert.equal(png.subarray(1, 4).toString(), 'PNG');
-    const size =
-      Number(image.size.split('x')[0]) * Number(image.scale.replace('x', ''));
-    assert.equal(png.readUInt32BE(16), size, image.filename);
-    assert.equal(png.readUInt32BE(20), size, image.filename);
+    assert.equal(png.readUInt32BE(16), 1024, image.filename);
+    assert.equal(png.readUInt32BE(20), 1024, image.filename);
+    // o claro vai à App Store (RGB, sem alfa); o tingido é cinza sobre preto;
+    // o escuro tem o fundo transparente, para o fundo do sistema aparecer
     assert.equal(
       png[25],
-      2,
-      'Store icons must be RGB without an alpha channel',
+      mode(image) === 'dark' ? 6 : 2,
+      `${image.filename}: ${mode(image) === 'dark' ? 'RGBA' : 'RGB sem alfa'}`,
     );
   }
+  assert.deepEqual(
+    fs
+      .readdirSync(path.join(root, directory))
+      .sort((a, b) => a.localeCompare(b)),
+    ['Contents.json', ...images.map(image => image.filename)].sort((a, b) =>
+      a.localeCompare(b),
+    ),
+    'no icon outside the catalog',
+  );
 });
 
 /** A build phase `phase` (e.g. Sources) of the app target, by its template id. */
