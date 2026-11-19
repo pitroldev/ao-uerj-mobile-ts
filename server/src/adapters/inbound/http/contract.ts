@@ -678,6 +678,39 @@ export type CampusCommunityResponse = {
   };
 };
 
+/*
+ * O Agora no campus em segundo plano no iPhone, que não roda nada a cada 15
+ * minutos como o Android:
+ * - `GET /aouerj/v2/campus-now/push` → `CampusPushStatusResponse`.
+ * - `POST /aouerj/v2/campus-now/push` com `RegisterCampusPushRequest` → 204:
+ *   registra (ou troca) o iPhone do aluno, por 30 dias (o app registra de
+ *   novo a cada abertura). Um por aluno e um dono por token.
+ * - `POST /aouerj/v2/campus-now/push/cancel` com `{}` → 204 (sem registro
+ *   também).
+ *
+ * Com o iPhone registrado, quem avisou recebe por push o aviso confirmado, o
+ * "quantos agradeceram" quando o aviso acaba e o nível novo, nas palavras do
+ * app, com `"target": "campus"` fora do `aps`. Enquanto houver aviso
+ * confirmado, o servidor acorda o app no máximo a cada meia hora, com um push
+ * silencioso (`{"aps":{"content-available":1},"campus":"wake"}`), para o
+ * celular perguntar "ainda está lá?" pela grade dele. Das 22h às 7h, nada.
+ *
+ * Erros: 400 `invalid_request` (o corpo fora do formato) e 503
+ * `push_unavailable` (o servidor sem a chave do APNs).
+ */
+
+/** `available`: o servidor manda push; `registered`: este aluno tem um iPhone registrado. */
+export type CampusPushStatusResponse = {
+  available: boolean;
+  registered: boolean;
+};
+
+export type RegisterCampusPushRequest = {
+  platform: 'ios';
+  /** O token do APNs do aparelho, em hex (de 64 a 200 dígitos). */
+  token: string;
+};
+
 /* --------------------------------------------- identificação do aluno (v2) */
 
 /** `GET /aouerj/v2/students/challenge`: o desafio de entrada (uso único, 5 min). */

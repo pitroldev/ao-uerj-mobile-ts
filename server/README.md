@@ -517,7 +517,10 @@ pelo APNs.
   `DeviceTokenNotForTopic`) descartam o token com o pedido; outra recusa, a
   rede ou 10 segundos sem resposta devolvem o pedido para a próxima rodada (o
   push repetido fica no lugar do anterior, pelo `apns-collapse-id`). O log
-  leva o status e o motivo da Apple, nunca o token do aparelho.
+  leva o status e o motivo da Apple, nunca o token do aparelho. O mesmo envio
+  (`shared/push.ts`) serve ao Agora no campus, que também manda o push
+  silencioso (`wake`, ver [Em segundo plano no
+  iPhone](#em-segundo-plano-no-iphone)).
 - **A configuração:** `APNS_KEY_ID` e `APNS_PRIVATE_KEY` (a chave .p8, em PEM;
   numa linha só, com `\n` no lugar das quebras), `APNS_TEAM_ID` (padrão
   `4L52AMB8J7`), `APNS_TOPIC` (padrão `com.aouerjmobile`) e
@@ -609,9 +612,52 @@ pontos, os limites e a moderação; os outros alunos nunca veem.
 | `POST /aouerj/v2/campus-now/seen`                   | Os avisos que apareceram na tela                                         |
 | `GET /aouerj/v2/campus-now/you`                     | Os pontos, as contagens, a semana e os avisos de hoje do aluno           |
 | `GET /aouerj/v2/campus-now/community?month=AAAA-MM` | O campus somado: a semana e o mês                                        |
+| `GET /aouerj/v2/campus-now/push`                    | `available` (o servidor manda push) e `registered` (o iPhone do aluno)   |
+| `POST /aouerj/v2/campus-now/push`                   | Registra o iPhone (`platform`, `token`), 204                             |
+| `POST /aouerj/v2/campus-now/push/cancel`            | Tira o iPhone, 204                                                       |
 
 Sem a sessão, 401; sem o aviso (acabou, saiu do ar, nunca existiu), 404
 `notice_not_found`. Os tipos estão em `contract.ts`.
+
+#### Em segundo plano no iPhone
+
+No Android, uma tarefa do aparelho lê a lista a cada 15 minutos perto das
+aulas e avisa no celular. O iPhone não roda nada sem a tela nessa frequência,
+então o servidor entra em dois papéis (`modules/campus-now/push.ts`):
+
+- **O registro:** o app manda o token do APNs do aparelho (`POST /push`,
+  em hex, guardado em minúsculas) quando o aluno liga os avisos do Agora no
+  campus, e de novo a cada abertura. Fica em `campuspushdevices` (o `_id` é
+  o aluno) por 30 dias desde o último registro, quando o índice TTL apaga. Um
+  por aluno e um dono por token: o mesmo aparelho com outra conta tira a
+  anterior. O cancelamento (`/push/cancel`), o banimento e a Apple dizendo
+  que o token morreu (410, `BadDeviceToken`, `DeviceTokenNotForTopic`) apagam.
+- **O que quem avisou recebe, com alerta**, nas palavras do app
+  (`campusNowText.ts`): "Seu aviso foi confirmado" na primeira confirmação de
+  outro aluno; "N colegas agradeceram seu aviso" quando o aviso acaba (pelas
+  respostas, por quem avisou, por outra situação no mesmo lugar ou por
+  vencer) com algum "Valeu", uma vez por aviso (`thanksToldAt`); e "Nível N"
+  quando os pontos sobem o nível (os devolvidos pela moderação, não). O
+  vencimento a rodada a cada minuto pega (os que acabaram há até uma hora);
+  o resto sai na hora, sem segurar o pedido de quem confirmou ou agradeceu.
+  `thread-id` `campus`, `"target": "campus"` fora do `aps` e
+  `apns-collapse-id` `campus-confirmed-<id>`, `campus-thanks-<id>` ou
+  `campus-level`. O aviso removido pela moderação não avisa.
+- **O "ainda está lá?":** depende do caminho do aluno (as salas da grade),
+  que fica só no celular. Enquanto houver um aviso que vale e está
+  confirmado, o servidor acorda os iPhones registrados com um push silencioso
+  (`{"aps":{"content-available":1},"campus":"wake"}`, `apns-push-type`
+  `background`, prioridade 5, vence em 15 minutos), no máximo um a cada meia
+  hora por aparelho (`wokenAt`, marcado numa gravação só: as duas cores do
+  azul/verde não acordam duas vezes). A rodada a cada minuto faz isso, e a
+  primeira confirmação (ou o aviso de quem é de confiança) dispara na hora. O
+  celular confere a grade e só pergunta se o aviso é do caminho; o iOS decide
+  quando acorda, então é o melhor possível, não garantido.
+- **Das 22h às 7h** (São Paulo), nada sai, nem fica para depois.
+- Sem a chave do APNs (`APNS_KEY_ID` e `APNS_PRIVATE_KEY`, a mesma do "Me
+  avise se abrirem"), o `GET` diz `available: false`, e o registro recebe 503
+  `push_unavailable`. O registro e o cancelamento contam no limite por aluno
+  (`COMPANION_MEMBER_LIMIT_PER_MINUTE`); a leitura, não.
 
 ### Atualizações pelo ar (OTA)
 
@@ -874,7 +920,12 @@ O que mudou de propósito:
   "Valeu", a denúncia e se viu) até 2 dias depois do fim mais longe possível
   do aviso; as contagens do dia de cada aluno, por 3 dias; e os pontos e as
   contagens de sempre de cada aluno, sem prazo. Tudo pelo índice TTL, menos
-  os pontos. Sem texto livre, sem IP e sem localização.
+  os pontos. Sem texto livre, sem IP e sem localização. Para os avisos no
+  iPhone, o id do aluno com o token do APNs do aparelho e a hora do último
+  push silencioso, por 30 dias desde o último registro (o cancelamento, o
+  banimento e o token recusado pela Apple apagam antes). O push leva só o
+  tipo, a situação, o lugar, a hora e os números do aviso do próprio aluno,
+  nunca quem confirmou ou agradeceu; o silencioso não leva nada do aviso.
 - **O que fica guardado dos alunos identificados:** a matrícula e o nome do
   portal, cifrados, o HMAC da matrícula, os HMACs das instalações e as datas
   de entrada, sem prazo de remoção; as sessões, pelo hash, até vencerem; o id

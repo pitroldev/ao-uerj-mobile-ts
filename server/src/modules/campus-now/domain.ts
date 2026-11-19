@@ -194,6 +194,11 @@ export type Notice = {
   penalized: boolean;
   /** A moderação já olhou: manteve (as denúncias não tiram mais) ou tirou. */
   reviewedAt: Date | null;
+  /**
+   * O aviso acabou e o servidor já tratou do "quantos agradeceram" de quem
+   * avisou (com o push ou sem ele): uma vez só.
+   */
+  thanksToldAt: Date | null;
   /** Quando o banco apaga. */
   purgeAt: Date;
 };
@@ -401,6 +406,7 @@ export function planNotice(
     removedBy: null,
     penalized: false,
     reviewedAt: null,
+    thanksToldAt: null,
     purgeAt: new Date(created + NOTICE_RETENTION_MS),
   };
 }

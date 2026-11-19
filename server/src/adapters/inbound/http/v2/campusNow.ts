@@ -27,6 +27,7 @@ import type {
   CampusNoticeResponse,
   CampusNoticeResultResponse,
   CampusNowResponse,
+  CampusPushStatusResponse,
   CampusYouResponse,
   OkResponse,
 } from '../contract.ts';
@@ -83,6 +84,17 @@ const seenSchema = body({
   ids: z
     .array(stringFor('ids[]'), { error: 'ids must be an array' })
     .max(SEEN_LIMIT, `ids must contain at most ${SEEN_LIMIT} ids`),
+});
+
+/** O token do APNs: hoje 32 bytes (64 dígitos hex); a Apple avisa que pode crescer. */
+const APNS_TOKEN = /^[0-9a-f]{64,200}$/;
+
+const pushSchema = body({
+  platform: z.literal('ios', { error: 'platform must be ios' }),
+  token: stringFor('token')
+    .trim()
+    .toLowerCase()
+    .regex(APNS_TOKEN, 'token must be the APNs token in hex'),
 });
 
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -265,6 +277,39 @@ export function campusNowRoutes({
       const { month } = parse(monthSchema, req.query);
       const community = await campusNow.community(month ?? null);
       noStore(res).json(community satisfies CampusCommunityResponse);
+    },
+  );
+
+  // o iPhone do aluno para os avisos em segundo plano; a leitura não conta
+  // no limite (o app a faz ao abrir), o registro e o cancelamento contam
+  routes.get('/campus-now/push', session, withDatabase, async (req, res) => {
+    const status = await campusNow.pushStatus(actor(res));
+    noStore(res).json({
+      available: status.available,
+      registered: status.registered,
+    } satisfies CampusPushStatusResponse);
+  });
+
+  routes.post(
+    '/campus-now/push',
+    session,
+    studentLimit,
+    withDatabase,
+    async (req, res) => {
+      const device = parse(pushSchema, req.body);
+      await campusNow.registerPush(device, actor(res));
+      noStore(res).status(204).end();
+    },
+  );
+
+  routes.post(
+    '/campus-now/push/cancel',
+    session,
+    studentLimit,
+    withDatabase,
+    async (req, res) => {
+      await campusNow.unregisterPush(actor(res));
+      noStore(res).status(204).end();
     },
   );
 

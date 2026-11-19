@@ -211,33 +211,8 @@ export interface CallWatchRepository {
   remove(student: string): Promise<void>;
 }
 
-/** Um aviso no aparelho do aluno. */
-export type PushMessage = {
-  title: string;
-  body: string;
-  /** Agrupa os avisos no aparelho (`thread-id`). */
-  thread: string;
-  /** O aviso novo com a mesma chave fica no lugar do anterior. */
-  collapseId: string;
-  /** Para onde o toque leva no app. */
-  target: 'companion';
-  /** Depois disso, quem estava sem sinal já não recebe. */
-  expiresAt: Date;
-};
-
-/**
- * `sent`: a Apple aceitou. `gone`: o aparelho não recebe mais por esse token
- * (o app saiu, o token mudou). `failed`: não deu agora (rede, a Apple, a
- * chave), e outro envio pode dar.
- */
-export type PushResult = 'sent' | 'gone' | 'failed';
-
-/** Porta de saída: o push para o aparelho (o APNs, no iPhone). */
-export interface PushSender {
-  send(device: PushDevice, message: PushMessage): Promise<PushResult>;
-  /** Fecha a conexão no desligamento. */
-  close?(): Promise<void>;
-}
+// o push é o mesmo do Agora no campus (shared/push.ts)
+export type { PushMessage, PushResult, PushSender } from '../../shared/push.ts';
 
 /** Porta de saída: quem olhou a lista há pouco, pelo hash do passe. */
 export interface WatcherRepository {

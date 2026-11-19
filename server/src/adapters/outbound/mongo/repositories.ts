@@ -4,6 +4,7 @@ import type {
 } from '../../../modules/access/ports.ts';
 import type {
   AnswerRepository,
+  CampusPushDeviceRepository,
   ContributorRepository,
   DayRepository,
   NoticeRepository,
@@ -26,6 +27,7 @@ import type { SuggestionRepository } from '../../../modules/suggestions/ports.ts
 import type { TeacherRepository } from '../../../modules/teachers/ports.ts';
 import {
   createAnswerRepository,
+  createCampusPushDeviceRepository,
   createContributorRepository,
   createDayRepository,
   createNoticeRepository,
@@ -70,6 +72,7 @@ export type Repositories = {
   campusAnswers: AnswerRepository;
   campusPeople: ContributorRepository;
   campusDays: DayRepository;
+  campusPushDevices: CampusPushDeviceRepository;
   otaEntries: OtaEntryRepository;
 };
 
@@ -95,6 +98,9 @@ export function createMongoRepositories(models: Models): Repositories {
     campusAnswers: createAnswerRepository(models.campusAnswers),
     campusPeople: createContributorRepository(models.campusPeople),
     campusDays: createDayRepository(models.campusDays),
+    campusPushDevices: createCampusPushDeviceRepository(
+      models.campusPushDevices,
+    ),
     otaEntries: createOtaEntryRepository(models.otaEntries),
   };
 }

@@ -1,4 +1,5 @@
 import { systemClock, type Clock } from '../../shared/clock.ts';
+import type { PushDevice, PushResult, PushSender } from '../../shared/push.ts';
 import {
   ConflictError,
   ForbiddenError,
@@ -19,6 +20,7 @@ import {
   extendedExpiry,
   FLAGS_TO_REMOVE,
   isActive,
+  isConfirmed,
   MAX_ACTIVE_NOTICES,
   monthOf,
   monthRange,
@@ -40,12 +42,14 @@ import {
   weekSummary,
   type Answer,
   type Contributor,
+  type ContributorChange,
   type DayField,
   type Notice,
 } from './domain.ts';
 import type {
   AnswerRepository,
   CampusNow,
+  CampusPushDeviceRepository,
   Community,
   ContributorRepository,
   DayRepository,
@@ -53,6 +57,20 @@ import type {
   NoticeRepository,
   ReportResult,
 } from './ports.ts';
+import {
+  ALERT_EXPIRY_MS,
+  confirmedText,
+  isQuietTime,
+  levelText,
+  PUSH_DEVICE_TTL_MS,
+  THANKS_EXPIRY_MS,
+  THANKS_LOOKBACK_MS,
+  thanksText,
+  WAKE_EXPIRY_MS,
+  WAKE_INTERVAL_MS,
+  type AlertText,
+  type CampusPushDevice,
+} from './push.ts';
 
 /** A lista que vale para todos fica guardada por poucos segundos. */
 export const LIST_CACHE_MS = 5 * 1000;
@@ -70,6 +88,15 @@ const notFound = () =>
   new NotFoundError(
     'notice_not_found',
     'The notice is over, was removed or never existed',
+  );
+
+/** Quantos iPhones são acordados de uma vez na rodada. */
+const WAKE_BATCH = 20;
+
+const pushUnavailable = () =>
+  new UnavailableError(
+    'push_unavailable',
+    'Notifications to the iPhone are not available right now',
   );
 
 const ownNotice = () =>
@@ -102,12 +129,21 @@ const earnedOf = (contributor: Contributor | null, earned: number): Earned => ({
  * Para muitos alunos ao mesmo tempo, a lista que vale para todos fica
  * guardada por poucos segundos (e é refeita a cada gravação deste processo);
  * o que é de cada um (o que respondeu) vem numa consulta só, pelos ids.
+ *
+ * No iPhone (`pushDevices` e `push`), quem avisou recebe por push o aviso
+ * confirmado, quantos agradeceram e o nível novo, e os aparelhos registrados
+ * são acordados (o push silencioso) para o celular perguntar "ainda está
+ * lá?" com a grade dele. Nenhum envio segura quem pediu; a falha vai só
+ * para `onPushError`.
  */
 export function createCampusNow({
   notices,
   answers,
   contributors,
   days,
+  pushDevices = null,
+  push = null,
+  onPushError = () => undefined,
   now = systemClock,
   listCacheMs = LIST_CACHE_MS,
   helpersCacheMs = HELPERS_CACHE_MS,
@@ -117,12 +153,131 @@ export function createCampusNow({
   answers: AnswerRepository;
   contributors: ContributorRepository;
   days: DayRepository;
+  /** `null` (ou sem `push`): sem os avisos do Agora no campus no iPhone. */
+  pushDevices?: CampusPushDeviceRepository | null;
+  /** `null`: sem a chave do APNs, o push fica desligado. */
+  push?: PushSender | null;
+  onPushError?: (err: unknown) => void;
   now?: Clock;
   listCacheMs?: number;
   helpersCacheMs?: number;
   communityCacheMs?: number;
 }): CampusNow {
   const at = () => new Date(now());
+  const alerts = pushDevices && push ? { devices: pushDevices, push } : null;
+
+  /** O push que não segura quem pediu: o erro vai só para `onPushError`. */
+  const later = (task: () => Promise<unknown>) => {
+    if (alerts) void task().catch(onPushError);
+  };
+
+  /** O que a Apple disse: o token que não recebe mais vai embora. */
+  async function settle(entry: CampusPushDevice, result: PushResult) {
+    if (result === 'gone')
+      await alerts?.devices.forget(entry.student, entry.device.token);
+    return result === 'sent';
+  }
+
+  /** O alerta para o iPhone do aluno, se ele registrou; das 22h às 7h, nada. */
+  async function alert(
+    student: string,
+    text: AlertText,
+    collapseId: string,
+    expiresInMs: number,
+    time: Date,
+  ) {
+    if (!alerts || isQuietTime(time)) return false;
+    const entry = await alerts.devices.find(student, time);
+    if (!entry) return false;
+    const result = await alerts.push.send(entry.device, {
+      ...text,
+      thread: 'campus',
+      collapseId,
+      target: 'campus',
+      expiresAt: new Date(time.getTime() + expiresInMs),
+    });
+    return settle(entry, result);
+  }
+
+  /** Soma os pontos; o nível que subiu vira um aviso para o aluno. */
+  async function award(student: string, change: ContributorChange, time: Date) {
+    const after = await contributors.add(student, change);
+    const gained = change.points ?? 0;
+    if (gained > 0) {
+      const { level } = standing(after.points);
+      if (level > standing(after.points - gained).level)
+        later(() =>
+          alert(
+            student,
+            levelText(level),
+            'campus-level',
+            ALERT_EXPIRY_MS,
+            time,
+          ),
+        );
+    }
+    return after;
+  }
+
+  /**
+   * O "quantos agradeceram" de um aviso que acabou, uma vez só (marcado
+   * mesmo sem o iPhone registrado, para a rodada não voltar a ele).
+   */
+  async function tellThanks(id: string, time: Date) {
+    if (!alerts) return;
+    const notice = await notices.find(id);
+    if (
+      !notice ||
+      notice.removedAt ||
+      notice.thanks <= 0 ||
+      notice.thanksToldAt ||
+      !(await notices.markThanksTold(id, time))
+    )
+      return;
+    await alert(
+      notice.reporter,
+      thanksText(notice),
+      `campus-thanks-${id}`,
+      THANKS_EXPIRY_MS,
+      time,
+    );
+  }
+
+  /**
+   * O push silencioso, para o celular perguntar "ainda está lá?" com a grade
+   * dele: das 7h às 22h, enquanto houver aviso que vale e está confirmado
+   * (`confirmed`: quem chama já sabe que há), no máximo um a cada meia hora
+   * por aparelho. Em lotes, sem segurar a rodada por um aparelho lento.
+   */
+  async function wakeDevices(time: Date, confirmed = false) {
+    if (!alerts?.push.wake || isQuietTime(time)) return 0;
+    const sender = alerts.push;
+    const live =
+      confirmed ||
+      (await activeNotices(time)).some(
+        notice => isActive(notice, time) && isConfirmed(notice),
+      );
+    if (!live) return 0;
+    const since = new Date(time.getTime() - WAKE_INTERVAL_MS);
+    const due = await alerts.devices.listWakeable(time, since);
+    let woken = 0;
+    for (let start = 0; start < due.length; start += WAKE_BATCH) {
+      const sent = await Promise.all(
+        due.slice(start, start + WAKE_BATCH).map(async entry => {
+          if (!(await alerts.devices.claimWake(entry.student, time, since)))
+            return false;
+          const result =
+            (await sender.wake?.(entry.device, {
+              wake: { campus: 'wake' },
+              expiresAt: new Date(time.getTime() + WAKE_EXPIRY_MS),
+            })) ?? 'failed';
+          return settle(entry, result);
+        }),
+      );
+      woken += sent.filter(Boolean).length;
+    }
+    return woken;
+  }
 
   let cached: { value: Promise<Notice[]>; at: number } | null = null;
   /** Os que valem, da lista guardada (a falha não fica guardada). */
@@ -194,10 +349,11 @@ export function createCampusNow({
   async function answerPoints(student: string, time: Date) {
     const counts = await dayAdd(student, 'answers', 1, time);
     const earned = counts.answers <= POINTS_ANSWERS_PER_DAY ? POINTS.answer : 0;
-    const contributor = await contributors.add(student, {
-      points: earned,
-      answers: 1,
-    });
+    const contributor = await award(
+      student,
+      { points: earned, answers: 1 },
+      time,
+    );
     return earnedOf(contributor, earned);
   }
 
@@ -228,11 +384,24 @@ export function createCampusNow({
       !updated.firstConfirmedAt &&
       (await notices.markFirstConfirmed(notice.id, time))
     ) {
-      await contributors.add(notice.reporter, {
-        points: POINTS.confirmed,
-        confirmedNotices: 1,
-      });
+      await award(
+        notice.reporter,
+        { points: POINTS.confirmed, confirmedNotices: 1 },
+        time,
+      );
       updated = { ...updated, firstConfirmedAt: time };
+      // quem avisou fica sabendo, e os iPhones acordam para o "ainda está lá?"
+      const confirmed = updated;
+      later(async () => {
+        await alert(
+          confirmed.reporter,
+          confirmedText(confirmed),
+          `campus-confirmed-${confirmed.id}`,
+          ALERT_EXPIRY_MS,
+          time,
+        );
+        await wakeDevices(time, true);
+      });
     }
     const you = await answerPoints(student, time);
     changed();
@@ -388,15 +557,21 @@ export function createCampusNow({
         )
         .sort((a, b) => earlier(b, a));
       for (const other of older)
-        if (await notices.end(other.id, time, 'replaced'))
+        if (await notices.end(other.id, time, 'replaced')) {
           replaced ??= other.id;
+          // o anterior acabou: quem o avisou fica sabendo quantos agradeceram
+          later(() => tellThanks(other.id, time));
+        }
 
       const earned =
         counts.notices <= POINTS_NOTICES_PER_DAY ? POINTS.notice : 0;
-      const contributor = await contributors.add(studentId, {
-        points: earned,
-        notices: 1,
-      });
+      const contributor = await award(
+        studentId,
+        { points: earned, notices: 1 },
+        time,
+      );
+      // o aviso de quem é de confiança já vale para todos: os iPhones acordam
+      if (notice.trusted) later(() => wakeDevices(time, true));
       return {
         notice: noticeView(notice, studentId, null, time),
         merged: false,
@@ -411,7 +586,8 @@ export function createCampusNow({
       if (notice.reporter === studentId) {
         if (value === 'confirm') throw ownNotice();
         // "Já resolveu": o "Acabou" de quem avisou encerra na hora
-        await notices.end(id, time, 'reporter');
+        if (await notices.end(id, time, 'reporter'))
+          later(() => tellThanks(id, time));
         changed();
         return {
           notice: noticeView(
@@ -448,8 +624,10 @@ export function createCampusNow({
         updated.ends >= ENDS_TO_CLOSE &&
         !updated.endedAt &&
         (await notices.end(id, time, 'answers'))
-      )
+      ) {
         updated = { ...updated, endedAt: time, endedBy: 'answers' };
+        later(() => tellThanks(id, time));
+      }
       changed();
       // de "Continua" para "Acabou" não dá pontos de novo
       const you =
@@ -474,10 +652,11 @@ export function createCampusNow({
       let updated = notice;
       if (await answers.mark(id, studentId, 'thanked', purgeOf(notice))) {
         updated = (await notices.addThanks(id)) ?? notice;
-        await contributors.add(notice.reporter, {
-          points: POINTS.thanks,
-          thanksReceived: 1,
-        });
+        await award(
+          notice.reporter,
+          { points: POINTS.thanks, thanksReceived: 1 },
+          time,
+        );
         await dayAdd(studentId, 'thanks', 1, time);
         changed();
       }
@@ -572,9 +751,44 @@ export function createCampusNow({
 
     async dropStudent(studentId) {
       const time = at();
+      // o banido não recebe mais os avisos no iPhone
+      await pushDevices?.remove(studentId);
       for (const notice of await notices.listActiveBy(studentId, time))
         await notices.remove(notice.id, time, 'ban');
       changed();
+    },
+
+    async pushStatus({ studentId }) {
+      const entry = await pushDevices?.find(studentId, at());
+      return { available: Boolean(alerts), registered: Boolean(entry) };
+    },
+
+    async registerPush(device: PushDevice, { studentId }) {
+      if (!alerts) throw pushUnavailable();
+      const time = at();
+      await alerts.devices.put({
+        student: studentId,
+        device: { platform: device.platform, token: device.token },
+        updatedAt: time,
+        expiresAt: new Date(time.getTime() + PUSH_DEVICE_TTL_MS),
+      });
+    },
+
+    async unregisterPush({ studentId }) {
+      await pushDevices?.remove(studentId);
+    },
+
+    async deliverPush() {
+      if (!alerts) return;
+      const time = at();
+      // os que acabaram sozinhos (venceram), e os que o envio na hora perdeu
+      const ended = await notices.listThanksPending(
+        new Date(time.getTime() - THANKS_LOOKBACK_MS),
+        time,
+      );
+      for (const notice of ended)
+        await tellThanks(notice.id, time).catch(onPushError);
+      await wakeDevices(time);
     },
 
     async moderation() {

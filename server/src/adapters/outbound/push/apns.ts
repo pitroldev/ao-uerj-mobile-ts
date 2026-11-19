@@ -5,12 +5,13 @@ import http2, {
   type IncomingHttpStatusHeader,
 } from 'node:http2';
 
-import type { PushDevice } from '../../../modules/companion/domain.ts';
 import type {
+  PushDevice,
   PushMessage,
   PushResult,
   PushSender,
-} from '../../../modules/companion/ports.ts';
+  WakeMessage,
+} from '../../../shared/push.ts';
 
 /** O servidor do APNs de cada ambiente. */
 export const APNS_ORIGINS = {
@@ -87,12 +88,22 @@ export function apnsPayload(message: PushMessage): string {
   });
 }
 
+/** O corpo do push silencioso: só `content-available`, e os dados fora do `aps`. */
+export function apnsWakePayload(message: WakeMessage): string {
+  return JSON.stringify({ aps: { 'content-available': 1 }, ...message.wake });
+}
+
+/** `apns-expiration`, em segundos (0: só agora). */
+const expiration = (at: Date) =>
+  String(Math.max(0, Math.floor(at.getTime() / 1000)));
+
 /**
  * O push para o iPhone pelo APNs: HTTP/2 com o token do provedor (um JWT
  * ES256 assinado com a chave .p8), refeito a cada `APNS_TOKEN_TTL_MS`. Uma
  * conexão só, aberta no primeiro envio e reaberta quando cai; parada por
- * `IDLE_MS`, fecha. Nenhum erro sobe: `send` diz `sent`, `gone` (410 ou um
- * token que não serve) ou `failed`, e o motivo vai para `onError`.
+ * `IDLE_MS`, fecha. Nenhum erro sobe: `send` (o alerta) e `wake` (o
+ * silencioso) dizem `sent`, `gone` (410 ou um token que não serve) ou
+ * `failed`, e o motivo vai para `onError`.
  */
 export function createApnsSender({
   keyId,
@@ -145,7 +156,12 @@ export function createApnsSender({
     return opened;
   }
 
-  function request(device: PushDevice, message: PushMessage) {
+  /** Os cabeçalhos de cada envio; `extra`, os do tipo de push. */
+  function request(
+    device: PushDevice,
+    extra: Record<string, string>,
+    payload: string,
+  ) {
     return new Promise<{ status: number; reason: string | null }>(
       (resolve, reject) => {
         const stream = connection().request({
@@ -153,12 +169,7 @@ export function createApnsSender({
           ':path': `/3/device/${device.token}`,
           authorization: `bearer ${providerToken()}`,
           'apns-topic': topic,
-          'apns-push-type': 'alert',
-          'apns-priority': '10',
-          'apns-expiration': String(
-            Math.max(0, Math.floor(message.expiresAt.getTime() / 1000)),
-          ),
-          'apns-collapse-id': message.collapseId,
+          ...extra,
           'content-type': 'application/json',
         });
         let status = 0;
@@ -189,36 +200,66 @@ export function createApnsSender({
         stream.on('error', err =>
           reject(new ApnsError(null, err.message, err)),
         );
-        stream.end(apnsPayload(message));
+        stream.end(payload);
       },
     );
   }
 
-  return {
-    async send(device, message): Promise<PushResult> {
-      let answer: { status: number; reason: string | null };
-      try {
-        answer = await request(device, message);
-      } catch (err) {
-        // a conexão pode ter ficado ruim: a próxima abre outra
-        session?.destroy();
-        session = null;
-        onError(
-          err instanceof ApnsError
-            ? err
-            : new ApnsError(null, (err as Error).message, err),
-        );
-        return 'failed';
-      }
-      const { status, reason } = answer;
-      if (status === 200) return 'sent';
-      if (status === 410 || (status === 400 && GONE_REASONS.has(reason ?? '')))
-        return 'gone';
-      if (status === 403 && PROVIDER_TOKEN_REASONS.has(reason ?? ''))
-        provider = null;
-      onError(new ApnsError(status, reason));
+  /** Manda e traduz a resposta; nenhum erro sobe. */
+  async function deliver(
+    device: PushDevice,
+    extra: Record<string, string>,
+    payload: string,
+  ): Promise<PushResult> {
+    let answer: { status: number; reason: string | null };
+    try {
+      answer = await request(device, extra, payload);
+    } catch (err) {
+      // a conexão pode ter ficado ruim: a próxima abre outra
+      session?.destroy();
+      session = null;
+      onError(
+        err instanceof ApnsError
+          ? err
+          : new ApnsError(null, (err as Error).message, err),
+      );
       return 'failed';
-    },
+    }
+    const { status, reason } = answer;
+    if (status === 200) return 'sent';
+    if (status === 410 || (status === 400 && GONE_REASONS.has(reason ?? '')))
+      return 'gone';
+    if (status === 403 && PROVIDER_TOKEN_REASONS.has(reason ?? ''))
+      provider = null;
+    onError(new ApnsError(status, reason));
+    return 'failed';
+  }
+
+  return {
+    send: (device, message) =>
+      deliver(
+        device,
+        {
+          'apns-push-type': 'alert',
+          'apns-priority': '10',
+          'apns-expiration': expiration(message.expiresAt),
+          'apns-collapse-id': message.collapseId,
+        },
+        apnsPayload(message),
+      ),
+
+    // o silencioso vai com a prioridade 5, como a Apple exige, e sem
+    // collapse-id: o iOS decide quando acorda o app, e junta os que esperam
+    wake: (device, message) =>
+      deliver(
+        device,
+        {
+          'apns-push-type': 'background',
+          'apns-priority': '5',
+          'apns-expiration': expiration(message.expiresAt),
+        },
+        apnsWakePayload(message),
+      ),
 
     async close() {
       const open = session;

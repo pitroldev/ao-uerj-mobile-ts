@@ -30,10 +30,12 @@ import {
 } from '../src/modules/campus-now/domain.ts';
 import type {
   AnswerRepository,
+  CampusPushDeviceRepository,
   ContributorRepository,
   DayRepository,
   NoticeRepository,
 } from '../src/modules/campus-now/ports.ts';
+import type { CampusPushDevice } from '../src/modules/campus-now/push.ts';
 import type { Message } from '../src/modules/mural/domain.ts';
 import type { MessageRepository } from '../src/modules/mural/ports.ts';
 import type { OtaEntry } from '../src/modules/ota/domain.ts';
@@ -219,6 +221,7 @@ export function memoryRepositories(clock = manualClock()) {
       campusNotices: campus.notices,
       campusAnswers: campus.answers,
       campusPeople: campus.people,
+      campusPushDevices: campus.pushDevices,
       otaEntries: ota.entries,
     },
     repositories: {
@@ -238,6 +241,7 @@ export function memoryRepositories(clock = manualClock()) {
       campusAnswers: campus.answerRepository,
       campusPeople: campus.contributorRepository,
       campusDays: campus.dayRepository,
+      campusPushDevices: campus.pushDeviceRepository,
       students: people.studentRepository,
       studentSessions: people.sessionRepository,
       otaEntries: ota.repository,
@@ -645,6 +649,74 @@ export function memoryCampusNow() {
     async listRecent(limit) {
       return all().sort(newest).slice(0, limit).map(copy);
     },
+    async listThanksPending(since, now) {
+      return all()
+        .filter(
+          notice =>
+            !notice.removedAt &&
+            notice.thanks > 0 &&
+            !notice.thanksToldAt &&
+            (notice.endedAt
+              ? notice.endedAt >= since && notice.endedAt <= now
+              : notice.expiresAt > since && notice.expiresAt <= now),
+        )
+        .map(copy);
+    },
+    async markThanksTold(id, now) {
+      const notice = notices.get(id);
+      if (!notice || notice.thanksToldAt) return false;
+      notice.thanksToldAt = now;
+      return true;
+    },
+  };
+
+  // o iPhone de cada aluno, como no MongoDB: um por aluno, um dono por token
+  const pushDevices = new Map<string, CampusPushDevice>();
+  const pushDeviceRepository: CampusPushDeviceRepository = {
+    async find(student, now) {
+      const found = pushDevices.get(student);
+      return found && found.expiresAt > now ? copy(found) : null;
+    },
+    async put(entry) {
+      for (const [student, other] of pushDevices)
+        if (
+          student !== entry.student &&
+          other.device.token === entry.device.token
+        )
+          pushDevices.delete(student);
+      const current = pushDevices.get(entry.student);
+      pushDevices.set(entry.student, {
+        ...copy(entry),
+        wokenAt: current?.wokenAt ?? null,
+      });
+    },
+    async remove(student) {
+      pushDevices.delete(student);
+    },
+    async forget(student, token) {
+      if (pushDevices.get(student)?.device.token === token)
+        pushDevices.delete(student);
+    },
+    async listWakeable(now, since) {
+      return [...pushDevices.values()]
+        .filter(
+          entry =>
+            entry.expiresAt > now &&
+            (entry.wokenAt === null || entry.wokenAt < since),
+        )
+        .map(copy);
+    },
+    async claimWake(student, now, since) {
+      const entry = pushDevices.get(student);
+      if (
+        !entry ||
+        entry.expiresAt <= now ||
+        (entry.wokenAt !== null && entry.wokenAt >= since)
+      )
+        return false;
+      entry.wokenAt = now;
+      return true;
+    },
   };
 
   const answerOf = (notice: string, student: string): Answer =>
@@ -741,10 +813,12 @@ export function memoryCampusNow() {
     answers,
     people,
     days,
+    pushDevices,
     noticeRepository,
     answerRepository,
     contributorRepository,
     dayRepository,
+    pushDeviceRepository,
   };
 }
 

@@ -12,10 +12,12 @@ import {
 } from '../../../modules/campus-now/domain.ts';
 import type {
   AnswerRepository,
+  CampusPushDeviceRepository,
   ContributorRepository,
   DayRepository,
   NoticeRepository,
 } from '../../../modules/campus-now/ports.ts';
+import type { CampusPushDevice } from '../../../modules/campus-now/push.ts';
 import { guarded, isDuplicateKey } from './guarded.ts';
 import type { Models } from './models.ts';
 
@@ -75,6 +77,7 @@ function toNotice(doc: NoticeDoc): Notice {
     removedBy: doc.removedBy ?? null,
     penalized: doc.penalized ?? false,
     reviewedAt: doc.reviewedAt ?? null,
+    thanksToldAt: doc.thanksToldAt ?? null,
     purgeAt: doc.purgeAt,
   };
 }
@@ -304,6 +307,123 @@ export function createNoticeRepository(
             .exec(),
         ),
       ),
+    // os que acabaram na janela: encerrados (endedAt) ou vencidos sem ninguém
+    // encerrar (expiresAt), pelo índice dos que valem
+    listThanksPending: (since, now) =>
+      guarded(() =>
+        many(
+          model
+            .find({
+              removedAt: null,
+              thanks: { $gt: 0 },
+              thanksToldAt: null,
+              $or: [
+                { endedAt: { $gte: since, $lte: now } },
+                { endedAt: null, expiresAt: { $gt: since, $lte: now } },
+              ],
+            })
+            .limit(LIST_LIMIT)
+            .lean<NoticeDoc[]>()
+            .exec(),
+        ),
+      ),
+    markThanksTold: (id, now) =>
+      guarded(() =>
+        changedOne(
+          model.updateOne(
+            { _id: id, thanksToldAt: null },
+            { $set: { thanksToldAt: now } },
+          ),
+        ),
+      ),
+  };
+}
+
+/** O iPhone do aluno no banco: o aluno no `_id`. */
+type PushDeviceDoc = {
+  _id: string;
+  platform: 'ios';
+  token: string;
+  updatedAt: Date;
+  expiresAt: Date;
+  wokenAt?: Date | null;
+};
+
+const toPushDevice = (doc: PushDeviceDoc): CampusPushDevice => ({
+  student: doc._id,
+  device: { platform: doc.platform, token: doc.token },
+  updatedAt: doc.updatedAt,
+  expiresAt: doc.expiresAt,
+  wokenAt: doc.wokenAt ?? null,
+});
+
+/**
+ * O iPhone de cada aluno para os avisos do Agora no campus, um por aluno e
+ * um dono por token. O índice TTL apaga os vencidos; até ele passar, as
+ * consultas os ignoram.
+ */
+export function createCampusPushDeviceRepository(
+  model: Models['campusPushDevices'],
+): CampusPushDeviceRepository {
+  return {
+    find: (student, now) =>
+      guarded(async () => {
+        const doc = await model
+          .findOne({ _id: student, expiresAt: { $gt: now } })
+          .lean<PushDeviceDoc>();
+        return doc ? toPushDevice(doc) : null;
+      }),
+    put: entry =>
+      guarded(async () => {
+        // o mesmo aparelho com outra conta: a anterior não recebe mais
+        await model.deleteMany({
+          token: entry.device.token,
+          _id: { $ne: entry.student },
+        });
+        await model.updateOne(
+          { _id: entry.student },
+          {
+            $set: {
+              platform: entry.device.platform,
+              token: entry.device.token,
+              updatedAt: entry.updatedAt,
+              expiresAt: entry.expiresAt,
+            },
+            $setOnInsert: { wokenAt: null },
+          },
+          { upsert: true },
+        );
+      }),
+    remove: student =>
+      guarded(async () => {
+        await model.deleteOne({ _id: student });
+      }),
+    forget: (student, token) =>
+      guarded(async () => {
+        await model.deleteOne({ _id: student, token });
+      }),
+    listWakeable: (now, since) =>
+      guarded(async () => {
+        const docs = await model
+          .find({
+            expiresAt: { $gt: now },
+            $or: [{ wokenAt: null }, { wokenAt: { $lt: since } }],
+          })
+          .lean<PushDeviceDoc[]>();
+        return docs.map(toPushDevice);
+      }),
+    claimWake: (student, now, since) =>
+      guarded(async () => {
+        const { modifiedCount } = await model.updateOne(
+          {
+            _id: student,
+            expiresAt: { $gt: now },
+            $or: [{ wokenAt: null }, { wokenAt: { $lt: since } }],
+          },
+          { $set: { wokenAt: now } },
+        );
+        return modifiedCount > 0;
+      }),
   };
 }
 

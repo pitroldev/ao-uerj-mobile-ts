@@ -77,7 +77,10 @@ export type Overrides = {
   attester?: AppAttester | null;
   /** O App Attest do iPhone; `null` desliga a entrada pelo iPhone. */
   appAttest?: AppAttestVerifier | null;
-  /** O push para o iPhone; `null` desliga o "Me avise se abrirem". */
+  /**
+   * O push para o iPhone; `null` desliga o "Me avise se abrirem" e os avisos
+   * do Agora no campus.
+   */
   push?: PushSender | null;
   /**
    * As atualizações pelo ar: o certificado do code signing (`null` desliga
@@ -100,6 +103,13 @@ const SHUTDOWN_GRACE_MS = 10000;
  * vaga pode abrir. Quem abre avisa na hora.
  */
 const WATCH_DELIVERY_INTERVAL_MS = 60 * 1000;
+
+/**
+ * De quanto em quanto tempo o Agora no campus olha os avisos que venceram
+ * (o "quantos agradeceram") e acorda os iPhones (no máximo um a cada meia
+ * hora por aparelho).
+ */
+const CAMPUS_PUSH_INTERVAL_MS = 60 * 1000;
 
 /** O banco e os repositórios: os de teste ou os do MongoDB. */
 function storageFor(
@@ -299,6 +309,9 @@ export function createServer(
     answers: repositories.campusAnswers,
     contributors: repositories.campusPeople,
     days: repositories.campusDays,
+    pushDevices: repositories.campusPushDevices,
+    push,
+    onPushError: err => logger.warn({ err }, 'campus push failed'),
   });
   const services: Services = {
     mural: createMural(repositories.messages),
@@ -380,6 +393,13 @@ export function createServer(
     },
     err => logger.warn({ err }, 'companion watch delivery failed'),
   );
+  const campusPushes = repeatEvery(
+    CAMPUS_PUSH_INTERVAL_MS,
+    async () => {
+      if (database.isReady()) await campusNow.deliverPush();
+    },
+    err => logger.warn({ err }, 'campus push failed'),
+  );
 
   return {
     app,
@@ -401,7 +421,10 @@ export function createServer(
       );
       void database.connect();
       if (config.portalMonitor.enabled) portalChecks.start();
-      if (push) watchDeliveries.start();
+      if (push) {
+        watchDeliveries.start();
+        campusPushes.start();
+      }
       return address;
     },
 
@@ -414,6 +437,7 @@ export function createServer(
     async stop(): Promise<void> {
       portalChecks.stop();
       watchDeliveries.stop();
+      campusPushes.stop();
       const forceClose = setTimeout(
         () => server.closeAllConnections(),
         SHUTDOWN_GRACE_MS,

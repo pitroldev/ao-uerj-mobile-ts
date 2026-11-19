@@ -355,6 +355,7 @@ const campusNoticeSchema = new mongoose.Schema(
     removedBy: { default: null, type: String },
     penalized: { default: false, type: Boolean },
     reviewedAt: { default: null, type: Date },
+    thanksToldAt: { default: null, type: Date },
     purgeAt: { required: true, type: Date },
   },
   { versionKey: false, bufferCommands: false },
@@ -420,6 +421,27 @@ const campusDaySchema = new mongoose.Schema(
 );
 campusDaySchema.index({ purgeAt: 1 }, { expireAfterSeconds: 0 });
 campusDaySchema.index({ day: 1 });
+
+/**
+ * O iPhone de cada aluno (o `_id`), para os avisos do Agora no campus: o
+ * token do APNs e o último push silencioso. O índice TTL apaga em
+ * `expiresAt`, 30 dias depois do último registro (o app registra de novo a
+ * cada abertura).
+ */
+const campusPushDeviceSchema = new mongoose.Schema(
+  {
+    _id: { required: true, type: String },
+    platform: { required: true, type: String, enum: ['ios'] },
+    token: { required: true, maxlength: 200, type: String },
+    updatedAt: { required: true, type: Date },
+    expiresAt: { required: true, type: Date },
+    wokenAt: { default: null, type: Date },
+  },
+  { versionKey: false, bufferCommands: false },
+);
+campusPushDeviceSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+// um dono por token: o registro de outro aluno no mesmo aparelho tira o antigo
+campusPushDeviceSchema.index({ token: 1 });
 
 /**
  * As publicações das atualizações pelo ar: cada manifesto ou diretiva como o
@@ -511,6 +533,11 @@ export function defineModels(connection: Connection) {
       'campuspeople',
     ),
     campusDays: connection.model('CampusDays', campusDaySchema, 'campusdays'),
+    campusPushDevices: connection.model(
+      'CampusPushDevices',
+      campusPushDeviceSchema,
+      'campuspushdevices',
+    ),
     otaEntries: connection.model('OtaEntries', otaEntrySchema, 'otaentries'),
   };
 }

@@ -277,3 +277,110 @@ test('two answers of the same student at once count once, through the use cases'
   assert.equal(list.notices[0]?.answer, 'confirm');
   assert.equal(list.helpersToday, 2);
 });
+
+test('the iPhone of each student: one owner per token, the half-hour wake once, the dead token gone', async () => {
+  const { repositories } = await open();
+  const devices = repositories.campusPushDevices;
+  const now = new Date();
+  const later = new Date(now.getTime() + 30 * DAY);
+  const token = 'ab'.repeat(32);
+  const entry = (student: string, value = token) => ({
+    student,
+    device: { platform: 'ios' as const, token: value },
+    updatedAt: now,
+    expiresAt: later,
+  });
+  await devices.put(entry('marina'));
+  assert.equal((await devices.find('marina', now))?.wokenAt, null);
+  // o mesmo aparelho, outra conta: a anterior sai
+  await devices.put(entry('lucas'));
+  assert.equal(await devices.find('marina', now), null);
+  assert.equal((await devices.find('lucas', now))?.device.token, token);
+
+  // um acordar só, mesmo com dois juntos
+  const since = new Date(now.getTime() - 30 * MINUTE);
+  const claims = await Promise.all([
+    devices.claimWake('lucas', now, since),
+    devices.claimWake('lucas', now, since),
+  ]);
+  assert.deepEqual(claims.sort(), [false, true]);
+  assert.deepEqual(await devices.listWakeable(now, since), []);
+  // o registro de novo não zera o acordar
+  await devices.put(entry('lucas'));
+  assert.equal(
+    (await devices.find('lucas', now))?.wokenAt?.getTime(),
+    now.getTime(),
+  );
+  const halfHourLater = new Date(now.getTime() + 31 * MINUTE);
+  assert.deepEqual(
+    (
+      await devices.listWakeable(
+        halfHourLater,
+        new Date(now.getTime() + MINUTE),
+      )
+    ).map(item => item.student),
+    ['lucas'],
+  );
+
+  // a Apple recusou o token: só sai se ainda for o mesmo
+  await devices.forget('lucas', 'cd'.repeat(32));
+  assert.ok(await devices.find('lucas', now));
+  await devices.forget('lucas', token);
+  assert.equal(await devices.find('lucas', now), null);
+
+  // o vencido não vale, e o cancelamento apaga
+  await devices.put({ ...entry('ana'), expiresAt: now });
+  assert.equal(await devices.find('ana', now), null);
+  await devices.put(entry('bia', 'ef'.repeat(32)));
+  await devices.remove('bia');
+  assert.equal(await devices.find('bia', now), null);
+});
+
+test('the notices that ended with thanks in the window, until the reporter is told', async () => {
+  const { repositories } = await open();
+  const notices = repositories.campusNotices;
+  const now = new Date();
+  const since = new Date(now.getTime() - 60 * MINUTE);
+  const plan = (id: string, request = room) =>
+    planNotice(checkNotice(request), {
+      id,
+      reporter: 'marina',
+      level: 1,
+      now: new Date(now.getTime() - 50 * MINUTE),
+    });
+  // encerrado com "Valeu"
+  const ended = plan('CCCCCCCCCCCCCCCC');
+  await notices.create(ended);
+  await notices.addThanks(ended.id);
+  await notices.end(ended.id, now, 'answers');
+  // vencido sozinho (a sala trancada vale 60 minutos; este, 50 atrás, ainda não)
+  const expired = {
+    ...plan('DDDDDDDDDDDDDDDD'),
+    expiresAt: new Date(now.getTime() - MINUTE),
+  };
+  await notices.create(expired);
+  await notices.addThanks(expired.id);
+  // ainda vale, sem "Valeu", e fora do ar: nenhum
+  const live = plan('EEEEEEEEEEEEEEEE');
+  await notices.create(live);
+  await notices.addThanks(live.id);
+  const quiet = plan('FFFFFFFFFFFFFFFF');
+  await notices.create(quiet);
+  await notices.end(quiet.id, now, 'reporter');
+  const removed = plan('GGGGGGGGGGGGGGGG');
+  await notices.create(removed);
+  await notices.addThanks(removed.id);
+  await notices.remove(removed.id, now, 'moderation');
+
+  assert.deepEqual(
+    (await notices.listThanksPending(since, now)).map(item => item.id).sort(),
+    [ended.id, expired.id].sort(),
+  );
+  assert.equal(await notices.markThanksTold(ended.id, now), true);
+  assert.equal(await notices.markThanksTold(ended.id, now), false);
+  assert.ok((await notices.find(ended.id))?.thanksToldAt);
+  assert.deepEqual(
+    (await notices.listThanksPending(since, now)).map(item => item.id),
+    [expired.id],
+  );
+});

@@ -1,4 +1,6 @@
+import type { PushDevice } from '../../shared/push.ts';
 import type { StudentActor } from '../students/ports.ts';
+import type { CampusPushDevice } from './push.ts';
 import type {
   Answer,
   AnswerValue,
@@ -109,6 +111,43 @@ export interface CampusNow {
   removeByModerator(id: string): Promise<'removed' | 'gone'>;
   /** Volta ao ar (devolve os pontos); `gone` se não existe ou não estava fora. */
   restoreByModerator(id: string): Promise<'restored' | 'gone'>;
+  /**
+   * O iPhone do aluno recebe os avisos do Agora no campus? `available`: o
+   * servidor manda push (a chave do APNs configurada).
+   */
+  pushStatus(
+    actor: StudentActor,
+  ): Promise<{ available: boolean; registered: boolean }>;
+  /** Registra (ou troca) o iPhone do aluno; 503 `push_unavailable` sem o APNs. */
+  registerPush(device: PushDevice, actor: StudentActor): Promise<void>;
+  unregisterPush(actor: StudentActor): Promise<void>;
+  /**
+   * A rodada (a cada minuto): o "quantos agradeceram" dos avisos que
+   * acabaram sozinhos e o push silencioso enquanto houver aviso confirmado.
+   */
+  deliverPush(): Promise<void>;
+}
+
+/** Porta de saída: o iPhone de cada aluno, para os avisos do Agora no campus. */
+export interface CampusPushDeviceRepository {
+  /** O que vale em `now`; `null` sem ele. */
+  find(student: string, now: Date): Promise<CampusPushDevice | null>;
+  /**
+   * Grava (ou troca) o aparelho do aluno, sem mexer no último acordar. O
+   * mesmo token de outro aluno (a troca de conta no aparelho) sai: um dono
+   * por token.
+   */
+  put(entry: Omit<CampusPushDevice, 'wokenAt'>): Promise<void>;
+  remove(student: string): Promise<void>;
+  /** Tira o aparelho que a Apple recusou de vez, se ainda for o mesmo token. */
+  forget(student: string, token: string): Promise<void>;
+  /** Os que valem em `now` e não foram acordados desde `since`. */
+  listWakeable(now: Date, since: Date): Promise<CampusPushDevice[]>;
+  /**
+   * Marca o acordar de agora, se ninguém o acordou desde `since`: dois envios
+   * juntos (as duas cores do azul/verde) não acordam duas vezes.
+   */
+  claimWake(student: string, now: Date, since: Date): Promise<boolean>;
 }
 
 /** Porta de saída: os avisos. */
@@ -155,6 +194,14 @@ export interface NoticeRepository {
   /** Os denunciados que a moderação ainda não olhou. */
   countPendingFlags(since: Date): Promise<number>;
   listRecent(limit: number): Promise<Notice[]>;
+  /**
+   * Os que acabaram (pelas respostas, por quem avisou, por outro no lugar ou
+   * por vencer) desde `since` até `now`, fora do ar não, com algum "Valeu" e
+   * sem o "quantos agradeceram" tratado.
+   */
+  listThanksPending(since: Date, now: Date): Promise<Notice[]>;
+  /** Marca o "quantos agradeceram" como tratado; `false` se já estava. */
+  markThanksTold(id: string, now: Date): Promise<boolean>;
 }
 
 /** Porta de saída: o que cada aluno fez com cada aviso. */

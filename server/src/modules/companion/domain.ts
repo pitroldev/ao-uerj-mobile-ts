@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 
 import { DomainError, InvalidInputError } from '../../shared/errors.ts';
+import type { PushDevice as SharedPushDevice } from '../../shared/push.ts';
 
 /*
  * Companhia agora: encontros que duram minutos, entre alunos que não se
@@ -482,7 +483,7 @@ export const CALL_WATCH_AHEAD_MS = 24 * 60 * MINUTE;
 export const CALL_WATCH_SEEN_LIMIT = 50;
 
 /** Onde o aviso chega: o iPhone, pelo APNs (o Android lê a lista sozinho). */
-export type PushDevice = { platform: 'ios'; token: string };
+export type PushDevice = SharedPushDevice;
 
 /**
  * O "Me avise se abrirem" de um aluno, um por aluno: com a lista vazia, ele
