@@ -48,7 +48,11 @@ O app está na Google Play e, desde 18/11/2026, na App Store do Brasil (iPhone c
 | 🔔  | **Lembretes e avisos** | Lembrete de aula e de prova; aviso de nota nova, RID, inscrição, documento vencendo e portal de volta |   ✅    | ✅ quando o iOS deixar |
 | 📱  | **Widgets e atalhos**  | "Próxima aula" e "Hoje" na tela inicial e atalhos no ícone                                            |   ✅    |       ✅ e Siri        |
 | 📶  | **Sem internet**       | Abre na hora com os dados salvos, cifrados no aparelho, e avisa quando o portal cai                   |   ✅    |           ✅           |
-| 🌙  | **Tema escuro**        | Claro, escuro ou o do sistema                                                                         |   ✅    |           ✅           |
+| 🔄  | **Atualizações**       | Correções chegam pelo ar, sem esperar a loja, e o app avisa quando há versão nova                     |   ✅    |           ✅           |
+| 🛟  | **Relato de problema** | Manda a tela, o erro e a página do portal, anonimizada no celular, para a correção sair rápido        |   ✅    |           ✅           |
+| 🌙  | **Tema escuro**        | Claro, escuro ou o do sistema, com o ícone no tom do tema (Android 13+ e iOS 18+)                     |   ✅    |           ✅           |
+
+No iPhone, o servidor manda por push o que o iOS não deixa o app olhar sozinho: o "Me avise se tiver mesa" da Companhia agora, os avisos do Agora no campus e o "Avisar quando voltar". Para os avisos do portal, ele manda um sinal a cada 4 horas, e o iPhone consulta o portal quando o iOS deixar.
 
 Como cada uma funciona por dentro está em [Funcionalidades](docs/funcionalidades.md).
 
@@ -56,7 +60,7 @@ Como cada uma funciona por dentro está em [Funcionalidades](docs/funcionalidade
 
 - 🎯 **Você resolve o seu próprio problema.** Sentiu falta de algo no Aluno Online? Dá para fazer aqui, e os seus colegas usam.
 - 🛠️ **Stack de mercado.** React Native 0.88 (nova arquitetura e React Compiler), React 19.3, TypeScript 7, Kotlin, Swift e um backend em Node com MongoDB.
-- 🏗️ **Projeto de verdade.** Arquitetura hexagonal, testes, CI/CD, publicação na Play e na App Store e implantação azul/verde. Bom para aprender e para o portfólio.
+- 🏗️ **Projeto de verdade.** Arquitetura hexagonal, testes, CI/CD, publicação na Play e na App Store, atualizações pelo ar e implantação azul/verde. Bom para aprender e para o portfólio.
 - 🤝 **Tem lugar para todo tamanho de ajuda.** Um texto mais claro, um teste, um parser, uma tela nova ou um relato de bug bem feito.
 
 ## Comece em 5 passos
@@ -98,20 +102,22 @@ flowchart LR
   ao["Aluno Online<br/>alunoonline.uerj.br"]
   server["Servidor próprio<br/>pitrol.dev, em server/"]
   raw["GitHub raw<br/>config/app-status.json"]
-  lojas["Google Play e Apple<br/>lojas, Play Integrity e App Attest"]
+  lojas["Google Play e Apple<br/>lojas, Play Integrity, App Attest e APNs"]
   gha["GitHub Actions"]
 
   app -->|"login, notas, grade e documentos"| ao
-  app -->|"mural, Companhia, Agora no campus,<br/>gerador, relatos e situação do portal"| server
+  app -->|"mural, Companhia, Agora no campus, gerador,<br/>relatos, situação do portal e atualizações pelo ar"| server
   app -->|"aviso remoto, no máximo a cada 15 min"| raw
-  app -.->|"atestação do aluno"| lojas
-  server -.->|"decifra o token da Play Integrity"| lojas
+  app -.->|"atestação do aluno e<br/>versão na App Store"| lojas
+  server -.->|"decifra o token da Play Integrity<br/>e manda push ao iPhone"| lojas
   server -->|"confere se o portal está no ar"| ao
   gha -->|"publica o AAB no teste interno<br/>e envia o IPA ao App Store Connect"| lojas
-  gha -->|"implanta, azul/verde"| server
+  gha -->|"implanta, azul/verde,<br/>e publica as atualizações pelo ar"| server
 ```
 
-- A senha e os dados do portal só vão do celular para o Aluno Online. O servidor próprio recebe a matrícula e o nome, para identificar o aluno nas funções entre alunos.
+- A senha e os dados do portal só vão do celular para o Aluno Online. O servidor próprio recebe a matrícula e o nome, para identificar o aluno nas funções entre alunos. No relato de problema, a página do portal vai anonimizada no celular.
+- No iPhone, os avisos com o app fechado vêm do servidor, pelo APNs da Apple (ver [iOS](docs/ios.md#push-do-servidor)).
+- As [atualizações pelo ar](docs/ota.md) saem do próprio servidor, assinadas, sem passar pela Expo.
 - O [aviso remoto](docs/aviso-remoto.md) liga avisos e desliga telas sem nova versão.
 - Os detalhes estão em [Arquitetura](docs/arquitetura.md) e em [server/README.md](server/README.md).
 
@@ -128,10 +134,11 @@ ao-uerj-mobile-ts/
 │   └── app/            composição, provedores e tarefas em segundo plano
 ├── android/            o projeto Android (cofre, avisos, widgets e atalhos em Kotlin)
 ├── ios/                o projeto iOS (Swift e Objective-C++), o app da App Store
-├── server/             o backend de pitrol.dev (Node, Express e MongoDB)
+├── server/             o backend de pitrol.dev (Node, Express e MongoDB), com as atualizações pelo ar e o push
 ├── deploy/server/      os scripts da implantação azul/verde na VM
 ├── config/             o aviso remoto (app-status.json) e o esquema dele
-├── scripts/            Gradle, diagnósticos, ícones, mapa do campus e ferramentas de dev e de CI
+├── scripts/            Gradle, diagnósticos, ícones, mapa do campus, OTA e ferramentas de dev e de CI
+├── patches/            os ajustes do pnpm em dependências (Expo e react-native-share)
 ├── .maestro/           os fluxos E2E do Maestro (manuais, com conta real)
 ├── docs/               a documentação
 └── .github/            workflows, Renovate e modelos de issue e de PR
@@ -150,27 +157,28 @@ O [guia de contribuição](CONTRIBUTING.md) explica o ambiente, as convenções 
 
 ## Documentação
 
-| Documento                                              | Para quê                                                        |
-| ------------------------------------------------------ | --------------------------------------------------------------- |
-| [Guia de contribuição](CONTRIBUTING.md)                | Ambiente, fluxo de PR, convenções, textos e privacidade         |
-| [Índice da documentação](docs/README.md)               | Todos os documentos, por assunto                                |
-| [Desenvolvimento](docs/desenvolvimento.md)             | Versões, scripts, verificações, CI e diagnóstico do portal real |
-| [Arquitetura](docs/arquitetura.md)                     | Camadas, módulos, Aluno Online, servidor e sessão de aluno      |
-| [Funcionalidades](docs/funcionalidades.md)             | Sem internet, notas e PF, provas, Início, plano até a formatura |
-| [No campus](docs/no-campus.md)                         | Companhia agora e Agora no campus                               |
-| [Notificações e widget](docs/notificacoes-e-widget.md) | Lembretes, avisos do portal, widgets e atalhos                  |
-| [Dados e armazenamento](docs/dados-e-armazenamento.md) | O que fica no aparelho e o que sai dele, no código              |
-| [Aviso remoto](docs/aviso-remoto.md)                   | O `config/app-status.json`                                      |
-| [iOS](docs/ios.md)                                     | O iPhone, o envio à App Store e o workflow manual               |
-| [Release](docs/release.md)                             | Versão, tags e publicação nas lojas (mantenedores)              |
-| [Observabilidade](docs/observabilidade.md)             | O Sentry, hoje desligado                                        |
-| [Design system](src/components/ui/README.md)           | Tokens e componentes da "Agenda limpa"                          |
-| [Servidor](server/README.md)                           | API, arquitetura e implantação do backend                       |
-| [Política de privacidade](docs/privacidade.md)         | O texto publicado para os alunos                                |
+| Documento                                              | Para quê                                                                                |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| [Guia de contribuição](CONTRIBUTING.md)                | Ambiente, fluxo de PR, convenções, textos e privacidade                                 |
+| [Índice da documentação](docs/README.md)               | Todos os documentos, por assunto                                                        |
+| [Desenvolvimento](docs/desenvolvimento.md)             | Versões, scripts, verificações, CI e diagnóstico do portal real                         |
+| [Arquitetura](docs/arquitetura.md)                     | Camadas, módulos, Aluno Online, servidor e sessão de aluno                              |
+| [Funcionalidades](docs/funcionalidades.md)             | Sem internet, notas e PF, provas, Início, plano até a formatura e conta de demonstração |
+| [No campus](docs/no-campus.md)                         | Companhia agora e Agora no campus                                                       |
+| [Notificações e widget](docs/notificacoes-e-widget.md) | Lembretes, avisos do portal, widgets e atalhos                                          |
+| [Dados e armazenamento](docs/dados-e-armazenamento.md) | O que fica no aparelho e o que sai dele, no código                                      |
+| [Aviso remoto](docs/aviso-remoto.md)                   | O `config/app-status.json`                                                              |
+| [iOS](docs/ios.md)                                     | O iPhone, o push do servidor, o envio à App Store e o workflow manual                   |
+| [Release](docs/release.md)                             | Versão, tags e publicação nas lojas (mantenedores)                                      |
+| [Atualizações OTA](docs/ota.md)                        | O que vai sem a loja, como publicar, voltar e conferir                                  |
+| [Observabilidade](docs/observabilidade.md)             | O Sentry, hoje desligado                                                                |
+| [Design system](src/components/ui/README.md)           | Tokens e componentes da "Agenda limpa"                                                  |
+| [Servidor](server/README.md)                           | API, arquitetura e implantação do backend                                               |
+| [Política de privacidade](docs/privacidade.md)         | O texto publicado para os alunos                                                        |
 
 ## Privacidade
 
-O app não tem anúncios nem rastreamento. A senha, as notas e a grade ficam no celular; o servidor do app recebe a matrícula e o nome, para identificar o aluno nas funções entre alunos, e o que você publica nelas. Tudo está na [política de privacidade](docs/privacidade.md).
+O app não tem anúncios nem rastreamento. A senha, as notas e a grade ficam no celular; o servidor do app recebe a matrícula e o nome, para identificar o aluno nas funções entre alunos, e o que você publica nelas. O relato de problema leva a página do portal anonimizada no celular, e no iPhone o código de notificação vai ao servidor só para os avisos com o app fechado que você ligar. Tudo está na [política de privacidade](docs/privacidade.md).
 
 ## Licença
 
