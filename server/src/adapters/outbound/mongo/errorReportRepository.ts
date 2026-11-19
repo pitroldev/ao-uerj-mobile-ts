@@ -147,5 +147,23 @@ export function createErrorReportRepository(
           .lean<StoredReport>();
         return updated ? toReport(updated) : null;
       }),
+    listByStudent: (studentId, limit) =>
+      guarded(async () => {
+        const found = await model
+          .find({ studentId })
+          .sort({ createdAt: -1, _id: -1 })
+          .limit(limit)
+          .lean<StoredReport[]>();
+        return found.map(toReport);
+      }),
+    listCreatedSince: (since, limit) =>
+      guarded(async () => {
+        const found = await model
+          .find({ createdAt: { $gte: since } })
+          .sort({ createdAt: -1, _id: -1 })
+          .limit(limit)
+          .lean<StoredReport[]>();
+        return found.map(toReport);
+      }),
   };
 }

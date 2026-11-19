@@ -4,17 +4,23 @@ import { after, test } from 'node:test';
 import { LOGIN_ATTEMPTS } from '../src/adapters/inbound/http/aouerj/admin/routes.ts';
 import { createServer, type Server } from '../src/composition.ts';
 import { createPortalWatch } from '../src/modules/portal/application.ts';
+import { groupKey } from '../src/modules/reports/application.ts';
+import {
+  parseDiagnostic,
+  reportSignature,
+} from '../src/modules/reports/domain.ts';
 import {
   memoryAttachments,
   memoryRepositories,
   silentLogger,
   switchableDatabase,
   testConfig,
+  tidy,
 } from './support.ts';
 
 /*
  * A administração no navegador (`/aouerj/admin`): o login por token com o
- * cookie, a triagem dos relatos, os anexos e as sugestões.
+ * cookie, as áreas, os relatos agrupados, os anexos e as sugestões.
  */
 
 const TOKEN = 'token-de-administracao-com-folga';
@@ -81,7 +87,7 @@ async function serve(env: Record<string, string> = { ADMIN_TOKEN: TOKEN }) {
     return {
       status: response.status,
       headers: response.headers,
-      text: await response.text(),
+      text: tidy(await response.text()),
     };
   }
 
@@ -168,7 +174,7 @@ test('the page asks for the token, and the login sets a strict, http-only cookie
 
   const page = await app.call('/aouerj/admin');
   assert.equal(page.status, 200);
-  assert.match(page.text, /Relatos de erro/);
+  assert.match(page.text, /<h1>Início<\/h1>/);
 });
 
 test('wrong tokens are limited per address; the right one never counts', async () => {
@@ -222,95 +228,278 @@ test('the cookie also opens the JSON listings; another cookie does not, and leav
   );
 });
 
-test('the reports come escaped, newest first, with the diagnostic, and filter by screen', async () => {
+/** As linhas da lista de uma área: o link de cada uma e o texto. */
+const rowsOf = (page: string) =>
+  [...page.matchAll(/<a class="row" href="([^"]+)"[\s\S]*?<\/a\s*>/g)].map(
+    match => ({
+      href: match[1].replace(/&amp;/g, '&'),
+      text: match[0],
+    }),
+  );
+
+/** A chave do grupo dos relatos com esta tela e este diagnóstico. */
+const keyOf = (page: string, diagnosticJson: string | null) =>
+  groupKey(
+    reportSignature(
+      page,
+      diagnosticJson ? parseDiagnostic(diagnosticJson) : null,
+    ),
+  );
+
+test('the areas share the side bar with what asks you in each, and the page runs no inline script', async () => {
   const app = await serve();
+  await app.report({
+    page: 'Notas',
+    description: 'A P2 sumiu',
+    html: [diagnostic()],
+  });
+  await app.call('/aouerj/suggestions', {
+    method: 'POST',
+    json: {
+      name: 'Bia',
+      content: 'Modo escuro </script><script>alert(1)</script>',
+    },
+    signedIn: false,
+  });
+  await app.signIn();
+
+  const home = await app.call('/aouerj/admin');
+  assert.equal(home.status, 200);
+  // uma área para cada coisa, na barra lateral, com o que pede você
+  for (const area of [
+    'Companhia agora',
+    'Agora no campus',
+    'Alunos',
+    'Relatos',
+    'Sugestões',
+    'Status',
+  ])
+    assert.match(home.text, new RegExp(`<span class="lbl">${area}</span>`));
+  assert.match(
+    home.text,
+    /<span class="lbl">Relatos<\/span><span class="n" title="pedem você">1<\/span>/,
+  );
+  assert.match(
+    home.text,
+    /<span class="lbl">Sugestões<\/span><span class="n" title="pedem você">1<\/span>/,
+  );
+  // cada cartão do Início leva à sua área
+  assert.match(home.text, /class="acard-h" href="\/aouerj\/admin\/relatos"/);
+  // só o script da própria administração (a CSP do helmet barra o resto)
+  const scripts = [...home.text.matchAll(/<script\b([^>]*)>/g)].map(
+    match => match[1],
+  );
+  assert.deepEqual(
+    scripts.map(attributes => attributes.trim()),
+    [
+      'src="/aouerj/admin/admin.js" defer',
+      'type="application/json" id="palette-data"',
+    ],
+  );
+  // o "Ir para" leva o texto como dado: nada da sugestão fecha a tag
+  const data =
+    /<script type="application\/json" id="palette-data">([\s\S]*?)<\/script>/.exec(
+      home.text,
+    )?.[1] ?? '';
+  assert.doesNotMatch(data, /<\/?script/i);
+  assert.ok(
+    (JSON.parse(data) as Array<{ label: string }>).some(entry =>
+      entry.label.includes('</script><script>'),
+    ),
+  );
+  assert.match(
+    home.headers.get('content-security-policy') ?? '',
+    /script-src 'self'/,
+  );
+
+  const script = await app.call('/aouerj/admin/admin.js', { signedIn: false });
+  assert.equal(script.status, 200);
+  assert.match(script.headers.get('content-type') ?? '', /javascript/);
+  assert.match(script.text, /data-hold/);
+  const font = await app.call('/aouerj/admin/fonts/inter-regular.woff2', {
+    signedIn: false,
+  });
+  assert.equal(font.status, 200);
+  assert.equal(font.headers.get('content-type'), 'font/woff2');
+  assert.equal(
+    (await app.call('/aouerj/admin/fonts/../routes.ts', { signedIn: false }))
+      .status,
+    404,
+  );
+  assert.equal(
+    (await app.call('/aouerj/admin/fonts/outra.woff2', { signedIn: false }))
+      .status,
+    404,
+  );
+});
+
+test('the reports come grouped by the error, escaped, the biggest group first, with the diagnostic', async () => {
+  const app = await serve();
+  const login = diagnostic({ category: 'PARSER_ERROR' });
   await app.report({
     page: 'Login',
     description: 'Fica carregando',
     email: 'ana@example.com',
-    html: [diagnostic({ category: 'PARSER_ERROR' })],
+    html: [login],
   });
+  const notes = diagnostic({ subjectCode: 'IME02-10871' });
   await app.report({
     page: 'Notas',
     description: '<script>alert("x")</script> e a P2 sumiu',
-    html: [diagnostic({ subjectCode: 'IME02-10871' })],
+    html: [notes],
+  });
+  await app.report({
+    page: 'Notas',
+    description: 'A P2 aparece 0,0',
+    html: [notes],
   });
   await app.signIn();
 
-  const page = (await app.call('/aouerj/admin')).text;
+  const page = (await app.call('/aouerj/admin/relatos')).text;
+  assert.match(page, /3 relatos, em 2 grupos/);
+  // o grupo maior primeiro, já aberto na prévia
+  const rows = rowsOf(page);
+  assert.equal(rows.length, 2);
+  assert.ok(rows[0].href.endsWith(`item=${keyOf('Notas', notes)}`));
+  assert.match(rows[0].text, /×2/);
   assert.match(
     page,
     /&lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt; e a P2 sumiu/,
   );
   assert.doesNotMatch(page, /<script>alert/);
-  // os mais novos primeiro
-  assert.ok(page.indexOf('a P2 sumiu') < page.indexOf('Fica carregando'));
-  // o diagnóstico vira fatos no relato
-  assert.match(page, /<dt>App<\/dt>\s*<dd>2\.10\.0<\/dd>/);
-  assert.match(page, /<dt>Disciplina<\/dt>\s*<dd>IME02-10871<\/dd>/);
-  assert.match(page, /<dt>Tipo<\/dt>\s*<dd>PARSER_ERROR<\/dd>/);
-  assert.match(page, /href="mailto:ana@example\.com"/);
-  assert.match(page, /2 abertos<\/b> em 2 telas/);
+  assert.match(page, /Disciplina IME02-10871/);
+  assert.match(page, /2\.10\.0 · 2/);
+  // o relato do aluno sem erro de leitura vira o título pelo começo do mais novo
+  assert.match(rows[0].text, /A P2 aparece 0,0/);
 
-  const login = (await app.call('/aouerj/admin?tela=Login')).text;
-  assert.match(login, /Fica carregando/);
-  assert.doesNotMatch(login, /a P2 sumiu/);
+  const other = (await app.call(rows[1].href)).text;
+  assert.match(other, /Fica carregando/);
+  assert.match(other, /href="mailto:ana@example\.com"/);
+  assert.match(other, /<span class="code">PARSER_ERROR<\/span>/);
+  assert.doesNotMatch(other, /e a P2 sumiu<\/p>/);
 });
 
-test('resolving needs the page token and moves the report between the lists', async () => {
+test('resolving needs the page token, one report or the whole group, and the group comes back with Desfazer', async () => {
   const app = await serve();
-  await app.report({ page: 'RID', description: 'Posição errada' });
+  const rid = diagnostic({
+    portalErrors: { 'partial-rid': 'PORTAL_LAYOUT_CHANGED' },
+  });
+  await app.report({ page: 'RID', description: 'Posição errada', html: [rid] });
+  await app.report({
+    page: 'RID',
+    description: 'Não mostra a fila',
+    html: [rid],
+  });
+  await app.report({
+    page: 'Notas',
+    description: 'Nota sumiu',
+    html: [diagnostic()],
+  });
   await app.signIn();
-  const id = app.memory.data.reports[0].id;
-  const page = (await app.call('/aouerj/admin')).text;
+  const key = keyOf('RID', rid);
+  const page = (await app.call(`/aouerj/admin/relatos?item=${key}`)).text;
+  assert.match(page, /O RID: o portal mudou a página/);
   const csrf = csrfOf(page);
   assert.ok(csrf.length > 20);
 
   // sem o csrf da página, nada muda
-  const forged = await app.call(`/aouerj/admin/relatos/${id}/resolver`, {
-    method: 'POST',
-    form: { situacao: 'abertos' },
-  });
+  const forged = await app.call(
+    `/aouerj/admin/relatos/grupos/${key}/resolver`,
+    { method: 'POST', form: {} },
+  );
   assert.equal(forged.status, 403);
-  assert.equal(app.memory.data.reports[0].resolvedAt, null);
-
-  const resolved = await app.call(`/aouerj/admin/relatos/${id}/resolver`, {
-    method: 'POST',
-    form: { csrf, situacao: 'abertos', tela: 'RID' },
-  });
-  assert.equal(resolved.status, 303);
-  // some dos abertos: volta ao mesmo recorte, sem âncora
-  assert.equal(resolved.headers.get('location'), '/aouerj/admin?tela=RID');
-  // (o assert.equal acima estreitou o tipo para null)
   assert.ok(
-    (app.memory.data.reports[0].resolvedAt as Date | null) instanceof Date,
+    app.memory.data.reports.every(report => report.resolvedAt === null),
   );
-  assert.doesNotMatch((await app.call('/aouerj/admin')).text, /Posição errada/);
-  const done = (await app.call('/aouerj/admin?situacao=resolvidos')).text;
-  assert.match(done, /Posição errada/);
-  assert.match(done, /Resolvido em/);
 
-  const reopened = await app.call(`/aouerj/admin/relatos/${id}/reabrir`, {
-    method: 'POST',
-    form: { csrf, situacao: 'todos' },
-  });
-  // num recorte que o mostra, volta para o lugar dele
-  assert.equal(
-    reopened.headers.get('location'),
-    `/aouerj/admin?situacao=todos#relato-${id}`,
+  // o grupo inteiro, e a volta para o próximo da lista
+  const notes = keyOf('Notas', diagnostic());
+  const resolved = await app.call(
+    `/aouerj/admin/relatos/grupos/${key}/resolver`,
+    {
+      method: 'POST',
+      form: { csrf, aba: 'fila', proximo: notes },
+    },
   );
-  assert.equal(app.memory.data.reports[0].resolvedAt, null);
+  assert.equal(resolved.status, 303);
+  const location = resolved.headers.get('location') ?? '';
+  assert.match(
+    location,
+    new RegExp(
+      `^/aouerj/admin/relatos\\?item=${notes}&feito=resolvidos&ref=${key}&n=2&em=\\d+$`,
+    ),
+  );
+  const rids = app.memory.data.reports.filter(report => report.page === 'RID');
+  assert.ok(rids.every(report => report.resolvedAt instanceof Date));
+  const resolvedPage = await app.call(location);
+  assert.doesNotMatch(resolvedPage.text, /Posição errada/);
+  assert.match(resolvedPage.text, /2 relatos resolvidos/);
+  // o "Desfazer" reabre só os que esse clique resolveu
+  const em = /&em=(\d+)/.exec(location)?.[1] ?? '';
+  assert.match(
+    resolvedPage.text,
+    new RegExp(`<input type="hidden" name="em" value="${em}" />`),
+  );
+  const older = app.memory.data.reports.find(
+    report => report.page === 'Notas',
+  )!;
+  older.resolvedAt = new Date(Number(em) - 60_000);
+  older.page = 'RID';
+  older.attachmentIds = rids[0].attachmentIds;
+  const undo = await app.call(`/aouerj/admin/relatos/grupos/${key}/reabrir`, {
+    method: 'POST',
+    form: { csrf, em },
+  });
+  assert.equal(undo.status, 303);
+  assert.match(
+    undo.headers.get('location') ?? '',
+    /feito=reabertos&ref=[0-9a-f]+&n=2$/,
+  );
+  assert.ok(rids.every(report => report.resolvedAt === null));
+  assert.ok(older.resolvedAt instanceof Date);
+
+  // um relato só, de dentro do grupo
+  const [one] = rids;
+  const single = await app.call(`/aouerj/admin/relatos/${one.id}/resolver`, {
+    method: 'POST',
+    form: { csrf, volta: key, aba: 'fila' },
+  });
+  assert.equal(
+    single.headers.get('location'),
+    `/aouerj/admin/relatos?item=${key}&feito=resolvido&ref=${one.id}`,
+  );
+  assert.ok(one.resolvedAt instanceof Date);
+  const done = (await app.call('/aouerj/admin/relatos?aba=feitos')).text;
+  assert.match(done, /Reabrir/);
+  const reopened = await app.call(`/aouerj/admin/relatos/${one.id}/reabrir`, {
+    method: 'POST',
+    form: { csrf },
+  });
+  assert.equal(reopened.status, 303);
+  assert.equal(one.resolvedAt, null);
 
   const missing = await app.call('/aouerj/admin/relatos/nao-existe/resolver', {
     method: 'POST',
     form: { csrf },
   });
   assert.equal(missing.status, 404);
+  const noGroup = await app.call(
+    '/aouerj/admin/relatos/grupos/000000000000/resolver',
+    { method: 'POST', form: { csrf } },
+  );
+  assert.equal(noGroup.status, 404);
 });
 
 test('an attachment opens: the diagnostic as a page, the portal page sandboxed, nothing else', async () => {
   const app = await serve();
-  await app.report({ page: 'Notas', html: [diagnostic()] });
+  const anonymized = diagnostic({
+    portalErrors: { schedule: 'PORTAL_LAYOUT_CHANGED' },
+    pages: ['schedule'],
+  });
+  await app.report({
+    page: 'Horários',
+    html: [anonymized, '<html><p>Xxxxxx da grade</p></html>'],
+  });
   await app.report({
     page: 'Notas',
     html: ['<html><script>steal()</script><p>Página do portal</p></html>'],
@@ -335,11 +524,26 @@ test('an attachment opens: the diagnostic as a page, the portal page sandboxed, 
   );
   assert.equal(portal.headers.get('x-content-type-options'), 'nosniff');
   assert.match(portal.text, /Página do portal/);
-  // a lista diz o que é cada anexo
-  const page = (await app.call('/aouerj/admin')).text;
-  // (o Prettier quebra a tag de fechamento: `</a\n>`)
-  assert.match(page, /<\/svg>\s*Diagnóstico\s*<\/a\s*>/);
-  assert.match(page, /<\/svg>\s*Página do portal · 1 KB\s*<\/a\s*>/);
+
+  // a página anonimizada (2.x) aparece na prévia, isolada; a da 1.x, não
+  const group = (
+    await app.call(
+      `/aouerj/admin/relatos?item=${keyOf('Horários', anonymized)}`,
+    )
+  ).text;
+  assert.match(
+    group,
+    new RegExp(
+      `<iframe sandbox="" [^>]*src="/aouerj/admin/relatos/${modern.id}/anexos/${modern.attachmentIds[1]}"`,
+    ),
+  );
+  assert.match(group, /<\/svg>Diagnóstico 1<\/a>/);
+  const legacy = (
+    await app.call(`/aouerj/admin/relatos?item=${keyOf('Notas', null)}`)
+  ).text;
+  assert.doesNotMatch(legacy, /<iframe/);
+  assert.match(legacy, /<\/svg>Página do portal · 1 KB<\/a>/);
+  assert.match(legacy, /sem diagnóstico \(app 1\.x\)/);
 
   // o anexo de outro relato, ou um que não existe, não abre
   for (const path of [
@@ -358,59 +562,124 @@ test('an attachment opens: the diagnostic as a page, the portal page sandboxed, 
   assert.doesNotMatch(anonymous.text, /Página do portal/);
 });
 
-test('the suggestions tab lists them escaped, and the pages say when the database is out', async () => {
+test('suggestions come escaped, are archived with the page token and come back with Desfazer', async () => {
   const app = await serve();
-  await app.call('/aouerj/suggestions', {
-    method: 'POST',
-    json: { name: 'Bia <b>', content: 'Modo escuro', email: 'bia@example.com' },
-    signedIn: false,
-  });
+  for (const content of ['Modo escuro', 'Widget das notas'])
+    await app.call('/aouerj/suggestions', {
+      method: 'POST',
+      json: { name: 'Bia <b>', content, email: 'bia@example.com' },
+      signedIn: false,
+    });
   await app.signIn();
   const page = (await app.call('/aouerj/admin/sugestoes')).text;
   assert.match(page, /Bia &lt;b&gt;/);
-  assert.match(page, /1 sugestão dos apps/);
+  assert.match(page, /2 novas/);
+  const [first, second] = [...app.memory.data.suggestions].reverse();
+  const csrf = csrfOf(page);
+
+  assert.equal(
+    (
+      await app.call(`/aouerj/admin/sugestoes/${first.id}/arquivar`, {
+        method: 'POST',
+        form: {},
+      })
+    ).status,
+    403,
+  );
+  const archived = await app.call(
+    `/aouerj/admin/sugestoes/${first.id}/arquivar`,
+    {
+      method: 'POST',
+      form: { csrf, aba: 'fila', proximo: second.id },
+    },
+  );
+  assert.equal(
+    archived.headers.get('location'),
+    `/aouerj/admin/sugestoes?item=${second.id}&feito=arquivada&ref=${first.id}`,
+  );
+  assert.ok(first.archivedAt instanceof Date);
+  const archivedPage = (await app.call(archived.headers.get('location')!)).text;
+  assert.match(archivedPage, /1 nova/);
+  assert.match(
+    archivedPage,
+    new RegExp(`action="/aouerj/admin/sugestoes/${first.id}/desarquivar"`),
+  );
+  assert.match(
+    (await app.call('/aouerj/admin/sugestoes?aba=feitos')).text,
+    /Modo escuro/,
+  );
+  // a listagem em JSON dos apps antigos não muda
+  const listed = await app.call('/aouerj/suggestions');
+  assert.deepEqual(
+    Object.keys((JSON.parse(listed.text) as object[])[0]).sort(),
+    ['_id', 'content', 'createdAt', 'email', 'name', 'updatedAt'],
+  );
+
+  const back = await app.call(
+    `/aouerj/admin/sugestoes/${first.id}/desarquivar`,
+    { method: 'POST', form: { csrf } },
+  );
+  assert.equal(back.status, 303);
+  assert.equal(first.archivedAt, null);
+  assert.equal(
+    (
+      await app.call('/aouerj/admin/sugestoes/nao-existe/arquivar', {
+        method: 'POST',
+        form: { csrf },
+      })
+    ).status,
+    404,
+  );
 
   app.db.state.ready = false;
   const out = await app.call('/aouerj/admin');
   assert.equal(out.status, 503);
   assert.match(out.text, /Banco fora do ar/);
+  // o status abre sem o banco: é quando ele mais importa
+  const status = await app.call('/aouerj/admin/status');
+  assert.equal(status.status, 200);
+  assert.match(status.text, /fora do ar/);
 });
 
 test('the review shows the OTA update and a generator summary from the diagnostic', async () => {
   const app = await serve();
-  await app.report({
-    page: 'Gerador de Grade',
-    html: [
-      diagnostic({
-        operation: 'Gerador de Grade',
-        appVersion: '2.16.2',
-        updateId: '0195f2a1-7c1e-7d3a-9b2f-1a2b3c4d5e6f',
-        generator: {
-          step: 2,
-          outcome: 'SHORTFALL_ROUTINE',
-          goal: 'COMPACT',
-          chosenSubjects: 7,
-          universalSubjects: 1,
-          eligibleSubjects: 7,
-          subjectsWithFreeClass: 1,
-          classes: 7,
-          freeClasses: 1,
-          busySlots: 77,
-          saturdayBusySlots: 17,
-          lunchMinutes: 50,
-        },
-      }),
-    ],
+  const generator = diagnostic({
+    operation: 'Gerador de Grade',
+    appVersion: '2.16.2',
+    updateId: '0195f2a1-7c1e-7d3a-9b2f-1a2b3c4d5e6f',
+    generator: {
+      step: 2,
+      outcome: 'SHORTFALL_ROUTINE',
+      goal: 'COMPACT',
+      chosenSubjects: 7,
+      universalSubjects: 1,
+      eligibleSubjects: 7,
+      subjectsWithFreeClass: 1,
+      classes: 7,
+      freeClasses: 1,
+      busySlots: 77,
+      saturdayBusySlots: 17,
+      lunchMinutes: 50,
+    },
   });
+  await app.report({ page: 'Gerador de Grade', html: [generator] });
   await app.report({ page: 'Notas', html: [diagnostic()] });
   await app.signIn();
   const summary =
     'Passo 3 de 3 (Grades) · 7 escolhidas (1 universal), 7 podem entrar, 1 com turma livre · 1 de 7 turmas livres · 77 tempos ocupados (17 no sábado) · almoço de 50 min · menos intervalos · nenhuma disciplina cabe na rotina (ocupados e almoço)';
 
-  const list = await app.call('/aouerj/admin');
+  const list = await app.call(
+    `/aouerj/admin/relatos?item=${keyOf('Gerador de Grade', generator)}`,
+  );
   assert.equal(list.status, 200);
-  assert.match(list.text, /<dt>OTA<\/dt>\s*<dd>0195f2a1…<\/dd>/);
-  assert.ok(list.text.includes(summary), 'resumo do gerador na lista');
+  assert.match(list.text, /Gerador: nenhuma disciplina cabe na rotina/);
+  assert.match(list.text, /1 de 1 com a OTA 0195f2a1…/);
+  assert.ok(list.text.includes(summary), 'resumo do gerador na prévia');
+  // o resumo para a issue vai sem nome, matrícula nem e-mail
+  assert.match(
+    list.text,
+    /data-copy="\*\*Gerador: nenhuma disciplina cabe na rotina/,
+  );
 
   const report = app.memory.data.reports.find(
     item => item.page === 'Gerador de Grade',

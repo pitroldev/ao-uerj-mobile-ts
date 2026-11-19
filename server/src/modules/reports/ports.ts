@@ -23,6 +23,31 @@ export type Review = {
   total: number;
 };
 
+/**
+ * Os relatos que são o mesmo problema (a mesma `reportSignature`), para a
+ * triagem resolver de uma vez.
+ */
+export type ReportGroup = {
+  /** Fixo enquanto a assinatura for a mesma: vai na URL. */
+  key: string;
+  page: string;
+  /** O diagnóstico do mais novo que tem um; `null` sem nenhum (a 1.x). */
+  diagnostic: Diagnostic | null;
+  /** Os mais novos primeiro. */
+  reports: ReviewedReport[];
+  first: Date;
+  last: Date;
+  /** Quantos alunos identificados diferentes e quantos relatos sem o aluno. */
+  students: number;
+  anonymous: number;
+  /** As versões do app, da com mais relatos à com menos. */
+  versions: Array<{ version: string; reports: number }>;
+  /** As OTAs (o id) e quantos relatos com cada uma. */
+  updates: Array<{ id: string; reports: number }>;
+  /** O último resolvido do grupo (só nos resolvidos). */
+  resolvedAt: Date | null;
+};
+
 /** O conteúdo de um anexo: o diagnóstico ou a página do portal (HTML). */
 export type AttachmentContent =
   | {
@@ -46,6 +71,23 @@ export interface ErrorReports {
   summarize(): Promise<ReviewSummary>;
   /** Dá o relato como resolvido (ou o reabre); `null` se ele não existe. */
   setResolved(id: string, resolved: boolean): Promise<ErrorReport | null>;
+  /**
+   * Os grupos dos abertos (os maiores primeiro) ou dos resolvidos (os
+   * resolvidos por último primeiro), de até `GROUP_LIMIT` relatos.
+   */
+  groups(status: 'open' | 'resolved'): Promise<ReportGroup[]>;
+  /**
+   * Resolve (ou reabre) os relatos de uma vez, todos com a mesma hora:
+   * quantos mudaram e a hora (`null` ao reabrir).
+   */
+  setResolvedMany(
+    ids: readonly string[],
+    resolved: boolean,
+  ): Promise<{ changed: number; at: Date | null }>;
+  /** Os relatos do aluno, os mais novos primeiro (até 50). */
+  byStudent(studentId: string): Promise<ErrorReport[]>;
+  /** Os criados desde `since`, os mais novos primeiro (os números da triagem). */
+  createdSince(since: Date): Promise<ErrorReport[]>;
   /** Um anexo do relato; `null` se o relato ou o anexo não existem. */
   attachment(
     id: string,
@@ -67,6 +109,8 @@ export interface ErrorReportRepository {
   ): Promise<{ reports: ErrorReport[]; total: number }>;
   summarize(): Promise<ReviewSummary>;
   setResolvedAt(id: string, at: Date | null): Promise<ErrorReport | null>;
+  listByStudent(studentId: string, limit: number): Promise<ErrorReport[]>;
+  listCreatedSince(since: Date, limit: number): Promise<ErrorReport[]>;
 }
 
 /** Porta de saída: onde os anexos ficam. Uma gravação que falha não deixa nada. */

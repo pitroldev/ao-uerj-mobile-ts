@@ -53,13 +53,21 @@ type StoredCall = {
 
 type StoredReport = Omit<
   CallReport,
-  'id' | 'source' | 'callExpiresAt' | 'people' | 'reporterStudent'
+  | 'id'
+  | 'source'
+  | 'callExpiresAt'
+  | 'people'
+  | 'reporterStudent'
+  | 'hiddenBy'
+  | 'reviewedAt'
 > & {
   _id: unknown;
   source?: CallReport['source'];
   callExpiresAt?: Date | null;
   people?: CallReport['people'];
   reporterStudent?: string | null;
+  hiddenBy?: CallReport['hiddenBy'];
+  reviewedAt?: Date | null;
 };
 
 function toCall(doc: StoredCall): Call {
@@ -309,12 +317,21 @@ export function createCallReportRepository(
             student: person.student ?? null,
           })),
           reporterStudent: report.reporterStudent ?? null,
+          hiddenBy: report.hiddenBy ?? null,
+          reviewedAt: report.reviewedAt ?? null,
           callExpiresAt: report.callExpiresAt ?? null,
         }));
       }),
-    markHidden: callId =>
+    markHidden: (callId, by) =>
       guarded(async () => {
-        await model.updateMany({ callId }, { $set: { hidden: true } });
+        await model.updateMany(
+          { callId },
+          { $set: { hidden: true, hiddenBy: by } },
+        );
+      }),
+    markReviewed: (callId, at) =>
+      guarded(async () => {
+        await model.updateMany({ callId }, { $set: { reviewedAt: at } });
       }),
   };
 }

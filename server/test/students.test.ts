@@ -34,6 +34,7 @@ import {
   silentLogger,
   switchableDatabase,
   testConfig,
+  tidy,
 } from './support.ts';
 import { APP_ATTEST, appAttestation } from './appAttest.ts';
 import { mintToken, privateKeyEntry, signingKeys } from './tokens.ts';
@@ -580,7 +581,7 @@ async function serve(
     } catch {
       body = null;
     }
-    return { status: response.status, response, body, text };
+    return { status: response.status, response, body, text: tidy(text) };
   };
 
   /** Entra com uma matrícula (a atestação de desenvolvimento aceita tudo). */
@@ -818,12 +819,23 @@ test('the moderation bans from the admin, and the banned student is out everywhe
     tab.text,
     /method="post" action="\/aouerj\/admin\/alunos\/busca"/,
   );
+  // achou: vai para a página do aluno, pelo id (a matrícula fica fora da URL)
   const search = await call('POST', '/aouerj/admin/alunos/busca', {
     admin: true,
     form: { csrf, matricula: '2018.1001.2345' },
   });
-  assert.equal(search.status, 200);
-  assert.match(search.text, /MARINA COSTA/);
+  assert.equal(search.status, 303);
+  assert.equal(
+    search.response.headers.get('location'),
+    `/aouerj/admin/alunos/${marina.student.id}?aba=recentes`,
+  );
+  const nobody = await call('POST', '/aouerj/admin/alunos/busca', {
+    admin: true,
+    form: { csrf, matricula: '209999999999' },
+  });
+  assert.equal(nobody.status, 200);
+  assert.match(nobody.text, /Nenhum aluno com essa matrícula entrou no app/);
+  assert.doesNotMatch(nobody.response.headers.get('location') ?? '', /2099/);
   const forged = await call('POST', '/aouerj/admin/alunos/busca', {
     admin: true,
     form: { csrf: 'outro', matricula: '201810012345' },
@@ -833,7 +845,11 @@ test('the moderation bans from the admin, and the banned student is out everywhe
     admin: true,
   });
   assert.equal(page.status, 200);
-  assert.match(page.text, /Última entrada/);
+  // o nome como se escreve, a matrícula e o histórico na prévia
+  assert.match(page.text, /<h1 class="ttl">Marina Costa<\/h1>/);
+  assert.match(page.text, /Matrícula 201810012345/);
+  assert.match(page.text, /No app, 30 dias/);
+  assert.match(page.text, /id="ban-form"/);
   const banned = await call(
     'POST',
     `/aouerj/admin/alunos/${marina.student.id}/banir`,

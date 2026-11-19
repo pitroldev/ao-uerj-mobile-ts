@@ -27,17 +27,22 @@ export type AoUerjServices = {
   portal: Pick<PortalWatch, 'snapshot'>;
   /** Só a carga, para o `GET /status`. */
   schedules: Pick<ScheduleGenerator, 'load'>;
-  /** Só as denúncias, para a administração. */
+  /** As denúncias, o que está no ar e os números, para a administração. */
   companion: Pick<
     Companion,
-    'reportsForReview' | 'statsForReview' | 'hideByModerator'
+    | 'reportsForReview'
+    | 'statsForReview'
+    | 'hideByModerator'
+    | 'keepByModerator'
+    | 'reopenReview'
+    | 'listedForReview'
   >;
   /** Os alunos identificados, para a moderação. */
   students: StudentIdentity;
   /** Os avisos de Agora no campus, para a moderação. */
   campusNow: Pick<
     CampusNow,
-    'moderation' | 'pendingFlags' | 'removeByModerator' | 'restoreByModerator'
+    'moderation' | 'noticesBy' | 'removeByModerator' | 'restoreByModerator'
   >;
 };
 
@@ -103,6 +108,9 @@ export function createAoUerjRouter({
         students: services.students,
         session,
         isDatabaseReady: () => database.isReady(),
+        databaseStatus: () => database.status(),
+        portal: services.portal,
+        release,
       }),
     );
 }

@@ -10,6 +10,7 @@ import {
 } from '../../shared/errors.ts';
 import type { StudentActor } from '../students/ports.ts';
 import {
+  addDays,
   ANSWER_RETENTION_MS,
   checkNotice,
   DAILY_NOTICE_LIMIT,
@@ -80,6 +81,10 @@ export const HELPERS_CACHE_MS = 60 * 1000;
 export const COMMUNITY_CACHE_MS = 10 * 60 * 1000;
 /** A moderação olha os denunciados dos últimos 7 dias. */
 export const FLAGGED_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+/** Os dias dos números da moderação (avisos por dia e por lugar). */
+export const MODERATION_DAYS = 14;
+/** O histórico de um aluno na moderação: 30 dias. */
+const STUDENT_HISTORY_MS = 30 * 24 * 60 * 60 * 1000;
 /** Quantos avisos cada parte da página da moderação mostra. */
 const MODERATION_PAGE = 100;
 const RECENT_PAGE = 50;
@@ -794,22 +799,54 @@ export function createCampusNow({
     async moderation() {
       const time = at();
       const since = new Date(time.getTime() - FLAGGED_WINDOW_MS);
-      const [flagged, recent, active, numbers] = await Promise.all([
+      const today = saoPaulo(time).day;
+      const first = addDays(today, -(MODERATION_DAYS - 1));
+      const [flagged, recent, live, numbers, created] = await Promise.all([
         notices.listFlagged(since, MODERATION_PAGE),
         notices.listRecent(RECENT_PAGE + MODERATION_PAGE),
-        notices.countActive(time),
+        notices.listActive(time),
         community(null),
+        notices.listCreated(startOfDay(first), time),
       ]);
       const shown = new Set(flagged.map(notice => notice.id));
+      const perDay = Array.from({ length: MODERATION_DAYS }, (_, index) => ({
+        day: addDays(first, index),
+        notices: 0,
+        removedByFlags: 0,
+      }));
+      const byDay = new Map(perDay.map(entry => [entry.day, entry]));
+      const places = new Map<
+        string,
+        { place: Notice['place']; notices: number }
+      >();
+      for (const notice of created) {
+        const entry = byDay.get(saoPaulo(notice.createdAt).day);
+        if (entry) {
+          entry.notices += 1;
+          if (notice.removedBy === 'flags') entry.removedByFlags += 1;
+        }
+        const place = places.get(notice.placeKey);
+        if (place) place.notices += 1;
+        else places.set(notice.placeKey, { place: notice.place, notices: 1 });
+      }
+      const valid = live
+        .filter(notice => isActive(notice, time))
+        .sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime());
       return {
         flagged,
         recent: recent
           .filter(notice => !shown.has(notice.id))
           .slice(0, RECENT_PAGE),
-        active,
+        active: valid.length,
+        live: valid,
         week: numbers.week,
+        days: perDay,
+        places: [...places.values()].sort((a, b) => b.notices - a.notices),
       };
     },
+
+    noticesBy: studentId =>
+      notices.listByReporter(studentId, new Date(now() - STUDENT_HISTORY_MS)),
 
     pendingFlags: () =>
       notices.countPendingFlags(new Date(now() - FLAGGED_WINDOW_MS)),

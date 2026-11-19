@@ -76,6 +76,18 @@ export function testConfig(env: Record<string, string> = {}): Config {
   return loadConfig({ NODE_ENV: 'test', ...env });
 }
 
+/**
+ * O HTML da administração com os espaços como o navegador os junta: o
+ * Prettier quebra as linhas dentro dos templates (`</span\n>`, um atributo
+ * por linha), e os testes comparam o que aparece, não onde a linha quebrou.
+ */
+export const tidy = (page: string) =>
+  page
+    .replace(/\s+/g, ' ')
+    .replace(/<\/([a-z0-9]+) >/gi, '</$1>')
+    .replace(/<([a-z0-9]+) >/gi, '<$1>')
+    .replace(/" >/g, '">');
+
 /** Um relógio que só anda quando o teste manda. */
 export function manualClock(start = Date.UTC(2026, 9, 22, 12)) {
   let time = start;
@@ -185,17 +197,42 @@ export function memoryRepositories(clock = manualClock()) {
       report.updatedAt = stamp();
       return report;
     },
+    async listByStudent(studentId, limit) {
+      return [...reports]
+        .reverse()
+        .filter(report => report.studentId === studentId)
+        .slice(0, limit);
+    },
+    async listCreatedSince(since, limit) {
+      return [...reports]
+        .reverse()
+        .filter(report => report.createdAt >= since)
+        .slice(0, limit);
+    },
   };
 
   const suggestionRepository: SuggestionRepository = {
     async create(suggestion) {
       const at = stamp();
-      const created = { ...suggestion, id: id(), createdAt: at, updatedAt: at };
+      const created = {
+        ...suggestion,
+        id: id(),
+        archivedAt: null,
+        createdAt: at,
+        updatedAt: at,
+      };
       suggestions.push(created);
       return created;
     },
     async listRecent(limit) {
       return [...suggestions].reverse().slice(0, limit);
+    },
+    async setArchivedAt(suggestionId, at) {
+      const suggestion = suggestions.find(item => item.id === suggestionId);
+      if (!suggestion) return null;
+      suggestion.archivedAt = at;
+      suggestion.updatedAt = stamp();
+      return suggestion;
     },
   };
 
@@ -428,9 +465,16 @@ export function memoryCompanion() {
     async listRecent(limit) {
       return [...reports].reverse().slice(0, limit);
     },
-    async markHidden(callId) {
+    async markHidden(callId, by) {
       for (const report of reports)
-        if (report.callId === callId) report.hidden = true;
+        if (report.callId === callId) {
+          report.hidden = true;
+          report.hiddenBy = by;
+        }
+    },
+    async markReviewed(callId, at) {
+      for (const report of reports)
+        if (report.callId === callId) report.reviewedAt = at;
     },
   };
 

@@ -654,10 +654,25 @@ test('the routes: a token opens and joins, the pass reads the list, the member k
   assert.equal(admin.status, 200);
   const page = await admin.text();
   assert.ok(page.includes('<h1>Companhia agora</h1>'));
-  assert.match(page, /Últimos 14 dias/);
   assert.match(page, /Mesa no Lago dos Peixinhos/);
-  assert.match(page, /Diego, Camila/);
+  // quem estava, pelo apelido de cada um
+  assert.match(page, /<b>Diego<\/b><span class="role">abriu<\/span>/);
+  assert.match(page, /<b>Camila<\/b><span class="role">entrou<\/span>/);
   assert.ok(!page.includes(join.json.memberKey));
+  // o que está no ar agora, e os números na aba deles
+  const onAir = await (
+    await fetch(`http://127.0.0.1:${port}/aouerj/admin/companhia?aba=noar`, {
+      headers: { authorization: `Bearer ${ADMIN}` },
+    })
+  ).text();
+  assert.match(onAir, /Com denúncia aberta/);
+  const numbers = await (
+    await fetch(`http://127.0.0.1:${port}/aouerj/admin/companhia?aba=numeros`, {
+      headers: { authorization: `Bearer ${ADMIN}` },
+    })
+  ).text();
+  assert.match(numbers, /Últimos 14 dias/);
+  assert.match(numbers, /A procura/);
 
   // quem chamou encerra
   const left = await call('POST', `/calls/${id}/leave`, { headers: host });
@@ -771,36 +786,85 @@ test('the routes: who is watching, the host removing someone, the limit per memb
     await fetch(`${admin}/companhia`, { headers: bearer })
   ).text();
   assert.match(page, /De fora/);
-  assert.match(page, /Tirar do ar/);
+  assert.match(page, /a denúncia de fora não tira sozinha/);
+  assert.match(page, /Segure para tirar de vez/);
   const csrf = /name="csrf" value="([^"]+)"/.exec(page)?.[1] ?? '';
-  const form = (value: string) =>
-    fetch(`${admin}/companhia/${id}/tirar`, {
+  const post = (path: string, fields: Record<string, string>) =>
+    fetch(`${admin}/companhia/${id}/${path}`, {
       method: 'POST',
       redirect: 'manual',
       headers: {
         ...bearer,
         'content-type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams({ csrf: value }),
+      body: new URLSearchParams(fields),
     });
-  assert.equal((await form('forjado')).status, 403);
-  const hidden = await form(csrf);
+
+  // "Manter no ar" arquiva a denúncia, e a mesa segue na lista
+  const kept = await post('manter', { csrf, aba: 'fila' });
+  assert.equal(kept.status, 303);
+  assert.equal(
+    kept.headers.get('location'),
+    `/aouerj/admin/companhia?feito=mantida&ref=${id}`,
+  );
+  assert.equal(
+    (await call('GET', '/calls', { headers: ana })).json.calls.length,
+    1,
+  );
+  const calm = await (
+    await fetch(`${admin}/companhia?feito=mantida&ref=${id}`, {
+      headers: bearer,
+    })
+  ).text();
+  assert.match(calm, /Nenhuma denúncia pede você/);
+  assert.match(
+    calm,
+    new RegExp(`action="/aouerj/admin/companhia/${id}/reabrir"`),
+  );
+  const decided = await (
+    await fetch(`${admin}/companhia?aba=feitos`, { headers: bearer })
+  ).text();
+  assert.match(decided, /Você manteve no ar e arquivou a denúncia\./);
+  // o "Desfazer" devolve a denúncia à moderação
+  const reopened = await post('reabrir', { csrf });
+  assert.equal(reopened.status, 303);
+  assert.match(
+    await (await fetch(`${admin}/companhia`, { headers: bearer })).text(),
+    /Spam ou propaganda: Mesa no RU/,
+  );
+
+  assert.equal((await post('tirar', { csrf: 'forjado' })).status, 403);
+  const hidden = await post('tirar', { csrf, aba: 'fila' });
   assert.equal(hidden.status, 303);
   assert.equal(
     hidden.headers.get('location'),
-    '/aouerj/admin/companhia?feito=tirada',
+    `/aouerj/admin/companhia?feito=tirada&ref=${id}`,
   );
   assert.deepEqual(
     (await call('GET', '/calls', { headers: ana })).json.calls,
     [],
   );
   const reviewed = await (
-    await fetch(`${admin}/companhia?feito=tirada`, { headers: bearer })
+    await fetch(
+      `${admin}${hidden.headers.get('location')!.slice('/aouerj/admin'.length)}`,
+      { headers: bearer },
+    )
   ).text();
-  assert.match(reviewed, /Saiu do ar: some da lista/);
-  assert.match(reviewed, /saiu do ar/);
-  assert.doesNotMatch(reviewed, /Tirar do ar\s*<\/button>/);
+  assert.match(reviewed, /Saiu do ar/);
+  assert.match(reviewed, /Nenhuma denúncia pede você/);
+  assert.match(
+    await (
+      await fetch(`${admin}/companhia?aba=feitos`, { headers: bearer })
+    ).text(),
+    /Você tirou do ar\./,
+  );
+  // tirar de novo não acha mais a mesa
+  const again = await post('tirar', { csrf });
+  assert.match(again.headers.get('location') ?? '', /feito=acabou/);
   // os números do dia aparecem: uma mesa aberta, que teve companhia
-  assert.match(reviewed, /<b>1<\/b\s*>/);
-  assert.match(reviewed, /100%/);
+  const numbers = await (
+    await fetch(`${admin}/companhia?aba=numeros`, { headers: bearer })
+  ).text();
+  assert.match(numbers, /<span class="v"><b>1<\/b><\/span>/);
+  assert.match(numbers, /100%/);
 });

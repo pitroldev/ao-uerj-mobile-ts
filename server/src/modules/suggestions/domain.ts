@@ -8,6 +8,8 @@ export type NewSuggestion = {
 
 export type Suggestion = NewSuggestion & {
   id: string;
+  /** Arquivada na administração (já lida); nova, `null`. */
+  archivedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };

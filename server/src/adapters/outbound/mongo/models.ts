@@ -80,6 +80,8 @@ const suggestionSchema = new mongoose.Schema(
     name: text(SUGGESTION_LIMITS.name),
     content: text(SUGGESTION_LIMITS.content),
     email,
+    /** Arquivada na administração; as novas (e as antigas) ficam sem. */
+    archivedAt: { default: null, type: Date },
   },
   OPTIONS,
 );
@@ -200,6 +202,10 @@ const companionReportSchema = new mongoose.Schema(
     source: { default: null, type: String },
     count: { required: true, type: Number },
     hidden: { default: false, type: Boolean },
+    /** Quem tirou do ar: "reports" ou "moderation" (as antigas ficam sem). */
+    hiddenBy: { default: null, type: String },
+    /** A moderação deixou no ar: a denúncia está arquivada. */
+    reviewedAt: { default: null, type: Date },
     callExpiresAt: { default: null, type: Date },
     createdAt: { required: true, type: Date },
     expiresAt: { required: true, type: Date },

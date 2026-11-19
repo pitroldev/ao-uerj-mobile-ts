@@ -7,7 +7,11 @@ type StoredSuggestion = Stored & {
   name: string;
   content: string;
   email?: string;
+  archivedAt?: Date | null;
 };
+
+/** Um id do Mongo; outro texto não chega a virar consulta (nem um CastError). */
+const OBJECT_ID = /^[0-9a-f]{24}$/i;
 
 export function toSuggestion(doc: StoredSuggestion): Suggestion {
   return {
@@ -15,6 +19,7 @@ export function toSuggestion(doc: StoredSuggestion): Suggestion {
     name: doc.name,
     content: doc.content,
     email: doc.email,
+    archivedAt: doc.archivedAt ?? null,
     createdAt: storedDate(doc.createdAt),
     updatedAt: storedDate(doc.updatedAt),
   };
@@ -37,6 +42,18 @@ export function createSuggestionRepository(
           .limit(limit)
           .lean<StoredSuggestion[]>();
         return found.map(toSuggestion);
+      }),
+    setArchivedAt: (id, at) =>
+      guarded(async () => {
+        if (!OBJECT_ID.test(id)) return null;
+        const updated = await model
+          .findByIdAndUpdate(
+            id,
+            { archivedAt: at },
+            { returnDocument: 'after' },
+          )
+          .lean<StoredSuggestion>();
+        return updated ? toSuggestion(updated) : null;
       }),
   };
 }

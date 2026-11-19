@@ -1,8 +1,13 @@
+import { createHash } from 'node:crypto';
+
 import { systemClock, type Clock } from '../../shared/clock.ts';
 import {
+  GROUP_LIMIT,
   parseDiagnostic,
   RECENT_REPORTS,
+  reportSignature,
   REVIEW_LIMIT,
+  type Diagnostic,
   type ErrorReport,
 } from './domain.ts';
 import type {
@@ -10,8 +15,64 @@ import type {
   AttachmentView,
   ErrorReportRepository,
   ErrorReports,
+  ReportGroup,
   ReviewedReport,
 } from './ports.ts';
+
+/** O diagnóstico do relato (o primeiro anexo que é um); `null` sem nenhum. */
+export const diagnosticOf = (report: ReviewedReport): Diagnostic | null =>
+  report.attachments.find(attachment => attachment.kind === 'diagnostic')
+    ?.diagnostic ?? null;
+
+/** Quantos de cada valor, do mais frequente ao menos. */
+function tally(values: readonly string[]) {
+  const counts = new Map<string, number>();
+  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+  return [...counts].sort((a, b) => b[1] - a[1]);
+}
+
+/** A chave de um grupo na URL: fixa enquanto a assinatura for a mesma. */
+export const groupKey = (signature: string) =>
+  createHash('sha256').update(signature).digest('hex').slice(0, 12);
+
+/** Junta os relatos (os mais novos primeiro) pela assinatura. */
+export function groupReports(
+  reports: readonly ReviewedReport[],
+): ReportGroup[] {
+  const groups = new Map<string, ReviewedReport[]>();
+  for (const report of reports) {
+    const signature = reportSignature(report.page, diagnosticOf(report));
+    const list = groups.get(signature);
+    if (list) list.push(report);
+    else groups.set(signature, [report]);
+  }
+  return [...groups].map(([signature, list]) => {
+    const diagnostics = list.map(diagnosticOf);
+    const identified = new Set(
+      list.flatMap(report => (report.studentId ? [report.studentId] : [])),
+    );
+    const resolved = list.flatMap(report =>
+      report.resolvedAt ? [report.resolvedAt.getTime()] : [],
+    );
+    return {
+      key: groupKey(signature),
+      page: list[0].page,
+      diagnostic: diagnostics.find(item => item !== null) ?? null,
+      reports: list,
+      first: list[list.length - 1].createdAt,
+      last: list[0].createdAt,
+      students: identified.size,
+      anonymous: list.filter(report => !report.studentId).length,
+      versions: tally(
+        diagnostics.flatMap(item => (item ? [item.appVersion] : [])),
+      ).map(([version, count]) => ({ version, reports: count })),
+      updates: tally(
+        diagnostics.flatMap(item => (item?.updateId ? [item.updateId] : [])),
+      ).map(([id, count]) => ({ id, reports: count })),
+      resolvedAt: resolved.length ? new Date(Math.max(...resolved)) : null,
+    };
+  });
+}
 
 /** Um diagnóstico cabe nisto; um anexo maior é a página do portal (1.x). */
 const DIAGNOSTIC_BYTES = 16 * 1024;
@@ -72,6 +133,34 @@ export function createErrorReports(
 
     setResolved: (id, resolved) =>
       reports.setResolvedAt(id, resolved ? new Date(now()) : null),
+
+    async groups(status) {
+      const found = await reports.listForReview({ status }, GROUP_LIMIT);
+      const groups = groupReports(
+        await Promise.all(found.reports.map(withAttachments)),
+      );
+      return status === 'open'
+        ? groups.sort(
+            (a, b) =>
+              b.reports.length - a.reports.length ||
+              b.last.getTime() - a.last.getTime(),
+          )
+        : groups.sort(
+            (a, b) =>
+              (b.resolvedAt?.getTime() ?? 0) - (a.resolvedAt?.getTime() ?? 0),
+          );
+    },
+
+    async setResolvedMany(ids, resolved) {
+      const at = resolved ? new Date(now()) : null;
+      let changed = 0;
+      for (const id of new Set(ids))
+        if (await reports.setResolvedAt(id, at)) changed += 1;
+      return { changed, at };
+    },
+
+    byStudent: studentId => reports.listByStudent(studentId, 50),
+    createdSince: since => reports.listCreatedSince(since, GROUP_LIMIT),
 
     async attachment(id, attachmentId) {
       const report = await reports.findById(id);

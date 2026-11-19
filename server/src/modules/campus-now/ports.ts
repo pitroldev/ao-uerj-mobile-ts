@@ -13,6 +13,7 @@ import type {
   NoticeKind,
   NoticeRequest,
   NoticeView,
+  Place,
   Problem,
   RemovedBy,
   Standing,
@@ -68,6 +69,14 @@ export type Community = {
   };
 };
 
+/** Um dia de avisos para a moderação: quantos e quantos saíram pelas denúncias. */
+export type ModerationDay = {
+  /** AAAA-MM-DD, em São Paulo. */
+  day: string;
+  notices: number;
+  removedByFlags: number;
+};
+
 /** O que a moderação vê: os denunciados, os recentes e os números. */
 export type Moderation = {
   /** Os denunciados dos últimos 7 dias, dos mais novos aos mais antigos. */
@@ -76,7 +85,13 @@ export type Moderation = {
   recent: Notice[];
   /** Quantos valem agora. */
   active: number;
+  /** Os que valem agora, os que somem antes primeiro. */
+  live: Notice[];
   week: WeekNumbers;
+  /** Os últimos `MODERATION_DAYS` dias, do mais antigo a hoje. */
+  days: ModerationDay[];
+  /** Onde mais avisaram nesses dias, do lugar com mais avisos ao com menos. */
+  places: Array<{ place: Place; notices: number }>;
 };
 
 /** Porta de entrada: Agora no campus. Toda ação vem de um aluno identificado. */
@@ -105,6 +120,8 @@ export interface CampusNow {
   dropStudent(studentId: string): Promise<void>;
   /** Para a moderação. */
   moderation(): Promise<Moderation>;
+  /** Os avisos do aluno nos últimos 30 dias, para a moderação. */
+  noticesBy(studentId: string): Promise<Notice[]>;
   /** Quantos denunciados esperam a moderação (a contagem da aba). */
   pendingFlags(): Promise<number>;
   /** Tira do ar (quem avisou perde os pontos); `gone` se não existe. */

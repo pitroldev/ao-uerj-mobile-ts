@@ -8,7 +8,9 @@ import type {
   CallWatchView,
   DayStats,
   FeedEntry,
+  HiddenBy,
   HourStatKey,
+  ListedCall,
   Member,
   MemberCall,
   PhraseId,
@@ -108,6 +110,15 @@ export interface Companion {
   reportsForReview(limit: number): Promise<CallReport[]>;
   /** A moderação tira do ar uma chamada denunciada. */
   hideByModerator(callId: string): Promise<ModerationResult>;
+  /**
+   * A moderação deixa a chamada no ar: as denúncias dela ficam arquivadas
+   * (uma nova volta a pedir a moderação). `gone` se ela já acabou.
+   */
+  keepByModerator(callId: string): Promise<'kept' | 'gone'>;
+  /** Desfaz o "Manter no ar": as denúncias voltam a pedir a moderação. */
+  reopenReview(callId: string): Promise<void>;
+  /** As chamadas na lista agora, para a moderação (sem chaves nem alunos). */
+  listedForReview(): Promise<ListedCall[]>;
   /** Os números dos últimos `days` dias, do mais novo ao mais antigo. */
   statsForReview(days: number): Promise<DayStats[]>;
   /** O "Me avise se abrirem" do aluno, se ainda vale. */
@@ -175,8 +186,10 @@ export interface CallRepository {
 export interface CallReportRepository {
   create(report: Omit<CallReport, 'id'>): Promise<void>;
   listRecent(limit: number): Promise<CallReport[]>;
-  /** As denúncias da chamada passam a dizer que ela saiu do ar. */
-  markHidden(callId: string): Promise<void>;
+  /** As denúncias da chamada passam a dizer que ela saiu do ar, e por quem. */
+  markHidden(callId: string, by: HiddenBy): Promise<void>;
+  /** Arquiva as denúncias da chamada (`at`) ou as devolve à moderação (`null`). */
+  markReviewed(callId: string, at: Date | null): Promise<void>;
 }
 
 /** Porta de saída: as contagens do dia, só números. */

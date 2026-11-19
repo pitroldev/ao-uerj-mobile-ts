@@ -207,3 +207,26 @@ export const REPORT_LIMITS = {
 
 /** A listagem de administração traz os mais recentes, no máximo estes. */
 export const RECENT_REPORTS = 100;
+
+/** Os grupos da triagem juntam até estes relatos (os mais recentes). */
+export const GROUP_LIMIT = 400;
+
+/**
+ * O que faz dois relatos serem o mesmo problema: a tela e, com o
+ * diagnóstico, o resultado do gerador, as leituras do portal com erro ou o
+ * tipo. Sem diagnóstico (a 1.x), só a tela.
+ */
+export function reportSignature(
+  page: string,
+  diagnostic: Diagnostic | null,
+): string {
+  if (!diagnostic) return `${page}|sem-diagnostico`;
+  if (diagnostic.generator)
+    return `${page}|gerador|${diagnostic.generator.outcome}`;
+  const errors = Object.entries(diagnostic.portalErrors ?? {})
+    .map(([read, code]) => `${read}:${code}`)
+    .sort();
+  return errors.length
+    ? `${page}|${errors.join(',')}`
+    : `${page}|${diagnostic.category}`;
+}

@@ -204,6 +204,9 @@ export type MemberCall = PublicCall & {
   feed: { name: string; phrase: PhraseId; at: Date; you: boolean }[];
 };
 
+/** Quem tirou a chamada do ar: as denúncias de dentro ou a moderação. */
+export type HiddenBy = 'reports' | 'moderation';
+
 /** O que a moderação recebe: a chamada como estava, sem as chaves. */
 export type CallReport = {
   id: string;
@@ -224,11 +227,51 @@ export type CallReport = {
   /** As denúncias da chamada até aqui, esta inclusive. */
   count: number;
   hidden: boolean;
+  /** Quem a tirou do ar; `null` enquanto ela vale (e nas de antes do campo). */
+  hiddenBy: HiddenBy | null;
+  /** A moderação olhou e deixou no ar: a denúncia está arquivada. */
+  reviewedAt: Date | null;
   /** Quando a chamada some de vez: até lá, a moderação ainda a tira do ar. */
   callExpiresAt: Date | null;
   createdAt: Date;
   expiresAt: Date;
 };
+
+/**
+ * Uma chamada na lista, para a moderação: o que quem está fora vê, com os
+ * primeiros nomes de quem está dentro. Sem as chaves e sem os alunos (quem é
+ * cada um só aparece na denúncia).
+ */
+export type ListedCall = {
+  id: string;
+  kind: CallKind;
+  at: Date;
+  spot: SpotId;
+  destination: DestinationId | null;
+  note: string;
+  people: { name: string; host: boolean }[];
+  capacity: number;
+  visibleFrom: Date;
+  listedUntil: Date;
+  expiresAt: Date;
+};
+
+export const listedView = (call: Call): ListedCall => ({
+  id: call.id,
+  kind: call.kind,
+  at: call.at,
+  spot: call.spot,
+  destination: call.destination,
+  note: call.note,
+  people: call.members.map(member => ({
+    name: member.name,
+    host: member.host,
+  })),
+  capacity: call.capacity,
+  visibleFrom: call.visibleFrom,
+  listedUntil: call.listedUntil,
+  expiresAt: call.expiresAt,
+});
 
 /** A chave de membro: só o aparelho a guarda; o servidor, o hash. */
 export const MEMBER_KEY_BYTES = 32;

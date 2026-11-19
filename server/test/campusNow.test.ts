@@ -27,6 +27,7 @@ import {
   silentLogger,
   switchableDatabase,
   testConfig,
+  tidy,
 } from './support.ts';
 import { privateKeyEntry, signingKeys } from './tokens.ts';
 
@@ -687,7 +688,7 @@ async function serve() {
     } catch {
       body = null;
     }
-    return { status: response.status, response, body, text };
+    return { status: response.status, response, body, text: tidy(text) };
   };
   const signIn = async (matricula: string, name: string) => {
     const challenge = await call('GET', '/aouerj/v2/students/challenge');
@@ -900,11 +901,21 @@ test('the admin tab lists the flagged notices with the reporter and takes them d
   const tab = await call('GET', '/aouerj/admin/agora', { admin: true });
   assert.equal(tab.status, 200);
   assert.match(tab.text, /Elevadores: todos parados/);
-  assert.match(tab.text, /MARINA COSTA/);
+  // com denúncia, a moderação vê quem avisou (o nome como se escreve)
+  assert.match(tab.text, /Marina Costa/);
   assert.match(tab.text, /1 denúncia/);
-  // a aba conta o denunciado que espera a moderação, nas outras páginas também
-  const reports = await call('GET', '/aouerj/admin', { admin: true });
-  assert.match(reports.text, /Agora no campus<span class="n">1<\/span>/);
+  assert.match(tab.text, /No ar, com denúncia/);
+  // a barra lateral conta o denunciado que espera a moderação, em toda área
+  const home = await call('GET', '/aouerj/admin', { admin: true });
+  assert.match(
+    home.text,
+    /<span class="lbl">Agora no campus<\/span><i class="lamp on" title="Tem denúncia no ar"><\/i><span class="n" title="pedem você">1<\/span>/,
+  );
+  // o que vale agora, com e sem denúncia
+  const live = await call('GET', '/aouerj/admin/agora?aba=noar', {
+    admin: true,
+  });
+  assert.match(live.text, /Com denúncia/);
   const csrf = /name="csrf" value="([^"]+)"/.exec(tab.text)?.[1] ?? '';
 
   const forged = await call('POST', `/aouerj/admin/agora/${id}/tirar`, {
@@ -921,12 +932,24 @@ test('the admin tab lists the flagged notices with the reporter and takes them d
   assert.equal(memory.data.campusNotices.get(id)?.removedBy, 'moderation');
   const list = await call('GET', BASE, { headers: lucasIn.headers });
   assert.equal(list.body.notices.length, 0);
+  // o "Desfazer" do tirar volta ao ar e devolve os pontos
   const back = await call('POST', `/aouerj/admin/agora/${id}/voltar`, {
     admin: true,
-    form: { csrf },
+    form: { csrf, como: 'voltar' },
   });
-  assert.match(back.response.headers.get('location') ?? '', /feito=mantido/);
+  assert.match(back.response.headers.get('location') ?? '', /feito=voltou/);
   assert.equal(memory.data.campusNotices.get(id)?.removedAt, null);
+  // "Manter no ar" num aviso que vale: as denúncias não contam mais
+  const kept = await call('POST', `/aouerj/admin/agora/${id}/voltar`, {
+    admin: true,
+    form: { csrf, como: 'manter', aba: 'fila' },
+  });
+  assert.match(kept.response.headers.get('location') ?? '', /feito=mantido/);
+  assert.ok(memory.data.campusNotices.get(id)?.reviewedAt instanceof Date);
+  const decided = await call('GET', '/aouerj/admin/agora?aba=feitos', {
+    admin: true,
+  });
+  assert.match(decided.text, /Você manteve no ar/);
   const gone = await call('POST', '/aouerj/admin/agora/nada/voltar', {
     admin: true,
     form: { csrf },

@@ -138,7 +138,7 @@ que o app também importa.
 | `POST /aouerj/suggestions`   | Grava a sugestão; responde `{ "status": "ok" }`                                |
 | `GET /aouerj/reportError`    | Administração: os 100 relatos mais recentes, com e-mail                        |
 | `GET /aouerj/suggestions`    | Administração: as 200 sugestões mais recentes, com e-mail                      |
-| `GET /aouerj/admin`          | Administração no navegador: a triagem dos relatos (veja abaixo)                |
+| `GET /aouerj/admin`          | Administração no navegador: uma área para cada coisa (veja abaixo)             |
 | `POST /schedules/generate`   | As até 5 melhores grades das turmas enviadas (`{ data, exhaustive }`)          |
 | `GET /schedules/health`      | O gerador: buscas rodando e na fila                                            |
 
@@ -211,48 +211,75 @@ tem 10 tentativas erradas a cada 15 minutos (acertar não conta).
 - **O cookie:** `HttpOnly`, `SameSite=Strict`, `Secure` em HTTPS e no caminho
   `/aouerj`. O valor é tirado do token por HMAC, não é o próprio token. Trocar
   o `ADMIN_TOKEN` derruba todos os logins; "Sair" apaga o deste navegador.
-- **Relatos:** os abertos primeiro, por dia (no fuso de São Paulo), com
-  filtro por situação (abertos, resolvidos, todos) e por tela. O diagnóstico
-  que os apps 2.x mandam vira fatos no relato (versão do app, da leitura do
-  portal, tipo e disciplina).
-- **Resolver e reabrir:** grava `resolvedAt` no relato (os antigos não têm o
-  campo e contam como abertos). O formulário leva um `csrf` tirado do token,
-  além do cookie `SameSite=Strict`.
+  Uma área para cada coisa, na barra lateral: **Moderação** (Companhia agora,
+  Agora no campus e Alunos), **Suporte** (Relatos e Sugestões) e **Sistema**
+  (Status). Cada área mostra quantas coisas pedem você, com uma lâmpada
+  vermelha quando algo denunciado ainda está no ar. Dentro da área, as abas
+  separam o que pede você, o que está no ar agora, o que já foi feito (7 dias)
+  e os números; a lista fica à esquerda e a prévia do item escolhido, à
+  direita. O Início mostra um cartão por área.
+
+- **O cookie:** `HttpOnly`, `SameSite=Strict`, `Secure` em HTTPS e no caminho
+  `/aouerj`. O valor é tirado do token por HMAC, não é o próprio token. Trocar
+  o `ADMIN_TOKEN` derruba todos os logins; "Sair" apaga o deste navegador.
+- **Os formulários:** tudo o que grava leva um `csrf` tirado do token, além
+  do cookie `SameSite=Strict`, e volta para a mesma aba, no próximo item, com
+  um aviso e o "Desfazer" quando há o inverso.
+- **Relatos:** os abertos vêm juntados pela assinatura do erro
+  (`reportSignature`: a tela e, com o diagnóstico dos apps 2.x, as leituras do
+  portal com erro, o resultado do gerador ou o tipo; sem diagnóstico, só a
+  tela), os maiores grupos primeiro. A prévia do grupo mostra quantos relatos
+  e alunos, as versões do app e as OTAs, onde o aluno parou no gerador, a
+  página do portal anonimizada no aparelho (num `iframe` sem script) e cada
+  relato. "Resolver os N" grava `resolvedAt` em todos com a mesma hora, e o
+  "Desfazer" reabre só esses; cada relato também se resolve sozinho. "Copiar
+  resumo para issue" copia o grupo em Markdown, sem nome, matrícula nem
+  e-mail. Os números: os relatos de 14 dias por tela e os abertos por versão.
 - **Anexos:** o diagnóstico abre numa página, com as leituras do portal que
   estavam com erro (`portalErrors`) e as páginas que vieram junto (`pages`) ou
   não vieram (`pageErrors`). A página do portal (a da 1.x, crua, ou a dos apps
   novos, anonimizada no aparelho) abre com `Content-Security-Policy: sandbox`:
   sem script, numa origem própria e sem buscar nada na rede, então não lê o
-  cookie nem as outras páginas. Só abre o anexo do próprio relato.
-- **Sugestões:** numa aba ao lado, das mais novas às mais antigas.
-- **Companhia:** a terceira aba. Em cima, os números dos últimos 14 dias
-  (quem olhou a lista e quantos a acharam vazia, mesas e voltas abertas,
-  quantas tiveram companhia, chegaram ao ponto e "Cheguei em casa", quem foi
-  tirado, denúncias e chamadas fora do ar) e, no dia mais recente, quem olhou
-  em cada hora. Embaixo, as denúncias dos últimos 30 dias: o motivo, de onde
-  veio (de quem foi junto, de quem chamou ou de fora), a chamada como estava
-  (sem as chaves) e se ela saiu do ar, com o botão "Tirar do ar" enquanto a
-  chamada valer. Com os apps identificados, cada denúncia mostra quem estava
-  (nome e matrícula de cada um) e quem denunciou, com o link para o aluno.
-- **Alunos:** a quarta aba. Busca pela matrícula, os banidos e os que
-  entraram por último; a página do aluno mostra matrícula, nome, aparelhos e
-  primeira e última entrada, com "Banir" (motivo e prazo: 1, 7 ou 30 dias ou
-  para sempre) e "Desbanir". O banimento vale na hora nas rotas com sessão e
-  na entrada por qualquer aparelho, e o aluno sai das mesas da Companhia (as
-  que ele abriu acabam). Os relatos da v2 também mostram o aluno. A busca vai
-  por POST, para a matrícula não ficar nos logs. Sem `STUDENT_DATA_KEY`, a aba
-  avisa que a identificação está desligada.
-- **Agora no campus:** a aba entre a Companhia e os Alunos, com a contagem
-  dos avisos denunciados que esperam você. Em cima, os números da semana;
-  embaixo, os denunciados dos últimos 7 dias e os avisos mais recentes, cada
-  um com o lugar, as respostas, quantos viram, os valeus e quem avisou (o
-  link para o aluno). "Tirar do ar" tira os 15 pontos de quem avisou; "Voltar
-  ao ar" e "Está certo" devolvem e fazem as denúncias pararem de tirá-lo do
-  ar sozinhas.
+  cookie nem as outras páginas. Só abre o anexo do próprio relato. A da 1.x
+  (com dado pessoal) nunca aparece aberta na prévia, só pelo link.
+- **Sugestões:** as novas e as arquivadas (`archivedAt`); "Arquivar" tira das
+  novas, com o "Desfazer".
+- **Companhia agora:** as denúncias juntadas por chamada. Pedem você as das
+  chamadas que ainda valem e têm denúncia sem decisão. A prévia mostra a
+  chamada como estava (sem as chaves), quem estava e quem denunciou, com o
+  histórico de cada um, e o que os alunos veem. "Manter no ar" arquiva as
+  denúncias (`reviewedAt`; uma denúncia nova volta a pedir); "Segure para
+  tirar de vez" tira a chamada do ar. "No ar agora" lista as chamadas da
+  lista; sem denúncia, só com os primeiros nomes. Os números: a procura (quem
+  olhou e quantos acharam vazia), o funil (abertas, com companhia, no ponto),
+  quem olhou em cada hora do dia mais recente e o que saiu do ar.
+- **Agora no campus:** pedem você os avisos no ar com denúncia e os que
+  saíram do ar sozinhos (3 "Não é verdade") sem decisão. "Segure para tirar do
+  ar" tira os 15 pontos de quem avisou; "Manter no ar", "Manter fora do ar" e
+  "Voltar ao ar" marcam a decisão, e as denúncias não o tiram mais sozinhas.
+  Sem denúncia, quem avisou não aparece. Os números: os avisos por dia (14
+  dias) e os que saíram pelas denúncias, onde mais avisam e a semana.
+- **Alunos:** os banidos e os que entraram por último, com a busca pela
+  matrícula (por POST, para ela não ficar nos logs; achou, vai para a página
+  do aluno pelo id). A prévia do aluno mostra matrícula, nome, aparelhos, o
+  que ele fez em 30 dias (relatos, avisos e os que saíram do ar, denúncias
+  recebidas e feitas) e "Banir" (motivo e prazo: 1, 7 ou 30 dias ou para
+  sempre) ou "Desbanir". O banimento vale na hora nas rotas com sessão e na
+  entrada por qualquer aparelho, e o aluno sai das mesas da Companhia (as
+  que ele abriu acabam). Sem `STUDENT_DATA_KEY`, a área avisa que a
+  identificação está desligada.
+- **Status:** o Aluno Online visto pelo servidor, o banco e a versão no ar.
+  Abre mesmo sem o banco.
 
-As páginas são HTML montado no servidor (`http/aouerj/admin/`), sem
-JavaScript, com as cores dos temas claro e escuro do app. Os relatos antigos
-que chegaram sem a tela aparecem como "Sem tela".
+As páginas são HTML montado no servidor (`http/aouerj/admin/`), no visual
+escuro da administração: vermelho só no que os alunos estão vendo agora,
+verde no item em prévia, âmbar no que pede você. Tudo funciona sem script;
+`/aouerj/admin/admin.js` (um arquivo à parte, para a CSP `script-src 'self'`
+do helmet valer) acrescenta os atalhos (J/K andam, E faz a ação principal, 0
+a 6 trocam de área, Ctrl K abre o "Ir para"), o banir que só libera com o
+motivo e o corte por segurar: 0,9 s, e 1,5 s no que não tem volta. As fontes
+Inter (OFL) vêm de `/aouerj/admin/fonts/`. Os relatos antigos que chegaram
+sem a tela aparecem como "Sem tela".
 
 ### Identificação do aluno (v2)
 
@@ -491,8 +518,8 @@ depois da última aula da noite (`home`).
   denunciado por quem foi junto tira a chamada do ar na hora; outro motivo,
   com duas pessoas de dentro (quem chamou não conta). A denúncia de fora não
   tira nada sozinha, porque uma pessoa só, com três tokens, derrubaria
-  qualquer chamada: ela vai para a moderação, que tira a chamada do ar pela
-  aba "Companhia" de `/aouerj/admin`. Cada denúncia guarda, por 30 dias, o que
+  qualquer chamada: ela vai para a moderação, que tira a chamada do ar (ou a
+  mantém, arquivando a denúncia) na área "Companhia agora" de `/aouerj/admin`. Cada denúncia guarda, por 30 dias, o que
   a chamada era (tipo, horário, ponto, destino, recado e os primeiros nomes) e
   de onde veio, sem as chaves.
 - **Tirar alguém:** cada membro tem um apelido ao acaso (`ref`, 11
@@ -614,10 +641,10 @@ pontos, os limites e a moderação; os outros alunos nunca veem.
   `_id` `<aviso>:<aluno>`), com a condição no filtro da gravação, faz dois
   pedidos juntos contarem uma vez só.
 - **"Não é verdade":** três denúncias de alunos diferentes tiram o aviso do
-  ar, e quem avisou perde 15 pontos. A moderação vê os denunciados na aba
+  ar, e quem avisou perde 15 pontos. A moderação vê os denunciados na área
   "Agora no campus" de `/aouerj/admin`, com quem avisou (nome e matrícula), e
-  decide: "Tirar do ar" (os 15 pontos saem, uma vez só) ou "Voltar ao ar" /
-  "Está certo" (os pontos voltam, e as denúncias não o tiram mais sozinhas).
+  decide: tirar do ar (os 15 pontos saem, uma vez só) ou "Manter no ar" /
+  "Voltar ao ar" (os pontos voltam, e as denúncias não o tiram mais sozinhas).
   O banimento tira do ar, na hora, os avisos do aluno que ainda valem, sem
   mexer nos pontos.
 - **Os pontos** ficam por aluno (`campuspeople`), sem placar entre alunos:

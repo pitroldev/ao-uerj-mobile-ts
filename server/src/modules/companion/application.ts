@@ -16,6 +16,7 @@ import {
   COMPANION_LIMITS,
   hidesCall,
   isListed,
+  listedView,
   MAX_ALIVE_CALLS,
   memberId,
   memberView,
@@ -496,9 +497,24 @@ export function createCompanion({
       const call = await calls.find(callId, time);
       if (!call) return 'gone';
       await calls.hide(callId, time);
-      await reports.markHidden(callId);
+      await reports.markHidden(callId, 'moderation');
       await bump(one('hidden_moderation'), time);
       return 'hidden';
+    },
+
+    async keepByModerator(callId) {
+      const time = at();
+      await reports.markReviewed(callId, time);
+      return (await calls.find(callId, time)) ? 'kept' : 'gone';
+    },
+
+    reopenReview: callId => reports.markReviewed(callId, null),
+
+    async listedForReview() {
+      const listed = await calls.listListed(at());
+      return listed
+        .sort((a, b) => a.at.getTime() - b.at.getTime())
+        .map(listedView);
     },
 
     async statsForReview(days) {
@@ -566,6 +582,8 @@ function snapshot(
     source,
     count: call.reporters.length,
     hidden,
+    hiddenBy: hidden ? ('reports' as const) : null,
+    reviewedAt: null,
     callExpiresAt: call.expiresAt,
     createdAt: time,
     expiresAt: new Date(time.getTime() + REPORT_RETENTION_MS),
