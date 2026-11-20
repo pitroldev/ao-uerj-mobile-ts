@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.20.0 (2026-11-20)
+
+### Novidades
+
+- Sugerir uma ideia: no Sobre, a sugestão é escrita no próprio app, sem conta no GitHub. Antes de mandar, o app mostra as sugestões parecidas que já existem, para somar o pedido em vez de repetir. Depois da moderação, a sugestão vira um issue público no GitHub, sem nome, matrícula nem e-mail. "Minhas sugestões" mostra o andamento de cada uma: Recebida, No GitHub, Planejada, Em andamento ou Feita.
+- Pontos de ônibus no mapa: os 12 pontos em volta dos portões da UERJ, com a rua, o portão mais perto e as linhas que param em cada um. "Linhas e destinos" mostra para onde vai cada linha a partir dali, com a data dos dados da Prefeitura do Rio. A busca acha o ponto pelo número da linha, e o filtro Transporte lista os pontos junto do metrô e do trem.
+- Mapa mais leve: abrir o mapa, tocar num lugar, abrir a planta de um andar e trocar de andar ficaram bem mais rápidos. O mapa não é mais refeito ao abrir "Como chegar" nem ao escolher um resultado da busca, e no Android arrastar e ampliar travam menos.
+- iPhone: "Me avise se tiver mesa ou grupo" chega por notificação na hora em que abre uma que serve, mesmo com o app fechado.
+- iPhone: Agora no campus com o app fechado: o aviso confirmado, o agradecimento, o nível novo e o "ainda está lá?" chegam por notificação.
+- iPhone: avisos do Aluno Online também com a tela bloqueada, e "Avisar quando voltar" avisa assim que o portal volta.
+- iPhone: quando sai uma versão nova na App Store, o Início avisa, com "Atualizar" e "Agora não". Uma versão antiga só fica bloqueada quando a loja já tem a versão mínima.
+- iPhone: ícone escuro e tingido no iOS 18.
+- iPhone: os lembretes de uma mesma avaliação ficam juntos, e só o mais recente fica na tela. Com a grade cheia e muitas provas, os lembretes das aulas passam a se repetir toda semana, em vez de faltarem os mais distantes.
+- Servidor: administração por áreas, sugestões publicadas no GitHub por um app próprio do projeto e, quando a Play Integrity recusa um aparelho, o registro diz se o motivo foi o aparelho ou o app.
+
+### Correções
+
+- Android: a Play não esconde mais o app de tablets, Chromebooks e aparelhos sem Wi-Fi. A tela em retrato e o Wi-Fi viraram recursos opcionais. Sem Wi-Fi, o app usa os dados móveis.
+
 ## 2.19.0 (2026-11-18)
 
 ### Novidades
