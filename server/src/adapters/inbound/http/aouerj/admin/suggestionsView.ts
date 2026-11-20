@@ -2,6 +2,7 @@ import {
   AREA_LABEL,
   LABELS,
   PORTAL_LABEL,
+  SUGGESTION_TYPE,
   type Idea,
 } from '../../../../../modules/ideas/domain.ts';
 import type { SimilarIssue } from '../../../../../modules/ideas/ports.ts';
@@ -234,7 +235,7 @@ export function suggestionsPage(
           })}${mergeForms}<span class="gap"></span>${
             publishing
               ? html`<span class="hint"
-                    >abre o issue com "${LABELS.enhancement}",
+                    >abre o issue do tipo ${SUGGESTION_TYPE}, com
                     "${LABELS.fromApp}" e "${LABELS.area(idea.area)}"</span
                   >${actionButton({
                     action: action('publicar'),

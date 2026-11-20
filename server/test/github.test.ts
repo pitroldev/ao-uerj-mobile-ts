@@ -48,7 +48,8 @@ const issue = (number: number, extra: Record<string, unknown> = {}) => ({
   html_url: `https://github.com/${REPO}/issues/${number}`,
   state: 'open',
   state_reason: null,
-  labels: [{ name: 'enhancement' }, { name: 'sugestão do app' }],
+  type: { id: 196130857, name: 'Feature' },
+  labels: [{ name: 'sugestão do app' }, { name: 'área: Mapa' }],
   reactions: { '+1': 4 },
   updated_at: '2026-11-19T13:00:00Z',
   ...extra,
@@ -80,7 +81,8 @@ test('the app signs a JWT, asks the installation once and keeps the token until 
     url: `https://github.com/${REPO}/issues/31`,
     state: 'open',
     stateReason: null,
-    labels: ['enhancement', 'sugestão do app'],
+    type: 'Feature',
+    labels: ['sugestão do app', 'área: Mapa'],
     plusOnes: 4,
     pullRequest: false,
     updatedAt: new Date('2026-11-19T13:00:00Z'),
@@ -164,19 +166,22 @@ test('creating, listing and the count comment, edited only when the app wrote it
   const created = await tracker.createIssue({
     title: '[Sugestão] Ideia',
     body: 'corpo',
-    labels: ['enhancement', 'sugestão do app', 'área: RID'],
+    type: 'Feature',
+    labels: ['sugestão do app', 'área: RID'],
   });
   assert.equal(created.number, 40);
+  assert.equal(created.type, 'Feature');
   assert.deepEqual(
     api.calls.find(call => call.url === `/repos/${REPO}/issues`)?.body,
     {
       title: '[Sugestão] Ideia',
       body: 'corpo',
-      labels: ['enhancement', 'sugestão do app', 'área: RID'],
+      type: 'Feature',
+      labels: ['sugestão do app', 'área: RID'],
     },
   );
 
-  const open = await tracker.listOpen('enhancement');
+  const open = await tracker.listOpen('Feature');
   assert.deepEqual(
     open.map(item => [item.number, item.pullRequest]),
     [
@@ -186,7 +191,7 @@ test('creating, listing and the count comment, edited only when the app wrote it
   );
   assert.match(
     api.calls.find(call => call.url.startsWith(`/repos/${REPO}/issues?`))!.url,
-    /state=open&labels=enhancement&sort=updated/,
+    /state=open&type=Feature&sort=updated/,
   );
 
   await tracker.upsertComment(40, '<!-- marca -->', 'novo');
@@ -230,7 +235,7 @@ test('a GitHub that refuses or does not answer is unavailable, never a crash', a
     },
   );
   await assert.rejects(
-    offline.listOpen('enhancement'),
+    offline.listOpen('Feature'),
     (err: unknown) =>
       err instanceof DomainError && err.code === 'github_unavailable',
   );

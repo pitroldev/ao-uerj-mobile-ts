@@ -12,6 +12,7 @@ import {
   issueTitle,
   LABELS,
   similarIssues,
+  SUGGESTION_TYPE,
   trackedOf,
   VOTES_MARKER,
   votesComment,
@@ -73,12 +74,12 @@ export function createIdeas({
 }): Ideas {
   const at = () => new Date(now());
 
-  // os issues de sugestão abertos (a etiqueta do formulário), que também
+  // os issues de sugestão abertos (o tipo do formulário), que também
   // atualizam o estado acompanhado de cada um
   const openIssues = cacheFor(
     async () => {
       if (!tracker) return [] as TrackedIssue[];
-      const found = await tracker.listOpen(LABELS.enhancement);
+      const found = await tracker.listOpen(SUGGESTION_TYPE);
       const list = found
         .filter(issue => !issue.pullRequest)
         .map(issue => trackedOf(issue));
@@ -126,7 +127,7 @@ export function createIdeas({
       !found ||
       found.pullRequest ||
       found.state !== 'open' ||
-      !found.labels.includes(LABELS.enhancement)
+      found.type !== SUGGESTION_TYPE
     )
       return null;
     const issue = trackedOf(found);
@@ -301,11 +302,8 @@ export function createIdeas({
         created = await tracker.createIssue({
           title: issueTitle(claimed),
           body: issueBody(claimed),
-          labels: [
-            LABELS.enhancement,
-            LABELS.fromApp,
-            LABELS.area(claimed.area),
-          ],
+          type: SUGGESTION_TYPE,
+          labels: [LABELS.fromApp, LABELS.area(claimed.area)],
         });
       } catch (err) {
         await ideas.decide(id, 'published', {

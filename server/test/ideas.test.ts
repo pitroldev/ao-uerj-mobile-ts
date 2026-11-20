@@ -120,10 +120,16 @@ test('the issue body has the form sections and nothing about who sent it', () =>
 
 test('the status follows the labels and how the issue was closed', () => {
   const open = { state: 'open' as const, stateReason: null };
-  assert.equal(issueStatusOf({ ...open, labels: ['enhancement'] }), 'open');
-  assert.equal(issueStatusOf({ ...open, labels: ['planejada'] }), 'planned');
+  assert.equal(issueStatusOf({ ...open, labels: ['área: Mapa'] }), 'open');
   assert.equal(
-    issueStatusOf({ ...open, labels: ['planejada', 'em andamento'] }),
+    issueStatusOf({ ...open, labels: ['status: planejada'] }),
+    'planned',
+  );
+  assert.equal(
+    issueStatusOf({
+      ...open,
+      labels: ['status: planejada', 'status: em andamento'],
+    }),
     'in_progress',
   );
   assert.equal(
@@ -173,7 +179,7 @@ test('three a day per student, counted by the São Paulo day', async () => {
   assert.equal((await ideas.mine(ana)).remainingToday, 2);
 });
 
-test('publishing opens one issue with the labels, counts the author and shows it as open', async () => {
+test('publishing opens one issue with the type and labels, counts the author and shows it as open', async () => {
   const { ideas, gh } = setup();
   const sent = await ideas.submit(idea({ area: 'rid' }), ana);
   assert.equal(sent.status, 'received');
@@ -183,11 +189,8 @@ test('publishing opens one issue with the labels, counts the author and shows it
   assert.equal(published.result, 'published');
   const [issue] = [...gh.issues.values()];
   assert.equal(issue.title, '[Sugestão] Cardápio do bandejão no Início');
-  assert.deepEqual(issue.labels, [
-    'enhancement',
-    'sugestão do app',
-    'área: RID',
-  ]);
+  assert.equal(issue.type, 'Feature');
+  assert.deepEqual(issue.labels, ['sugestão do app', 'área: RID']);
   assert.doesNotMatch(issue.body, /ana/);
 
   // duas abas: a segunda não abre outro
@@ -223,7 +226,7 @@ test('GitHub failing leaves the idea waiting, to publish again', async () => {
 test('merging and voting add one request per student, in one bot comment', async () => {
   const { ideas, gh } = setup();
   const old = gh.add({ title: 'Aviso de vaga nas turmas do RID', plusOnes: 2 });
-  gh.add({ title: 'Um bug', labels: ['bug'] });
+  gh.add({ title: 'Um bug', type: 'Bug' });
   const closed = gh.add({ title: 'Modo escuro' });
   gh.close(closed.number, 'completed');
 
@@ -276,7 +279,7 @@ test('the sync brings the labels and the closing back to "Minhas sugestões"', a
   const number = published.result === 'published' ? published.issue.number : 0;
   const statusNow = async () => (await ideas.mine(ana)).ideas[0].status;
 
-  gh.label(number, 'planejada');
+  gh.label(number, 'status: planejada');
   assert.equal(await statusNow(), 'open');
   assert.equal(await ideas.syncIssues(), 1);
   assert.equal(await statusNow(), 'planned');

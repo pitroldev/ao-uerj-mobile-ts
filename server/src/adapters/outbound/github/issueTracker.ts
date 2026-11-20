@@ -40,6 +40,7 @@ const issueSchema = z.object({
   html_url: z.string(),
   state: z.enum(['open', 'closed']),
   state_reason: z.string().nullable().optional(),
+  type: z.object({ name: z.string() }).nullable().optional(),
   labels: z
     .array(z.union([z.string(), z.object({ name: z.string().optional() })]))
     .default([]),
@@ -56,6 +57,7 @@ function issueOf(raw: unknown): GitHubIssue {
     url: issue.html_url,
     state: issue.state,
     stateReason: issue.state_reason ?? null,
+    type: issue.type?.name ?? null,
     labels: issue.labels.flatMap(label =>
       typeof label === 'string' ? [label] : label.name ? [label.name] : [],
     ),
@@ -204,10 +206,10 @@ export function createGitHubIssueTracker(
       return issueOf(answer.json);
     },
 
-    async listOpen(label) {
+    async listOpen(type) {
       const query = new URLSearchParams({
         state: 'open',
-        labels: label,
+        type,
         sort: 'updated',
         direction: 'desc',
         per_page: '100',

@@ -141,7 +141,8 @@ export function fakeGitHub({ now = () => Date.now() } = {}) {
       url: `https://github.com/pitroldev/ao-uerj-mobile-ts/issues/${number}`,
       state: 'open' as const,
       stateReason: null,
-      labels: ['enhancement'],
+      type: 'Feature' as string | null,
+      labels: [] as string[],
       plusOnes: 0,
       pullRequest: false,
       updatedAt: new Date(now()),
@@ -163,19 +164,19 @@ export function fakeGitHub({ now = () => Date.now() } = {}) {
 
   const tracker: IssueTracker = {
     repository: 'pitroldev/ao-uerj-mobile-ts',
-    async createIssue({ title, body, labels }) {
+    async createIssue({ title, body, type, labels }) {
       guard('create');
-      return strip(add({ title, body, labels }));
+      return strip(add({ title, body, type, labels }));
     },
     async getIssue(number) {
       guard(`get ${number}`);
       const found = issues.get(number);
       return found ? strip(found) : null;
     },
-    async listOpen(label) {
-      guard(`list ${label}`);
+    async listOpen(type) {
+      guard(`list ${type}`);
       return [...issues.values()]
-        .filter(issue => issue.state === 'open' && issue.labels.includes(label))
+        .filter(issue => issue.state === 'open' && issue.type === type)
         .map(strip);
     },
     async upsertComment(issue, marker, body) {

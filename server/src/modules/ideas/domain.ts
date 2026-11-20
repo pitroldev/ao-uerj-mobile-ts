@@ -65,14 +65,19 @@ export const IDEA_LIMITS = {
 } as const;
 
 /**
+ * O tipo de issue das sugestões, entre os do GitHub (Bug, Feature, Task): o
+ * mesmo que o formulário de sugestão do repositório põe.
+ */
+export const SUGGESTION_TYPE = 'Feature';
+
+/**
  * As etiquetas do repositório que o servidor usa. As de estado (planejada,
  * em andamento) põe você, no GitHub; o app só as lê.
  */
 export const LABELS = {
-  enhancement: 'enhancement',
   fromApp: 'sugestão do app',
-  planned: 'planejada',
-  inProgress: 'em andamento',
+  planned: 'status: planejada',
+  inProgress: 'status: em andamento',
   area: (area: IdeaArea) => `área: ${AREA_LABEL[area]}`,
 } as const;
 
@@ -136,6 +141,8 @@ export type GitHubIssue = {
   state: 'open' | 'closed';
   /** "completed", "not_planned", "duplicate"…; `null` aberto. */
   stateReason: string | null;
+  /** "Bug", "Feature", "Task"; `null` sem tipo. */
+  type: string | null;
   labels: string[];
   plusOnes: number;
   pullRequest: boolean;

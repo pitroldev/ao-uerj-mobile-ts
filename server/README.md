@@ -247,7 +247,7 @@ direita. O Início mostra um cartão por área.
   (a marca vem antes da chamada: duas abas não abrem dois; o GitHub falhando
   devolve a sugestão às novas e a página diz isso, com 502). "Juntar à #N"
   (uma das parecidas ou o número digitado) soma o pedido do aluno a um issue
-  aberto com `enhancement`, sem abrir outro. "Arquivar sem publicar" mostra
+  aberto do tipo `Feature`, sem abrir outro. "Arquivar sem publicar" mostra
   ao aluno que não foi publicada, com o "Desfazer".
 - **Companhia agora:** as denúncias juntadas por chamada. Pedem você as das
   chamadas que ainda valem e têm denúncia sem decisão. A prévia mostra a
@@ -768,14 +768,14 @@ estavam.
   Companhia agora (`shared/contact.ts`), porque a sugestão fica pública.
 - **O issue:** `[Sugestão] <título>`, nas mesmas seções do formulário de
   sugestão do repositório, com a versão do app e a plataforma, sem nome,
-  matrícula, e-mail nem aparelho. As etiquetas são `enhancement`, `sugestão
-do app` e `área: <onde no app>`. Sai pela conta do GitHub App "AO UERJ
+  matrícula, e-mail nem aparelho. O tipo é `Feature` e as etiquetas são
+  `sugestão do app` e `área: <onde no app>`. Sai pela conta do GitHub App "AO UERJ
   Sugestões" (instalado só neste repositório, com Issues para ler e escrever
   e nada mais): o servidor assina um JWT com a chave do app e troca pelo token
   da instalação, que guarda até cinco minutos antes de vencer. Sem biblioteca
   do GitHub, só `fetch`.
 - **Os pedidos repetidos:** antes de enviar, o app mostra as parecidas
-  (palavras em comum com o título dos issues abertos com `enhancement`, sem
+  (palavras em comum com o título dos issues abertos do tipo `Feature`, sem
   acento e sem plural; a lista vem do GitHub com dez minutos de cache). "Somar
   meu pedido" grava um voto por aluno e issue, e o app guarda as parecidas que
   o aluno viu e dispensou (`seenSimilar`), que a moderação vê. O servidor
@@ -783,8 +783,8 @@ do app` e `área: <onde no app>`. Sai pela conta do GitHub App "AO UERJ
   isto pelo app" (num issue que veio do app, a partir do segundo pedido); um
   comentário com a mesma marca escrito por outra pessoa não é editado.
 - **O estado:** `received` (esperando a moderação), `not_published` (ela
-  arquivou), e, no GitHub, `open`, `planned` (etiqueta `planejada`),
-  `in_progress` (`em andamento`), `done` (fechado como concluído) e `closed`
+  arquivou), e, no GitHub, `open`, `planned` (etiqueta `status: planejada`),
+  `in_progress` (`status: em andamento`), `done` (fechado como concluído) e `closed`
   (fechado de outro jeito). As etiquetas de estado quem põe é você, no GitHub.
   Uma rodada a cada 30 minutos (`IDEA_SYNC_INTERVAL_MS`) lê os issues que as
   sugestões e os votos apontam e guarda o último estado (`trackedissues`).

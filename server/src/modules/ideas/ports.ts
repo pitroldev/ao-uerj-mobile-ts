@@ -129,12 +129,13 @@ export interface IssueTracker {
   createIssue(issue: {
     title: string;
     body: string;
+    type: string;
     labels: string[];
   }): Promise<GitHubIssue>;
   /** `null` se não existe (ou foi apagado). */
   getIssue(number: number): Promise<GitHubIssue | null>;
-  /** Os abertos com a etiqueta, os atualizados por último primeiro (até 100). */
-  listOpen(label: string): Promise<GitHubIssue[]>;
+  /** Os abertos do tipo, os atualizados por último primeiro (até 100). */
+  listOpen(type: string): Promise<GitHubIssue[]>;
   /** Cria ou edita o comentário do servidor que tem a marca. */
   upsertComment(issue: number, marker: string, body: string): Promise<void>;
 }
