@@ -92,6 +92,12 @@ export function floorPoint(
   return [segment.left + segment.x1 - point[0], top - point[1]];
 }
 
+/**
+ * Milímetros no texto do caminho: o atlas já vem em milímetros, e as somas
+ * deixavam "22.170000000000002", o dobro do texto para o nativo ler.
+ */
+export const mm = (value: number) => Math.round(value * 1000) / 1000;
+
 export function floorPath(
   points: readonly Point[],
   segment: FloorSegment,
@@ -100,10 +106,10 @@ export function floorPath(
 ) {
   return (
     points
-      .map(
-        (point, index) =>
-          `${index ? 'L' : 'M'}${floorPoint(point, segment, top).join(' ')}`,
-      )
+      .map((point, index) => {
+        const [x, y] = floorPoint(point, segment, top);
+        return `${index ? 'L' : 'M'}${mm(x)} ${mm(y)}`;
+      })
       .join(' ') + (closed ? 'Z' : '')
   );
 }

@@ -1,4 +1,4 @@
-import React, { useId, useMemo, useState } from 'react';
+import React, { useId, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   GestureDetector,
@@ -34,11 +34,14 @@ import {
   floorLayout,
   floorPath,
   floorPoint,
+  mm,
   roomFontSize,
   type FloorLayout,
+  type FloorSegment,
 } from './floorGeometry';
 import { MapLayer } from './MapLayer';
 import { useMapCamera } from './useMapCamera';
+import { usePlotSize } from './usePlotSize';
 
 type Props = {
   atlas: CampusAtlas;
@@ -46,6 +49,8 @@ type Props = {
   destination?: RoomLocation;
   block?: Block;
   floor?: Floor;
+  /** Muda com a seleção: a câmera volta ao enquadramento inicial. */
+  resetKey?: string;
 };
 
 type FloorTextProps = Omit<
@@ -70,15 +75,57 @@ function FloorText({
   ...props
 }: FloorTextProps) {
   return (
-    <G transform={transform}>
-      <G transform={`translate(${x} ${y}) scale(${unit})`}>
-        <SvgText {...props} x={0} y={0} fontSize={fontSize / unit}>
-          {children}
-        </SvgText>
-      </G>
+    <G
+      transform={`${transform ? `${transform} ` : ''}translate(${x} ${y}) scale(${unit})`}
+    >
+      <SvgText {...props} x={0} y={0} fontSize={fontSize / unit}>
+        {children}
+      </SvgText>
     </G>
   );
 }
+
+/** Antes da primeira medida, só para a câmera ter um formato. */
+const UNMEASURED = { width: 360, height: 380 };
+/**
+ * Folga, em metros, para deixar de fora o que não cruza o recorte: cobre a
+ * meia espessura do traço mais grosso no zoom mais aberto.
+ */
+const CULL = 1;
+/** O "WC" é centrado na estrutura: a folga cobre meio rótulo no zoom aberto. */
+const LABEL_CULL = 8;
+
+/** O hall do C: o piso e, mais suaves, a faixa e os dois vãos dos elevadores. */
+const HALL: [Bounds, boolean][] = [
+  [[92.33, 58, 136.53, 70.8], false],
+  [[92.33, 54.65, 136.53, 58], true],
+  [[96.43, 45.22, 108.43, 52.22], true],
+  [[120.43, 45.22, 132.43, 52.22], true],
+];
+
+const ringBounds = new WeakMap<object, Bounds>();
+/** Os limites do contorno de uma forma do atlas, calculados uma vez. */
+function boundsOf(shape: { rings: Point[][] }): Bounds {
+  let bounds = ringBounds.get(shape);
+  if (!bounds) {
+    const boundary = shape.rings[0];
+    bounds = [
+      Math.min(...boundary.map(p => p[0])),
+      Math.min(...boundary.map(p => p[1])),
+      Math.max(...boundary.map(p => p[0])),
+      Math.max(...boundary.map(p => p[1])),
+    ];
+    ringBounds.set(shape, bounds);
+  }
+  return bounds;
+}
+/**
+ * Cada recorte da planta redesenhava o andar inteiro e deixava o `clipPath`
+ * esconder o resto: no Bloco F, 63 salas e 174 pilares por recorte, com
+ * poucos à vista. O que fica fora do recorte nem vira view.
+ */
+const crosses = (bounds: Bounds, segment: FloorSegment, margin = CULL) =>
+  bounds[2] >= segment.x0 - margin && bounds[0] <= segment.x1 + margin;
 
 function zoom(camera: Camera, factor: number): Camera {
   const width = Math.max(12, Math.min(160, camera.width / factor));
@@ -143,7 +190,10 @@ const FloorPlanDrawing = React.memo(function FloorPlanDrawing({
   ];
   const keyPath = (points: readonly Point[], closed = true) =>
     points
-      .map((point, i) => `${i ? 'L' : 'M'}${keyPoint(point).join(' ')}`)
+      .map((point, i) => {
+        const [x, y] = keyPoint(point);
+        return `${i ? 'L' : 'M'}${mm(x)} ${mm(y)}`;
+      })
       .join(' ') + (closed ? 'Z' : '');
   return (
     <>
@@ -164,6 +214,19 @@ const FloorPlanDrawing = React.memo(function FloorPlanDrawing({
         const path = (points: readonly Point[], closed = false) =>
           floorPath(points, segment, layout.top, closed);
         const rectPath = (bounds: Bounds) => path(rectangleRing(bounds), true);
+        const shownRooms = rooms.filter(room => crosses(room.bounds, segment));
+        // os pilares não se tocam e têm a mesma cor: um caminho só por
+        // recorte, em vez de uma view para cada
+        const pillars = isUpper
+          ? structures
+              .filter(
+                shape =>
+                  (shape.kind === 'pillar' || shape.kind === 'wall') &&
+                  crosses(boundsOf(shape), segment),
+              )
+              .map(shape => shape.rings.map(ring => path(ring, true)).join(' '))
+              .join(' ')
+          : '';
         return (
           <G key={index} clipPath={`url(#${id}-${index})`}>
             {atlas.shapes
@@ -179,39 +242,28 @@ const FloorPlanDrawing = React.memo(function FloorPlanDrawing({
                   strokeWidth={1.1 * unit}
                 />
               ))}
-            {activeBlocks.includes('C') ? (
-              <>
-                <Path
-                  d={rectPath([92.33, 58, 136.53, 70.8])}
-                  fill={c.surface}
-                />
-                {(
-                  [
-                    [92.33, 54.65, 136.53, 58],
-                    [96.43, 45.22, 108.43, 52.22],
-                    [120.43, 45.22, 132.43, 52.22],
-                  ] as Bounds[]
-                ).map((bounds, n) => (
-                  <Path
-                    key={`lobby-${n}`}
-                    d={rectPath(bounds)}
-                    fill={c.accentSoft}
-                  />
-                ))}
-              </>
-            ) : null}
+            {activeBlocks.includes('C')
+              ? HALL.filter(([bounds]) => crosses(bounds, segment)).map(
+                  ([bounds, soft]) => (
+                    <Path
+                      key={`hall-${bounds.join('-')}`}
+                      d={rectPath(bounds)}
+                      fill={soft ? c.accentSoft : c.surface}
+                    />
+                  ),
+                )
+              : null}
             {structures
-              .filter(shape => shape.kind !== 'pillar' && shape.kind !== 'wall')
+              .filter(
+                shape =>
+                  shape.kind !== 'pillar' &&
+                  shape.kind !== 'wall' &&
+                  crosses(boundsOf(shape), segment),
+              )
               .map(shape => {
-                const boundary = shape.rings[0];
-                const bounds: Bounds = [
-                  Math.min(...boundary.map(p => p[0])),
-                  Math.min(...boundary.map(p => p[1])),
-                  Math.max(...boundary.map(p => p[0])),
-                  Math.max(...boundary.map(p => p[1])),
-                ];
+                const bounds = boundsOf(shape);
                 return (
-                  <G key={shape.id}>
+                  <React.Fragment key={shape.id}>
                     <Path
                       d={shape.rings.map(ring => path(ring, true)).join(' ')}
                       fill={
@@ -255,10 +307,10 @@ const FloorPlanDrawing = React.memo(function FloorPlanDrawing({
                         strokeWidth={0.6 * unit}
                       />
                     ) : null}
-                  </G>
+                  </React.Fragment>
                 );
               })}
-            {rooms.map(room => (
+            {shownRooms.map(room => (
               <Path
                 key={`${room.code}:${room.bounds.join(',')}`}
                 d={
@@ -278,34 +330,41 @@ const FloorPlanDrawing = React.memo(function FloorPlanDrawing({
             ))}
             {plan?.structures.map((structure, n) => {
               const bounds = structure.bounds;
-              const isStair = /escada/.test(structure.kind);
-              const isRamp = /rampa/.test(structure.kind);
+              const drawn = crosses(bounds, segment);
+              const labelled =
+                /sanitario/.test(structure.kind) &&
+                crosses(bounds, segment, LABEL_CULL);
+              if (!drawn && !labelled) return null;
+              const isStair = drawn && /escada/.test(structure.kind);
+              const isRamp = drawn && /rampa/.test(structure.kind);
               const [x, y] = point([
                 (bounds[0] + bounds[2]) / 2,
                 (bounds[1] + bounds[3]) / 2,
               ]);
               return (
-                <G key={`structure-${n}`}>
-                  <Path
-                    d={
-                      structure.line
-                        ? path(structure.line)
-                        : structure.polygon
-                          ? path(structure.polygon, true)
-                          : rectPath(bounds)
-                    }
-                    fill={
-                      structure.line
-                        ? 'none'
-                        : /nicho|pilar/.test(structure.kind)
-                          ? c.inkMuted
-                          : /passarela|ligacao|rampa/.test(structure.kind)
-                            ? c.accentSoft
-                            : c.surfaceStrong
-                    }
-                    stroke={c.fieldBorder}
-                    strokeWidth={0.6 * unit}
-                  />
+                <React.Fragment key={`structure-${n}`}>
+                  {drawn ? (
+                    <Path
+                      d={
+                        structure.line
+                          ? path(structure.line)
+                          : structure.polygon
+                            ? path(structure.polygon, true)
+                            : rectPath(bounds)
+                      }
+                      fill={
+                        structure.line
+                          ? 'none'
+                          : /nicho|pilar/.test(structure.kind)
+                            ? c.inkMuted
+                            : /passarela|ligacao|rampa/.test(structure.kind)
+                              ? c.accentSoft
+                              : c.surfaceStrong
+                      }
+                      stroke={c.fieldBorder}
+                      strokeWidth={0.6 * unit}
+                    />
+                  ) : null}
                   {isStair ? (
                     <Path
                       d={Array.from(
@@ -339,7 +398,7 @@ const FloorPlanDrawing = React.memo(function FloorPlanDrawing({
                       strokeWidth={0.6 * unit}
                     />
                   ) : null}
-                  {/sanitario/.test(structure.kind) ? (
+                  {labelled ? (
                     <FloorText
                       unit={unit}
                       x={x}
@@ -350,26 +409,30 @@ const FloorPlanDrawing = React.memo(function FloorPlanDrawing({
                       WC
                     </FloorText>
                   ) : null}
-                </G>
+                </React.Fragment>
               );
             })}
             {isUpper && activeBlocks.includes('C')
               ? [96.43, 120.43].map(start => (
-                  <G key={start}>
-                    {[43.22, 52.22].map(y =>
-                      Array.from({ length: 5 }, (_, cabin) => (
-                        <Path
-                          key={`${y}-${cabin}`}
-                          d={rectPath([
-                            start + cabin * 2.4 + 0.12,
-                            y,
-                            start + (cabin + 1) * 2.4 - 0.12,
-                            y + 2,
-                          ])}
-                          fill={y === 43.22 ? c.ink : c.fieldBorder}
-                        />
-                      )),
-                    )}
+                  <React.Fragment key={start}>
+                    {crosses([start, 43.22, start + 12, 54.22], segment)
+                      ? [43.22, 52.22].map(y => (
+                          // as 5 cabines de cada fileira, separadas, num
+                          // caminho só
+                          <Path
+                            key={y}
+                            d={Array.from({ length: 5 }, (_, cabin) =>
+                              rectPath([
+                                start + cabin * 2.4 + 0.12,
+                                y,
+                                start + (cabin + 1) * 2.4 - 0.12,
+                                y + 2,
+                              ]),
+                            ).join(' ')}
+                            fill={y === 43.22 ? c.ink : c.fieldBorder}
+                          />
+                        ))
+                      : null}
                     {start + 6 > segment.x0 + 5 &&
                     start + 6 < segment.x1 - 5 ? (
                       <FloorText
@@ -382,7 +445,7 @@ const FloorPlanDrawing = React.memo(function FloorPlanDrawing({
                         Elevadores
                       </FloorText>
                     ) : null}
-                  </G>
+                  </React.Fragment>
                 ))
               : null}
             {block === 'F' && isUpper ? (
@@ -396,21 +459,9 @@ const FloorPlanDrawing = React.memo(function FloorPlanDrawing({
                 Elevadores
               </FloorText>
             ) : null}
-            {isUpper
-              ? structures
-                  .filter(
-                    shape => shape.kind === 'pillar' || shape.kind === 'wall',
-                  )
-                  .map(shape => (
-                    <Path
-                      key={shape.id}
-                      d={shape.rings.map(ring => path(ring, true)).join(' ')}
-                      fill={c.inkMuted}
-                    />
-                  ))
-              : null}
+            {pillars ? <Path d={pillars} fill={c.inkMuted} /> : null}
             {rooms
-              .filter(room => room.door)
+              .filter(room => room.door && crosses(room.door, segment))
               .map(room => (
                 <Path
                   key={`door-${room.code}:${room.bounds.join(',')}`}
@@ -552,7 +603,7 @@ const FloorPlanDrawing = React.memo(function FloorPlanDrawing({
             const upper = block === 'F' ? layout.top - 28.68 : y - 1.65;
             const lower = block === 'F' ? layout.top - 8.2 : y + 1.65;
             return (
-              <G>
+              <>
                 <Rect
                   x={gap.left}
                   y={upper}
@@ -607,11 +658,11 @@ const FloorPlanDrawing = React.memo(function FloorPlanDrawing({
                 >
                   {`${Math.round(gap.metres)} m`}
                 </FloorText>
-              </G>
+              </>
             );
           })()
         : null}
-      <G>
+      <>
         <Rect
           x={layout.key.x - 0.8}
           y={layout.key.y - 0.5}
@@ -676,7 +727,7 @@ const FloorPlanDrawing = React.memo(function FloorPlanDrawing({
             fill={c.accent}
           />
         ) : null}
-      </G>
+      </>
       {block === 'F' ? (
         <FloorText
           unit={unit}
@@ -699,10 +750,12 @@ export function FloorPlanCanvas({
   destination,
   block = 'C',
   floor = 'T',
+  resetKey = '',
 }: Props) {
   const theme = useTheme();
   const c = theme.colors;
-  const [size, setSize] = useState({ width: 360, height: 380 });
+  const [plotRef, plotSize, onPlotLayout] = usePlotSize();
+  const size = plotSize ?? UNMEASURED;
   const plan = orientation?.floorPlan;
   const selected = orientation?.room;
   const route = orientation?.route ?? EMPTY_ROUTE;
@@ -724,7 +777,7 @@ export function FloorPlanCanvas({
     initialCamera: initial,
     width: size.width,
     height: size.height,
-    resetKey: `${key}:${size.width}:${size.height}`,
+    resetKey: `${resetKey}|${key}:${size.width}:${size.height}`,
     minWidth: 12,
     maxWidth: 160,
     refreshOnPanEnd: false,
@@ -738,41 +791,36 @@ export function FloorPlanCanvas({
     >
       <GestureHandlerRootView
         style={styles.plot}
-        onLayout={event => {
-          const next = event.nativeEvent.layout;
-          if (
-            next.width &&
-            next.height &&
-            (next.width !== size.width || next.height !== size.height)
-          ) {
-            setSize({ width: next.width, height: next.height });
-          }
-        }}
+        testID="floor-plan-plot"
+        onLayout={onPlotLayout}
       >
         <GestureDetector gesture={gesture}>
           <View
+            ref={plotRef}
             collapsable={false}
             style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}
           >
-            <MapLayer
-              camera={camera}
-              width={size.width}
-              height={size.height}
-              animatedStyle={animatedStyle}
-              projection="world"
-              accessibilityLabel={`Planta do Bloco ${block}, ${floor === 'T' ? 'térreo' : floor === 'SE' ? 'semienterrado' : `${floor}º andar`}${destination?.code ? `, caminho até a sala ${destination.code}` : ''}`}
-            >
-              <FloorPlanDrawing
-                atlas={atlas}
-                block={block}
-                floor={floor}
-                layout={layout}
-                plan={plan}
-                selected={selected}
-                route={route}
-                unit={unit}
-              />
-            </MapLayer>
+            {plotSize ? (
+              <MapLayer
+                camera={camera}
+                width={size.width}
+                height={size.height}
+                animatedStyle={animatedStyle}
+                projection="world"
+                accessibilityLabel={`Planta do Bloco ${block}, ${floor === 'T' ? 'térreo' : floor === 'SE' ? 'semienterrado' : `${floor}º andar`}${destination?.code ? `, caminho até a sala ${destination.code}` : ''}`}
+              >
+                <FloorPlanDrawing
+                  atlas={atlas}
+                  block={block}
+                  floor={floor}
+                  layout={layout}
+                  plan={plan}
+                  selected={selected}
+                  route={route}
+                  unit={unit}
+                />
+              </MapLayer>
+            ) : null}
           </View>
         </GestureDetector>
       </GestureHandlerRootView>

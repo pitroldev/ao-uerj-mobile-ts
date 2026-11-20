@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import {
   GestureDetector,
   GestureHandlerRootView,
 } from 'react-native-gesture-handler';
+import type { AnimatedStyle } from 'react-native-reanimated';
 import Svg, { Circle, G, Path, Rect, Text as SvgText } from 'react-native-svg';
 import { useTheme } from 'styled-components/native';
 import { IconButton, OUTLINED_GLYPHS, Text } from '@components/ui';
@@ -11,6 +12,7 @@ import {
   fitCamera,
   orientPoint,
   zoomCamera,
+  type Camera,
 } from '@root/modules/campus-map/domain/geometry';
 import type {
   Block,
@@ -22,9 +24,11 @@ import type {
   Point,
   RoomLocation,
 } from '@root/modules/campus-map/domain/types';
+import { campusGeometry, worldPath } from './campusGeometry';
 import { FloorPlanCanvas } from './FloorPlanCanvas';
 import { MapLayer } from './MapLayer';
 import { useMapCamera } from './useMapCamera';
+import { usePlotSize } from './usePlotSize';
 
 type Props = {
   atlas: CampusAtlas;
@@ -37,9 +41,15 @@ type Props = {
   destination?: RoomLocation;
   orientation?: MapOrientation;
   onSelect: (place: Place) => void;
+  /**
+   * Muda com a seleção: a câmera volta ao enquadramento inicial, e o desenho
+   * é atualizado no lugar (com `key`, cada toque desmontava e recriava
+   * centenas de views nativas).
+   */
+  resetKey?: string;
 };
 
-export function CampusCanvas(props: Props) {
+export const CampusCanvas = React.memo(function CampusCanvas(props: Props) {
   if (props.view === 'floor' && props.block && props.floor) {
     return (
       <FloorPlanCanvas
@@ -48,11 +58,12 @@ export function CampusCanvas(props: Props) {
         floor={props.floor}
         destination={props.destination}
         orientation={props.orientation}
+        resetKey={props.resetKey}
       />
     );
   }
   return <CampusOverview {...props} />;
-}
+});
 
 type Label = {
   id: string;
@@ -74,6 +85,9 @@ const overlaps = (a: LabelBox, b: LabelBox) =>
 const essentialPlaces = ['portao-metro', 'portao-sfx', 'metro', 'trem'];
 /** Lado do marcador de ponto de ônibus, em dp. */
 const STOP_SIZE = 15;
+/** Antes da primeira medida, só para a câmera ter um formato. */
+const UNMEASURED = { width: 390, height: 430 };
+const NO_ROUTE: Point[] = [];
 /** O nome da rua em linhas de até 9 letras ("R. São", "Francisco", "Xavier"). */
 function narrowStreet(lines: string[]) {
   const out: string[] = [];
@@ -129,11 +143,19 @@ const poiNames: Record<string, string[]> = {
   capela: ['Capela'],
 };
 
-function CampusOverview({ atlas, place, block, orientation, onSelect }: Props) {
+function CampusOverview({
+  atlas,
+  place,
+  block,
+  orientation,
+  onSelect,
+  resetKey = '',
+}: Props) {
   const theme = useTheme(),
     c = theme.colors;
   const palette = theme.campusMap;
-  const [size, setSize] = useState({ width: 390, height: 430 });
+  const [plotRef, plotSize, onPlotLayout] = usePlotSize();
+  const size = plotSize ?? UNMEASURED;
   // Retain the streets and stations when a room is selected.
   const initialCamera = useMemo(
     () =>
@@ -155,28 +177,246 @@ function CampusOverview({ atlas, place, block, orientation, onSelect }: Props) {
     initialCamera,
     width: size.width,
     height: size.height,
-    resetKey: `${size.width}:${size.height}`,
+    resetKey: `${resetKey}|${size.width}:${size.height}`,
     minWidth: 18,
     maxWidth: 1400,
     positionLimit: 900,
   });
   const unit = camera.width / size.width;
+  const scale = [100, 50, 20, 10, 5, 2, 1].find(n => n / unit <= 58) ?? 1;
+
+  return (
+    <View
+      style={[styles.canvas, { backgroundColor: palette.ground }]}
+      testID="campus-canvas"
+    >
+      <GestureHandlerRootView
+        style={styles.plot}
+        testID="campus-map-plot"
+        onLayout={onPlotLayout}
+      >
+        <GestureDetector gesture={gesture}>
+          <View
+            ref={plotRef}
+            style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}
+            collapsable={false}
+          >
+            {plotSize ? (
+              <CampusDrawing
+                atlas={atlas}
+                place={place}
+                block={block}
+                orientation={orientation}
+                onSelect={onSelect}
+                camera={camera}
+                width={size.width}
+                height={size.height}
+                animatedStyle={animatedStyle}
+              />
+            ) : null}
+          </View>
+        </GestureDetector>
+      </GestureHandlerRootView>
+      <View
+        style={[
+          styles.toolbar,
+          { backgroundColor: c.surface, borderTopColor: c.rule },
+        ]}
+      >
+        <View style={styles.north} pointerEvents="none">
+          <Svg width={18} height={24}>
+            <Path d="M9 2L3 21L9 16L15 21Z" fill={c.accent} />
+          </Svg>
+          <Text variant="caption">N</Text>
+        </View>
+        <View pointerEvents="none" style={styles.scale}>
+          <Text variant="caption">{scale} m</Text>
+          <Svg width={scale / unit} height={6}>
+            <Path
+              d={`M0 0V5H${scale / unit}V0`}
+              stroke={c.inkMuted}
+              strokeWidth={1}
+              fill="none"
+            />
+          </Svg>
+        </View>
+        <View style={styles.zoom}>
+          <IconButton
+            icon="add"
+            accessibilityLabel="Ampliar mapa"
+            onPress={() => setCamera(current => zoomCamera(current, 1.5))}
+          />
+          <IconButton
+            icon="remove"
+            accessibilityLabel="Reduzir mapa"
+            onPress={() => setCamera(current => zoomCamera(current, 1 / 1.5))}
+          />
+          <IconButton
+            icon="refresh"
+            accessibilityLabel="Reenquadrar mapa"
+            onPress={reset}
+          />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+type GeometryProps = {
+  atlas: CampusAtlas;
+  /** Metros por dp: só os traços (em dp na tela) dependem do zoom. */
+  unit: number;
+  block?: Block;
+  building?: string;
+  route: readonly Point[];
+};
+
+/**
+ * Ruas, terreno, caminhos, prédios e o trajeto de entrada, em metros. A
+ * câmera é a transformação do grupo em volta: um pan não muda nenhuma prop
+ * daqui (o React nem compara os ~85 caminhos), e o nativo guarda os
+ * contornos já calculados. O zoom troca só as espessuras.
+ */
+const CampusGeometryLayer = React.memo(function CampusGeometryLayer({
+  atlas,
+  unit,
+  block,
+  building,
+  route,
+}: GeometryProps) {
+  const theme = useTheme(),
+    c = theme.colors;
+  const palette = theme.campusMap;
+  const geometry = campusGeometry(atlas);
+  const routePath =
+    route.length > 1 ? worldPath(route, atlas.north) : undefined;
+  const start = route.length > 1 ? orientPoint(route[0], atlas.north) : null;
+  return (
+    <>
+      {geometry.streets.map(street => (
+        <React.Fragment key={street.key}>
+          <Path
+            d={street.d}
+            fill="none"
+            stroke={palette.streetEdge}
+            strokeWidth={18 + 2 * unit}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <Path
+            d={street.d}
+            fill="none"
+            stroke={palette.street}
+            strokeWidth={18}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </React.Fragment>
+      ))}
+      <Path
+        d={geometry.campus}
+        fill={palette.land}
+        stroke={palette.outline}
+        strokeWidth={unit}
+      />
+      {geometry.paths.map((d, i) => (
+        <Path
+          key={i}
+          d={d}
+          stroke={palette.street}
+          strokeWidth={4 * unit}
+          fill="none"
+          strokeLinecap="round"
+        />
+      ))}
+      {geometry.shapes.map(shape => {
+        const selected =
+          shape.id === `bloco-${block}` ||
+          (!!building && shape.id === building);
+        return (
+          <Path
+            key={shape.id}
+            d={shape.d}
+            fillRule="evenodd"
+            fill={
+              selected
+                ? c.selection
+                : shape.kind === 'lago'
+                  ? palette.water
+                  : shape.kind === 'patio'
+                    ? palette.land
+                    : palette.building
+            }
+            stroke={selected ? c.accent : palette.outline}
+            strokeWidth={(selected ? 1.8 : 0.7) * unit}
+          />
+        );
+      })}
+      {routePath && start ? (
+        <>
+          <Path
+            d={routePath}
+            fill="none"
+            stroke={c.surface}
+            strokeWidth={6 * unit}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          <Path
+            d={routePath}
+            fill="none"
+            stroke={c.accent}
+            strokeWidth={3 * unit}
+            strokeDasharray={`${5 * unit} ${4 * unit}`}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          <Circle
+            cx={start[0]}
+            cy={start[1]}
+            r={4.5 * unit}
+            fill={c.surface}
+            stroke={c.accent}
+            strokeWidth={2 * unit}
+          />
+        </>
+      ) : null}
+    </>
+  );
+});
+
+type DrawingProps = Pick<
+  Props,
+  'atlas' | 'place' | 'block' | 'orientation' | 'onSelect'
+> & {
+  camera: Camera;
+  width: number;
+  height: number;
+  animatedStyle: AnimatedStyle<ViewStyle>;
+};
+
+/** O desenho do campus: só existe depois de a área ter medida. */
+function CampusDrawing({
+  atlas,
+  place,
+  block,
+  orientation,
+  onSelect,
+  camera,
+  width,
+  height,
+  animatedStyle,
+}: DrawingProps) {
+  const theme = useTheme(),
+    c = theme.colors;
+  const palette = theme.campusMap;
+  const unit = camera.width / width;
   const screenPoint = (point: Point): Point => {
     const [x, y] = orientPoint(point, atlas.north);
     return [(x - camera.x) / unit, (y - camera.y) / unit];
   };
-  const line = (points: readonly Point[]) =>
-    points
-      .map((p, i) => `${i ? 'L' : 'M'}${screenPoint(p).join(' ')}`)
-      .join(' ');
-  const polygon = (rings: readonly (readonly Point[])[]) =>
-    rings.map(r => line(r) + 'Z').join(' ');
-  const scale = [100, 50, 20, 10, 5, 2, 1].find(n => n / unit <= 58) ?? 1;
   const visible = ([x, y]: Point, margin = 0) =>
-    x >= margin &&
-    y >= margin &&
-    x <= size.width - margin &&
-    y <= size.height - margin;
+    x >= margin && y >= margin && x <= width - margin && y <= height - margin;
   const textStyle = {
     fontFamily: theme.fonts.semibold,
     fontSize: 11,
@@ -224,10 +464,12 @@ function CampusOverview({ atlas, place, block, orientation, onSelect }: Props) {
       [wide, [-28, 28]],
     ];
     for (const [text, normals] of attempts) {
-      const width = Math.max(...text.map(t => t.length)) * 5.3;
-      const height = text.length * 12;
-      const bx = (Math.abs(width * cos) + Math.abs(height * sin)) / 2 + 4;
-      const by = (Math.abs(width * sin) + Math.abs(height * cos)) / 2 + 4;
+      const textWidth = Math.max(...text.map(t => t.length)) * 5.3;
+      const textHeight = text.length * 12;
+      const bx =
+        (Math.abs(textWidth * cos) + Math.abs(textHeight * sin)) / 2 + 4;
+      const by =
+        (Math.abs(textWidth * sin) + Math.abs(textHeight * cos)) / 2 + 4;
       for (const normal of normals) {
         for (const along of ALONG_ROAD) {
           const x = px + cos * along - sin * normal;
@@ -235,8 +477,8 @@ function CampusOverview({ atlas, place, block, orientation, onSelect }: Props) {
           if (
             x - bx < 4 ||
             y - by < 4 ||
-            x + bx > size.width - 4 ||
-            y + by > size.height - 4
+            x + bx > width - 4 ||
+            y + by > height - 4
           )
             continue;
           const boxes = text.flatMap((t, row) => {
@@ -273,7 +515,7 @@ function CampusOverview({ atlas, place, block, orientation, onSelect }: Props) {
       width: 24,
       height: 24,
     });
-  const route = orientation?.entranceRoute ?? [];
+  const route = orientation?.entranceRoute ?? NO_ROUTE;
   // Labels cannot cover the route or any essential geographic marker.
   for (let i = 1; i < route.length; i++) {
     const a = screenPoint(route[i - 1]),
@@ -332,20 +574,23 @@ function CampusOverview({ atlas, place, block, orientation, onSelect }: Props) {
         : [occupied];
     for (const blocking of passes) {
       for (const variant of variants) {
-        const width = Math.max(...variant.map(t => t.length)) * 5.9 + 12;
-        const height = variant.length * 14 + 8;
+        const labelWidth = Math.max(...variant.map(t => t.length)) * 5.9 + 12;
+        const labelHeight = variant.length * 14 + 8;
         for (const [dx, dy] of offsets) {
           const next = {
             x: Math.max(
               6,
-              Math.min(size.width - width - 6, anchor[0] + dx - width / 2),
+              Math.min(width - labelWidth - 6, anchor[0] + dx - labelWidth / 2),
             ),
             y: Math.max(
               6,
-              Math.min(size.height - height - 6, anchor[1] + dy - height / 2),
+              Math.min(
+                height - labelHeight - 6,
+                anchor[1] + dy - labelHeight / 2,
+              ),
             ),
-            width,
-            height,
+            width: labelWidth,
+            height: labelHeight,
           };
           if (!blocking.some(r => overlaps(next, r))) {
             rect = next;
@@ -394,330 +639,182 @@ function CampusOverview({ atlas, place, block, orientation, onSelect }: Props) {
       width: Math.max(48, label.width),
     })),
   ].filter(t => visible(t.screen));
+  const glyph = STOP_SIZE - 5;
 
   return (
-    <View
-      style={[styles.canvas, { backgroundColor: palette.ground }]}
-      testID="campus-canvas"
+    <MapLayer
+      camera={camera}
+      width={width}
+      height={height}
+      projection="screen"
+      animatedStyle={animatedStyle}
+      accessibilityLabel="Campus Maracanã, norte para cima, ruas e entradas"
+      targets={targets.map(({ p, screen: [x, y], width: targetWidth }) => (
+        <Pressable
+          key={p.id}
+          accessibilityRole="button"
+          accessibilityLabel={`No mapa: ${p.name}`}
+          onPress={() => onSelect(p)}
+          style={[
+            styles.target,
+            {
+              left: Math.max(
+                0,
+                Math.min(width - targetWidth, x - targetWidth / 2),
+              ),
+              top: Math.max(0, Math.min(height - 48, y - 24)),
+              width: targetWidth,
+            },
+          ]}
+        />
+      ))}
     >
-      <GestureHandlerRootView
-        style={styles.plot}
-        testID="campus-map-plot"
-        onLayout={event => {
-          const { width, height } = event.nativeEvent.layout;
-          if (
-            width &&
-            height &&
-            (width !== size.width || height !== size.height)
-          ) {
-            setSize({ width, height });
-          }
-        }}
+      <G
+        transform={`matrix(${1 / unit} 0 0 ${1 / unit} ${-camera.x / unit} ${-camera.y / unit})`}
       >
-        <GestureDetector gesture={gesture}>
-          <View
-            style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}
-            collapsable={false}
+        <CampusGeometryLayer
+          atlas={atlas}
+          unit={unit}
+          block={block}
+          building={place?.building}
+          route={route}
+        />
+      </G>
+      {blocks.map(b => (
+        <React.Fragment key={b.id}>
+          <Circle
+            cx={b.screen[0]}
+            cy={b.screen[1]}
+            r={10}
+            fill={block === b.id ? c.fill : c.surface}
+            stroke={block === b.id ? c.onFill : c.ruleStrong}
+            strokeWidth={1}
+          />
+          <SvgText
+            x={b.screen[0]}
+            y={b.screen[1] + 4}
+            {...textStyle}
+            fontSize={12}
+            fill={block === b.id ? c.onFill : c.accent}
           >
-            <MapLayer
-              key={`${size.width}-${size.height}`}
-              camera={camera}
-              width={size.width}
-              height={size.height}
-              projection="screen"
-              animatedStyle={animatedStyle}
-              accessibilityLabel="Campus Maracanã, norte para cima, ruas e entradas"
-              targets={targets.map(({ p, screen: [x, y], width }) => (
-                <Pressable
-                  key={p.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`No mapa: ${p.name}`}
-                  onPress={() => onSelect(p)}
-                  style={[
-                    styles.target,
-                    {
-                      left: Math.max(
-                        0,
-                        Math.min(size.width - width, x - width / 2),
-                      ),
-                      top: Math.max(0, Math.min(size.height - 48, y - 24)),
-                      width,
-                    },
-                  ]}
-                />
-              ))}
-            >
-              {atlas.streets.flatMap(street =>
-                street.lines.map((points, i) => (
-                  <G key={`${street.name}-${i}`}>
-                    <Path
-                      d={line(points)}
-                      fill="none"
-                      stroke={palette.streetEdge}
-                      strokeWidth={18 / unit + 2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <Path
-                      d={line(points)}
-                      fill="none"
-                      stroke={palette.street}
-                      strokeWidth={18 / unit}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </G>
-                )),
-              )}
-              <Path
-                d={polygon([atlas.campus])}
-                fill={palette.land}
-                stroke={palette.outline}
-                strokeWidth={1}
-              />
-              {atlas.paths.map((points, i) => (
-                <Path
-                  key={i}
-                  d={line(points)}
-                  stroke={palette.street}
-                  strokeWidth={4}
-                  fill="none"
-                  strokeLinecap="round"
-                />
-              ))}
-              {atlas.shapes.map(shape => {
-                const selected =
-                  shape.id === `bloco-${block}` ||
-                  (!!place?.building && shape.id === place.building);
-                return (
-                  <Path
-                    key={shape.id}
-                    d={polygon(shape.rings)}
-                    fillRule="evenodd"
-                    fill={
-                      selected
-                        ? c.selection
-                        : shape.kind === 'lago'
-                          ? palette.water
-                          : shape.kind === 'patio'
-                            ? palette.land
-                            : palette.building
-                    }
-                    stroke={selected ? c.accent : palette.outline}
-                    strokeWidth={selected ? 1.8 : 0.7}
-                  />
-                );
-              })}
-              {route.length > 1 ? (
-                <G>
-                  <Path
-                    d={line(route)}
-                    fill="none"
-                    stroke={c.surface}
-                    strokeWidth={6}
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                  />
-                  <Path
-                    d={line(route)}
-                    fill="none"
-                    stroke={c.accent}
-                    strokeWidth={3}
-                    strokeDasharray="5 4"
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                  />
-                  <Circle
-                    cx={screenPoint(route[0])[0]}
-                    cy={screenPoint(route[0])[1]}
-                    r={4.5}
-                    fill={c.surface}
-                    stroke={c.accent}
-                    strokeWidth={2}
-                  />
-                </G>
-              ) : null}
-              {blocks.map(b => (
-                <G key={b.id}>
-                  <Circle
-                    cx={b.screen[0]}
-                    cy={b.screen[1]}
-                    r={10}
-                    fill={block === b.id ? c.fill : c.surface}
-                    stroke={block === b.id ? c.onFill : c.ruleStrong}
-                    strokeWidth={1}
-                  />
-                  <SvgText
-                    x={b.screen[0]}
-                    y={b.screen[1] + 4}
-                    {...textStyle}
-                    fontSize={12}
-                    fill={block === b.id ? c.onFill : c.accent}
-                  >
-                    {b.id}
-                  </SvgText>
-                </G>
-              ))}
-              {streetLabels.map(({ name, text, angle, x, y }) => {
-                return (
-                  <G key={name} transform={`rotate(${angle} ${x} ${y})`}>
-                    {text.map((part, index) => (
-                      <G key={part}>
-                        <SvgText
-                          x={x}
-                          y={y + (index - (text.length - 1) / 2) * 12 + 3}
-                          {...textStyle}
-                          fontSize={10}
-                          stroke={palette.ground}
-                          strokeWidth={3}
-                          strokeLinejoin="round"
-                        >
-                          {part}
-                        </SvgText>
-                        <SvgText
-                          x={x}
-                          y={y + (index - (text.length - 1) / 2) * 12 + 3}
-                          {...textStyle}
-                          fontSize={10}
-                        >
-                          {part}
-                        </SvgText>
-                      </G>
-                    ))}
-                  </G>
-                );
-              })}
-              {essentialMarkers.map(p => {
-                const [x, y] = screenPoint(p.point);
-                return (
-                  <Circle
-                    key={`marker-${p.id}`}
-                    cx={x}
-                    cy={y}
-                    r={3.8}
-                    fill={c.inkMuted}
-                    stroke={c.surface}
-                    strokeWidth={1.5}
-                  />
-                );
-              })}
-              {stops.map(({ p, screen: [x, y] }) => {
-                const selected = p.id === place?.id;
-                const glyph = STOP_SIZE - 5;
-                return (
-                  <G key={`stop-${p.id}`}>
-                    <Rect
-                      x={x - STOP_SIZE / 2}
-                      y={y - STOP_SIZE / 2}
-                      width={STOP_SIZE}
-                      height={STOP_SIZE}
-                      rx={3.5}
-                      fill={selected ? c.fill : c.surface}
-                      stroke={selected ? c.onFill : c.accent}
-                      strokeWidth={1.2}
-                    />
-                    <Path
-                      d={OUTLINED_GLYPHS.directions_bus}
-                      fill={selected ? c.onFill : c.accent}
-                      transform={`translate(${x - glyph / 2} ${y + glyph / 2}) scale(${glyph / 960})`}
-                    />
-                  </G>
-                );
-              })}
-              {labels.map(label => (
-                <G key={label.id}>
-                  {Math.hypot(
-                    label.x + label.width / 2 - label.anchor[0],
-                    label.y + label.height / 2 - label.anchor[1],
-                  ) > 18 ? (
-                    <Path
-                      d={`M${label.anchor.join(' ')}L${label.x + label.width / 2} ${label.y + label.height / 2}`}
-                      stroke={c.fieldBorder}
-                      strokeWidth={1}
-                    />
-                  ) : null}
-                  {!essentialPlaces.includes(label.id) &&
-                  !label.place?.busStop &&
-                  (label.place?.category === 'portoes' ||
-                    label.place?.category === 'transporte' ||
-                    label.selected) ? (
-                    <Circle
-                      cx={label.anchor[0]}
-                      cy={label.anchor[1]}
-                      r={3.8}
-                      fill={label.selected ? c.fill : c.inkMuted}
-                      stroke={c.surface}
-                      strokeWidth={1.5}
-                    />
-                  ) : null}
-                  <Rect
-                    x={label.x}
-                    y={label.y}
-                    width={label.width}
-                    height={label.height}
-                    rx={3}
-                    fill={label.selected ? c.fill : c.surface}
-                    fillOpacity={label.selected ? 1 : 0.9}
-                  />
-                  {label.text.map((t, i) => (
-                    <SvgText
-                      key={t}
-                      x={label.x + label.width / 2}
-                      y={label.y + 14 + i * 14}
-                      {...textStyle}
-                      fill={label.selected ? c.onFill : c.ink}
-                    >
-                      {t}
-                    </SvgText>
-                  ))}
-                </G>
-              ))}
-            </MapLayer>
-          </View>
-        </GestureDetector>
-      </GestureHandlerRootView>
-      <View
-        style={[
-          styles.toolbar,
-          { backgroundColor: c.surface, borderTopColor: c.rule },
-        ]}
-      >
-        <View style={styles.north} pointerEvents="none">
-          <Svg width={18} height={24}>
-            <Path d="M9 2L3 21L9 16L15 21Z" fill={c.accent} />
-          </Svg>
-          <Text variant="caption">N</Text>
-        </View>
-        <View pointerEvents="none" style={styles.scale}>
-          <Text variant="caption">{scale} m</Text>
-          <Svg width={scale / unit} height={6}>
-            <Path
-              d={`M0 0V5H${scale / unit}V0`}
-              stroke={c.inkMuted}
-              strokeWidth={1}
-              fill="none"
+            {b.id}
+          </SvgText>
+        </React.Fragment>
+      ))}
+      {streetLabels.map(({ name, text, angle, x, y }) => {
+        return (
+          <G key={name} transform={`rotate(${angle} ${x} ${y})`}>
+            {text.map((part, index) => (
+              <React.Fragment key={part}>
+                <SvgText
+                  x={x}
+                  y={y + (index - (text.length - 1) / 2) * 12 + 3}
+                  {...textStyle}
+                  fontSize={10}
+                  stroke={palette.ground}
+                  strokeWidth={3}
+                  strokeLinejoin="round"
+                >
+                  {part}
+                </SvgText>
+                <SvgText
+                  x={x}
+                  y={y + (index - (text.length - 1) / 2) * 12 + 3}
+                  {...textStyle}
+                  fontSize={10}
+                >
+                  {part}
+                </SvgText>
+              </React.Fragment>
+            ))}
+          </G>
+        );
+      })}
+      {essentialMarkers.map(p => {
+        const [x, y] = screenPoint(p.point);
+        return (
+          <Circle
+            key={`marker-${p.id}`}
+            cx={x}
+            cy={y}
+            r={3.8}
+            fill={c.inkMuted}
+            stroke={c.surface}
+            strokeWidth={1.5}
+          />
+        );
+      })}
+      {stops.map(({ p, screen: [x, y] }) => {
+        const selected = p.id === place?.id;
+        return (
+          <React.Fragment key={`stop-${p.id}`}>
+            <Rect
+              x={x - STOP_SIZE / 2}
+              y={y - STOP_SIZE / 2}
+              width={STOP_SIZE}
+              height={STOP_SIZE}
+              rx={3.5}
+              fill={selected ? c.fill : c.surface}
+              stroke={selected ? c.onFill : c.accent}
+              strokeWidth={1.2}
             />
-          </Svg>
-        </View>
-        <View style={styles.zoom}>
-          <IconButton
-            icon="add"
-            accessibilityLabel="Ampliar mapa"
-            onPress={() => setCamera(current => zoomCamera(current, 1.5))}
+            <Path
+              d={OUTLINED_GLYPHS.directions_bus}
+              fill={selected ? c.onFill : c.accent}
+              transform={`translate(${x - glyph / 2} ${y + glyph / 2}) scale(${glyph / 960})`}
+            />
+          </React.Fragment>
+        );
+      })}
+      {labels.map(label => (
+        <React.Fragment key={label.id}>
+          {Math.hypot(
+            label.x + label.width / 2 - label.anchor[0],
+            label.y + label.height / 2 - label.anchor[1],
+          ) > 18 ? (
+            <Path
+              d={`M${label.anchor.join(' ')}L${label.x + label.width / 2} ${label.y + label.height / 2}`}
+              stroke={c.fieldBorder}
+              strokeWidth={1}
+            />
+          ) : null}
+          {!essentialPlaces.includes(label.id) &&
+          !label.place?.busStop &&
+          (label.place?.category === 'portoes' ||
+            label.place?.category === 'transporte' ||
+            label.selected) ? (
+            <Circle
+              cx={label.anchor[0]}
+              cy={label.anchor[1]}
+              r={3.8}
+              fill={label.selected ? c.fill : c.inkMuted}
+              stroke={c.surface}
+              strokeWidth={1.5}
+            />
+          ) : null}
+          <Rect
+            x={label.x}
+            y={label.y}
+            width={label.width}
+            height={label.height}
+            rx={3}
+            fill={label.selected ? c.fill : c.surface}
+            fillOpacity={label.selected ? 1 : 0.9}
           />
-          <IconButton
-            icon="remove"
-            accessibilityLabel="Reduzir mapa"
-            onPress={() => setCamera(current => zoomCamera(current, 1 / 1.5))}
-          />
-          <IconButton
-            icon="refresh"
-            accessibilityLabel="Reenquadrar mapa"
-            onPress={reset}
-          />
-        </View>
-      </View>
-    </View>
+          {label.text.map((t, i) => (
+            <SvgText
+              key={t}
+              x={label.x + label.width / 2}
+              y={label.y + 14 + i * 14}
+              {...textStyle}
+              fill={label.selected ? c.onFill : c.ink}
+            >
+              {t}
+            </SvgText>
+          ))}
+        </React.Fragment>
+      ))}
+    </MapLayer>
   );
 }
 

@@ -127,17 +127,11 @@ export function MapScreen({
   const theme = useTheme(),
     c = theme.colors;
   const insets = useSafeAreaInsets();
-  // os locais da aula que o mapa encontra (o portal junta vários num texto:
-  // "Sala 5.098/F (…) / LEE 09 (…)"); o primeiro abre selecionado
-  const [targets] = useState(() =>
-    parseClassLocations(initialLocation).filter(
-      ({ result }) =>
-        result.kind === 'room' ||
-        (result.kind === 'place' && atlas.places.some(p => p.id === result.id)),
-    ),
-  );
-  const [first] = useState(() => (targets[0] ? resolve(targets[0]) : null));
-  /** O lugar do atlas e a sala de um local da aula. */
+  /**
+   * O lugar do atlas e a sala de um local da aula. Fica antes do primeiro
+   * uso: declarada depois, o React Compiler desiste da tela inteira, e cada
+   * mudança de estado (abrir uma folha, digitar) refaz o mapa todo.
+   */
   function resolve({ result }: ClassLocation) {
     if (result.kind === 'room') return { room: result, place: undefined };
     if (result.kind !== 'place') return null;
@@ -161,6 +155,16 @@ export function MapScreen({
       place: found,
     };
   }
+  // os locais da aula que o mapa encontra (o portal junta vários num texto:
+  // "Sala 5.098/F (…) / LEE 09 (…)"); o primeiro abre selecionado
+  const [targets] = useState(() =>
+    parseClassLocations(initialLocation).filter(
+      ({ result }) =>
+        result.kind === 'room' ||
+        (result.kind === 'place' && atlas.places.some(p => p.id === result.id)),
+    ),
+  );
+  const [first] = useState(() => (targets[0] ? resolve(targets[0]) : null));
   const [target, setTarget] = useState<number | undefined>(
     first ? 0 : undefined,
   );
@@ -303,6 +307,15 @@ export function MapScreen({
     }
     setView(nextView);
     setSheet(null);
+  }
+  /**
+   * O toque num lugar do desenho. Com nome próprio, o React Compiler guarda
+   * a função enquanto a seleção não muda; escrita direto na prop, ela era
+   * outra a cada render, e abrir uma folha refazia o desenho.
+   */
+  function selectOnMap(next: Place) {
+    if (next.block && !next.floor) selectBlock(next.block);
+    else if (next.id !== 'pjlf' || !destination) selectPlace(next);
   }
   function openDirections() {
     if (!pavilion && !orientation && activePlace) {
@@ -494,7 +507,7 @@ export function MapScreen({
       ) : (
         <>
           <CampusCanvas
-            key={`${view}-${activePlace?.id ?? 'campus'}-${block ?? ''}-${floor ?? ''}-${destination?.code ?? ''}-${entrance}`}
+            resetKey={`${view}-${activePlace?.id ?? 'campus'}-${block ?? ''}-${floor ?? ''}-${destination?.code ?? ''}-${entrance}`}
             atlas={atlas}
             place={activePlace}
             block={block}
@@ -504,10 +517,7 @@ export function MapScreen({
             view={view}
             destination={destination}
             orientation={orientation}
-            onSelect={next => {
-              if (next.block && !next.floor) selectBlock(next.block);
-              else if (next.id !== 'pjlf' || !destination) selectPlace(next);
-            }}
+            onSelect={selectOnMap}
           />
           <View
             style={[
