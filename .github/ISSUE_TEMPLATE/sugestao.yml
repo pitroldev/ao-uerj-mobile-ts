@@ -1,7 +1,8 @@
 name: Sugestão
 description: Uma ideia para o app ou algo que falta no Aluno Online.
 title: '[Sugestão] '
-labels: ['enhancement']
+type: Feature
+labels: ['status: triagem']
 body:
   - type: markdown
     attributes:

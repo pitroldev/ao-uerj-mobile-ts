@@ -1,7 +1,7 @@
 name: Dúvida
 description: Uma pergunta sobre o código, o ambiente ou como contribuir.
 title: '[Dúvida] '
-labels: ['question']
+labels: ['dúvida', 'status: triagem']
 body:
   - type: markdown
     attributes:

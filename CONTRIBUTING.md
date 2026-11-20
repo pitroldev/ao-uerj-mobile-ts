@@ -44,6 +44,26 @@ Algumas portas de entrada boas:
 
 Antes de começar algo grande, abra uma issue contando a ideia. Assim ninguém faz o mesmo trabalho duas vezes, e dá para combinar o caminho antes.
 
+### Tipos e etiquetas das issues
+
+O **tipo** (o campo Type do GitHub) diz o que a issue é: **Bug** (algo não funciona), **Feature** (uma sugestão) ou **Task** (manutenção que não muda nada para quem usa). Os formulários de problema e de sugestão já escolhem. As etiquetas dizem o resto:
+
+| Etiqueta                        | Quando usar                                                               |
+| ------------------------------- | ------------------------------------------------------------------------- |
+| `status: triagem`               | Ninguém olhou ainda. Os formulários põem esta.                            |
+| `status: precisa de informação` | Esperando quem abriu responder alguma coisa.                              |
+| `status: planejada`             | Vai ser feita.                                                            |
+| `status: em andamento`          | Alguém está fazendo.                                                      |
+| `status: bloqueada`             | Depende de algo de fora: o Aluno Online, uma loja ou outra issue.         |
+| `área: …`                       | Onde no app (Início, Grade, Mapa…), as mesmas áreas da sugestão pelo app. |
+| `plataforma: …`                 | Android, iPhone ou servidor, quando o problema é só de um deles.          |
+| `sugestão do app`               | Veio do app, sem nome, matrícula nem e-mail.                              |
+| `dúvida`                        | Uma pergunta, que não é bug nem sugestão.                                 |
+| `good first issue`              | Boa para começar.                                                         |
+| `help wanted`                   | Ajuda é bem-vinda.                                                        |
+
+Numa sugestão que veio do app, o app mostra ao aluno o `status: planejada` e o `status: em andamento`. Para fechar, use o motivo do GitHub: concluída, não planejada ou duplicada.
+
 ## Preparar o ambiente
 
 ### Pré-requisitos
