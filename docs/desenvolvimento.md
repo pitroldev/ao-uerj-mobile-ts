@@ -27,7 +27,7 @@ O que essa instalação faz além das dependências do app:
 - **Hooks do Git:** o lefthook instala os hooks de `lefthook.yml` (ver [Hooks do Git](#hooks-do-git)).
 - **Scripts de instalação:** só rodam os das dependências liberadas em `allowBuilds` do `pnpm-workspace.yaml` (`@parcel/watcher`, `@sentry/cli`, `lefthook` e `unrs-resolver`).
 - **`node_modules` plano:** `nodeLinker: hoisted`, porque o Metro, o autolinking do Gradle e o CocoaPods esperam essa estrutura.
-- **Correções de terceiros:** o `patchedDependencies` aplica `patches/react-native-share@12.3.1.patch` (no Android, o aviso de "destino escolhido" do compartilhamento nunca chegava), e o `overrides` sobe o `uuid` para a 11.1.1 ou mais nova (GHSA-w5hq-g745-h8pq, vindo do `xcode`, só na geração de assets).
+- **Correções de terceiros:** o `patchedDependencies` aplica `patches/react-native-share@12.3.1.patch` (no Android, o aviso de "destino escolhido" do compartilhamento nunca chegava) e `patches/react-native-svg@15.16.0.patch` (no Android, cada texto relia o arquivo da fonte a cada redesenho e cada elemento mandava um evento de layout; com o patch, o `onLayout` vale no `Svg`, mas não nos elementos dentro dele), e o `overrides` sobe o `uuid` para a 11.1.1 ou mais nova (GHSA-w5hq-g745-h8pq, vindo do `xcode`, só na geração de assets).
 
 ## Android
 

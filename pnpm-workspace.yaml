@@ -30,7 +30,16 @@ overrides:
 # expo-modules-jsi (iOS): the Swift in Xcode 26.3 rejected capturing a
 # non-Sendable pointer in a JavaScriptActor closure ("sending 'slot' risks
 # causing data races"); the address crosses as a UInt instead.
+# react-native-svg (Android): each text run built its typeface from the font
+# file in the assets again on every redraw (Typeface.Builder reads and parses
+# the file before it looks in its own cache), and each element dispatched a
+# layout event on every redraw, listened to or not. On the campus map that was
+# more than half of a redraw. Typefaces are cached, and only the root group
+# dispatches the event: `onLayout` still fires on an `Svg`, but no longer on
+# the elements inside it (Path, G, Text and so on) on Android. Nothing here
+# uses that.
 patchedDependencies:
   expo-modules-jsi@58.0.22: patches/expo-modules-jsi@58.0.22.patch
   expo-updates@58.0.21: patches/expo-updates@58.0.21.patch
   react-native-share@12.3.1: patches/react-native-share@12.3.1.patch
+  react-native-svg@15.16.0: patches/react-native-svg@15.16.0.patch

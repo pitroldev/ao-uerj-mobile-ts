@@ -21,11 +21,13 @@ Cada elemento do SVG é uma view nativa, e qualquer prop que muda rasteriza a ca
 - **A câmera é uma transformação.** No campus, ruas, terreno, prédios e o trajeto de entrada ficam em metros ([campusGeometry](campusGeometry.ts), calculado uma vez por atlas), dentro de um grupo com a transformação da câmera. Um pan não muda nenhuma prop deles, e o nativo guarda os contornos já calculados; o zoom troca só as espessuras, que são em dp. Rótulos e marcadores continuam em coordenadas de tela.
 - **Não criar o que o recorte esconde.** Na planta, cada recorte desenha só o que cruza a sua faixa (`crosses`), com os pilares num caminho só. No Bloco F isso levou a planta de 979 views para cerca de 200. Formas da mesma cor só se juntam quando não se tocam: juntar as que se tocam muda o antisserrilhado da emenda.
 
+No Android, a própria biblioteca gastava mais da metade de um redesenho do campus fora do desenho: relia o arquivo da fonte do APK para cada texto (descompactar e interpretar, antes de olhar o próprio cache) e mandava um evento de layout por elemento, com ou sem alguém ouvindo. O [patch do react-native-svg](../../../patches/react-native-svg@15.16.0.patch) guarda a fonte já carregada e deixa o evento só no grupo raiz: o `onLayout` continua valendo no `Svg`, mas não nos elementos dentro dele.
+
 O atlas (636 KB) é lido na primeira vez que uma tela pede, pelo `require` do adaptador, e não na abertura do app.
 
 Uma mudança no desenho se confere em três frentes: as views criadas, mudadas e destruídas por interação (o renderer de teste marca cada operação com `globalThis.TEST_RENDERER_ENABLE_PROFILING`), o desenho antes e depois, convertendo a árvore do teste em SVG e comparando os pixels no Chrome, e o tempo de quadro no emulador, com `adb shell dumpsys gfxinfo com.aouerjmobile framestats` em volta de cada interação (o trecho de `DrawStart` a `SyncQueued` é o SVG virando bitmap).
 
-Em aparelho físico o tempo de quadro não foi medido.
+Em 20/11/2026, no AVD de Android 13 com o APK de debug, um redesenho do campus levava cerca de 320 ms com a biblioteca como vem, 195 ms com o cache de fontes e 125 ms também sem os eventos de layout. Foi uma rodada só, e o debug interpreta o Java: o release é mais rápido. Em aparelho físico o tempo de quadro não foi medido.
 
 ## Dados e fidelidade
 

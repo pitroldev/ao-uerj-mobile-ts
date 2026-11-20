@@ -138,7 +138,7 @@ ao-uerj-mobile-ts/
 ├── deploy/server/      os scripts da implantação azul/verde na VM
 ├── config/             o aviso remoto (app-status.json) e o esquema dele
 ├── scripts/            Gradle, diagnósticos, ícones, mapa do campus, OTA e ferramentas de dev e de CI
-├── patches/            os ajustes do pnpm em dependências (Expo e react-native-share)
+├── patches/            os ajustes do pnpm em dependências (Expo, react-native-share e react-native-svg)
 ├── .maestro/           os fluxos E2E do Maestro (manuais, com conta real)
 ├── docs/               a documentação
 └── .github/            workflows, Renovate e modelos de issue e de PR

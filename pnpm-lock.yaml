@@ -169,6 +169,7 @@ patchedDependencies:
   expo-modules-jsi@58.0.22: e1acf617003388fb70bce8379175bff0146ec2864c5506a931a453da7462c8f1
   expo-updates@58.0.21: 83ca8862fb65f9972700da8be138ffd00f3de46ca8b3efd96b183e144b55f79d
   react-native-share@12.3.1: 072e49cac89fbb7c80ad3d080cb7757b9cc5ecca678c5b6bf4e5f860115ecc44
+  react-native-svg@15.16.0: b2944cef58965c7414fbc77178864d878db67bf16df090f9a54698c4d7e3aa3c
 
 importers:
 
@@ -257,7 +258,7 @@ importers:
         version: 12.3.1(patch_hash=072e49cac89fbb7c80ad3d080cb7757b9cc5ecca678c5b6bf4e5f860115ecc44)
       react-native-svg:
         specifier: ^15.16.0
-        version: 15.16.0(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native-community/cli@20.2.0(@typescript/typescript6@6.0.2)(supports-color@8.1.1))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
+        version: 15.16.0(patch_hash=b2944cef58965c7414fbc77178864d878db67bf16df090f9a54698c4d7e3aa3c)(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native-community/cli@20.2.0(@typescript/typescript6@6.0.2)(supports-color@8.1.1))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
       react-native-toast-message:
         specifier: ^2.5.2
         version: 2.5.2(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native-community/cli@20.2.0(@typescript/typescript6@6.0.2)(supports-color@8.1.1))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
@@ -10742,7 +10743,7 @@ snapshots:
 
   react-native-share@12.3.1(patch_hash=072e49cac89fbb7c80ad3d080cb7757b9cc5ecca678c5b6bf4e5f860115ecc44): {}
 
-  react-native-svg@15.16.0(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native-community/cli@20.2.0(@typescript/typescript6@6.0.2)(supports-color@8.1.1))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0):
+  react-native-svg@15.16.0(patch_hash=b2944cef58965c7414fbc77178864d878db67bf16df090f9a54698c4d7e3aa3c)(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native-community/cli@20.2.0(@typescript/typescript6@6.0.2)(supports-color@8.1.1))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0):
     dependencies:
       css-select: 5.2.2
       css-tree: 1.1.3

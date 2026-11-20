@@ -1,0 +1,74 @@
+diff --git a/android/src/main/java/com/horcrux/svg/TSpanView.java b/android/src/main/java/com/horcrux/svg/TSpanView.java
+index b6e0a3892eb5416b1badf447d4f8c4e4baef828c..b4a238a15f6afdf27571f43767f71a49e7f08241 100644
+--- a/android/src/main/java/com/horcrux/svg/TSpanView.java
++++ b/android/src/main/java/com/horcrux/svg/TSpanView.java
+@@ -42,6 +42,7 @@ import com.facebook.react.bridge.ReadableMap;
+ import com.facebook.react.views.text.ReactFontManager;
+ import java.text.Bidi;
+ import java.util.ArrayList;
++import java.util.concurrent.ConcurrentHashMap;
+ import javax.annotation.Nullable;
+ 
+ @SuppressLint("ViewConstructor")
+@@ -53,6 +54,13 @@ class TSpanView extends TextView {
+   private static final String OTF = ".otf";
+   private static final String TTF = ".ttf";
+ 
++  // The typeface of each font file in the assets, by family, weight, style and
++  // variation settings. Typeface.Builder only consults its own cache after it
++  // has read and parsed the file, so every text run inflated its font from the
++  // APK again on every redraw.
++  private static final ConcurrentHashMap<String, Typeface> assetTypefaces =
++      new ConcurrentHashMap<>();
++
+   private Path mCachedPath;
+   @Nullable String mContent;
+   private TextPathView textPath;
+@@ -1139,10 +1147,15 @@ class TSpanView extends TextView {
+       style = Typeface.NORMAL;
+     }
+ 
+-    Typeface typeface = null;
+     int weight = font.absoluteFontWeight;
+     final String fontFamily = font.fontFamily;
+-    if (fontFamily != null && fontFamily.length() > 0) {
++    final boolean hasFamily = fontFamily != null && fontFamily.length() > 0;
++    final String typefaceKey =
++        hasFamily
++            ? fontFamily + "\n" + weight + "\n" + style + "\n" + font.fontVariationSettings
++            : null;
++    Typeface typeface = hasFamily ? assetTypefaces.get(typefaceKey) : null;
++    if (typeface == null && hasFamily) {
+       String otfpath = FONTS + fontFamily + OTF;
+       String ttfpath = FONTS + fontFamily + TTF;
+       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+@@ -1170,6 +1183,9 @@ class TSpanView extends TextView {
+           }
+         }
+       }
++      if (typeface != null) {
++        assetTypefaces.put(typefaceKey, typeface);
++      }
+     }
+ 
+     if (typeface == null) {
+diff --git a/android/src/main/java/com/horcrux/svg/VirtualView.java b/android/src/main/java/com/horcrux/svg/VirtualView.java
+index 4d718063da89404e685654dfd2986a76afde23c2..87ed4ad67da3393ef885c52b4334159f9985b2b7 100644
+--- a/android/src/main/java/com/horcrux/svg/VirtualView.java
++++ b/android/src/main/java/com/horcrux/svg/VirtualView.java
+@@ -608,6 +608,15 @@ public abstract class VirtualView extends ReactViewGroup {
+         setBottom(Math.min(bottom, root.getHeight()));
+       }
+     }
++    // Only the root group reports its layout: it carries the `onLayout` of the
++    // Svg. On Android the library cannot tell whether an element has a handler
++    // (handlers are not sent as props), so every element dispatched an event on
++    // every redraw: hundreds on a map, each one crossing every event listener
++    // on the UI thread (Reanimated's included) and then the JS thread, with
++    // nobody listening.
++    if (!(getParent() instanceof SvgView)) {
++      return;
++    }
+     EventDispatcher eventDispatcher =
+         UIManagerHelper.getEventDispatcherForReactTag(mContext, getId());
+     if (eventDispatcher != null) {
