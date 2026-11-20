@@ -30,7 +30,9 @@ Dados do mapa
 As fontes, licenças e atribuições por geometria estão documentadas em
 scripts/campus-map/PLANTA.md e nos dados de scripts/campus-map/data/.
 Incluem dados do IPP/Prefeitura do Rio sob CC BY 4.0 e do OpenStreetMap sob
-ODbL. As atribuições e os links também aparecem na tela do mapa.
+ODbL. Os pontos de ônibus e as linhas vêm da SMTR/Prefeitura do Rio (camada
+de paradas e GTFS dos ônibus), sob CC BY 4.0. As atribuições e os links
+também aparecem na tela do mapa.
 
 Símbolos, nomes e marcas de terceiros
 ------------------------------------

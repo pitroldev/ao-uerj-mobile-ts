@@ -36,6 +36,7 @@ O painel mantém a curva superior esquerda de 48 dp. Busca e seletores respeitam
 - `TextField`, `FilterChip` e `ListRow` compõem busca e filtros; o filtro marcado também recebe um check.
 - `SegmentedControl` alterna Campus/Andar. Botões de bloco e andar abrem listas em `BottomSheet`; a seleção atual fica destacada.
 - A folha **Como chegar** reúne entrada pelo Portão 1 ou 5, passos e acesso à planta. Créditos e confiança aparecem de forma resumida; fontes e limites ficam na folha de informações.
+- Os pontos de ônibus são marcadores quadrados com o ônibus, sem rótulo até serem escolhidos; os nomes das ruas desviam deles. O ponto escolhido mostra a rua, o portão mais perto e as linhas em etiquetas; **Linhas e destinos** abre a folha com o destino de cada linha, as datas da SMTR e "Como chegar a pé". O número de uma linha na busca acha os pontos dela.
 - A planta distingue limites documentados de divisões deduzidas tracejadas. Sem posição sustentada pelo modelo, o trajeto termina no bloco. Sala sem letra pede a escolha do bloco.
 
 ## Do's and Don'ts

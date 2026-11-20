@@ -154,3 +154,60 @@ it('keeps streets and stations in the north-up campus frame without changing dis
   const east = orientPoint([100, 0], atlas.north);
   expect(Math.hypot(east[0] - origin[0], east[1] - origin[1])).toBeCloseTo(100);
 });
+
+describe('bus stops near the gates (issue #26)', () => {
+  const stops = atlas.places.filter(p => p.busStop);
+  const gates = atlas.places.filter(p => p.category === 'portoes');
+  const metres = (
+    [lat1, lon1]: readonly number[],
+    [lat2, lon2]: readonly number[],
+  ) =>
+    Math.hypot(
+      (lat2 - lat1) * 111320,
+      (lon2 - lon1) * 111320 * Math.cos((lat1 * Math.PI) / 180),
+    );
+
+  it('keeps the official stops by their SMTR code, near a gate, with the street', () => {
+    expect(stops).toHaveLength(12);
+    expect(new Set(stops.map(p => p.busStop!.code)).size).toBe(12);
+    for (const stop of stops) {
+      expect(stop.category).toBe('transporte');
+      expect(stop.name).toMatch(/^Ponto /);
+      const nearest = Math.min(
+        ...gates.map(g => metres(stop.coordinate, g.coordinate)),
+      );
+      expect(nearest).toBeLessThan(250);
+      expect(stop.subtitle).toMatch(
+        /^(R\. São Francisco Xavier|Av\. Prof\. Manoel de Abreu|Boulevard 28 de Setembro) · perto do Portão \d$/,
+      );
+      expect(stop.sources.map(s => s.title).join(' ')).toContain('SMTR');
+    }
+    expect(stops.find(p => p.busStop!.code === '2035O00015C0')).toMatchObject({
+      name: 'Ponto UERJ',
+      subtitle: 'R. São Francisco Xavier · perto do Portão 5',
+    });
+    expect(stops.find(p => p.busStop!.code === '2036O00049S0')?.name).toBe(
+      'Ponto Luiz de Matos · BRS 5, 6',
+    );
+  });
+
+  it('lists each line once, with where it goes from there', () => {
+    for (const stop of stops) {
+      const codes = stop.busStop!.lines.map(l => l.code);
+      expect(codes.length).toBeGreaterThan(0);
+      expect(new Set(codes).size).toBe(codes.length);
+      for (const line of stop.busStop!.lines)
+        expect(line.to.length).toBeGreaterThan(0);
+    }
+    expect(atlas.transit.lines).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(atlas.transit.stops).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('finds the stops of a line by its number', () => {
+    const found = service.search('711', 'transporte');
+    expect(found.length).toBeGreaterThan(0);
+    for (const stop of found)
+      expect(stop.busStop?.lines.map(l => l.code)).toContain('711');
+    expect(service.search('ponto onibus', 'transporte')).toHaveLength(12);
+  });
+});

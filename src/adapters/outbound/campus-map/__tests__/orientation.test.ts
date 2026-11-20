@@ -150,7 +150,7 @@ it('provides an unambiguous block route before a particular room is selected', (
 });
 
 it('retains the measured street centerlines instead of reducing roads to labels', () => {
-  expect(service.atlas.streets).toHaveLength(4);
+  expect(service.atlas.streets).toHaveLength(5);
   expect(
     service.atlas.streets.every(
       street =>

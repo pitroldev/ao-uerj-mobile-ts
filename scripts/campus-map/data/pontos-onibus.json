@@ -1,0 +1,1115 @@
+{
+  "fontes": {
+    "paradas": {
+      "titulo": "Prefeitura do Rio / SMTR · pontos de parada dos ônibus",
+      "url": "https://www.arcgis.com/home/item.html?id=fd07613c9a1c45299389c0f7cff8e2a0",
+      "data": "2026-11-16"
+    },
+    "linhas": {
+      "titulo": "Prefeitura do Rio / SMTR · GTFS dos ônibus",
+      "url": "https://www.arcgis.com/home/item.html?id=b577e4c4c0924888823b630bbdb2c6fd",
+      "arquivo": "https://dados.mobilidade.rio/gtfs/schedule",
+      "data": "2026-06-03"
+    }
+  },
+  "pontos": [
+    {
+      "parada": "2035O00048C0",
+      "rua": "R. São Francisco Xavier",
+      "nome": "Luiz de Matos",
+      "ll": [
+        -22.910828,
+        -43.23775
+      ],
+      "linhas": [
+        {
+          "linha": "239",
+          "destinos": [
+            "Água Santa"
+          ]
+        },
+        {
+          "linha": "247",
+          "destinos": [
+            "Camarista Méier"
+          ]
+        },
+        {
+          "linha": "249",
+          "destinos": [
+            "Água Santa"
+          ]
+        },
+        {
+          "linha": "254",
+          "destinos": [
+            "Madureira"
+          ]
+        },
+        {
+          "linha": "363",
+          "destinos": [
+            "Vila Valqueire"
+          ]
+        },
+        {
+          "linha": "383",
+          "destinos": [
+            "Realengo"
+          ]
+        },
+        {
+          "linha": "455",
+          "destinos": [
+            "Méier"
+          ]
+        },
+        {
+          "linha": "457",
+          "destinos": [
+            "Abolição"
+          ]
+        },
+        {
+          "linha": "622",
+          "destinos": [
+            "Circular"
+          ]
+        },
+        {
+          "linha": "627",
+          "destinos": [
+            "Inhaúma"
+          ]
+        },
+        {
+          "linha": "629",
+          "destinos": [
+            "Irajá"
+          ]
+        },
+        {
+          "linha": "630",
+          "destinos": [
+            "Penha (IAPI)"
+          ]
+        },
+        {
+          "linha": "711",
+          "destinos": [
+            "Rocha Miranda"
+          ]
+        },
+        {
+          "linha": "SN363",
+          "destinos": [
+            "Vila Valqueire"
+          ]
+        },
+        {
+          "linha": "SN383",
+          "destinos": [
+            "Realengo"
+          ]
+        },
+        {
+          "linha": "SN457",
+          "destinos": [
+            "Abolição"
+          ]
+        },
+        {
+          "linha": "SN629",
+          "destinos": [
+            "Irajá"
+          ]
+        },
+        {
+          "linha": "SV391",
+          "destinos": [
+            "Padre Miguel"
+          ]
+        }
+      ]
+    },
+    {
+      "parada": "2036O00049S0",
+      "rua": "R. São Francisco Xavier",
+      "nome": "BRS 5,6: Luiz de Matos",
+      "ll": [
+        -22.91011,
+        -43.2384
+      ],
+      "linhas": [
+        {
+          "linha": "363",
+          "destinos": [
+            "Candelária"
+          ]
+        },
+        {
+          "linha": "383",
+          "destinos": [
+            "Praça da República"
+          ]
+        },
+        {
+          "linha": "621",
+          "destinos": [
+            "Circular"
+          ]
+        },
+        {
+          "linha": "627",
+          "destinos": [
+            "Saens Peña"
+          ]
+        },
+        {
+          "linha": "629",
+          "destinos": [
+            "Saens Peña"
+          ]
+        },
+        {
+          "linha": "630",
+          "destinos": [
+            "Saens Peña"
+          ]
+        },
+        {
+          "linha": "711",
+          "destinos": [
+            "Rio Comprido"
+          ]
+        },
+        {
+          "linha": "SN363",
+          "destinos": [
+            "Candelária"
+          ]
+        },
+        {
+          "linha": "SN383",
+          "destinos": [
+            "Praça da República"
+          ]
+        },
+        {
+          "linha": "SN629",
+          "destinos": [
+            "Saens Peña"
+          ]
+        },
+        {
+          "linha": "SV391",
+          "destinos": [
+            "Praça da República"
+          ]
+        }
+      ]
+    },
+    {
+      "parada": "2036O00007S0",
+      "rua": "R. São Francisco Xavier",
+      "nome": "BRS 3,4,I: Oito de Dezembro",
+      "ll": [
+        -22.90921,
+        -43.23863
+      ],
+      "linhas": [
+        {
+          "linha": "239",
+          "destinos": [
+            "Castelo"
+          ]
+        },
+        {
+          "linha": "247",
+          "destinos": [
+            "Passeio"
+          ]
+        },
+        {
+          "linha": "249",
+          "destinos": [
+            "Carioca"
+          ]
+        },
+        {
+          "linha": "254",
+          "destinos": [
+            "Candelária"
+          ]
+        },
+        {
+          "linha": "363",
+          "destinos": [
+            "Candelária"
+          ]
+        },
+        {
+          "linha": "455",
+          "destinos": [
+            "Copacabana"
+          ]
+        },
+        {
+          "linha": "457",
+          "destinos": [
+            "Copacabana"
+          ]
+        },
+        {
+          "linha": "SN457",
+          "destinos": [
+            "Copacabana"
+          ]
+        }
+      ]
+    },
+    {
+      "parada": "2035O00015C0",
+      "rua": "R. São Francisco Xavier",
+      "nome": "UERJ",
+      "ll": [
+        -22.9116,
+        -43.23727
+      ],
+      "linhas": [
+        {
+          "linha": "239",
+          "destinos": [
+            "Água Santa"
+          ]
+        },
+        {
+          "linha": "363",
+          "destinos": [
+            "Vila Valqueire"
+          ]
+        },
+        {
+          "linha": "383",
+          "destinos": [
+            "Realengo"
+          ]
+        },
+        {
+          "linha": "455",
+          "destinos": [
+            "Méier"
+          ]
+        },
+        {
+          "linha": "457",
+          "destinos": [
+            "Abolição"
+          ]
+        },
+        {
+          "linha": "622",
+          "destinos": [
+            "Circular"
+          ]
+        },
+        {
+          "linha": "627",
+          "destinos": [
+            "Inhaúma"
+          ]
+        },
+        {
+          "linha": "629",
+          "destinos": [
+            "Irajá"
+          ]
+        },
+        {
+          "linha": "630",
+          "destinos": [
+            "Penha (IAPI)"
+          ]
+        },
+        {
+          "linha": "711",
+          "destinos": [
+            "Rocha Miranda"
+          ]
+        },
+        {
+          "linha": "SN363",
+          "destinos": [
+            "Vila Valqueire"
+          ]
+        },
+        {
+          "linha": "SN383",
+          "destinos": [
+            "Realengo"
+          ]
+        },
+        {
+          "linha": "SN457",
+          "destinos": [
+            "Abolição"
+          ]
+        },
+        {
+          "linha": "SN629",
+          "destinos": [
+            "Irajá"
+          ]
+        },
+        {
+          "linha": "SV391",
+          "destinos": [
+            "Padre Miguel"
+          ]
+        }
+      ]
+    },
+    {
+      "parada": "2035O00043S0",
+      "rua": "R. São Francisco Xavier",
+      "nome": "BRS 3,4,I: Mará",
+      "ll": [
+        -22.91206,
+        -43.23707
+      ],
+      "linhas": [
+        {
+          "linha": "239",
+          "destinos": [
+            "Castelo"
+          ]
+        },
+        {
+          "linha": "247",
+          "destinos": [
+            "Passeio"
+          ]
+        },
+        {
+          "linha": "249",
+          "destinos": [
+            "Carioca"
+          ]
+        },
+        {
+          "linha": "254",
+          "destinos": [
+            "Candelária"
+          ]
+        },
+        {
+          "linha": "363",
+          "destinos": [
+            "Candelária"
+          ]
+        },
+        {
+          "linha": "455",
+          "destinos": [
+            "Copacabana"
+          ]
+        },
+        {
+          "linha": "457",
+          "destinos": [
+            "Copacabana"
+          ]
+        },
+        {
+          "linha": "SN457",
+          "destinos": [
+            "Copacabana"
+          ]
+        }
+      ]
+    },
+    {
+      "parada": "2035O00018S0",
+      "rua": "R. São Francisco Xavier",
+      "nome": "BRS 5,6: Felipe Camarão",
+      "ll": [
+        -22.91266,
+        -43.23625
+      ],
+      "linhas": [
+        {
+          "linha": "363",
+          "destinos": [
+            "Candelária"
+          ]
+        },
+        {
+          "linha": "383",
+          "destinos": [
+            "Praça da República"
+          ]
+        },
+        {
+          "linha": "621",
+          "destinos": [
+            "Circular"
+          ]
+        },
+        {
+          "linha": "627",
+          "destinos": [
+            "Saens Peña"
+          ]
+        },
+        {
+          "linha": "629",
+          "destinos": [
+            "Saens Peña"
+          ]
+        },
+        {
+          "linha": "630",
+          "destinos": [
+            "Saens Peña"
+          ]
+        },
+        {
+          "linha": "711",
+          "destinos": [
+            "Rio Comprido"
+          ]
+        },
+        {
+          "linha": "SN363",
+          "destinos": [
+            "Candelária"
+          ]
+        },
+        {
+          "linha": "SN383",
+          "destinos": [
+            "Praça da República"
+          ]
+        },
+        {
+          "linha": "SN629",
+          "destinos": [
+            "Saens Peña"
+          ]
+        },
+        {
+          "linha": "SV391",
+          "destinos": [
+            "Praça da República"
+          ]
+        }
+      ]
+    },
+    {
+      "parada": "2035O00047C0",
+      "rua": "R. São Francisco Xavier",
+      "nome": "Felipe Camarão",
+      "ll": [
+        -22.912755,
+        -43.235793
+      ],
+      "linhas": [
+        {
+          "linha": "239",
+          "destinos": [
+            "Água Santa"
+          ]
+        },
+        {
+          "linha": "247",
+          "destinos": [
+            "Camarista Méier"
+          ]
+        },
+        {
+          "linha": "249",
+          "destinos": [
+            "Água Santa"
+          ]
+        },
+        {
+          "linha": "254",
+          "destinos": [
+            "Madureira"
+          ]
+        },
+        {
+          "linha": "363",
+          "destinos": [
+            "Vila Valqueire"
+          ]
+        },
+        {
+          "linha": "383",
+          "destinos": [
+            "Realengo"
+          ]
+        },
+        {
+          "linha": "455",
+          "destinos": [
+            "Méier"
+          ]
+        },
+        {
+          "linha": "457",
+          "destinos": [
+            "Abolição"
+          ]
+        },
+        {
+          "linha": "622",
+          "destinos": [
+            "Circular"
+          ]
+        },
+        {
+          "linha": "627",
+          "destinos": [
+            "Inhaúma"
+          ]
+        },
+        {
+          "linha": "630",
+          "destinos": [
+            "Penha (IAPI)"
+          ]
+        },
+        {
+          "linha": "711",
+          "destinos": [
+            "Rocha Miranda"
+          ]
+        },
+        {
+          "linha": "SN363",
+          "destinos": [
+            "Vila Valqueire"
+          ]
+        },
+        {
+          "linha": "SN383",
+          "destinos": [
+            "Realengo"
+          ]
+        },
+        {
+          "linha": "SN457",
+          "destinos": [
+            "Abolição"
+          ]
+        },
+        {
+          "linha": "SN629",
+          "destinos": [
+            "Irajá"
+          ]
+        },
+        {
+          "linha": "SV391",
+          "destinos": [
+            "Padre Miguel"
+          ]
+        }
+      ]
+    },
+    {
+      "parada": "2035O00019S0",
+      "rua": "R. São Francisco Xavier",
+      "nome": "BRS 3,4,5,6: Professor Manoel de Abreu",
+      "ll": [
+        -22.91365,
+        -43.23451
+      ],
+      "linhas": [
+        {
+          "linha": "239",
+          "destinos": [
+            "Castelo"
+          ]
+        },
+        {
+          "linha": "247",
+          "destinos": [
+            "Passeio"
+          ]
+        },
+        {
+          "linha": "249",
+          "destinos": [
+            "Carioca"
+          ]
+        },
+        {
+          "linha": "254",
+          "destinos": [
+            "Candelária"
+          ]
+        },
+        {
+          "linha": "363",
+          "destinos": [
+            "Candelária"
+          ]
+        },
+        {
+          "linha": "383",
+          "destinos": [
+            "Praça da República"
+          ]
+        },
+        {
+          "linha": "455",
+          "destinos": [
+            "Copacabana"
+          ]
+        },
+        {
+          "linha": "457",
+          "destinos": [
+            "Copacabana"
+          ]
+        },
+        {
+          "linha": "621",
+          "destinos": [
+            "Circular"
+          ]
+        },
+        {
+          "linha": "629",
+          "destinos": [
+            "Saens Peña"
+          ]
+        },
+        {
+          "linha": "665",
+          "destinos": [
+            "Saens Peña"
+          ]
+        },
+        {
+          "linha": "711",
+          "destinos": [
+            "Rio Comprido"
+          ]
+        },
+        {
+          "linha": "LECD147",
+          "destinos": [
+            "Saens Peña"
+          ]
+        },
+        {
+          "linha": "SN363",
+          "destinos": [
+            "Candelária"
+          ]
+        },
+        {
+          "linha": "SN383",
+          "destinos": [
+            "Praça da República"
+          ]
+        },
+        {
+          "linha": "SN457",
+          "destinos": [
+            "Copacabana"
+          ]
+        },
+        {
+          "linha": "SN629",
+          "destinos": [
+            "Saens Peña"
+          ]
+        },
+        {
+          "linha": "SV391",
+          "destinos": [
+            "Praça da República"
+          ]
+        },
+        {
+          "linha": "SVB665",
+          "destinos": [
+            "Saens Peña"
+          ]
+        }
+      ]
+    },
+    {
+      "parada": "2035O00076C0",
+      "rua": "Av. Prof. Manoel de Abreu",
+      "nome": "São Francisco Xavier",
+      "ll": [
+        -22.9134,
+        -43.2339
+      ],
+      "linhas": [
+        {
+          "linha": "627",
+          "destinos": [
+            "Inhaúma"
+          ]
+        },
+        {
+          "linha": "629",
+          "destinos": [
+            "Irajá"
+          ]
+        },
+        {
+          "linha": "630",
+          "destinos": [
+            "Penha (IAPI)"
+          ]
+        },
+        {
+          "linha": "SN629",
+          "destinos": [
+            "Irajá"
+          ]
+        }
+      ]
+    },
+    {
+      "parada": "2035O00077C0",
+      "rua": "Av. Prof. Manoel de Abreu",
+      "nome": "Radialista Waldir Amaral",
+      "ll": [
+        -22.911776,
+        -43.234086
+      ],
+      "linhas": [
+        {
+          "linha": "232",
+          "destinos": [
+            "Lins de Vasconcelos"
+          ]
+        },
+        {
+          "linha": "247",
+          "destinos": [
+            "Camarista Méier"
+          ]
+        },
+        {
+          "linha": "249",
+          "destinos": [
+            "Água Santa"
+          ]
+        },
+        {
+          "linha": "254",
+          "destinos": [
+            "Madureira"
+          ]
+        },
+        {
+          "linha": "306",
+          "destinos": [
+            "Praça Seca"
+          ]
+        },
+        {
+          "linha": "341",
+          "destinos": [
+            "Taquara"
+          ]
+        },
+        {
+          "linha": "353",
+          "destinos": [
+            "Gardênia Azul"
+          ]
+        },
+        {
+          "linha": "363",
+          "destinos": [
+            "Vila Valqueire"
+          ]
+        },
+        {
+          "linha": "368",
+          "destinos": [
+            "Riocentro"
+          ]
+        },
+        {
+          "linha": "383",
+          "destinos": [
+            "Realengo"
+          ]
+        },
+        {
+          "linha": "390",
+          "destinos": [
+            "Curicica"
+          ]
+        },
+        {
+          "linha": "457",
+          "destinos": [
+            "Abolição"
+          ]
+        },
+        {
+          "linha": "627",
+          "destinos": [
+            "Inhaúma"
+          ]
+        },
+        {
+          "linha": "629",
+          "destinos": [
+            "Irajá"
+          ]
+        },
+        {
+          "linha": "630",
+          "destinos": [
+            "Penha (IAPI)"
+          ]
+        },
+        {
+          "linha": "2110",
+          "destinos": [
+            "Gardênia Azul"
+          ]
+        },
+        {
+          "linha": "2111",
+          "destinos": [
+            "Praça Seca"
+          ]
+        },
+        {
+          "linha": "2114",
+          "destinos": [
+            "Freguesia"
+          ]
+        },
+        {
+          "linha": "LECD151",
+          "destinos": [
+            "Grajaú"
+          ]
+        },
+        {
+          "linha": "SN232",
+          "destinos": [
+            "Lins de Vasconcelos"
+          ]
+        },
+        {
+          "linha": "SN353",
+          "destinos": [
+            "Gardênia Azul"
+          ]
+        },
+        {
+          "linha": "SN363",
+          "destinos": [
+            "Vila Valqueire"
+          ]
+        },
+        {
+          "linha": "SN368",
+          "destinos": [
+            "Riocentro"
+          ]
+        },
+        {
+          "linha": "SN383",
+          "destinos": [
+            "Realengo"
+          ]
+        },
+        {
+          "linha": "SN457",
+          "destinos": [
+            "Abolição"
+          ]
+        },
+        {
+          "linha": "SN629",
+          "destinos": [
+            "Irajá"
+          ]
+        },
+        {
+          "linha": "SV391",
+          "destinos": [
+            "Padre Miguel"
+          ]
+        }
+      ]
+    },
+    {
+      "parada": "2035O00028S9",
+      "rua": "Boulevard 28 de Setembro",
+      "nome": "BRS 2,3,6,7: Felipe Camarão",
+      "ll": [
+        -22.91375,
+        -43.23656
+      ],
+      "linhas": [
+        {
+          "linha": "600",
+          "destinos": [
+            "Taquara"
+          ]
+        },
+        {
+          "linha": "625",
+          "destinos": [
+            "Olaria"
+          ]
+        },
+        {
+          "linha": "627",
+          "destinos": [
+            "Saens Peña"
+          ]
+        },
+        {
+          "linha": "630",
+          "destinos": [
+            "Saens Peña"
+          ]
+        },
+        {
+          "linha": "638",
+          "destinos": [
+            "Marechal Hermes"
+          ]
+        },
+        {
+          "linha": "639",
+          "destinos": [
+            "Jardim América"
+          ]
+        },
+        {
+          "linha": "LECD132",
+          "destinos": [
+            "Norte Shopping"
+          ]
+        },
+        {
+          "linha": "LECD150",
+          "destinos": [
+            "Grajaú"
+          ]
+        },
+        {
+          "linha": "LECD151",
+          "destinos": [
+            "Grajaú"
+          ]
+        },
+        {
+          "linha": "SN600",
+          "destinos": [
+            "Taquara"
+          ]
+        },
+        {
+          "linha": "SN639",
+          "destinos": [
+            "Jardim América"
+          ]
+        }
+      ]
+    },
+    {
+      "parada": "2035O00039S9",
+      "rua": "Boulevard 28 de Setembro",
+      "nome": "BRS 4,5,I: Jorge Rudge",
+      "ll": [
+        -22.91384,
+        -43.23697
+      ],
+      "linhas": [
+        {
+          "linha": "232",
+          "destinos": [
+            "Lins de Vasconcelos"
+          ]
+        },
+        {
+          "linha": "306",
+          "destinos": [
+            "Praça Seca"
+          ]
+        },
+        {
+          "linha": "341",
+          "destinos": [
+            "Taquara"
+          ]
+        },
+        {
+          "linha": "353",
+          "destinos": [
+            "Gardênia Azul"
+          ]
+        },
+        {
+          "linha": "368",
+          "destinos": [
+            "Riocentro"
+          ]
+        },
+        {
+          "linha": "390",
+          "destinos": [
+            "Curicica"
+          ]
+        },
+        {
+          "linha": "2110",
+          "destinos": [
+            "Gardênia Azul"
+          ]
+        },
+        {
+          "linha": "2111",
+          "destinos": [
+            "Praça Seca"
+          ]
+        },
+        {
+          "linha": "2114",
+          "destinos": [
+            "Freguesia"
+          ]
+        },
+        {
+          "linha": "SN232",
+          "destinos": [
+            "Lins de Vasconcelos"
+          ]
+        },
+        {
+          "linha": "SN353",
+          "destinos": [
+            "Gardênia Azul"
+          ]
+        },
+        {
+          "linha": "SN368",
+          "destinos": [
+            "Riocentro"
+          ]
+        }
+      ]
+    }
+  ]
+}

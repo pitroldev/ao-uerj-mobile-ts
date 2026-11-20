@@ -44,7 +44,7 @@ O app está na Google Play e, desde 18/11/2026, na App Store do Brasil (iPhone c
 | 💬  | **Mural da turma**     | Mensagens por turma, com o nome que você escolher                                                     |   ✅    |           ✅           |
 | 🍽️  | **Companhia agora**    | Uma mesa para almoçar junto ou um grupo para voltar depois da aula da noite                           |   ✅    |           ✅           |
 | 📢  | **Agora no campus**    | Avisos dos alunos: elevador parado, fila do bandejão, sala trancada                                   |   ✅    |           ✅           |
-| 🗺️  | **Mapa do campus**     | O campus e o Pavilhão andar por andar, com as salas, sem internet                                     |   ✅    |           ✅           |
+| 🗺️  | **Mapa do campus**     | O campus, o Pavilhão andar por andar e os pontos de ônibus com as linhas, sem internet                |   ✅    |           ✅           |
 | 🔔  | **Lembretes e avisos** | Lembrete de aula e de prova; aviso de nota nova, RID, inscrição, documento vencendo e portal de volta |   ✅    | ✅ quando o iOS deixar |
 | 📱  | **Widgets e atalhos**  | "Próxima aula" e "Hoje" na tela inicial e atalhos no ícone                                            |   ✅    |       ✅ e Siri        |
 | 📶  | **Sem internet**       | Abre na hora com os dados salvos, cifrados no aparelho, e avisa quando o portal cai                   |   ✅    |           ✅           |

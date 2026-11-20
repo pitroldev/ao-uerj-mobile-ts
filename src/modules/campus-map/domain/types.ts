@@ -3,6 +3,10 @@ export type Block = 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
 export type Floor = 'SE' | 'T' | `${number}`;
 export type Bounds = readonly [number, number, number, number];
 export type Source = { title: string; url: string };
+/** Uma linha que para no ponto e para onde vão as viagens dela dali. */
+type BusLine = { code: string; to: string[] };
+/** Ponto de ônibus da SMTR: o código da parada e as linhas do GTFS. */
+type BusStop = { code: string; lines: BusLine[] };
 export type Place = {
   id: string;
   name: string;
@@ -16,6 +20,7 @@ export type Place = {
   point: Point;
   coordinate: Point;
   sources: Source[];
+  busStop?: BusStop;
 };
 export type OfficialRoom = {
   code: string;
@@ -89,6 +94,8 @@ export type CampusAtlas = {
   streets: { name: string; point: Point; angle: number; lines: Point[][] }[];
   paths: Point[][];
   places: Place[];
+  /** Datas (AAAA-MM-DD) da camada de paradas e do GTFS das linhas. */
+  transit: { stops: string; lines: string };
   rooms: Partial<Record<Block, Partial<Record<Floor, number[]>>>>;
   officialRooms: OfficialRoom[];
   roomModels: RoomModel[];

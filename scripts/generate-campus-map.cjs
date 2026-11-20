@@ -17,6 +17,7 @@ const geo = JSON.parse(
   ),
 );
 const catalogue = require('./campus-map/data/places.json');
+const busStops = require('./campus-map/data/pontos-onibus.json');
 const root = path.resolve(__dirname, '..');
 const official = rawRooms.oficial_D9;
 const [a, b, c] = scheme.referencial.para_wgs84.lon;
@@ -83,6 +84,56 @@ for (const u of catalogue.units) {
     point: parent.point,
     coordinate: parent.coordinate,
     sources: u.src.map(([title, url]) => ({ title, url })),
+  });
+}
+// Pontos de ônibus perto dos portões (data/pontos-onibus.json, da camada de
+// paradas e do GTFS da SMTR): o nome oficial ("BRS 5,6: Luiz de Matos" vira
+// "Ponto Luiz de Matos · BRS 5, 6"), a rua, o portão mais perto e as linhas.
+const gates = places.filter(p => p.category === 'portoes');
+const metres = ([lat1, lon1], [lat2, lon2]) =>
+  Math.hypot(
+    (lat2 - lat1) * 111320,
+    (lon2 - lon1) * 111320 * Math.cos((lat1 * Math.PI) / 180),
+  );
+const brDate = date => date.split('-').reverse().join('/');
+for (const stop of busStops.pontos) {
+  const [, brs, name] = stop.nome.match(/^BRS ([^:]+):\s*(.+)$/) ?? [
+    '',
+    '',
+    stop.nome,
+  ];
+  const gate = gates.reduce((best, next) =>
+    metres(stop.ll, next.coordinate) < metres(stop.ll, best.coordinate)
+      ? next
+      : best,
+  );
+  places.push({
+    id: `onibus-${stop.parada.toLowerCase()}`,
+    name: `Ponto ${name}${brs ? ` · BRS ${brs.split(',').join(', ')}` : ''}`,
+    category: 'transporte',
+    subtitle: `${stop.rua} · perto do ${gate.name}`,
+    aliases: [
+      'ponto onibus parada',
+      stop.nome,
+      stop.rua,
+      ...stop.linhas.map(l => l.linha),
+    ].join(' '),
+    point: local([stop.ll[1], stop.ll[0]]),
+    coordinate: stop.ll,
+    sources: [
+      {
+        title: `${busStops.fontes.paradas.titulo} (${brDate(busStops.fontes.paradas.data)})`,
+        url: busStops.fontes.paradas.url,
+      },
+      {
+        title: `${busStops.fontes.linhas.titulo} (${brDate(busStops.fontes.linhas.data)})`,
+        url: busStops.fontes.linhas.url,
+      },
+    ],
+    busStop: {
+      code: stop.parada,
+      lines: stop.linhas.map(l => ({ code: l.linha, to: l.destinos })),
+    },
   });
 }
 const measuredShapes = [
@@ -305,6 +356,10 @@ const atlas = {
     )
     .map(p => p.geometry.coordinates.map(local)),
   places,
+  transit: {
+    stops: busStops.fontes.paradas.data,
+    lines: busStops.fontes.linhas.data,
+  },
   rooms: Object.fromEntries(
     Object.entries(rawRooms.salas).map(([block, floors]) => [
       block,

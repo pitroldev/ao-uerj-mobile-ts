@@ -247,3 +247,48 @@ describe('a class place without the exact room', () => {
     expect(screen.getByText('2º andar · Centro Cultural')).toBeVisible();
   });
 });
+
+describe('bus stops (issue #26)', () => {
+  it('shows the lines of a stop and where each one goes', async () => {
+    await renderWithProviders(<MapScreen />);
+    await fireEvent.changeText(
+      screen.getByLabelText('Buscar sala ou lugar'),
+      'ponto uerj',
+    );
+    await fireEvent.press(screen.getByText('Ponto UERJ'));
+    expect(screen.getByRole('header', { name: 'Ponto UERJ' })).toBeVisible();
+    expect(
+      screen.getByText('R. São Francisco Xavier · perto do Portão 5'),
+    ).toBeVisible();
+    expect(screen.getByLabelText(/^Linhas: 239, 363, /)).toBeVisible();
+    expect(screen.getByText('+5')).toBeVisible();
+    await fireEvent.press(
+      screen.getByRole('button', { name: 'Linhas e destinos' }),
+    );
+    expect(
+      screen.getByLabelText('Linha 363, para Vila Valqueire'),
+    ).toBeVisible();
+    expect(
+      screen.getByText(/^Linhas da Prefeitura do Rio \(SMTR\) de 03\/06\/2026/),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Como chegar a pé' }),
+    ).toBeVisible();
+  });
+
+  it('lists the stops under Transporte and selects one on the map', async () => {
+    await renderWithProviders(<MapScreen />);
+    await fireEvent.press(screen.getByText('Transporte'));
+    expect(screen.getByText('Ponto Felipe Camarão · BRS 5, 6')).toBeVisible();
+    expect(screen.getByText('Metrô Maracanã')).toBeVisible();
+    await fireEvent.press(screen.getByLabelText('Voltar ao mapa'));
+    await fireEvent(screen.getByTestId('campus-map-plot'), 'layout', {
+      nativeEvent: { layout: { width: 390, height: 430 } },
+    });
+    await fireEvent.press(screen.getByLabelText('No mapa: Ponto UERJ'));
+    expect(screen.getByRole('header', { name: 'Ponto UERJ' })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Linhas e destinos' }),
+    ).toBeVisible();
+  });
+});

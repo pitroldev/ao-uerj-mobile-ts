@@ -6,7 +6,7 @@ import {
 } from 'react-native-gesture-handler';
 import Svg, { Circle, G, Path, Rect, Text as SvgText } from 'react-native-svg';
 import { useTheme } from 'styled-components/native';
-import { IconButton, Text } from '@components/ui';
+import { IconButton, OUTLINED_GLYPHS, Text } from '@components/ui';
 import {
   fitCamera,
   orientPoint,
@@ -72,6 +72,40 @@ const overlaps = (a: LabelBox, b: LabelBox) =>
   a.y < b.y + b.height + 2 &&
   a.y + a.height + 2 > b.y;
 const essentialPlaces = ['portao-metro', 'portao-sfx', 'metro', 'trem'];
+/** Lado do marcador de ponto de ônibus, em dp. */
+const STOP_SIZE = 15;
+/** O nome da rua em linhas de até 9 letras ("R. São", "Francisco", "Xavier"). */
+function narrowStreet(lines: string[]) {
+  const out: string[] = [];
+  for (const word of lines.join(' ').split(' ')) {
+    const last = out.at(-1);
+    if (last && `${last} ${word}`.length <= 9)
+      out[out.length - 1] += ` ${word}`;
+    else out.push(word);
+  }
+  return out;
+}
+/** Deslocamentos do nome da rua ao longo dela: 0, -16, 16… até ±112 dp. */
+const ALONG_ROAD = [
+  0,
+  ...Array.from({ length: 7 }, (_, i) => (i + 1) * 16),
+].flatMap(step => (step ? [-step, step] : [0]));
+/**
+ * O rótulo do ponto no mapa, sem o "Ponto" (o marcador já diz) e em linhas
+ * curtas: "Ponto Radialista Waldir Amaral" vira "Radialista" e "Waldir
+ * Amaral"; o "BRS 5, 6" fica numa linha só dele.
+ */
+function stopLabel(name: string) {
+  const [stop, ...rest] = name.replace(/^Ponto /, '').split(' · ');
+  const lines: string[] = [];
+  for (const word of stop.split(' ')) {
+    const last = lines.at(-1);
+    if (last && `${last} ${word}`.length <= 16)
+      lines[lines.length - 1] += ` ${word}`;
+    else lines.push(word);
+  }
+  return [...lines, ...rest];
+}
 const pinOffsets = Array.from({ length: 17 }, (_, row) =>
   Array.from({ length: 17 }, (_item, col) => [(col - 8) * 12, (row - 8) * 12]),
 )
@@ -151,48 +185,79 @@ function CampusOverview({ atlas, place, block, orientation, onSelect }: Props) {
   };
 
   const occupied: LabelBox[] = [];
+  const streetBoxes = new Set<LabelBox>();
+  // Os marcadores entram antes dos nomes das ruas, que desviam deles.
+  const essentialMarkers = atlas.places.filter(p =>
+    essentialPlaces.includes(p.id),
+  );
+  for (const p of essentialMarkers) {
+    const [x, y] = screenPoint(p.point);
+    occupied.push({ x: x - 6, y: y - 6, width: 12, height: 12 });
+  }
+  // Pontos de ônibus: o marcador com o ônibus, sem rótulo (só o escolhido)
+  const stops = atlas.places
+    .filter(p => p.busStop)
+    .map(p => ({ p, screen: screenPoint(p.point) }))
+    .filter(({ screen }) => visible(screen, -STOP_SIZE));
+  for (const { screen } of stops)
+    occupied.push({
+      x: screen[0] - STOP_SIZE / 2,
+      y: screen[1] - STOP_SIZE / 2,
+      width: STOP_SIZE,
+      height: STOP_SIZE,
+    });
   const streetLabels = atlas.streets.flatMap(street => {
     const [px, py] = screenPoint(street.point);
     if (!visible([px, py])) return [];
     const raw = street.angle + atlas.north;
     const angle = raw > 90 ? raw - 180 : raw < -90 ? raw + 180 : raw;
-    const text = streetLines[street.name] ?? [street.name];
-    const width = Math.max(...text.map(t => t.length)) * 5.3;
-    const height = text.length * 12;
+    const wide = streetLines[street.name] ?? [street.name];
     const radians = (angle * Math.PI) / 180;
     const cos = Math.cos(radians),
       sin = Math.sin(radians);
-    const bx = (Math.abs(width * cos) + Math.abs(height * sin)) / 2 + 4;
-    const by = (Math.abs(width * sin) + Math.abs(height * cos)) / 2 + 4;
-    // Move along the road before using a small perpendicular offset.
-    for (const normal of [0, -14, 14]) {
-      for (const along of [0, -16, 16, -32, 32, -48, 48, -64, 64]) {
-        const x = px + cos * along - sin * normal;
-        const y = py + sin * along + cos * normal;
-        if (
-          x - bx < 4 ||
-          y - by < 4 ||
-          x + bx > size.width - 4 ||
-          y + by > size.height - 4
-        )
-          continue;
-        const boxes = text.flatMap((t, row) => {
-          const count = Math.ceil((t.length * 5.3) / 12);
-          return Array.from({ length: count }, (_, i) => {
-            const offset =
-              ((i + 0.5) * t.length * 5.3) / count - (t.length * 5.3) / 2;
-            const perpendicular = (row - (text.length - 1) / 2) * 12;
-            return {
-              x: x + cos * offset - sin * perpendicular - 7,
-              y: y + sin * offset + cos * perpendicular - 7,
-              width: 14,
-              height: 14,
-            };
+    // Move along the road before using a small perpendicular offset. The
+    // bus stops sit on the roads: between them, a narrower name in more
+    // lines; only then beside the road.
+    const attempts: [string[], number[]][] = [
+      [wide, [0, -14, 14]],
+      [narrowStreet(wide), [0, -14, 14]],
+      [wide, [-28, 28]],
+    ];
+    for (const [text, normals] of attempts) {
+      const width = Math.max(...text.map(t => t.length)) * 5.3;
+      const height = text.length * 12;
+      const bx = (Math.abs(width * cos) + Math.abs(height * sin)) / 2 + 4;
+      const by = (Math.abs(width * sin) + Math.abs(height * cos)) / 2 + 4;
+      for (const normal of normals) {
+        for (const along of ALONG_ROAD) {
+          const x = px + cos * along - sin * normal;
+          const y = py + sin * along + cos * normal;
+          if (
+            x - bx < 4 ||
+            y - by < 4 ||
+            x + bx > size.width - 4 ||
+            y + by > size.height - 4
+          )
+            continue;
+          const boxes = text.flatMap((t, row) => {
+            const count = Math.ceil((t.length * 5.3) / 12);
+            return Array.from({ length: count }, (_, i) => {
+              const offset =
+                ((i + 0.5) * t.length * 5.3) / count - (t.length * 5.3) / 2;
+              const perpendicular = (row - (text.length - 1) / 2) * 12;
+              return {
+                x: x + cos * offset - sin * perpendicular - 7,
+                y: y + sin * offset + cos * perpendicular - 7,
+                width: 14,
+                height: 14,
+              };
+            });
           });
-        });
-        if (boxes.some(b => occupied.some(o => overlaps(b, o)))) continue;
-        occupied.push(...boxes);
-        return [{ name: street.name, text, angle, x, y }];
+          if (boxes.some(b => occupied.some(o => overlaps(b, o)))) continue;
+          for (const box of boxes) streetBoxes.add(box);
+          occupied.push(...boxes);
+          return [{ name: street.name, text, angle, x, y }];
+        }
       }
     }
     return [];
@@ -226,13 +291,6 @@ function CampusOverview({ atlas, place, block, orientation, onSelect }: Props) {
       });
     }
   }
-  const essentialMarkers = atlas.places.filter(p =>
-    essentialPlaces.includes(p.id),
-  );
-  for (const p of essentialMarkers) {
-    const [x, y] = screenPoint(p.point);
-    occupied.push({ x: x - 6, y: y - 6, width: 12, height: 12 });
-  }
   const labels: Label[] = [];
   const labelPlaces = [
     ...essentialPlaces.map(id => atlas.places.find(p => p.id === id)!),
@@ -244,7 +302,7 @@ function CampusOverview({ atlas, place, block, orientation, onSelect }: Props) {
   for (const p of labelPlaces) {
     const anchor = screenPoint(p.point);
     if (!visible(anchor, 5)) continue;
-    let text = poiNames[p.id] ?? [p.name];
+    let text = poiNames[p.id] ?? (p.busStop ? stopLabel(p.name) : [p.name]);
     const pin =
       p.category === 'portoes' ||
       p.category === 'transporte' ||
@@ -267,27 +325,35 @@ function CampusOverview({ atlas, place, block, orientation, onSelect }: Props) {
     let rect: LabelBox | undefined;
     const variants =
       p.id === 'metro' || p.id === 'trem' ? [text, [text[0]]] : [text];
-    for (const variant of variants) {
-      const width = Math.max(...variant.map(t => t.length)) * 5.9 + 12;
-      const height = variant.length * 14 + 8;
-      for (const [dx, dy] of offsets) {
-        const next = {
-          x: Math.max(
-            6,
-            Math.min(size.width - width - 6, anchor[0] + dx - width / 2),
-          ),
-          y: Math.max(
-            6,
-            Math.min(size.height - height - 6, anchor[1] + dy - height / 2),
-          ),
-          width,
-          height,
-        };
-        if (!occupied.some(r => overlaps(next, r))) {
-          rect = next;
-          text = variant;
-          break;
+    // the chosen place may cover a street name, never a marker or a block
+    const passes =
+      p.id === place?.id
+        ? [occupied, occupied.filter(r => !streetBoxes.has(r))]
+        : [occupied];
+    for (const blocking of passes) {
+      for (const variant of variants) {
+        const width = Math.max(...variant.map(t => t.length)) * 5.9 + 12;
+        const height = variant.length * 14 + 8;
+        for (const [dx, dy] of offsets) {
+          const next = {
+            x: Math.max(
+              6,
+              Math.min(size.width - width - 6, anchor[0] + dx - width / 2),
+            ),
+            y: Math.max(
+              6,
+              Math.min(size.height - height - 6, anchor[1] + dy - height / 2),
+            ),
+            width,
+            height,
+          };
+          if (!blocking.some(r => overlaps(next, r))) {
+            rect = next;
+            text = variant;
+            break;
+          }
         }
+        if (rect) break;
       }
       if (rect) break;
     }
@@ -315,7 +381,12 @@ function CampusOverview({ atlas, place, block, orientation, onSelect }: Props) {
     : atlas.blocks.map(b =>
         atlas.places.find(p => p.id === `bloco-${b.id.toLowerCase()}`)!,
       );
+  const labelled = new Set(labels.map(label => label.id));
   const targets = [
+    // os pontos ficam por baixo: o bloco e os rótulos ganham o toque
+    ...stops
+      .filter(({ p }) => !labelled.has(p.id))
+      .map(({ p, screen }) => ({ p, screen, width: 32 })),
     ...blockTargets.map(p => ({ p, screen: screenPoint(p.point), width: 48 })),
     ...labels.map(label => ({
       p: label.place!,
@@ -530,6 +601,29 @@ function CampusOverview({ atlas, place, block, orientation, onSelect }: Props) {
                   />
                 );
               })}
+              {stops.map(({ p, screen: [x, y] }) => {
+                const selected = p.id === place?.id;
+                const glyph = STOP_SIZE - 5;
+                return (
+                  <G key={`stop-${p.id}`}>
+                    <Rect
+                      x={x - STOP_SIZE / 2}
+                      y={y - STOP_SIZE / 2}
+                      width={STOP_SIZE}
+                      height={STOP_SIZE}
+                      rx={3.5}
+                      fill={selected ? c.fill : c.surface}
+                      stroke={selected ? c.onFill : c.accent}
+                      strokeWidth={1.2}
+                    />
+                    <Path
+                      d={OUTLINED_GLYPHS.directions_bus}
+                      fill={selected ? c.onFill : c.accent}
+                      transform={`translate(${x - glyph / 2} ${y + glyph / 2}) scale(${glyph / 960})`}
+                    />
+                  </G>
+                );
+              })}
               {labels.map(label => (
                 <G key={label.id}>
                   {Math.hypot(
@@ -543,6 +637,7 @@ function CampusOverview({ atlas, place, block, orientation, onSelect }: Props) {
                     />
                   ) : null}
                   {!essentialPlaces.includes(label.id) &&
+                  !label.place?.busStop &&
                   (label.place?.category === 'portoes' ||
                     label.place?.category === 'transporte' ||
                     label.selected) ? (

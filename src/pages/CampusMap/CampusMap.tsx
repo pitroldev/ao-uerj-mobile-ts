@@ -15,6 +15,7 @@ import {
   IconButton,
   ListRow,
   SegmentedControl,
+  Tag,
   Text,
   TextField,
   snackbar,
@@ -88,6 +89,11 @@ function openLink(url: string) {
     snackbar.error('Não foi possível abrir o link.'),
   );
 }
+
+/** "2026-06-03" → "03/06/2026". */
+const brDate = (date: string) => date.split('-').reverse().join('/');
+/** Linhas do ponto no painel; as outras ficam na folha. */
+const PANEL_LINES = 10;
 
 export function CampusMapPage() {
   const route = useRoute<RouteProp<RootDrawerParamList, 'Mapa'>>();
@@ -174,7 +180,7 @@ export function MapScreen({
   );
   const [category, setCategory] = useState<string>();
   const [sheet, setSheet] = useState<
-    'blocks' | 'floors' | 'directions' | 'sources' | null
+    'blocks' | 'floors' | 'directions' | 'sources' | 'lines' | null
   >(null);
   const [view, setView] = useState<'campus' | 'floor'>('campus');
   const [entrance, setEntrance] = useState<'metro' | 'sfx'>('metro');
@@ -236,6 +242,7 @@ export function MapScreen({
       : floor
         ? floorLabel(floor)
         : place?.subtitle;
+  const busStop = place?.busStop;
   const floors = atlas.blocks.find(b => b.id === (block ?? 'F'))?.floors ?? [];
   const orientation =
     destination || place
@@ -473,7 +480,11 @@ export function MapScreen({
               title={item.name}
               subtitle={item.subtitle || undefined}
               leadingIcon={
-                item.category === 'bibliotecas' ? 'menu_book' : 'location_on'
+                item.category === 'bibliotecas'
+                  ? 'menu_book'
+                  : item.busStop
+                    ? 'directions_bus'
+                    : 'location_on'
               }
               chevron
               onPress={() => selectPlace(item)}
@@ -570,20 +581,41 @@ export function MapScreen({
                 />
               )}
             </View>
+            {busStop && view !== 'floor' ? (
+              <View
+                style={styles.lines}
+                accessible
+                accessibilityLabel={`Linhas: ${busStop.lines.map(l => l.code).join(', ')}`}
+              >
+                {busStop.lines.slice(0, PANEL_LINES).map(line => (
+                  <Tag key={line.code} label={line.code} />
+                ))}
+                {busStop.lines.length > PANEL_LINES ? (
+                  <Tag
+                    label={`+${busStop.lines.length - PANEL_LINES}`}
+                    tone="info"
+                  />
+                ) : null}
+              </View>
+            ) : null}
             {selected && view !== 'floor' ? (
               <View style={styles.row}>
                 <Button
                   label={
-                    pavilion && !block && destination
-                      ? 'Escolher bloco'
-                      : 'Como chegar'
+                    busStop
+                      ? 'Linhas e destinos'
+                      : pavilion && !block && destination
+                        ? 'Escolher bloco'
+                        : 'Como chegar'
                   }
                   icon={
-                    pavilion || orientation ? 'arrow_forward' : 'open_in_new'
+                    busStop || pavilion || orientation
+                      ? 'arrow_forward'
+                      : 'open_in_new'
                   }
                   iconPosition="end"
                   style={styles.grow}
-                  onPress={openDirections}
+                  onPress={busStop ? () => setSheet('lines') : openDirections}
                 />
                 <IconButton
                   icon="info"
@@ -710,6 +742,46 @@ export function MapScreen({
         </View>
       </BottomSheet>
       <BottomSheet
+        visible={sheet === 'lines' && Boolean(busStop)}
+        title={label}
+        onClose={() => setSheet(null)}
+        footer={
+          activePlace ? (
+            <Button
+              label="Como chegar a pé"
+              icon="open_in_new"
+              variant="outline"
+              onPress={() =>
+                openLink(
+                  `https://www.google.com/maps/dir/?api=1&destination=${activePlace.coordinate.join(',')}&travelmode=walking`,
+                )
+              }
+            />
+          ) : undefined
+        }
+      >
+        <View style={styles.stopHeader}>
+          {detail ? (
+            <Text variant="meta" tone="muted">
+              {detail}
+            </Text>
+          ) : null}
+        </View>
+        {busStop?.lines.map(line => (
+          <ListRow
+            key={line.code}
+            dense
+            leading={<Tag label={line.code} style={styles.lineTag} />}
+            title={line.to.join(' · ')}
+            titleWeight="regular"
+            accessibilityLabel={`Linha ${line.code}, para ${line.to.join(' e ')}`}
+          />
+        ))}
+        <Text variant="caption" tone="muted" style={styles.stopNote}>
+          {`Linhas da Prefeitura do Rio (SMTR) de ${brDate(atlas.transit.lines)}, pontos de ${brDate(atlas.transit.stops)}. Podem ter mudado: confira no ponto.`}
+        </Text>
+      </BottomSheet>
+      <BottomSheet
         visible={sheet === 'floors'}
         title="Escolher andar"
         onClose={() => setSheet(null)}
@@ -755,6 +827,9 @@ export function MapScreen({
             Nos demais andares, a posição das salas é calculada pela numeração.
             Essas divisões aparecem tracejadas; a sinalização local prevalece.
           </Text>
+          <Text tone="muted">
+            {`Os pontos de ônibus e as linhas são da Prefeitura do Rio (SMTR): pontos de ${brDate(atlas.transit.stops)}, linhas de ${brDate(atlas.transit.lines)}.`}
+          </Text>
           <Text variant="caption" tone="muted">
             Geometrias do IPP adaptadas; dados do OpenStreetMap transformados
             para a vista do campus. Fontes históricas não confirmam alterações
@@ -794,4 +869,8 @@ const styles = StyleSheet.create({
   stepNumber: { minWidth: 24 },
   empty: { padding: 24 },
   about: { padding: 20, gap: 12 },
+  lines: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+  lineTag: { minWidth: 64, justifyContent: 'center' },
+  stopHeader: { paddingHorizontal: 20, paddingBottom: 4 },
+  stopNote: { paddingHorizontal: 20, paddingTop: 12 },
 });
