@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.20.1](https://github.com/pitroldev/ao-uerj-mobile-ts/compare/v2.20.0...v2.20.1) (2026-11-21)
+
+
+### Correções
+
+* **notifications:** an older iPhone build without the push method keeps working with the new JS ([b28c9c3](https://github.com/pitroldev/ao-uerj-mobile-ts/commit/b28c9c37d1d82905b8e740ff58ee78315e9d2931))
+
 ## 2.20.0 (2026-11-20)
 
 ### Novidades
