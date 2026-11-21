@@ -42,12 +42,16 @@ export function createNativeNotifications(
   if (!module) return null;
   const enabled = async () =>
     (await module.areNotificationsEnabled()) ? 'granted' : 'denied';
+  // Uma build da loja anterior ao push (até a 2.19.0) não tem o método: com
+  // o JS novo por OTA, o iPhone fica como antes, sem o push do servidor.
+  const pushing =
+    os === 'ios' && typeof module.remoteNotificationToken === 'function';
   return {
     backgroundChecks: os === 'android' || os === 'ios',
     frequentWatches: os === 'android',
-    pushWatches: os === 'ios',
+    pushWatches: pushing,
     async remoteNotificationToken() {
-      if (os !== 'ios') return null;
+      if (!pushing) return null;
       const token: unknown = await module.remoteNotificationToken();
       return typeof token === 'string' && PUSH_TOKEN.test(token) ? token : null;
     },

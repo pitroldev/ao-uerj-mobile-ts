@@ -110,6 +110,15 @@ it('reads the push token only on the iPhone, and only in the APNs format', async
   expect(module.remoteNotificationToken).not.toHaveBeenCalled();
 });
 
+it('keeps an older iPhone build (no push method, new JS by OTA) without the server push', async () => {
+  const { module } = nativeModule();
+  const older = { ...module };
+  Reflect.deleteProperty(older, 'remoteNotificationToken');
+  const ios = createNativeNotifications(older, { os: 'ios' })!;
+  expect(ios.pushWatches).toBe(false);
+  await expect(ios.remoteNotificationToken()).resolves.toBeNull();
+});
+
 it.each([
   ['granted', 'granted'],
   // o iOS só pergunta uma vez: depois, só os Ajustes
