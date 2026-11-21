@@ -4,13 +4,16 @@ Como sai uma correção do JavaScript sem passar pela loja, para quem mantém o 
 
 ```mermaid
 flowchart LR
-  run["Run workflow OTA, na main"] --> check["check: Quality verde e runtime de uma build na loja"]
-  check --> approval["Aprovação do environment play"]
-  approval --> export["expo export"]
-  export --> sign["Manifest assinado"]
+  push["Push na main"] --> quality["Quality verde"]
+  quality --> check["check: builds da loja e o JS contra o nativo delas"]
+  run["Run workflow OTA, à mão"] --> check
+  check --> export["expo export"]
+  export --> sign["Um manifest assinado por runtime"]
   sign --> assets["PUT dos assets"]
-  assets --> manifest["POST do manifest"]
+  assets --> manifest["POST dos manifests"]
 ```
+
+Todo push na `main` com JavaScript novo sai por OTA, sem ninguém pedir: depois do [Quality](../.github/workflows/quality.yml) verde do push, o workflow OTA roda sozinho e publica para as builds que estão nas lojas, inclusive as de outro nativo, quando o JS roda nelas (ver [OTA para uma build de outro runtime](#ota-para-uma-build-de-outro-runtime)). Um push que só mexe em `server/`, `docs/`, nos workflows, nos scripts ou no nativo não publica nada.
 
 ## O que vai por OTA
 
@@ -29,15 +32,27 @@ flowchart LR
 - React Native, Hermes, Expo e `expo-updates`;
 - o certificado de assinatura (ver [Chave e certificado](#chave-e-certificado)).
 
-Quem decide é o runtime version: se ele mudou, o nativo mudou, e o OTA é recusado. A versão do app (o bump) não entra nele, nem no iPhone: as linhas `MARKETING_VERSION` e `CURRENT_PROJECT_VERSION` do `project.pbxproj` ficam fora do cálculo (`fingerprint.config.js`).
+O runtime version marca o nativo: o app só aceita updates do runtime dele. A versão do app (o bump) não entra nele, nem no iPhone: as linhas `MARKETING_VERSION` e `CURRENT_PROJECT_VERSION` do `project.pbxproj` ficam fora do cálculo (`fingerprint.config.js`).
 
 ## A regra de compatibilidade
 
-- Cada build da loja embute um runtime version, o que `node scripts/ota/runtime-version.cjs <android|ios>` imprime para aquele código. O app só aceita updates do runtime dele.
-- Depois que a Play aceita o AAB, o job `runtime-version` do [Release](../.github/workflows/release.yml) grava esse valor no GitHub Release da versão, como o asset `runtime-version-android.txt`. Uma versão sem esse asset não conta como build na loja.
-- O workflow OTA lê o runtime de cada build na loja (os GitHub Releases `vX.Y.Z` com o asset) e só publica se o deste commit for o de alguma delas. O update chega a todas as builds com esse runtime, de qualquer versão: o resumo do `check` diz quais.
-- Um update vai para um runtime só. Quem está numa build mais antiga, de outro runtime, continua com o JS que veio na loja.
-- **iPhone:** nenhum workflow grava o `runtime-version-ios.txt`. Quando a Apple libera uma build, ele vai à mão para o GitHub Release da versão, tirado do artefato do `ios-app-store.yml` (ver [Envio à App Store](ios.md#envio-à-app-store)). A primeira foi a `v2.17.2` (build 26, em 18/11/2026). As builds até a 2.18.0 (build 28) ainda contavam a versão no runtime: um OTA de uma `main` com outra versão não chega a elas, e o do iPhone vale a partir da primeira build feita depois dessa mudança.
+- Cada build da loja embute um runtime version, o que `node scripts/ota/runtime-version.cjs <android|ios>` imprime para aquele código.
+- O [Release](../.github/workflows/release.yml) grava esse valor no GitHub Release da versão quando a loja recebe a build: o `runtime-version-android.txt` depois que a Play aceita o AAB (teste interno) e o `runtime-version-ios.txt` depois que o IPA chega ao App Store Connect. Uma versão sem o asset não conta como build na loja.
+- O workflow OTA lê o runtime de cada build na loja (os GitHub Releases `vX.Y.Z` com o asset) e publica o JS deste commit para os três runtimes mais novos de cada plataforma: o da build mais nova (que talvez ainda esteja no teste interno ou na revisão da Apple) e os anteriores, que estão nos aparelhos de quem ainda não atualizou. O resumo do `check` diz quais builds recebem e quais ficam de fora, e por quê.
+- Um runtime cuja build mais nova já tem este mesmo JS fica de fora.
+- As builds do iPhone até a 2.18.0 (build 28) ainda contavam a versão no runtime, e os runtimes delas não estão registrados.
+
+## OTA para uma build de outro runtime
+
+Quando a `main` tem nativo novo, que ainda não está na loja, o JS dela ainda pode ir para as builds antigas, se rodar no nativo delas. O `check` compara a tag de cada build com este commit (`scripts/ci/ota-compat.cjs`) e só publica se nada do que o JS chama mudou:
+
+- **Métodos dos módulos nativos do app** (`src/specs`): um método que sumiu ou mudou de assinatura barra. Um método novo só passa se o JS conferir que ele existe antes de chamar, com `typeof modulo.metodo === 'function'` fora dos testes; sem ele, a build antiga ganharia um erro na chamada. Um módulo novo precisa ser lido com `TurboModuleRegistry.get` (que dá `null` sem ele), não com `getEnforcing`.
+- **Dependências com código nativo**, novas ou de outra versão, e o `codegenConfig` do `package.json`.
+- **O certificado das atualizações** e o `app.json` (fora a versão).
+
+O resto do nativo (`android/`, `ios/`, os patches de dependências, o manifesto, ícones) muda a build, não o que o JS chama, e não barra. Para conferir na sua máquina: `node scripts/ci/ota-compat.cjs v2.19.0`.
+
+O publicador só aceita um runtime diferente do deste código com `--other-runtime`, que o workflow passa depois dessa conferência. O JS publicado assim mostra a versão do `package.json` da `main` no Sobre, com o nativo da build antiga.
 
 ## OTA e bump
 
@@ -47,6 +62,14 @@ O JS lê a versão do `package.json`, que é a do código que roda: com esse OTA
 
 ## Publicar
 
+**Sozinho.** Depois do Quality verde de um push na `main`, o workflow OTA roda com as duas plataformas e o título do commit como mensagem. O `check` não publica nada (e não falha) quando:
+
+- outro push já está na `main` (o OTA sai depois do Quality dele);
+- o push só mexeu no que não entra no app (`server/`, `docs/`, `.github/`, `scripts/`, `android/`, `ios/`, testes e Markdown);
+- nenhuma build da loja pode receber este JS; o resumo do run diz por quê.
+
+**À mão**, para escolher a plataforma ou repetir:
+
 1. Confira que o commit está na `main` e que o [Quality](../.github/workflows/quality.yml) dele passou.
 2. Em Actions > OTA > Run workflow, selecione `main`, a plataforma e uma frase sobre o que muda. O mesmo pode ser feito com:
 
@@ -54,9 +77,8 @@ O JS lê a versão do `package.json`, que é a do código que roda: com esse OTA
    gh workflow run ota.yml --ref main -f platform=android -f message="Lê a nova página de horários do portal"
    ```
 
-3. O job `check`, sem segredos, confere que o run é da `main`, que o Quality passou neste commit (de um push ou de um run manual na `main`) e que o runtime deste commit é o de alguma build na loja, e diz a quais versões o update chega. Uma recusa diz o motivo e o que fazer.
-4. O job `publish` espera a aprovação do environment `play`.
-5. Aprovado, ele roda o `expo export`, monta o manifest, assina e envia os assets e, só depois, o manifest. O resumo do run mostra o id do update de cada plataforma.
+3. O job `check`, sem segredos, confere que o run é da `main`, que o Quality passou neste commit (de um push ou de um run manual na `main`) e para quais builds da loja o JS pode ir, e diz quais recebem. À mão, sem nenhuma, ele falha com o motivo.
+4. O job `publish`, no environment `play`, roda o `expo export` uma vez por plataforma, monta um manifest para cada runtime, assina e envia os assets e, só depois, os manifests. O resumo do run mostra o id de cada update.
 
 Um OTA de cada vez: um segundo run espera o primeiro terminar.
 

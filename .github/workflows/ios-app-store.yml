@@ -12,25 +12,45 @@ on:
         description: Enviar a compilação ao App Store Connect
         default: true
         type: boolean
+  # O release.yml chama a cada versão nova, no commit da tag.
+  workflow_call:
+    inputs:
+      ref:
+        description: O commit da versão
+        required: true
+        type: string
+      build_number:
+        required: true
+        type: string
+      upload:
+        default: true
+        type: boolean
+    outputs:
+      runtime:
+        description: O runtime version da build enviada (para o OTA)
+        value: ${{ jobs.distribute.outputs.runtime }}
 
 permissions:
   contents: read
-
-concurrency:
-  group: ios-app-store
-  cancel-in-progress: false
 
 jobs:
   distribute:
     runs-on: macos-15
     timeout-minutes: 90
     environment: app-store
+    # um envio de cada vez, também quando o release.yml chama
+    concurrency:
+      group: ios-app-store
+      cancel-in-progress: false
+    outputs:
+      runtime: ${{ steps.runtime.outputs.runtime }}
     env:
       APPLE_TEAM_ID: 4L52AMB8J7
       BUILD_NUMBER: ${{ inputs.build_number }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
       - name: Validate build number and select Xcode
         run: |
@@ -50,9 +70,11 @@ jobs:
           bundler-cache: true
       - run: pnpm install --frozen-lockfile
       - name: Calculate OTA runtime before native project changes
+        id: runtime
         run: |
           runtime=$(node scripts/ota/runtime-version.cjs ios)
           echo "EXPO_UPDATES_FINGERPRINT_OVERRIDE=$runtime" >> "$GITHUB_ENV"
+          echo "runtime=$runtime" >> "$GITHUB_OUTPUT"
           mkdir -p artifacts/ios-app-store
           printf '%s\n' "$runtime" > artifacts/ios-app-store/runtime-version-ios.txt
       - run: bundle exec pod install --project-directory=ios

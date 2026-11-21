@@ -16,10 +16,13 @@
  * --export-dir <pasta>     usa um `expo export` já feito em vez de rodar outro
  * --base-url <url>         o servidor (padrão https://pitrol.dev); http só em
  *                          localhost, para o QA
- * --runtime-version [<plataforma>=]<valor>
- *                          o runtime de destino. Num update, tem de ser o do
- *                          código (scripts/ota/runtime-version.cjs); na volta,
- *                          dispensa o cálculo
+ * --runtime-version [<plataforma>=]<valor>[,<valor>…]
+ *                          os runtimes de destino. Num update, têm de ser o
+ *                          do código (scripts/ota/runtime-version.cjs), a não
+ *                          ser com --other-runtime; na volta, dispensa o cálculo
+ * --other-runtime          o update vai para os runtimes pedidos mesmo sendo
+ *                          outros: o JS foi conferido contra o nativo dessas
+ *                          builds (scripts/ci/ota-compat.cjs)
  * --key-file <arquivo>     a chave privada em PEM (QA local); no CI, ela vem
  *                          do secret OTA_SIGNING_KEY
  * --certificate <arquivo>  o certificado com que conferir a chave antes do
@@ -447,26 +450,44 @@ function exportUpdate(platform, outputDir, root = ROOT, env = process.env) {
   return outputDir;
 }
 
-function resolveRuntimes(platforms, { rollback, runtimeVersions }, compute) {
+/**
+ * Os runtimes de destino de cada plataforma (uma lista). Sem `otherRuntime`,
+ * um update só vai para o runtime deste código; com ele, vai para os pedidos
+ * mesmo que sejam outros, porque quem chama já conferiu que o JS roda no
+ * nativo dessas builds (scripts/ci/ota-compat.cjs).
+ */
+function resolveRuntimes(
+  platforms,
+  { rollback, runtimeVersions, otherRuntime = false },
+  compute,
+) {
   const runtimes = {};
   for (const platform of platforms) {
-    const requested = runtimeVersions[platform] ?? runtimeVersions['*'];
-    if (rollback && requested !== undefined) {
-      runtimes[platform] = validateRuntimeVersion(
-        requested,
-        `O --runtime-version de ${platform}`,
-      );
+    const raw = runtimeVersions[platform] ?? runtimeVersions['*'];
+    const requested =
+      raw === undefined
+        ? undefined
+        : [...new Set(raw.split(',').map(value => value.trim()))].map(value =>
+            validateRuntimeVersion(value, `O --runtime-version de ${platform}`),
+          );
+    if (requested && (rollback || otherRuntime)) {
+      runtimes[platform] = requested;
       continue;
     }
+    if (otherRuntime)
+      throw new Error(
+        `--other-runtime precisa do --runtime-version de ${platform}.`,
+      );
     const current = validateRuntimeVersion(
       compute(platform),
       `O runtime de ${platform}`,
     );
-    if (requested !== undefined && requested !== current)
+    const other = requested?.find(value => value !== current);
+    if (other !== undefined)
       throw new Error(
-        `Este código é do runtime ${current} em ${platform}, não do ${requested}: o nativo mudou, e o update não serviria para a build da loja. Isso pede uma release na loja (docs/ota.md).`,
+        `Este código é do runtime ${current} em ${platform}, não do ${other}: o nativo mudou. Se o JS roda na build desse runtime (scripts/ci/ota-compat.cjs), use --other-runtime; se não, isso pede uma release na loja (docs/ota.md).`,
       );
-    runtimes[platform] = current;
+    runtimes[platform] = [current];
   }
   return runtimes;
 }
@@ -629,6 +650,7 @@ async function publish(options, deps = {}) {
     {
       rollback: options.rollback,
       runtimeVersions: options.runtimeVersions ?? {},
+      otherRuntime: options.otherRuntime,
     },
     runtimeVersion,
   );
@@ -642,61 +664,71 @@ async function publish(options, deps = {}) {
     const files = new Map();
     const updates = [];
     for (const platform of platforms) {
-      const runtime = runtimes[platform];
+      const targets = runtimes[platform];
+      // com um runtime só, a pasta do dry-run fica como sempre foi
+      const prefix = runtime =>
+        targets.length === 1 ? platform : `${platform}/${runtime}`;
       if (options.rollback) {
-        const request = directiveRequest(
-          baseUrl,
-          {
-            platform,
-            runtimeVersion: runtime,
-            directive: rollbackDirective(createdAt),
-          },
-          signing.key,
-        );
-        const { directive, signature } = JSON.parse(request.body);
-        finals.push(request);
-        documents.push(
-          [`${platform}/directive.json`, directive],
-          [`${platform}/directive.sig`, signature],
-        );
-        updates.push({ platform, runtimeVersion: runtime, rollback: true });
+        for (const runtime of targets) {
+          const request = directiveRequest(
+            baseUrl,
+            {
+              platform,
+              runtimeVersion: runtime,
+              directive: rollbackDirective(createdAt),
+            },
+            signing.key,
+          );
+          const { directive, signature } = JSON.parse(request.body);
+          finals.push(request);
+          documents.push(
+            [`${prefix(runtime)}/directive.json`, directive],
+            [`${prefix(runtime)}/directive.sig`, signature],
+          );
+          updates.push({ platform, runtimeVersion: runtime, rollback: true });
+        }
         continue;
       }
+      // um export por plataforma; os runtimes recebem o mesmo JS
       const exportDir = options.exportDir
         ? path.resolve(options.exportDir)
         : runExport(platform, path.join(out.dir, `export-${platform}`));
-      const plan = planUpdate({
-        platform,
-        runtimeVersion: runtime,
-        metadata: readMetadata(exportDir),
-        readFile: relative => fs.readFileSync(exportFile(exportDir, relative)),
-        baseUrl,
-        id: randomUUID(),
-        createdAt,
-      });
-      if (!plan.manifest.assets.length)
-        warn(
-          `O export de ${platform} não tem nenhum asset: confira se o metro.config.js estende o expo/metro-config (sem ele, as imagens ficam fora do update).`,
+      const metadata = readMetadata(exportDir);
+      for (const runtime of targets) {
+        const plan = planUpdate({
+          platform,
+          runtimeVersion: runtime,
+          metadata,
+          readFile: relative =>
+            fs.readFileSync(exportFile(exportDir, relative)),
+          baseUrl,
+          id: randomUUID(),
+          createdAt,
+        });
+        if (!plan.manifest.assets.length)
+          warn(
+            `O export de ${platform} não tem nenhum asset: confira se o metro.config.js estende o expo/metro-config (sem ele, as imagens ficam fora do update).`,
+          );
+        for (const file of plan.files)
+          if (!files.has(file.hash))
+            files.set(file.hash, {
+              ...file,
+              file: exportFile(exportDir, file.path),
+            });
+        const request = updateRequest(baseUrl, plan, signing.key);
+        const { manifest, signature } = JSON.parse(request.body);
+        finals.push(request);
+        documents.push(
+          [`${prefix(runtime)}/manifest.json`, manifest],
+          [`${prefix(runtime)}/manifest.sig`, signature],
         );
-      for (const file of plan.files)
-        if (!files.has(file.hash))
-          files.set(file.hash, {
-            ...file,
-            file: exportFile(exportDir, file.path),
-          });
-      const request = updateRequest(baseUrl, plan, signing.key);
-      const { manifest, signature } = JSON.parse(request.body);
-      finals.push(request);
-      documents.push(
-        [`${platform}/manifest.json`, manifest],
-        [`${platform}/manifest.sig`, signature],
-      );
-      updates.push({
-        platform,
-        runtimeVersion: runtime,
-        id: plan.manifest.id,
-        assets: plan.manifest.assets.length,
-      });
+        updates.push({
+          platform,
+          runtimeVersion: runtime,
+          id: plan.manifest.id,
+          assets: plan.manifest.assets.length,
+        });
+      }
     }
     assertNoKeyInside([...files.values()], signing.key);
     const uploads = [...files.values()].map(file => ({
@@ -785,6 +817,9 @@ function parseArgs(argv) {
       case '--rollback':
         options.rollback = flag();
         break;
+      case '--other-runtime':
+        options.otherRuntime = flag();
+        break;
       case '--dry-run':
         options.dryRun = flag();
         break;
@@ -816,6 +851,8 @@ function parseArgs(argv) {
   }
   if (options.rollback && options.exportDir)
     throw new Error('--export-dir não serve para --rollback.');
+  if (options.rollback && options.otherRuntime)
+    throw new Error('--other-runtime não serve para --rollback.');
   return options;
 }
 
@@ -838,7 +875,8 @@ function summaryMarkdown({ updates }, { message, rollback }) {
 
 const USAGE = `Uso: node scripts/ota/publish.cjs --platform <android|ios|both> [--rollback]
   [--dry-run] [--out-dir <pasta>] [--export-dir <pasta>] [--base-url <url>]
-  [--runtime-version [<plataforma>=]<valor>] [--key-file <pem>]
+  [--runtime-version [<plataforma>=]<valor>[,<valor>…]] [--other-runtime]
+  [--key-file <pem>]
   [--certificate <pem>] [--message <texto>]
 A chave vem de OTA_SIGNING_KEY ou de --key-file. Ver docs/ota.md.`;
 

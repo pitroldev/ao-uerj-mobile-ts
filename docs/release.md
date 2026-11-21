@@ -7,18 +7,22 @@ flowchart LR
   push["Push na main"] --> tag["version-tag: tag do bump à mão"]
   tag --> rp["release-please: PR da próxima versão"]
   rp -->|"merge do PR"| ghr["Tag vX.Y.Z e GitHub Release"]
+  tag -->|"tag criada agora"| prepare
   manual["Release manual, com a tag"] --> prepare
   ghr --> prepare["prepare: tag, versão e origem na main"]
+  prepare --> release["github-release: notas do CHANGELOG, se falta"]
   prepare --> quality["Quality no commit exato"]
   quality --> play["play: AAB assinado"]
+  quality --> appstore["app-store: IPA no App Store Connect"]
   play --> internal["Teste interno da Play"]
-  play --> runtime["runtime-version: runtime no GitHub Release"]
+  play --> runtime["runtime-version: runtime de android no GitHub Release"]
+  appstore --> runtimeios["runtime-version-ios: runtime de ios no GitHub Release"]
   internal -->|"à mão, no Play Console"| prod["Produção"]
-  ghr -.->|"à mão, com a tag"| ios["ios-app-store.yml: IPA no App Store Connect"]
-  ios -->|"revisão da Apple"| appstore["App Store"]
+  appstore -->|"revisão da Apple, no App Store Connect"| store["App Store"]
+  push --> ota["Quality do push e OTA automático"]
 ```
 
-Uma correção só do JavaScript pode sair sem a loja, por OTA. Um OTA não é bump, e um bump não barra o OTA: ele chega a toda build na loja com o mesmo nativo, de qualquer versão (ver [Atualizações OTA](ota.md)).
+Toda tag de versão na `main` vai para as duas lojas, e todo push na `main` com JavaScript novo sai também por OTA, para as builds que já estão nos aparelhos (ver [Atualizações OTA](ota.md)). Um OTA não é bump, e um bump não barra o OTA.
 
 ## Versão
 
@@ -49,8 +53,8 @@ A criação do PR pelo `GITHUB_TOKEN` não dispara CI, mas o gate da publicaçã
    - a entrada no `CHANGELOG.md`;
    - `MARKETING_VERSION` e `CURRENT_PROJECT_VERSION` (+1) no `project.pbxproj`.
 2. Envie os commits das mudanças e o do bump num push só. Se as mudanças subirem antes, o release-please abre um PR propondo a próxima versão, e o bump não o fecha.
-3. No push, o job `version-tag` (`scripts/ci/version-tag.cjs`) acha o commit do bump e, se a tag `vX.Y.Z` não existir, a cria anotada nesse commit, com a data dele. Ele nunca move uma tag, pula os merges do PR do release-please e não cria GitHub Release nem manda para a Play.
-4. Para publicar, crie o GitHub Release (`gh release create vX.Y.Z --verify-tag`) e acione o workflow Release com a tag (abaixo).
+3. No push, o job `version-tag` (`scripts/ci/version-tag.cjs`) acha o commit do bump e, se a tag `vX.Y.Z` não existir, a cria anotada nesse commit, com a data dele. Ele nunca move uma tag e pula os merges do PR do release-please.
+4. Uma tag criada por ele publica a versão no mesmo run: o job `github-release` cria o GitHub Release com a seção do `CHANGELOG.md` e as linhas "Android: versão vX.Y.Z, código N." e "iPhone: versão X.Y.Z, build B." (`scripts/ci/release-notes.cjs`), e a versão vai para a Play e para a App Store. Não crie a tag à mão antes do push: com ela, o job não a cria e nada é publicado (aí, acione o workflow Release com a tag, abaixo).
 
 Por que a tag importa: o release-please procura a versão do manifest como GitHub Release ou, sem ele, como a tag `vX.Y.Z`. Sem nenhum dos dois, volta ao `bootstrap-sha` e propõe uma 2.0.0 com o histórico inteiro.
 
@@ -73,16 +77,14 @@ O job `play` guarda no artefato do run o AAB, o `mapping.txt` e, quando existe, 
 
 Antes do Gradle, o job `play` calcula o runtime version que a build embute (`node scripts/ci/ota-check.cjs runtime android`). Depois que a Play aceita o AAB, o job `runtime-version` o grava no GitHub Release da versão, como o asset `runtime-version-android.txt`. É por ele que o [OTA](ota.md#a-regra-de-compatibilidade) sabe para qual build pode publicar.
 
-- Uma falha no cálculo não barra a publicação: a versão sai na Play sem o registro, o job `runtime-version` falha, e o OTA recusa essa versão.
-- Sem o GitHub Release (num bump à mão), o registro falha: crie-o com `gh release create vX.Y.Z --verify-tag` e use "Re-run failed jobs", que não envia o AAB de novo.
+- Uma falha no cálculo não barra a publicação: a versão sai na Play sem o registro, o job `runtime-version` falha, e o OTA não conta com essa build.
+- O registro espera o job `github-release`, que cria o GitHub Release quando ele falta.
 
 ## Na App Store
 
-O `release.yml` só publica o Android. O iPhone sai da mesma tag, à mão:
+O job `app-store` chama o [`ios-app-store.yml`](ios.md#envio-à-app-store) no commit da tag, com o `CURRENT_PROJECT_VERSION` dela como número da build: compila, assina e envia o IPA ao App Store Connect. O job `runtime-version-ios` grava o runtime dessa build no GitHub Release, como o `runtime-version-ios.txt`.
 
-1. Rode o `ios-app-store.yml` com a tag e o `CURRENT_PROJECT_VERSION` dela como `build_number` (ver [Envio à App Store](ios.md#envio-à-app-store)).
-2. No App Store Connect, escolha a build na versão e mande para a revisão.
-3. Com a versão liberada na loja, grave o `runtime-version-ios.txt` do artefato no GitHub Release da tag, para o OTA do iPhone.
+Falta a parte que é do App Store Connect: criar a versão, escolher a build, escrever o "O que há de novo" e mandar para a revisão (ver [Envio à App Store](ios.md#envio-à-app-store)). Num retry, use "Re-run failed jobs": a Apple recusa um número de build já enviado.
 
 A revisão da Apple leva de horas a dias, e o iPhone pode ficar uma versão atrás do Android. Leve isso em conta antes de subir a versão mínima do [aviso remoto](aviso-remoto.md#minsupportedversion).
 

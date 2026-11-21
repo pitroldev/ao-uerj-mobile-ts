@@ -7,6 +7,7 @@ const {
   checkOta,
   githubClient,
   latestStoreRelease,
+  previousPush,
   qualityState,
   runtimeAssetName,
 } = require('../ci/ota-check.cjs');
@@ -135,11 +136,16 @@ function scenario(overrides = {}) {
         event: 'push',
         status: 'completed',
         conclusion: 'success',
+        created_at: '2026-11-20T12:00:00Z',
       },
     ],
+    pushes: overrides.pushes ?? [],
+    tip: overrides.tip ?? 'abc',
     releases: overrides.releases ?? [release('v2.15.2', ['android'])],
     stored: overrides.stored ?? { 'v2.15.2-android': 'rv-1\n' },
     current: overrides.current ?? { android: 'rv-1', ios: 'rv-ios' },
+    compat: overrides.compat ?? (() => []),
+    bundleChanged: overrides.bundleChanged ?? (() => true),
   };
   return {
     calls,
@@ -154,6 +160,10 @@ function scenario(overrides = {}) {
             )
           )
             return { workflow_runs: options.runs };
+          if (resource.startsWith('actions/workflows/quality.yml/runs?branch'))
+            return { workflow_runs: options.pushes };
+          if (resource === 'branches/main')
+            return { commit: { sha: options.tip } };
           if (resource.startsWith('releases')) return options.releases;
           throw new Error(`recurso inesperado: ${resource}`);
         },
@@ -162,14 +172,30 @@ function scenario(overrides = {}) {
           calls.push(`runtime ${platform}`);
           return options.current[platform];
         },
+        compat: tag => {
+          calls.push(`compat ${tag}`);
+          return options.compat(tag);
+        },
+        bundleChanged: options.bundleChanged,
       }),
   };
 }
 
+const target = (runtimes, tags, extra = {}) => ({
+  runtimes,
+  other: false,
+  tags,
+  skipped: [],
+  ...extra,
+});
+
 test('an update for the store runtime passes and says which runtime to target', async () => {
-  assert.deepEqual(await scenario().run(), {
-    android: { runtime: 'rv-1', tag: 'v2.15.2', tags: ['v2.15.2'] },
+  const one = scenario();
+  assert.deepEqual(await one.run(), {
+    android: target(['rv-1'], ['v2.15.2']),
   });
+  // o mesmo nativo não passa pela conferência do JS
+  assert.ok(!one.calls.some(call => call.startsWith('compat')));
   const both = scenario({
     env: { PLATFORM: 'both' },
     releases: [release('v2.15.2', ['android', 'ios'])],
@@ -210,44 +236,143 @@ test('the OTA refuses other branches, a Quality that is not green and a missing 
 
 test('a bump does not block an update: it reaches every store build with this runtime', async () => {
   // a 2.16.0 trocou o nativo; a 2.16.1 e a 2.16.2 só o JS, como a main agora
+  const releases = [
+    release('v2.15.2', ['android']),
+    release('v2.16.2', ['android']),
+    release('v2.16.0', ['android']),
+    release('v2.16.1', ['android']),
+  ];
+  const stored = {
+    'v2.15.2-android': 'rv-1',
+    'v2.16.0-android': 'rv-2',
+    'v2.16.1-android': 'rv-2',
+    'v2.16.2-android': 'rv-2',
+  };
   const bumped = scenario({
-    releases: [
-      release('v2.15.2', ['android']),
-      release('v2.16.2', ['android']),
-      release('v2.16.0', ['android']),
-      release('v2.16.1', ['android']),
-    ],
-    stored: {
-      'v2.15.2-android': 'rv-1',
-      'v2.16.0-android': 'rv-2',
-      'v2.16.1-android': 'rv-2',
-      'v2.16.2-android': 'rv-2',
-    },
+    releases,
+    stored,
     current: { android: 'rv-2' },
+    compat: tag => (tag === 'v2.15.2' ? ['spec mudou'] : []),
   });
   assert.deepEqual(await bumped.run(), {
-    android: {
-      runtime: 'rv-2',
-      tag: 'v2.16.2',
-      tags: ['v2.16.2', 'v2.16.1', 'v2.16.0'],
-    },
+    android: target(['rv-2'], ['v2.16.2', 'v2.16.1', 'v2.16.0'], {
+      skipped: [
+        { runtime: 'rv-1', tags: ['v2.15.2'], problems: ['spec mudou'] },
+      ],
+    }),
   });
-  // um runtime mais velho, de uma build que ainda está na loja, também vale
-  const older = scenario({
-    releases: [
-      release('v2.15.2', ['android']),
-      release('v2.16.0', ['android']),
-    ],
-    stored: { 'v2.15.2-android': 'rv-1', 'v2.16.0-android': 'rv-2' },
-  });
-  assert.deepEqual((await older.run()).android.tags, ['v2.15.2']);
 });
 
-test('changed native code (another runtime) is refused: it needs a store release', async () => {
-  await assert.rejects(
-    scenario({ current: { android: 'rv-2' } }).run(),
-    /rv-2 neste commit, rv-1 na v2\.15\.2, e nenhuma build.*release na loja/,
+test('the JS also goes to a store build of another runtime when it runs on that native code', async () => {
+  // a main tem nativo novo (rv-3), ainda fora da loja; o JS roda nas duas
+  const releases = [
+    release('v2.15.2', ['android']),
+    release('v2.16.0', ['android']),
+    release('v2.14.0', ['android']),
+    release('v2.13.0', ['android']),
+  ];
+  const stored = {
+    'v2.13.0-android': 'rv-0',
+    'v2.14.0-android': 'rv-00',
+    'v2.15.2-android': 'rv-1',
+    'v2.16.0-android': 'rv-2',
+  };
+  const other = scenario({ releases, stored, current: { android: 'rv-3' } });
+  const result = await other.run();
+  // as três mais novas (RUNTIME_WINDOW), conferidas uma a uma
+  assert.deepEqual(result.android.runtimes, ['rv-2', 'rv-1', 'rv-00']);
+  assert.equal(result.android.other, true);
+  assert.deepEqual(
+    other.calls.filter(call => call.startsWith('compat')),
+    ['compat v2.16.0', 'compat v2.15.2', 'compat v2.14.0'],
   );
+  // uma build com o mesmo JS não recebe nada
+  const same = await scenario({
+    releases,
+    stored,
+    current: { android: 'rv-3' },
+    bundleChanged: from => from !== 'v2.16.0',
+  }).run();
+  assert.deepEqual(same.android.runtimes, ['rv-1', 'rv-00']);
+  assert.match(same.android.skipped[0].problems[0], /mesmo da v2\.16\.0/);
+});
+
+test('changed native code the JS calls is refused: it needs a store release', async () => {
+  await assert.rejects(
+    scenario({
+      current: { android: 'rv-2' },
+      compat: () => ['NativeX.y é novo no nativo'],
+    }).run(),
+    /Nenhuma build da loja recebe este JS\. android v2\.15\.2: NativeX\.y é novo no nativo.*release na loja/,
+  );
+});
+
+test('an automatic run (after the Quality of a push) skips quietly instead of failing', async () => {
+  const auto = { AUTO: 'true', OTA_SHA: 'abc', GITHUB_SHA: 'zzz' };
+  // um push mais novo já está na main: o OTA dele vem depois
+  assert.match(
+    (await scenario({ env: auto, tip: 'def' }).run()).skip,
+    /A main já está em def/,
+  );
+  // o push só mexeu no que não entra no app
+  const pushes = [
+    {
+      head_sha: 'abc',
+      head_branch: 'main',
+      event: 'push',
+      created_at: '2026-11-20T12:00:00Z',
+    },
+    {
+      head_sha: 'old',
+      head_branch: 'main',
+      event: 'push',
+      created_at: '2026-11-20T11:00:00Z',
+    },
+  ];
+  const quiet = await scenario({
+    env: auto,
+    pushes,
+    bundleChanged: from => from !== 'old',
+  }).run();
+  assert.match(quiet.skip, /desde old: sem OTA/);
+  // sem build compatível: avisa, sem erro
+  const refused = await scenario({
+    env: auto,
+    pushes,
+    current: { android: 'rv-2' },
+    compat: () => ['spec mudou'],
+  }).run();
+  assert.match(refused.skip, /Nenhuma build da loja recebe este JS/);
+  // sem build do iPhone na loja: só o Android
+  const both = await scenario({
+    env: { ...auto, PLATFORM: 'both' },
+    pushes,
+  }).run();
+  assert.deepEqual(Object.keys(both), ['android']);
+});
+
+test('the previous push is the last Quality of a push to main before this commit', () => {
+  const run = (head_sha, created_at, extra = {}) => ({
+    head_sha,
+    created_at,
+    head_branch: 'main',
+    event: 'push',
+    ...extra,
+  });
+  assert.equal(
+    previousPush(
+      [
+        run('new', '2026-11-20T13:00:00Z'),
+        run('abc', '2026-11-20T12:00:00Z'),
+        run('pr', '2026-11-20T11:30:00Z', { event: 'pull_request' }),
+        run('old', '2026-11-20T11:00:00Z'),
+        run('older', '2026-11-20T10:00:00Z'),
+      ],
+      'abc',
+    ),
+    'old',
+  );
+  assert.equal(previousPush([], 'abc'), undefined);
 });
 
 test('a rollback targets the store runtime without the Quality gate or this code runtime', async () => {
@@ -257,7 +382,7 @@ test('a rollback targets the store runtime without the Quality gate or this code
     current: {},
   });
   assert.deepEqual(await rollback.run(), {
-    android: { runtime: 'rv-1', tag: 'v2.15.2', tags: ['v2.15.2'] },
+    android: target(['rv-1'], ['v2.15.2']),
   });
   assert.deepEqual(rollback.calls, ['releases?per_page=100']);
 });
@@ -300,11 +425,11 @@ test('the GitHub client reads the repository API with the run token and download
 const ota = read('.github/workflows/ota.yml');
 const otaJobs = jobsOf(ota);
 
-test('ota.yml is manual only, with platform, message and rollback inputs', () => {
+test('ota.yml runs by hand and, on its own, after the Quality of a push to main', () => {
   const triggers = ota.split(/^on:\n/m)[1].split(/^\S/m)[0];
   assert.deepEqual(
     [...triggers.matchAll(/^ {2}(\w+):/gm)].map(match => match[1]),
-    ['workflow_dispatch'],
+    ['workflow_dispatch', 'workflow_run'],
   );
   assert.match(
     triggers,
@@ -312,6 +437,19 @@ test('ota.yml is manual only, with platform, message and rollback inputs', () =>
   );
   assert.match(triggers, /message:\n(?: {8}.*\n)*? {8}required: true/);
   assert.match(triggers, /rollback:\n(?: {8}.*\n)*? {8}type: boolean/);
+  assert.match(
+    triggers,
+    /workflow_run:\n {4}workflows: \[Quality\]\n {4}types: \[completed\]\n {4}branches: \[main\]/,
+  );
+  // o automático só depois de um Quality verde de push
+  assert.match(
+    otaJobs.check,
+    /github\.event\.workflow_run\.conclusion == 'success' && github\.event\.workflow_run\.event == 'push'/,
+  );
+  assert.match(
+    otaJobs.check,
+    /AUTO: \$\{\{ github\.event_name == 'workflow_run' \}\}/,
+  );
   assert.match(ota, /^permissions: \{\}$/m);
 });
 
@@ -321,7 +459,15 @@ test('ota.yml checks first and publishes only from main, in the play environment
   assert.match(check, /run: node scripts\/ci\/ota-check\.cjs\n/);
   assert.doesNotMatch(check, /environment:|secrets\./);
   assert.match(publish, /^ {4}needs: check$/m);
-  assert.match(publish, /^ {4}if: github\.ref == 'refs\/heads\/main'$/m);
+  assert.match(
+    publish,
+    /^ {4}if: github\.ref == 'refs\/heads\/main' && needs\.check\.outputs\.platform != ''$/m,
+  );
+  // outro runtime só com a conferência do check
+  assert.match(
+    publish,
+    /\[ "\$OTHER" != true \] \|\| set -- "\$@" --other-runtime/,
+  );
   assert.match(publish, /^ {4}environment: play$/m);
   assert.match(publish, /^ {6}contents: read$/m);
   assert.doesNotMatch(publish, /contents: write/);
@@ -379,13 +525,10 @@ test('every workflow action is pinned by SHA to the same commits the other workf
     assert.ok(known.has(`${action}@${ref}`), `${action}@${ref}`);
   }
   // os dois checkouts, cada um sem deixar o token no .git
-  const checkouts = ota.match(
-    /actions\/checkout@\S+.*\n\s+with:\n\s+persist-credentials: \w+/g,
-  );
+  const checkouts = ota.split(/- uses: actions\/checkout@/).slice(1);
   assert.equal(checkouts.length, 2);
-  assert.equal(ota.match(/actions\/checkout@/g).length, 2);
   for (const checkout of checkouts)
-    assert.match(checkout, /persist-credentials: false/);
+    assert.match(checkout.split(/\n {6}- /)[0], /persist-credentials: false/);
 });
 
 test('release.yml records the runtime of the build the Play accepted, without widening the play job', () => {
@@ -418,10 +561,45 @@ test('release.yml records the runtime of the build the Play accepted, without wi
     positions,
   );
   // o registro só depois da Play, com escrita só nele, e sem segredos
-  assert.match(record, /^ {4}needs: \[prepare, play\]$/m);
+  assert.match(record, /^ {4}needs: \[prepare, play, github-release\]$/m);
   assert.match(record, /needs\.play\.result == 'success'/);
   assert.match(record, /^ {6}contents: write$/m);
   assert.doesNotMatch(record, /secrets\.|environment:|actions\/checkout/);
   assert.ok(record.includes(runtimeAssetName('android')));
   assert.match(record, /gh release upload "\$TAG" "\$file" --clobber/);
+});
+
+test('every version tag on main goes to both stores, with the GitHub Release and both runtimes', () => {
+  const workflow = read('.github/workflows/release.yml');
+  const jobs = jobsOf(workflow);
+  // a tag do bump feito à mão também publica, no mesmo run
+  assert.match(
+    jobs['version-tag'],
+    /created: \$\{\{ steps\.create\.outputs\.created \}\}/,
+  );
+  assert.match(jobs.prepare, /needs\.version-tag\.outputs\.created == 'true'/);
+  assert.match(jobs.prepare, /needs\.version-tag\.outputs\.tag/);
+  // o GitHub Release sai das notas do CHANGELOG, se ainda não existe
+  assert.match(
+    jobs['github-release'],
+    /node scripts\/ci\/release-notes\.cjs notes "\$TAG" "\$SHA" "\$notes"/,
+  );
+  // a App Store pela mesma tag, depois do Quality, com o runtime registrado
+  assert.match(
+    jobs['app-store'],
+    /uses: \.\/\.github\/workflows\/ios-app-store\.yml/,
+  );
+  assert.match(jobs['app-store'], /^ {4}needs: \[prepare, quality\]$/m);
+  assert.match(
+    jobs['app-store'],
+    /build_number: \$\{\{ needs\.prepare\.outputs\.build \}\}/,
+  );
+  const ios = jobs['runtime-version-ios'];
+  assert.match(ios, /^ {4}needs: \[prepare, app-store, github-release\]$/m);
+  assert.ok(ios.includes(runtimeAssetName('ios')));
+  assert.doesNotMatch(ios, /secrets\.|environment:|actions\/checkout/);
+  const appStore = read('.github/workflows/ios-app-store.yml');
+  assert.match(appStore, /^ {2}workflow_call:$/m);
+  assert.match(appStore, /ref: \$\{\{ inputs\.ref \|\| github\.sha \}\}/);
+  assert.match(appStore, /echo "runtime=\$runtime" >> "\$GITHUB_OUTPUT"/);
 });

@@ -16,9 +16,10 @@ jobs:
   # Um bump feito à mão ("chore: release X.Y.Z" direto na main) não cria a tag, e sem
   # ela o release-please não acha a versão do manifest: volta ao bootstrap-sha e
   # propõe uma 2.0.0 com o histórico inteiro. Esta etapa põe a tag vX.Y.Z no commit
-  # do bump antes dele. Só a tag: nada de GitHub Release nem Play, e uma tag criada
-  # com o GITHUB_TOKEN não dispara outros workflows. O merge do PR do release-please
-  # fica com ele, que cria a tag e o GitHub Release.
+  # do bump antes dele. Uma tag criada aqui publica a versão neste mesmo run (GitHub
+  # Release, Play e App Store), porque uma tag criada com o GITHUB_TOKEN não dispara
+  # outros workflows. O merge do PR do release-please fica com ele, que cria a tag e
+  # o GitHub Release.
   version-tag:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -26,6 +27,9 @@ jobs:
     permissions:
       contents: write
       pull-requests: read
+    outputs:
+      tag: ${{ steps.plan.outputs.tag }}
+      created: ${{ steps.create.outputs.created }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -34,6 +38,7 @@ jobs:
         name: Conferir a tag da versão do package.json
         run: node scripts/ci/version-tag.cjs
       - name: Criar a tag do bump feito à mão
+        id: create
         if: steps.plan.outputs.create == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -52,10 +57,13 @@ jobs:
           GIT_COMMITTER_DATE=$(git show -s --format=%cI "$SHA") \
             git tag -a "$TAG" -m "Release $TAG" "$SHA"
           if ! git push origin "refs/tags/$TAG"; then
-            # outro push pode ter criado a mesma tag no meio tempo: vale se for no bump
+            # outro push pode ter criado a mesma tag no meio tempo: vale se for no
+            # bump, e quem a criou publica
             git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
             [ "$(git rev-parse "refs/tags/$TAG^{commit}")" = "$SHA" ] || exit 1
+            exit 0
           fi
+          echo "created=true" >> "$GITHUB_OUTPUT"
           echo "Tag $TAG criada em $SHA."
 
   # Mantém o PR de release (versão no package.json + CHANGELOG.md). O merge desse PR
@@ -81,11 +89,15 @@ jobs:
 
   # O retry usa uma tag existente, nunca cria outra versão. Resolve uma vez para
   # que testes e publicação consumam o mesmo commit mesmo se uma tag for movida.
+  # Toda tag de versão na main vai para as duas lojas: a do release-please, a do bump
+  # feito à mão (criada pelo version-tag) e a retomada à mão (workflow_dispatch).
   prepare:
-    needs: release-please
+    needs: [version-tag, release-please]
     if: >-
       always() && !cancelled() && github.ref == 'refs/heads/main' &&
-      (github.event_name == 'workflow_dispatch' || needs.release-please.outputs.release_created == 'true')
+      (github.event_name == 'workflow_dispatch' ||
+      needs.release-please.outputs.release_created == 'true' ||
+      needs.version-tag.outputs.created == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -93,6 +105,7 @@ jobs:
     outputs:
       sha: ${{ steps.release.outputs.sha }}
       tag: ${{ steps.release.outputs.tag }}
+      build: ${{ steps.build.outputs.build }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -102,7 +115,40 @@ jobs:
         name: Conferir tag, versão e origem na main
         run: node scripts/ci/release-ref.cjs
         env:
-          RELEASE_TAG: ${{ inputs.tag || needs.release-please.outputs.tag_name }}
+          RELEASE_TAG: ${{ inputs.tag || needs.release-please.outputs.tag_name || needs.version-tag.outputs.tag }}
+      - id: build
+        name: Build do iPhone nesta versão
+        run: node scripts/ci/release-notes.cjs build "$SHA"
+        env:
+          SHA: ${{ steps.release.outputs.sha }}
+
+  # O GitHub Release da versão, com as notas do CHANGELOG, se ainda não existe (num
+  # bump à mão): os runtimes das builds ficam nele, e o OTA o lê.
+  github-release:
+    needs: prepare
+    if: always() && !cancelled() && needs.prepare.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Criar o GitHub Release, se falta
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          SHA: ${{ needs.prepare.outputs.sha }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "O GitHub Release $TAG já existe."
+            exit 0
+          fi
+          notes="$RUNNER_TEMP/notes.md"
+          node scripts/ci/release-notes.cjs notes "$TAG" "$SHA" "$notes"
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$notes" --repo "$GITHUB_REPOSITORY"
 
   quality:
     needs: prepare
@@ -251,7 +297,7 @@ jobs:
   # GitHub Release: o ota.yml só publica para o runtime da última build na loja (ver
   # docs/ota.md). Num job à parte, para o `play`, que tem as chaves, ficar só com leitura.
   runtime-version:
-    needs: [prepare, play]
+    needs: [prepare, play, github-release]
     if: always() && !cancelled() && needs.play.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -275,3 +321,43 @@ jobs:
             exit 1
           fi
           echo "Runtime de android da $TAG: $RUNTIME"
+
+  # A mesma versão para a App Store: compila, assina e envia a build (o número do
+  # CURRENT_PROJECT_VERSION da tag). A revisão e o lançamento seguem no App Store
+  # Connect (docs/ios.md).
+  app-store:
+    needs: [prepare, quality]
+    if: always() && !cancelled() && needs.prepare.result == 'success' && needs.quality.result == 'success'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ios-app-store.yml
+    secrets: inherit
+    with:
+      ref: ${{ needs.prepare.outputs.sha }}
+      build_number: ${{ needs.prepare.outputs.build }}
+      upload: true
+
+  # O runtime da build enviada à App Store, como asset runtime-version-ios.txt do
+  # GitHub Release, como o do Android: o OTA passa a contar com ela.
+  runtime-version-ios:
+    needs: [prepare, app-store, github-release]
+    if: always() && !cancelled() && needs.app-store.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Registrar o runtime no GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          RUNTIME: ${{ needs.app-store.outputs.runtime }}
+        run: |
+          if [ -z "$RUNTIME" ]; then
+            echo "::error::A $TAG foi para a App Store sem o runtime version. Sem o registro, o OTA não conta com esta build (docs/ota.md)."
+            exit 1
+          fi
+          file="$RUNNER_TEMP/runtime-version-ios.txt"
+          printf '%s\n' "$RUNTIME" > "$file"
+          gh release upload "$TAG" "$file" --clobber --repo "$GITHUB_REPOSITORY"
+          echo "Runtime de ios da $TAG: $RUNTIME"

@@ -589,6 +589,49 @@ test('code from another runtime is refused before exporting or sending anything'
   );
 });
 
+test('with --other-runtime the same export goes to every runtime asked, one manifest each', async () => {
+  const { calls, fetch } = recordingFetch();
+  const result = await ota.publish(
+    ota.parseArgs([
+      '--platform=android',
+      '--runtime-version=android=rv-store,rv-next',
+      '--other-runtime',
+      `--export-dir=${fakeExport('other-runtime')}`,
+    ]),
+    deps({
+      fetch,
+      runtimeVersion: () => {
+        throw new Error('o runtime deste código não é calculado');
+      },
+    }),
+  );
+  assert.deepEqual(
+    result.updates.map(update => update.runtimeVersion),
+    ['rv-store', 'rv-next'],
+  );
+  const posts = calls.filter(call => call.method === 'POST');
+  assert.deepEqual(
+    posts.map(call => JSON.parse(call.body).runtimeVersion),
+    ['rv-store', 'rv-next'],
+  );
+  // os assets sobem uma vez só, antes dos dois manifests
+  const puts = calls.filter(call => call.method === 'PUT');
+  assert.equal(new Set(puts.map(call => call.url)).size, puts.length);
+  assert.ok(calls.findIndex(call => call.method === 'POST') > puts.length - 1);
+  assert.throws(
+    () =>
+      ota.parseArgs(['--platform=android', '--rollback', '--other-runtime']),
+    /--other-runtime não serve para --rollback/,
+  );
+  await assert.rejects(
+    ota.publish(
+      ota.parseArgs(['--platform=android', '--other-runtime']),
+      deps({ fetch }),
+    ),
+    /--other-runtime precisa do --runtime-version de android/,
+  );
+});
+
 test('a rollback signs a directive for the given runtime, without exporting or computing it', async () => {
   const { calls, fetch } = recordingFetch();
   await ota.publish(

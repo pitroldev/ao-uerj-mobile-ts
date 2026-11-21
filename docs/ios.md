@@ -7,9 +7,9 @@ O app está na [App Store](https://apps.apple.com/br/app/ao-uerj-aluno-online/id
 
 ## Estado atual
 
-- **App Store:** o app `6835308883` ("AO UERJ: Aluno Online") está na loja do Brasil, gratuito, só para iPhone. A primeira versão publicada é a `2.17.2`, build `26`, compilada do tag `v2.17.2` e liberada em 18/11/2026. O `ios-app-store.yml` assina e envia a compilação; a revisão e o lançamento são acompanhados no App Store Connect. O `release.yml` continua publicando o Android.
+- **App Store:** o app `6835308883` ("AO UERJ: Aluno Online") está na loja do Brasil, gratuito, só para iPhone. A primeira versão publicada é a `2.17.2`, build `26`, compilada do tag `v2.17.2` e liberada em 18/11/2026. A cada versão, o `release.yml` chama o `ios-app-store.yml`, que assina e envia a compilação; a revisão e o lançamento são feitos no App Store Connect.
 - **No app:** "Avaliar na App Store", no Sobre, o "Atualizar" da tela de versão sem suporte e o aviso "Versão X na App Store" do Início abrem a página do app na App Store (`itms-apps://` e, sem o app da loja, o site). O aviso vem da ficha pública do app na App Store (`adapters/outbound/delivery/appStoreUpdates.ts`), alguns dias depois de a versão sair, e o bloqueio por versão mínima só aparece se a App Store já tiver essa versão. Os convites levam os links das duas lojas, e o QR deixa escolher Android ou iPhone.
-- **OTA:** o Release `v2.17.2` tem o `runtime-version-ios.txt` da build 26, e o OTA de `ios` vale para ela (ver [Atualizações OTA](ota.md#a-regra-de-compatibilidade)).
+- **OTA:** cada GitHub Release com o `runtime-version-ios.txt` conta como build do iPhone na loja, e o OTA de `ios` vai para as mais novas (ver [Atualizações OTA](ota.md#a-regra-de-compatibilidade)).
 - **Compila no CI:** o `ios.yml` (macOS, manual) compila o app e a extensão do widget em Release e abre o app num simulador.
 - **Identificação do aluno:** a implantação do servidor carrega `APPLE_APP_ATTEST_APP_ID=4L52AMB8J7.com.aouerjmobile` de `deploy/server/app-store.env`; o `.env` privado da VM tem prioridade (ver [server/README.md](../server/README.md#identificação-do-aluno-v2)). O App Attest precisa de iPhone físico.
 - **Versão:** `MARKETING_VERSION` e `CURRENT_PROJECT_VERSION` ficam no `project.pbxproj` e mudam à mão (ver [Release](release.md#versão)). O alvo mínimo é o iOS 16.4, o dos módulos do Expo SDK 58 (o `expo-updates`).
@@ -41,22 +41,25 @@ O que depende do login fica nos testes do Jest, que rodam como iOS (ver [Testes]
 
 ## Envio à App Store
 
-O workflow manual `.github/workflows/ios-app-store.yml` usa o environment
-`app-store`. Rode-o no tag da versão (`gh workflow run ios-app-store.yml --ref vX.Y.Z -f build_number=N`),
-com o `CURRENT_PROJECT_VERSION` do `project.pbxproj` desse tag como
-`build_number` (maior que o último enviado), e mantenha `upload` ligado para
-validar e enviar o IPA à Apple. Com `upload` desligado, ele apenas gera o
-artefato assinado, guardado por 14 dias.
+O `.github/workflows/ios-app-store.yml` usa o environment `app-store`. A
+cada tag de versão, o [Release](release.md#na-app-store) o chama no commit da
+tag, com o `CURRENT_PROJECT_VERSION` do `project.pbxproj` dela como número da
+build, e grava o runtime da build no GitHub Release (`runtime-version-ios.txt`),
+para o [OTA](ota.md#a-regra-de-compatibilidade) contar com ela.
 
-Depois que a Apple liberar a versão na loja, grave o runtime da build no
-GitHub Release, para o [OTA](ota.md#a-regra-de-compatibilidade) achá-la. O
-valor é o que o workflow calculou e conferiu no app assinado, guardado no
-artefato `ios-app-store-N`:
+À mão, rode-o no tag da versão (`gh workflow run ios-app-store.yml --ref vX.Y.Z -f build_number=N`),
+com um `build_number` maior que o último enviado. Com `upload` desligado, ele
+apenas gera o artefato assinado, guardado por 14 dias. Nesse caso, o runtime
+fica no artefato `ios-app-store-N`:
 
 ```sh
 gh run download <id do run> -n ios-app-store-N -D /tmp/ios-app-store-N
 gh release upload vX.Y.Z /tmp/ios-app-store-N/runtime-version-ios.txt
 ```
+
+Com a build no App Store Connect, crie a versão, escolha a build, escreva o
+"O que há de novo" (um parágrafo, no estilo das anteriores) e mande para a
+revisão. A Apple libera sozinha depois de aprovar, para todos de uma vez.
 
 O app (`com.aouerjmobile`) e o widget (`com.aouerjmobile.NextClassWidget`)
 pertencem à equipe `4L52AMB8J7` e compartilham `group.com.aouerjmobile`.

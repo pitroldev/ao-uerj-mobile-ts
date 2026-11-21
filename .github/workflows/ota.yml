@@ -2,15 +2,21 @@ name: OTA
 
 # Publica um update OTA (o JavaScript e os assets deste commit) no servidor de
 # pitrol.dev, ou a volta ao JS que veio na build da loja. O código nativo não
-# vai por aqui; um OTA não é bump, e só o nativo (o runtime) o barra: ver docs/ota.md.
+# vai por aqui; um OTA não é bump: ver docs/ota.md.
+#
+# Sai sozinho depois do Quality verde de cada push na main, com o JS que
+# mudou, para as builds da loja em que ele roda: as do mesmo runtime e as de
+# outro runtime cujo nativo tem tudo o que o JS chama (scripts/ci/ota-compat.cjs).
+# Também roda à mão (a volta só à mão).
 #
 # O job `check`, sem segredos, confere a main, o Quality verde neste commit e
-# a última build na loja (versão e runtime). Só então o `publish` pede a
-# aprovação do environment `play` e assina com o secret OTA_SIGNING_KEY.
+# as builds da loja. Só então o `publish` assina com o secret OTA_SIGNING_KEY,
+# no environment `play`.
 
 run-name: >-
-  OTA ${{ inputs.rollback && 'rollback' || 'update' }} (${{ inputs.platform }}):
-  ${{ inputs.message }}
+  OTA ${{ github.event_name == 'workflow_run' && 'automático' || (inputs.rollback && 'rollback' || 'update') }}
+  (${{ inputs.platform || 'both' }}):
+  ${{ inputs.message || github.event.workflow_run.display_title }}
 
 on:
   workflow_dispatch:
@@ -28,6 +34,10 @@ on:
         description: Voltar ao JS da build da loja, em vez de publicar este commit
         type: boolean
         default: false
+  workflow_run:
+    workflows: [Quality]
+    types: [completed]
+    branches: [main]
 
 permissions: {}
 
@@ -38,6 +48,10 @@ concurrency:
 
 jobs:
   check:
+    # o automático só depois de um Quality verde de push (não de PR nem manual)
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -46,9 +60,15 @@ jobs:
     outputs:
       android: ${{ steps.check.outputs.android }}
       ios: ${{ steps.check.outputs.ios }}
+      other: ${{ steps.check.outputs.other }}
+      platform: ${{ steps.check.outputs.platform }}
+      sha: ${{ steps.check.outputs.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          # as tags das builds da loja, para comparar o JS com o nativo delas
+          fetch-depth: 0
           persist-credentials: false
       # v6.1.0 ou mais nova: a v6.0.x não tem suporte nativo ao pnpm 12 (pnpm/action-setup#289).
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -59,20 +79,22 @@ jobs:
           cache-dependency-path: |
             pnpm-lock.yaml
             server/pnpm-lock.yaml
-      # o runtime version deste código; a volta usa o da loja e não precisa dele
+      # o runtime version deste código e as dependências nativas; a volta usa o da loja
       - if: ${{ !inputs.rollback }}
         run: pnpm install --frozen-lockfile
       - id: check
-        name: Conferir main, Quality e a build na loja
+        name: Conferir main, Quality e as builds na loja
         run: node scripts/ci/ota-check.cjs
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          PLATFORM: ${{ inputs.platform }}
-          ROLLBACK: ${{ inputs.rollback }}
+          PLATFORM: ${{ inputs.platform || 'both' }}
+          ROLLBACK: ${{ inputs.rollback || false }}
+          AUTO: ${{ github.event_name == 'workflow_run' }}
+          OTA_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
   publish:
     needs: check
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && needs.check.outputs.platform != ''
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: play
@@ -81,6 +103,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.check.outputs.sha }}
           persist-credentials: false
       - if: ${{ !inputs.rollback }}
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -94,19 +117,22 @@ jobs:
         run: pnpm install --frozen-lockfile
       # O publish.cjs lê a chave, confere-a contra o config/ota/certificate.pem (o
       # que o app embute), tira-a do ambiente do `expo export` e confere de novo o
-      # runtime deste código contra o da loja. Os valores vêm por env, nunca direto
-      # no script: a mensagem é texto livre.
+      # runtime deste código: um runtime de outro nativo só com --other-runtime,
+      # que o check só dá depois de conferir o JS contra o nativo daquela build.
+      # Os valores vêm por env, nunca direto no script: a mensagem é texto livre.
       - name: Exportar, assinar e publicar
         env:
           OTA_SIGNING_KEY: ${{ secrets.OTA_SIGNING_KEY }}
-          PLATFORM: ${{ inputs.platform }}
-          MESSAGE: ${{ inputs.message }}
-          ROLLBACK: ${{ inputs.rollback }}
+          PLATFORM: ${{ needs.check.outputs.platform }}
+          MESSAGE: ${{ inputs.message || github.event.workflow_run.display_title }}
+          ROLLBACK: ${{ inputs.rollback || false }}
+          OTHER: ${{ needs.check.outputs.other }}
           ANDROID_RUNTIME: ${{ needs.check.outputs.android }}
           IOS_RUNTIME: ${{ needs.check.outputs.ios }}
         run: |
           set -- "--platform=$PLATFORM" "--message=$MESSAGE"
           [ -z "$ANDROID_RUNTIME" ] || set -- "$@" "--runtime-version=android=$ANDROID_RUNTIME"
           [ -z "$IOS_RUNTIME" ] || set -- "$@" "--runtime-version=ios=$IOS_RUNTIME"
+          [ "$OTHER" != true ] || set -- "$@" --other-runtime
           [ "$ROLLBACK" != true ] || set -- "$@" --rollback
           node scripts/ota/publish.cjs "$@"
